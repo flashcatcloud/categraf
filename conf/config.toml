@@ -1,6 +1,25 @@
-[Agent]
+[Global]
+PrintConfig = true
 Hostname = ""
 
-[Agent.Labels]
-Region = "beijing"
-Env = "prod"
+[Global.Labels]
+region = "beijing"
+env = "localhost"
+
+[[Writers]]
+Url = "http://127.0.0.1:19000/prometheus/v1/write"
+# Basic auth username
+BasicAuthUser = ""
+# Basic auth password
+BasicAuthPass = ""
+# timeout settings, unit: ms
+Timeout = 30000
+DialTimeout = 10000
+TLSHandshakeTimeout = 30000
+ExpectContinueTimeout = 1000
+IdleConnTimeout = 90000
+# time duration, unit: ms
+KeepAlive = 30000
+MaxConnsPerHost = 0
+MaxIdleConns = 100
+MaxIdleConnsPerHost = 100

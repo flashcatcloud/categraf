@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"path"
@@ -15,9 +16,35 @@ import (
 	_ "flashcat.cloud/categraf/inputs/redis"
 )
 
+type Global struct {
+	PrintConfig bool
+	Hostname    string
+	Labels      map[string]string
+}
+
+type Writer struct {
+	Url           string
+	BasicAuthUser string
+	BasicAuthPass string
+
+	Timeout               int64
+	DialTimeout           int64
+	TLSHandshakeTimeout   int64
+	ExpectContinueTimeout int64
+	IdleConnTimeout       int64
+	KeepAlive             int64
+
+	MaxConnsPerHost     int
+	MaxIdleConns        int
+	MaxIdleConnsPerHost int
+}
+
 type Agent struct {
 	ConfigDir string
 	DebugMode bool
+
+	Global  Global
+	Writers []Writer
 }
 
 func NewAgent(configDir, debugMode string) (*Agent, error) {
@@ -36,7 +63,14 @@ func NewAgent(configDir, debugMode string) (*Agent, error) {
 		DebugMode: debug,
 	}
 
-	log.Println("I! agent.instance:", ag)
+	if err := loadConfigs(configDir, ag); err != nil {
+		return nil, fmt.Errorf("failed to load configs of dir: %s", configDir)
+	}
+
+	if ag.Global.PrintConfig {
+		bs, _ := json.MarshalIndent(ag, "", "    ")
+		fmt.Println(string(bs))
+	}
 
 	return ag, nil
 }
