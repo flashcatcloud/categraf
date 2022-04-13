@@ -13,22 +13,22 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 )
 
-type Consumer struct {
+type Reader struct {
 	Instance inputs.Input
 	Queue    chan *types.Sample
 }
 
-var InputConsumers = map[string]*Consumer{}
+var InputReaders = map[string]*Reader{}
 
-func (c *Consumer) Start() {
+func (c *Reader) Start() {
 	// start consumer goroutines
-	go consume(c.Queue)
+	go read(c.Queue)
 
 	// start collector goroutines
 	c.Instance.StartGoroutines(c.Queue)
 }
 
-func consume(queue chan *types.Sample) {
+func read(queue chan *types.Sample) {
 	batch := config.Config.WriterOpt.Batch
 	if batch <= 0 {
 		batch = 2000

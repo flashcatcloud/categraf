@@ -41,9 +41,9 @@ func (a *Agent) Start() {
 func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
 
-	for name := range InputConsumers {
-		InputConsumers[name].Instance.StopGoroutines()
-		close(InputConsumers[name].Queue)
+	for name := range InputReaders {
+		InputReaders[name].Instance.StopGoroutines()
+		close(InputReaders[name].Queue)
 	}
 }
 
@@ -84,7 +84,7 @@ func (a *Agent) startInputs() error {
 			continue
 		}
 
-		c := &Consumer{
+		c := &Reader{
 			Instance: instance,
 			Queue:    make(chan *types.Sample, 1000000),
 		}
@@ -92,7 +92,7 @@ func (a *Agent) startInputs() error {
 		log.Println("I! input:", name, "started")
 		c.Start()
 
-		InputConsumers[name] = c
+		InputReaders[name] = c
 	}
 
 	return nil
