@@ -1,7 +1,9 @@
 package redis
 
 import (
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/inputs"
@@ -14,47 +16,36 @@ var (
 )
 
 type Target struct {
-	IntervalMS int64
-	TimeoutMS  int64
-	Address    string
-	Password   string
-	quit       chan struct{}
-	Labels     map[string]string
+	IntervalSeconds int64
+	TimeoutSeconds  int64
+	Labels          map[string]string
+
+	Address  string
+	Password string
+
+	quit chan struct{}
 }
 
 type Redis struct {
-	ConfigBytes []byte
+	IntervalSeconds int64
+	TimeoutSeconds  int64
+	Labels          map[string]string
 
-	IntervalMS int64
-	TimeoutMS  int64
-	Targets    []*Target
-	Labels     map[string]string
-}
-
-// overwrite func
-func (r *Redis) Description() string {
-	return "Read metrics from one or many redis servers"
-}
-
-func (r *Redis) GetPointer() interface{} {
-	return r
+	Targets []*Target
 }
 
 // overwrite func
 func (r *Redis) TidyConfig() error {
-	log.Printf("-------%#v", r)
-
 	if len(r.Targets) == 0 {
 		log.Println("I! [redis] Targets is empty")
 	}
-
 	return nil
 }
 
 // overwrite func
 func (r *Redis) StopGoroutines() {
 	for i := 0; i < len(r.Targets); i++ {
-		close(r.Targets[i].quit)
+		r.Targets[i].quit <- struct{}{}
 	}
 }
 
@@ -67,12 +58,12 @@ func (r *Redis) StartGoroutines(queue chan *types.Sample) {
 }
 
 func (t *Target) getInterval(r *Redis) time.Duration {
-	if t.IntervalMS != 0 {
-		return time.Duration(t.IntervalMS) * time.Millisecond
+	if t.IntervalSeconds != 0 {
+		return time.Duration(t.IntervalSeconds) * time.Second
 	}
 
-	if r.IntervalMS != 0 {
-		return time.Duration(r.IntervalMS) * time.Millisecond
+	if r.IntervalSeconds != 0 {
+		return time.Duration(r.IntervalSeconds) * time.Second
 	}
 
 	return DefaultInterval
@@ -85,6 +76,15 @@ func (t *Target) LoopGather(r *Redis, queue chan *types.Sample) {
 			return
 		default:
 			time.Sleep(t.getInterval(r))
+			defer func() {
+				if r := recover(); r != nil {
+					if strings.Contains(fmt.Sprint(r), "closed channel") {
+						return
+					} else {
+						log.Println("E! gather redis:", t.Address, " panic:", r)
+					}
+				}
+			}()
 			t.Gather(r, queue)
 		}
 	}

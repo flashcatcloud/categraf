@@ -48,17 +48,23 @@ func (a *Agent) String() string {
 func (a *Agent) Start() {
 	log.Println("I! agent starting")
 
-	StartInputs(a.ConfigDir)
+	a.startInputs()
 }
 
 func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
 
+	for name := range InputConsumers {
+		InputConsumers[name].Instance.StopGoroutines()
+		close(InputConsumers[name].Queue)
+	}
 }
 
 func (a *Agent) Reload() {
 	log.Println("I! agent reloading")
 
+	a.Stop()
+	a.Start()
 }
 
 // -----
@@ -66,13 +72,30 @@ func (a *Agent) Reload() {
 type Consumer struct {
 	Instance inputs.Input
 	Queue    chan *types.Sample
-	Quit     chan struct{}
+}
+
+func (c *Consumer) Start() {
+	// start consumer goroutines
+	go consume(c.Queue)
+
+	// start collector goroutines
+	c.Instance.StartGoroutines(c.Queue)
+}
+
+func consume(queue chan *types.Sample) {
+	for s := range queue {
+		fmt.Println(s.Metric)
+		fmt.Println(s.Labels)
+		fmt.Println(s.Timestamp)
+		fmt.Println(s.Value)
+		fmt.Println()
+	}
 }
 
 var InputConsumers = map[string]*Consumer{}
 
-func StartInputs(confd string) error {
-	names, err := getInputsByDirs(confd)
+func (a *Agent) startInputs() error {
+	names, err := a.getInputsByDirs()
 	if err != nil {
 		return err
 	}
@@ -93,7 +116,7 @@ func StartInputs(confd string) error {
 		instance := creator()
 
 		// set configurations for input instance
-		loadConfigs(path.Join(confd, "input."+name), instance.GetPointer())
+		loadConfigs(path.Join(a.ConfigDir, "input."+name), instance)
 
 		// check configurations
 		if err = instance.TidyConfig(); err != nil {
@@ -103,29 +126,16 @@ func StartInputs(confd string) error {
 
 		c := &Consumer{
 			Instance: instance,
-			Quit:     make(chan struct{}),
 			Queue:    make(chan *types.Sample, 1000000),
 		}
 
-		// start consumer goroutines
-		go consume(c.Queue)
-
-		// start collector goroutines
-		instance.StartGoroutines(c.Queue)
+		log.Println("I! input:", name, "started")
+		c.Start()
 
 		InputConsumers[name] = c
 	}
 
 	return nil
-}
-
-func consume(queue chan *types.Sample) {
-	for s := range queue {
-		fmt.Println(s.Metric)
-		fmt.Println(s.Labels)
-		fmt.Println(s.Timestamp)
-		fmt.Println(s.Value)
-	}
 }
 
 func loadConfigs(configDir string, configPtr interface{}) error {
@@ -156,16 +166,14 @@ func loadConfigs(configDir string, configPtr interface{}) error {
 		Validator: multiconfig.MultiValidator(&multiconfig.RequiredValidator{}),
 	}
 
-	m.MustLoad(configPtr)
-
-	return nil
+	return m.Load(configPtr)
 }
 
 // input dir should has prefix input.
-func getInputsByDirs(confd string) ([]string, error) {
-	dirs, err := file.DirsUnder(confd)
+func (a *Agent) getInputsByDirs() ([]string, error) {
+	dirs, err := file.DirsUnder(a.ConfigDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get dirs under %s : %v", confd, err)
+		return nil, fmt.Errorf("failed to get dirs under %s : %v", a.ConfigDir, err)
 	}
 
 	count := len(dirs)

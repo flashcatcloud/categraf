@@ -1,8 +1,22 @@
-IntervalMS = 30000
-TimeoutMS = 20000
-Labels = {aaaa = "bbbb"}
+# collect interval
+IntervalSeconds = 30
+
+# collect timeout per target
+TimeoutSeconds = 20
+
+# append labels for series
+Labels = { aaaa = "bbbb", cccc = "ddddd" }
+
 
 [[Targets]]
+# redis server address
 Address = "127.0.0.1:6379"
-IntervalMS = 15000
-TimeoutMS = 10000
+
+# redis server password
+Password = "1234"
+
+# collect interval this target
+IntervalSeconds = 5
+
+# collect timeout this target
+TimeoutSeconds = 5
