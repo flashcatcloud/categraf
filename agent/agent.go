@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"log"
 	"path"
 	"strconv"
 
@@ -32,4 +33,18 @@ func NewAgent(configDir, debugMode string) (*Agent, error) {
 
 func (a *Agent) String() string {
 	return fmt.Sprintf("<ConfigDir:%s DebugMode:%v>", a.ConfigDir, a.DebugMode)
+}
+
+func (a *Agent) Start() {
+	log.Println("I! agent starting")
+}
+
+func (a *Agent) Stop() {
+	log.Println("I! agent stopping")
+
+}
+
+func (a *Agent) Reload() {
+	log.Println("I! agent reloading")
+
 }

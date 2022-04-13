@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/pkg/osx"
@@ -30,7 +32,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Println(ag)
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	ag.Start()
+
+EXIT:
+	for {
+		sig := <-sc
+		log.Println("I! received signal:", sig.String())
+		switch sig {
+		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
+			break EXIT
+		case syscall.SIGHUP:
+			ag.Reload()
+		default:
+			break EXIT
+		}
+	}
+
+	ag.Stop()
+	log.Println("I! exited")
 }
 
 func printEnv() {
