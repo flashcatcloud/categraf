@@ -1,0 +1,6 @@
+[Agent]
+Hostname = ""
+
+[Agent.Labels]
+Region = "beijing"
+Env = "prod"
