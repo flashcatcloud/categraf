@@ -67,8 +67,6 @@ func (a *Agent) Reload() {
 	a.Start()
 }
 
-// -----
-
 type Consumer struct {
 	Instance inputs.Input
 	Queue    chan *types.Sample

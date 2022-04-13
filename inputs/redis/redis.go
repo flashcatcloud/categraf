@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -27,6 +28,7 @@ type Target struct {
 }
 
 type Redis struct {
+	PrintConfigs    bool
 	IntervalSeconds int64
 	TimeoutSeconds  int64
 	Labels          map[string]string
@@ -36,9 +38,15 @@ type Redis struct {
 
 // overwrite func
 func (r *Redis) TidyConfig() error {
+	if r.PrintConfigs {
+		bs, _ := json.MarshalIndent(r, "", "    ")
+		fmt.Println(string(bs))
+	}
+
 	if len(r.Targets) == 0 {
 		log.Println("I! [redis] Targets is empty")
 	}
+
 	return nil
 }
 

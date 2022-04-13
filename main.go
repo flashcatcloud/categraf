@@ -51,7 +51,6 @@ EXIT:
 		}
 	}
 
-	ag.Stop()
 	log.Println("I! exited")
 }
 
