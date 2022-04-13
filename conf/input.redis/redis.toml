@@ -1,5 +1,5 @@
 # print configurations
-PrintConfigs = true
+PrintConfigs = false
 
 # collect interval
 IntervalSeconds = 30

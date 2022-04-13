@@ -18,6 +18,10 @@ type Global struct {
 	Labels       map[string]string
 }
 
+type WriterOpt struct {
+	Batch int
+}
+
 type WriterOption struct {
 	Url           string
 	BasicAuthUser string
@@ -39,6 +43,7 @@ type ConfigType struct {
 	ConfigDir string
 	DebugMode bool
 	TestMode  bool
+	WriterOpt WriterOpt
 
 	Global  Global
 	Writers []WriterOption

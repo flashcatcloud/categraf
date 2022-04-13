@@ -102,10 +102,9 @@ func (t *Target) LoopGather(r *Redis, queue chan *types.Sample) {
 
 func (t *Target) Gather(r *Redis, queue chan *types.Sample) {
 	queue <- &types.Sample{
-		Metric:    "categraf_test_metric",
+		Metric:    InputName + "_categraf_test_metric",
 		Timestamp: time.Now().Unix(),
 		Value:     float64(time.Now().Unix()),
-		Labels:    map[string]string{"region": "bejing"},
 	}
 }
 

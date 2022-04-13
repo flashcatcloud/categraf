@@ -1,13 +1,18 @@
 [Global]
-PrintConfig = true
-
+# whether print configs
+PrintConfig = false
 # add label(agent_hostname) to series
 Hostname = ""
+# will not add label(agent_hostname) if true
 OmitHostname = false
 
 [Global.Labels]
-region = "beijing"
+region = "shanghai"
 env = "localhost"
+
+[WriterOpt]
+# default: 2000
+Batch = 2000
 
 [[Writers]]
 Url = "http://127.0.0.1:19000/prometheus/v1/write"

@@ -28,9 +28,12 @@ func (c *Consumer) Start() {
 	c.Instance.StartGoroutines(c.Queue)
 }
 
-const batch = 2000
-
 func consume(queue chan *types.Sample) {
+	batch := config.Config.WriterOpt.Batch
+	if batch <= 0 {
+		batch = 2000
+	}
+
 	series := make([]*prompb.TimeSeries, 0, batch)
 
 	var count int
@@ -87,6 +90,24 @@ func postSeries(series []*prompb.TimeSeries) {
 }
 
 func convert(item *types.Sample) *prompb.TimeSeries {
+	if item.Labels == nil {
+		item.Labels = make(map[string]string)
+	}
+
+	// add label: agent_hostname
+	if _, has := item.Labels["agent_hostname"]; !has {
+		if !config.Config.Global.OmitHostname {
+			item.Labels["agent_hostname"] = config.Config.Global.Hostname
+		}
+	}
+
+	// add global labels
+	for k, v := range config.Config.Global.Labels {
+		if _, has := item.Labels[k]; !has {
+			item.Labels[k] = v
+		}
+	}
+
 	pt := &prompb.TimeSeries{}
 
 	if item.Timestamp < 0xffffffff {
@@ -104,14 +125,6 @@ func convert(item *types.Sample) *prompb.TimeSeries {
 		Name:  model.MetricNameLabel,
 		Value: item.Metric,
 	})
-
-	// add label: agent_hostname
-	if !config.Config.Global.OmitHostname {
-		pt.Labels = append(pt.Labels, &prompb.Label{
-			Name:  "agent_hostname",
-			Value: config.Config.Global.Hostname,
-		})
-	}
 
 	// add other labels
 	for k, v := range item.Labels {
