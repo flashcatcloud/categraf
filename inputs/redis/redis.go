@@ -81,6 +81,7 @@ func (t *Target) LoopGather(r *Redis, queue chan *types.Sample) {
 	for {
 		select {
 		case <-t.quit:
+			close(t.quit)
 			return
 		default:
 			time.Sleep(t.getInterval(r))
