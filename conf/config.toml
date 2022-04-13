@@ -1,6 +1,9 @@
 [Global]
 PrintConfig = true
+
+# add label(agent_hostname) to series
 Hostname = ""
+OmitHostname = false
 
 [Global.Labels]
 region = "beijing"
@@ -13,9 +16,9 @@ BasicAuthUser = ""
 # Basic auth password
 BasicAuthPass = ""
 # timeout settings, unit: ms
-Timeout = 30000
-DialTimeout = 10000
-TLSHandshakeTimeout = 30000
+Timeout = 3000
+DialTimeout = 3000
+TLSHandshakeTimeout = 3000
 ExpectContinueTimeout = 1000
 IdleConnTimeout = 90000
 # time duration, unit: ms
