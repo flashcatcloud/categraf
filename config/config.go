@@ -38,6 +38,7 @@ type WriterOption struct {
 type ConfigType struct {
 	ConfigDir string
 	DebugMode bool
+	TestMode  bool
 
 	Global  Global
 	Writers []WriterOption
@@ -45,7 +46,7 @@ type ConfigType struct {
 
 var Config *ConfigType
 
-func InitConfig(configDir, debugMode string) error {
+func InitConfig(configDir, debugMode string, testMode bool) error {
 	configFile := path.Join(configDir, "config.toml")
 	if !file.IsExist(configFile) {
 		return fmt.Errorf("configuration file(%s) not found", configFile)
@@ -59,6 +60,7 @@ func InitConfig(configDir, debugMode string) error {
 	Config = &ConfigType{
 		ConfigDir: configDir,
 		DebugMode: debug,
+		TestMode:  testMode,
 	}
 
 	if err := cfg.LoadConfigs(configDir, Config); err != nil {

@@ -14,6 +14,7 @@ import (
 var (
 	DefaultInterval = time.Second * 30
 	DefaultTimeout  = time.Second * 20
+	InputName       = "redis"
 )
 
 type Target struct {
@@ -109,7 +110,7 @@ func (t *Target) Gather(r *Redis, queue chan *types.Sample) {
 }
 
 func init() {
-	inputs.Add("redis", func() inputs.Input {
+	inputs.Add(InputName, func() inputs.Input {
 		return &Redis{}
 	})
 }

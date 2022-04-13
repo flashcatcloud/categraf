@@ -10,13 +10,10 @@ require (
 	github.com/prometheus/common v0.32.1
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/toolkits/pkg v1.2.9
-	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
 
 require (
 	github.com/BurntSushi/toml v1.1.0 // indirect
-	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
-	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/gogo/protobuf v1.1.1 // indirect

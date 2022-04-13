@@ -19,8 +19,8 @@ import (
 
 type Agent struct{}
 
-func NewAgent(configDir, debugMode string) (*Agent, error) {
-	if err := config.InitConfig(configDir, debugMode); err != nil {
+func NewAgent(configDir, debugMode string, testMode bool) (*Agent, error) {
+	if err := config.InitConfig(configDir, debugMode, testMode); err != nil {
 		return nil, fmt.Errorf("failed to init config: %v", err)
 	}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -10,23 +11,27 @@ import (
 	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/pkg/osx"
 	"github.com/toolkits/pkg/runner"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
-	version   = "0.0.1"
-	configDir = flag.String("configs", osx.GetEnv("CATEGRAF_CONFIGS", "conf"), "Specify configuration directory")
-	debugMode = flag.String("debug", osx.GetEnv("CATEGRAF_DEBUG", "false"), "Is debug mode?")
+	version     = "0.0.1"
+	configDir   = flag.String("configs", osx.GetEnv("CATEGRAF_CONFIGS", "conf"), "Specify configuration directory.(env:CATEGRAF_CONFIGS)")
+	debugMode   = flag.String("debug", osx.GetEnv("CATEGRAF_DEBUG", "false"), "Is debug mode?.(env:CATEGRAF_DEBUG)")
+	testMode    = flag.Bool("test", false, "Is test mode? print metrics to stdout")
+	showVersion = flag.Bool("version", false, "Show version.")
 )
 
 func main() {
-	kingpin.Version(version)
-	kingpin.HelpFlag.Short('h')
-	kingpin.Parse()
+	flag.Parse()
+
+	if *showVersion {
+		fmt.Println(version)
+		os.Exit(0)
+	}
 
 	printEnv()
 
-	ag, err := agent.NewAgent(*configDir, *debugMode)
+	ag, err := agent.NewAgent(*configDir, *debugMode, *testMode)
 	if err != nil {
 		log.Println("F! failed to new agent:", err)
 		os.Exit(1)

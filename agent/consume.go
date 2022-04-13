@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -55,6 +57,30 @@ func consume(queue chan *types.Sample) {
 }
 
 func postSeries(series []*prompb.TimeSeries) {
+	if config.Config.TestMode {
+		for i := 0; i < len(series); i++ {
+			var sb strings.Builder
+
+			sb.WriteString(">> ")
+
+			for j := range series[i].Labels {
+				sb.WriteString(series[i].Labels[j].Name)
+				sb.WriteString("=")
+				sb.WriteString(series[i].Labels[j].Value)
+				sb.WriteString(" ")
+			}
+
+			for j := range series[i].Samples {
+				sb.WriteString(fmt.Sprint(series[i].Samples[j].Timestamp))
+				sb.WriteString(" ")
+				sb.WriteString(fmt.Sprint(series[i].Samples[j].Value))
+			}
+
+			fmt.Println(sb.String())
+		}
+		return
+	}
+
 	for _, w := range writer.Writers {
 		w.Write(series)
 	}
