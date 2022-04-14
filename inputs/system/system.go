@@ -20,7 +20,6 @@ const InputName = "system"
 type SystemStats struct {
 	PrintConfigs    bool
 	IntervalSeconds int64
-	Labels          map[string]string
 
 	quit chan struct{}
 
@@ -90,6 +89,8 @@ func (s *SystemStats) Gather(queue chan *types.Sample) {
 			queue <- samples[i]
 		}
 	}()
+
+	// ----------------------------------------------
 
 	loadavg, err := load.Avg()
 	if err != nil && !strings.Contains(err.Error(), "not implemented") {
