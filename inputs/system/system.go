@@ -27,6 +27,12 @@ type SystemStats struct {
 	CollectUserNumber bool
 }
 
+func init() {
+	inputs.Add(InputName, func() inputs.Input {
+		return &SystemStats{}
+	})
+}
+
 func (s *SystemStats) getInterval() time.Duration {
 	if s.IntervalSeconds != 0 {
 		return time.Duration(s.IntervalSeconds) * time.Second
@@ -50,13 +56,14 @@ func (s *SystemStats) StartGoroutines(queue chan *types.Sample) {
 }
 
 func (s *SystemStats) LoopGather(queue chan *types.Sample) {
+	interval := s.getInterval()
 	for {
 		select {
 		case <-s.quit:
 			close(s.quit)
 			return
 		default:
-			time.Sleep(s.getInterval())
+			time.Sleep(interval)
 			defer func() {
 				if r := recover(); r != nil {
 					if strings.Contains(fmt.Sprint(r), "closed channel") {
@@ -119,19 +126,9 @@ func (s *SystemStats) Gather(queue chan *types.Sample) {
 		if err == nil {
 			samples = append(samples, inputs.NewSample("n_users", float64(len(users))))
 		} else if os.IsNotExist(err) {
-			if config.Config.DebugMode {
-				log.Println("D! reading os users:", err)
-			}
+			log.Println("W! reading os users:", err)
 		} else if os.IsPermission(err) {
-			if config.Config.DebugMode {
-				log.Println("D! reading os users:", err)
-			}
+			log.Println("W! reading os users:", err)
 		}
 	}
-}
-
-func init() {
-	inputs.Add(InputName, func() inputs.Input {
-		return &SystemStats{}
-	})
 }
