@@ -14,6 +14,8 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 )
 
+const agentHostnameLabelKey = "agent_hostname"
+
 type Reader struct {
 	Instance inputs.Input
 	Queue    chan *types.Sample
@@ -101,9 +103,9 @@ func convert(item *types.Sample) *prompb.TimeSeries {
 	}
 
 	// add label: agent_hostname
-	if _, has := item.Labels["agent_hostname"]; !has {
+	if _, has := item.Labels[agentHostnameLabelKey]; !has {
 		if !config.Config.Global.OmitHostname {
-			item.Labels["agent_hostname"] = config.Config.Global.Hostname
+			item.Labels[agentHostnameLabelKey] = config.Config.Global.Hostname
 		}
 	}
 
