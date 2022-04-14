@@ -5,6 +5,8 @@ PrintConfig = false
 Hostname = ""
 # will not add label(agent_hostname) if true
 OmitHostname = false
+# s | ms
+Precision = "ms"
 
 [Global.Labels]
 region = "shanghai"

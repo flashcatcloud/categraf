@@ -118,13 +118,13 @@ func convert(item *types.Sample) *prompb.TimeSeries {
 
 	pt := &prompb.TimeSeries{}
 
-	if item.Timestamp < 0xffffffff {
-		// s -> ms
-		item.Timestamp = item.Timestamp * 1000
+	timestamp := item.Timestamp.UnixMilli()
+	if config.Config.Global.Precision == "s" {
+		timestamp = item.Timestamp.Unix()
 	}
 
 	pt.Samples = append(pt.Samples, prompb.Sample{
-		Timestamp: item.Timestamp,
+		Timestamp: timestamp,
 		Value:     item.Value,
 	})
 

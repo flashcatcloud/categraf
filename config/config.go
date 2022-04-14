@@ -16,6 +16,7 @@ type Global struct {
 	Hostname     string
 	OmitHostname bool
 	Labels       map[string]string
+	Precision    string
 }
 
 type WriterOpt struct {

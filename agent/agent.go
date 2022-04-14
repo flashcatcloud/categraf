@@ -15,6 +15,7 @@ import (
 
 	// auto registry
 	_ "flashcat.cloud/categraf/inputs/redis"
+	_ "flashcat.cloud/categraf/inputs/system"
 )
 
 type Agent struct{}

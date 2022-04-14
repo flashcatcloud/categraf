@@ -11,10 +11,11 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+const InputName = "redis"
+
 var (
 	DefaultInterval = time.Second * 30
 	DefaultTimeout  = time.Second * 20
-	InputName       = "redis"
 )
 
 type Target struct {
@@ -101,11 +102,11 @@ func (t *Target) LoopGather(r *Redis, queue chan *types.Sample) {
 }
 
 func (t *Target) Gather(r *Redis, queue chan *types.Sample) {
-	queue <- &types.Sample{
-		Metric:    InputName + "_categraf_test_metric",
-		Timestamp: time.Now().Unix(),
-		Value:     float64(time.Now().Unix()),
-	}
+	// queue <- &types.Sample{
+	// 	Metric:    InputName + "_categraf_test_metric",
+	// 	Timestamp: time.Now(),
+	// 	Value:     float64(time.Now().Unix()),
+	// }
 }
 
 func init() {
