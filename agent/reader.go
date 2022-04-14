@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -82,7 +83,7 @@ func postSeries(series []*prompb.TimeSeries) {
 				sb.WriteString(fmt.Sprint(series[i].Samples[j].Value))
 			}
 
-			fmt.Println(sb.String())
+			log.Println(sb.String())
 		}
 		return
 	}

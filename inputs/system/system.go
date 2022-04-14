@@ -17,10 +17,6 @@ import (
 
 const InputName = "system"
 
-var (
-	DefaultInterval = time.Second * 15
-)
-
 type SystemStats struct {
 	PrintConfigs    bool
 	IntervalSeconds int64
@@ -35,7 +31,7 @@ func (s *SystemStats) getInterval() time.Duration {
 	if s.IntervalSeconds != 0 {
 		return time.Duration(s.IntervalSeconds) * time.Second
 	}
-	return DefaultInterval
+	return config.GetInterval()
 }
 
 // overwrite func
@@ -66,7 +62,7 @@ func (s *SystemStats) LoopGather(queue chan *types.Sample) {
 					if strings.Contains(fmt.Sprint(r), "closed channel") {
 						return
 					} else {
-						log.Println("E! gather system metrics panic:", r)
+						log.Println("E! gather metrics panic:", r)
 					}
 				}
 			}()

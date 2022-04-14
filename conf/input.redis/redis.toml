@@ -1,18 +1,18 @@
-# print configurations
-PrintConfigs = false
-# collect interval
-IntervalSeconds = 30
-# collect timeout per target
-TimeoutSeconds = 20
-# append labels for series
-Labels = { aaaa = "bbbb", cccc = "ddddd" }
+# # print configurations
+# PrintConfigs = false
 
-[[Targets]]
-# redis server address
-Address = "127.0.0.1:6379"
-# redis server password
-Password = "1234"
-# collect interval this target
-IntervalSeconds = 5
-# collect timeout this target
-TimeoutSeconds = 5
+# # collect interval
+# IntervalSeconds = 15
+
+# # append labels for series
+# Labels = { key1 = "value1", key2 = "value2" }
+
+# [[Targets]]
+# # redis server address
+# Address = "127.0.0.1:6379"
+
+# # redis server password
+# Password = ""
+
+# # collect interval this target
+# IntervalSeconds = 15

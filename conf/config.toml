@@ -7,6 +7,8 @@ Hostname = ""
 OmitHostname = false
 # s | ms
 Precision = "ms"
+# global collect interval
+IntervalSeconds = 15
 
 [Global.Labels]
 region = "shanghai"

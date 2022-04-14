@@ -7,32 +7,26 @@ import (
 	"strings"
 	"time"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 )
 
 const InputName = "redis"
 
-var (
-	DefaultInterval = time.Second * 30
-	DefaultTimeout  = time.Second * 20
-)
-
 type Target struct {
 	IntervalSeconds int64
-	TimeoutSeconds  int64
 	Labels          map[string]string
+
+	quit chan struct{}
 
 	Address  string
 	Password string
-
-	quit chan struct{}
 }
 
 type Redis struct {
 	PrintConfigs    bool
 	IntervalSeconds int64
-	TimeoutSeconds  int64
 	Labels          map[string]string
 
 	Targets []*Target
@@ -44,11 +38,6 @@ func (r *Redis) TidyConfig() error {
 		bs, _ := json.MarshalIndent(r, "", "    ")
 		fmt.Println(string(bs))
 	}
-
-	if len(r.Targets) == 0 {
-		log.Println("I! [redis] Targets is empty")
-	}
-
 	return nil
 }
 
@@ -76,17 +65,18 @@ func (t *Target) getInterval(r *Redis) time.Duration {
 		return time.Duration(r.IntervalSeconds) * time.Second
 	}
 
-	return DefaultInterval
+	return config.GetInterval()
 }
 
 func (t *Target) LoopGather(r *Redis, queue chan *types.Sample) {
+	interval := t.getInterval(r)
 	for {
 		select {
 		case <-t.quit:
 			close(t.quit)
 			return
 		default:
-			time.Sleep(t.getInterval(r))
+			time.Sleep(interval)
 			defer func() {
 				if r := recover(); r != nil {
 					if strings.Contains(fmt.Sprint(r), "closed channel") {

@@ -6,17 +6,19 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 
 	"flashcat.cloud/categraf/pkg/cfg"
 	"github.com/toolkits/pkg/file"
 )
 
 type Global struct {
-	PrintConfig  bool
-	Hostname     string
-	OmitHostname bool
-	Labels       map[string]string
-	Precision    string
+	PrintConfig     bool
+	Hostname        string
+	OmitHostname    bool
+	Labels          map[string]string
+	Precision       string
+	IntervalSeconds int64
 }
 
 type WriterOpt struct {
@@ -81,10 +83,18 @@ func InitConfig(configDir, debugMode string, testMode bool) error {
 		Config.Global.Hostname = name
 	}
 
+	if Config.Global.IntervalSeconds <= 0 {
+		Config.Global.IntervalSeconds = 15
+	}
+
 	if Config.Global.PrintConfig {
 		bs, _ := json.MarshalIndent(Config, "", "    ")
 		fmt.Println(string(bs))
 	}
 
 	return nil
+}
+
+func GetInterval() time.Duration {
+	return time.Duration(Config.Global.IntervalSeconds) * time.Second
 }

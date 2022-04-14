@@ -1,5 +1,5 @@
-# whether collect metric: system_n_users
-CollectUserNumber = false
+# # whether collect metric: system_n_users
+# CollectUserNumber = false
 
 # # collect interval, default 15s
 # IntervalSeconds = 15
