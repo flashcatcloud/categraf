@@ -51,7 +51,7 @@ func (w WriterType) Post(req []byte) error {
 
 	httpReq.Header.Add("Content-Encoding", "snappy")
 	httpReq.Header.Set("Content-Type", "application/x-protobuf")
-	httpReq.Header.Set("User-Agent", "n9e")
+	httpReq.Header.Set("User-Agent", "categraf")
 	httpReq.Header.Set("X-Prometheus-Remote-Write-Version", "0.1.0")
 
 	if w.Opts.BasicAuthUser != "" {

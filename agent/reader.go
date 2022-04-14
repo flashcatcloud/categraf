@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -84,8 +85,13 @@ func postSeries(series []*prompb.TimeSeries) {
 		return
 	}
 
-	for _, w := range writer.Writers {
-		w.Write(series)
+	wg := sync.WaitGroup{}
+	for key := range writer.Writers {
+		wg.Add(1)
+		go func(key string) {
+			defer wg.Done()
+			writer.Writers[key].Write(series)
+		}(key)
 	}
 }
 
