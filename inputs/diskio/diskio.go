@@ -3,6 +3,7 @@ package diskio
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -84,13 +85,13 @@ func (d *DiskIO) Gather(queue chan *types.Sample) {
 	var samples []*types.Sample
 
 	defer func() {
-		// if r := recover(); r != nil {
-		// 	if strings.Contains(fmt.Sprint(r), "closed channel") {
-		// 		return
-		// 	} else {
-		// 		log.Println("E! gather metrics panic:", r)
-		// 	}
-		// }
+		if r := recover(); r != nil {
+			if strings.Contains(fmt.Sprint(r), "closed channel") {
+				return
+			} else {
+				log.Println("E! gather metrics panic:", r)
+			}
+		}
 
 		now := time.Now()
 		for i := 0; i < len(samples); i++ {
