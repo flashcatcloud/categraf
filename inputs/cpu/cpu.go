@@ -17,20 +17,21 @@ import (
 const InputName = "cpu"
 
 type CPUStats struct {
-	quit            chan struct{}                `toml:"-"`
-	ps              system.PS                    `toml:"-"`
-	lastStats       map[string]cpuUtil.TimesStat `toml:"-"`
-	PrintConfigs    bool                         `toml:"print_configs"`
-	IntervalSeconds int64                        `toml:"interval_seconds"`
-	CollectPerCPU   bool                         `toml:"collect_per_cpu"`
+	quit      chan struct{}
+	ps        system.PS
+	lastStats map[string]cpuUtil.TimesStat
+
+	PrintConfigs    bool  `toml:"print_configs"`
+	IntervalSeconds int64 `toml:"interval_seconds"`
+	CollectPerCPU   bool  `toml:"collect_per_cpu"`
 }
 
 func init() {
 	ps := system.NewSystemPS()
 	inputs.Add(InputName, func() inputs.Input {
 		return &CPUStats{
-			ps:   ps,
 			quit: make(chan struct{}),
+			ps:   ps,
 		}
 	})
 }

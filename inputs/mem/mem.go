@@ -16,20 +16,21 @@ import (
 const InputName = "mem"
 
 type MemStats struct {
-	quit                  chan struct{} `toml:"-"`
-	ps                    system.PS     `toml:"-"`
-	platform              string        `toml:"-"`
-	PrintConfigs          bool          `toml:"print_configs"`
-	IntervalSeconds       int64         `toml:"interval_seconds"`
-	CollectPlatformFields bool          `toml:"collect_platform_fields"`
+	quit     chan struct{}
+	ps       system.PS
+	platform string
+
+	PrintConfigs          bool  `toml:"print_configs"`
+	IntervalSeconds       int64 `toml:"interval_seconds"`
+	CollectPlatformFields bool  `toml:"collect_platform_fields"`
 }
 
 func init() {
 	ps := system.NewSystemPS()
 	inputs.Add(InputName, func() inputs.Input {
 		return &MemStats{
-			ps:   ps,
 			quit: make(chan struct{}),
+			ps:   ps,
 		}
 	})
 }
