@@ -46,20 +46,7 @@ func NewSamples(fields map[string]interface{}, labels ...map[string]string) []*t
 		if err != nil {
 			continue
 		}
-
-		sample := &types.Sample{
-			Metric: metric,
-			Value:  floatValue,
-			Labels: make(map[string]string),
-		}
-
-		for i := 0; i < len(labels); i++ {
-			for k, v := range labels[i] {
-				sample.Labels[k] = v
-			}
-		}
-
-		samples = append(samples, sample)
+		samples = append(samples, NewSample(metric, floatValue, labels...))
 	}
 
 	return samples
