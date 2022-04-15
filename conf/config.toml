@@ -14,9 +14,9 @@ precision = "ms"
 # global collect interval
 interval_seconds = 15
 
-[global.labels]
-region = "shanghai"
-env = "localhost"
+# [global.labels]
+# region = "shanghai"
+# env = "localhost"
 
 [writer_opt]
 # default: 2000
