@@ -174,7 +174,7 @@ func (s *SystemPS) NetConnections() ([]net.ConnectionStat, error) {
 
 func (s *SystemPS) DiskIO(names []string) (map[string]disk.IOCountersStat, error) {
 	m, err := disk.IOCounters(names...)
-	if strings.Contains(err.Error(), "not implemented") {
+	if err != nil && strings.Contains(err.Error(), "not implemented") {
 		return nil, nil
 	}
 

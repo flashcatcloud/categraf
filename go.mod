@@ -3,6 +3,7 @@ module flashcat.cloud/categraf
 go 1.17
 
 require (
+	github.com/gobwas/glob v0.2.3
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
