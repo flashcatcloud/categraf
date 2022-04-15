@@ -45,6 +45,10 @@ func read(queue chan *types.Sample) {
 	for {
 		select {
 		case item := <-queue:
+			if item == nil {
+				// queue closed
+				return
+			}
 			series = append(series, convert(item))
 			count++
 			if count >= batch {

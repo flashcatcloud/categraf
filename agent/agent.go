@@ -10,28 +10,23 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/types"
-	"flashcat.cloud/categraf/writer"
 	"github.com/toolkits/pkg/file"
 
 	// auto registry
+	_ "flashcat.cloud/categraf/inputs/cpu"
 	_ "flashcat.cloud/categraf/inputs/mem"
 	_ "flashcat.cloud/categraf/inputs/redis"
 	_ "flashcat.cloud/categraf/inputs/system"
 )
 
-type Agent struct{}
+type Agent struct {
+	InputFilters map[string]struct{}
+}
 
-func NewAgent(configDir, debugMode string, testMode bool) (*Agent, error) {
-	if err := config.InitConfig(configDir, debugMode, testMode); err != nil {
-		return nil, fmt.Errorf("failed to init config: %v", err)
+func NewAgent(filters map[string]struct{}) *Agent {
+	return &Agent{
+		InputFilters: filters,
 	}
-
-	// init writers
-	if err := writer.Init(config.Config.Writers); err != nil {
-		return nil, fmt.Errorf("failed to init writers: %v", err)
-	}
-
-	return &Agent{}, nil
 }
 
 func (a *Agent) Start() {
@@ -68,6 +63,13 @@ func (a *Agent) startInputs() error {
 	}
 
 	for _, name := range names {
+		if len(a.InputFilters) > 0 {
+			// do filter
+			if _, has := a.InputFilters[name]; !has {
+				continue
+			}
+		}
+
 		creator, has := inputs.InputCreators[name]
 		if !has {
 			log.Println("E! input:", name, "not supported")
@@ -80,9 +82,8 @@ func (a *Agent) startInputs() error {
 		// set configurations for input instance
 		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, "input."+name), instance)
 
-		// check configurations
-		if err = instance.TidyConfig(); err != nil {
-			log.Println("E! input:", name, "configurations invalid:", err)
+		if err = instance.Init(); err != nil {
+			log.Println("E! failed to init input:", name, "error:", err)
 			continue
 		}
 

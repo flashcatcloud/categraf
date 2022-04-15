@@ -28,7 +28,9 @@ type SystemStats struct {
 
 func init() {
 	inputs.Add(InputName, func() inputs.Input {
-		return &SystemStats{}
+		return &SystemStats{
+			quit: make(chan struct{}),
+		}
 	})
 }
 
@@ -40,7 +42,7 @@ func (s *SystemStats) getInterval() time.Duration {
 }
 
 // overwrite func
-func (s *SystemStats) TidyConfig() error {
+func (s *SystemStats) Init() error {
 	return nil
 }
 

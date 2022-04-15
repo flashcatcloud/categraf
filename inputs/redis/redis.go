@@ -33,7 +33,7 @@ type Redis struct {
 }
 
 // overwrite func
-func (r *Redis) TidyConfig() error {
+func (r *Redis) Init() error {
 	if r.PrintConfigs {
 		bs, _ := json.MarshalIndent(r, "", "    ")
 		fmt.Println(string(bs))

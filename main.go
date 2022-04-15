@@ -6,19 +6,23 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"flashcat.cloud/categraf/agent"
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/osx"
+	"flashcat.cloud/categraf/writer"
 	"github.com/toolkits/pkg/runner"
 )
 
 var (
-	version     = "0.0.1"
-	configDir   = flag.String("configs", osx.GetEnv("CATEGRAF_CONFIGS", "conf"), "Specify configuration directory.(env:CATEGRAF_CONFIGS)")
-	debugMode   = flag.String("debug", osx.GetEnv("CATEGRAF_DEBUG", "false"), "Is debug mode?.(env:CATEGRAF_DEBUG)")
-	testMode    = flag.Bool("test", false, "Is test mode? print metrics to stdout")
-	showVersion = flag.Bool("version", false, "Show version.")
+	version      = "0.0.1"
+	configDir    = flag.String("configs", osx.GetEnv("CATEGRAF_CONFIGS", "conf"), "Specify configuration directory.(env:CATEGRAF_CONFIGS)")
+	debugMode    = flag.String("debug", osx.GetEnv("CATEGRAF_DEBUG", "false"), "Is debug mode?.(env:CATEGRAF_DEBUG)")
+	testMode     = flag.Bool("test", false, "Is test mode? print metrics to stdout")
+	showVersion  = flag.Bool("version", false, "Show version.")
+	inputFilters = flag.String("input-filter", "", "e.g. cpu:mem:system")
 )
 
 func main() {
@@ -31,16 +35,27 @@ func main() {
 
 	printEnv()
 
-	ag, err := agent.NewAgent(*configDir, *debugMode, *testMode)
-	if err != nil {
-		log.Println("F! failed to new agent:", err)
+	// init configs
+	if err := config.InitConfig(*configDir, *debugMode, *testMode); err != nil {
+		log.Println("F! failed to init config:", err)
 		os.Exit(1)
 	}
 
+	// init writers
+	if err := writer.Init(config.Config.Writers); err != nil {
+		log.Println("F! failed to init writer:", err)
+		os.Exit(1)
+	}
+
+	ag := agent.NewAgent(parseFilter(*inputFilters))
+	ag.Start()
+
+	handleSignal(ag)
+}
+
+func handleSignal(ag *agent.Agent) {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
-	ag.Start()
 
 EXIT:
 	for {
@@ -65,4 +80,16 @@ func printEnv() {
 	log.Println("I! runner.hostname:", runner.Hostname)
 	log.Println("I! runner.fd_limits:", runner.FdLimits())
 	log.Println("I! runner.vm_limits:", runner.VMLimits())
+}
+
+func parseFilter(filterStr string) map[string]struct{} {
+	filters := strings.Split(filterStr, ":")
+	filtermap := make(map[string]struct{})
+	for i := 0; i < len(filters); i++ {
+		if strings.TrimSpace(filters[i]) == "" {
+			continue
+		}
+		filtermap[filters[i]] = struct{}{}
+	}
+	return filtermap
 }

@@ -8,7 +8,7 @@ import (
 )
 
 type Input interface {
-	TidyConfig() error
+	Init() error
 	StartGoroutines(chan *types.Sample)
 	StopGoroutines()
 }

@@ -30,7 +30,10 @@ type MemStats struct {
 func init() {
 	ps := system.NewSystemPS()
 	inputs.Add(InputName, func() inputs.Input {
-		return &MemStats{ps: ps}
+		return &MemStats{
+			ps:   ps,
+			quit: make(chan struct{}),
+		}
 	})
 }
 
@@ -42,7 +45,7 @@ func (s *MemStats) getInterval() time.Duration {
 }
 
 // overwrite func
-func (s *MemStats) TidyConfig() error {
+func (s *MemStats) Init() error {
 	s.platform = runtime.GOOS
 	return nil
 }

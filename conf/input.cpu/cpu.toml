@@ -1,0 +1,5 @@
+# # whether collect per cpu
+# CollectPerCPU = false
+
+# # collect interval, default 15s
+# IntervalSeconds = 15
