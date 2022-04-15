@@ -42,6 +42,8 @@ func (a *Agent) Stop() {
 		InputReaders[name].Instance.StopGoroutines()
 		close(InputReaders[name].Queue)
 	}
+
+	log.Println("I! agent stopped")
 }
 
 func (a *Agent) Reload() {
