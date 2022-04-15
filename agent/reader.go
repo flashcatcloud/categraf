@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -69,10 +70,16 @@ func read(queue chan *types.Sample) {
 
 func postSeries(series []*prompb.TimeSeries) {
 	if config.Config.TestMode {
+		log.Println(">> count:", len(series))
+
 		for i := 0; i < len(series); i++ {
 			var sb strings.Builder
 
 			sb.WriteString(">> ")
+
+			sort.SliceStable(series[i].Labels, func(x, y int) bool {
+				return strings.Compare(series[i].Labels[x].Name, series[i].Labels[y].Name) == -1
+			})
 
 			for j := range series[i].Labels {
 				sb.WriteString(series[i].Labels[j].Name)
@@ -100,6 +107,7 @@ func postSeries(series []*prompb.TimeSeries) {
 			writer.Writers[key].Write(series)
 		}(key)
 	}
+	wg.Wait()
 }
 
 func convert(item *types.Sample) *prompb.TimeSeries {
