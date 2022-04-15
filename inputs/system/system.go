@@ -64,15 +64,12 @@ func (s *SystemStats) LoopGather(queue chan *types.Sample) {
 			return
 		default:
 			time.Sleep(interval)
-			s.Gather(queue)
+			s.GatherOnce(queue)
 		}
 	}
 }
 
-// overwrite func
-func (s *SystemStats) Gather(queue chan *types.Sample) {
-	var samples []*types.Sample
-
+func (s *SystemStats) GatherOnce(queue chan *types.Sample) {
 	defer func() {
 		if r := recover(); r != nil {
 			if strings.Contains(fmt.Sprint(r), "closed channel") {
@@ -81,27 +78,35 @@ func (s *SystemStats) Gather(queue chan *types.Sample) {
 				log.Println("E! gather metrics panic:", r)
 			}
 		}
-
-		now := time.Now()
-		for i := 0; i < len(samples); i++ {
-			samples[i].Timestamp = now
-			samples[i].Metric = InputName + "_" + samples[i].Metric
-			queue <- samples[i]
-		}
 	}()
 
-	// ----------------------------------------------
+	samples := s.Gather()
+
+	if len(samples) == 0 {
+		return
+	}
+
+	now := time.Now()
+	for i := 0; i < len(samples); i++ {
+		samples[i].Timestamp = now
+		samples[i].Metric = InputName + "_" + samples[i].Metric
+		queue <- samples[i]
+	}
+}
+
+func (s *SystemStats) Gather() []*types.Sample {
+	var samples []*types.Sample
 
 	loadavg, err := load.Avg()
 	if err != nil && !strings.Contains(err.Error(), "not implemented") {
 		log.Println("E! failed to gather system load:", err)
-		return
+		return samples
 	}
 
 	numCPUs, err := cpu.Counts(true)
 	if err != nil {
 		log.Println("E! failed to gather cpu number:", err)
-		return
+		return samples
 	}
 
 	fields := map[string]interface{}{
@@ -117,10 +122,9 @@ func (s *SystemStats) Gather(queue chan *types.Sample) {
 	uptime, err := host.Uptime()
 	if err != nil {
 		log.Println("E! failed to get host uptime:", err)
-		return
+	} else {
+		fields["uptime"] = uptime
 	}
-
-	fields["uptime"] = uptime
 
 	if s.CollectUserNumber {
 		users, err := host.Users()
@@ -133,5 +137,5 @@ func (s *SystemStats) Gather(queue chan *types.Sample) {
 		}
 	}
 
-	samples = inputs.NewSamples(fields)
+	return inputs.NewSamples(fields)
 }

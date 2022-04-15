@@ -67,15 +67,12 @@ func (s *MemStats) LoopGather(queue chan *types.Sample) {
 			return
 		default:
 			time.Sleep(interval)
-			s.Gather(queue)
+			s.GatherOnce(queue)
 		}
 	}
 }
 
-// overwrite func
-func (s *MemStats) Gather(queue chan *types.Sample) {
-	var samples []*types.Sample
-
+func (s *MemStats) GatherOnce(queue chan *types.Sample) {
 	defer func() {
 		if r := recover(); r != nil {
 			if strings.Contains(fmt.Sprint(r), "closed channel") {
@@ -84,21 +81,27 @@ func (s *MemStats) Gather(queue chan *types.Sample) {
 				log.Println("E! gather metrics panic:", r)
 			}
 		}
-
-		now := time.Now()
-		for i := 0; i < len(samples); i++ {
-			samples[i].Timestamp = now
-			samples[i].Metric = InputName + "_" + samples[i].Metric
-			queue <- samples[i]
-		}
 	}()
 
-	// ----------------------------------------------
+	samples := s.Gather()
 
+	if len(samples) == 0 {
+		return
+	}
+
+	now := time.Now()
+	for i := 0; i < len(samples); i++ {
+		samples[i].Timestamp = now
+		samples[i].Metric = InputName + "_" + samples[i].Metric
+		queue <- samples[i]
+	}
+}
+
+func (s *MemStats) Gather() []*types.Sample {
 	vm, err := s.ps.VMStat()
 	if err != nil {
 		log.Println("E! failed to get vmstat:", err)
-		return
+		return nil
 	}
 
 	fields := map[string]interface{}{
@@ -163,5 +166,5 @@ func (s *MemStats) Gather(queue chan *types.Sample) {
 		}
 	}
 
-	samples = inputs.NewSamples(fields)
+	return inputs.NewSamples(fields)
 }

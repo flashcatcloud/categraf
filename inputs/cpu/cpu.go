@@ -67,15 +67,12 @@ func (c *CPUStats) LoopGather(queue chan *types.Sample) {
 			return
 		default:
 			time.Sleep(interval)
-			c.Gather(queue)
+			c.GatherOnce(queue)
 		}
 	}
 }
 
-// overwrite func
-func (c *CPUStats) Gather(queue chan *types.Sample) {
-	var samples []*types.Sample
-
+func (c *CPUStats) GatherOnce(queue chan *types.Sample) {
 	defer func() {
 		if r := recover(); r != nil {
 			if strings.Contains(fmt.Sprint(r), "closed channel") {
@@ -84,21 +81,29 @@ func (c *CPUStats) Gather(queue chan *types.Sample) {
 				log.Println("E! gather metrics panic:", r)
 			}
 		}
-
-		now := time.Now()
-		for i := 0; i < len(samples); i++ {
-			samples[i].Timestamp = now
-			samples[i].Metric = InputName + "_" + samples[i].Metric
-			queue <- samples[i]
-		}
 	}()
 
-	// ----------------------------------------------
+	samples := c.Gather()
+
+	if len(samples) == 0 {
+		return
+	}
+
+	now := time.Now()
+	for i := 0; i < len(samples); i++ {
+		samples[i].Timestamp = now
+		samples[i].Metric = InputName + "_" + samples[i].Metric
+		queue <- samples[i]
+	}
+}
+
+func (c *CPUStats) Gather() []*types.Sample {
+	var samples []*types.Sample
 
 	times, err := c.ps.CPUTimes(c.CollectPerCPU, true)
 	if err != nil {
 		log.Println("E! failed to get cpu metrics:", err)
-		return
+		return samples
 	}
 
 	for _, cts := range times {
@@ -154,6 +159,8 @@ func (c *CPUStats) Gather(queue chan *types.Sample) {
 	for _, cts := range times {
 		c.lastStats[cts.CPU] = cts
 	}
+
+	return samples
 }
 
 func totalCPUTime(t cpuUtil.TimesStat) float64 {

@@ -75,15 +75,12 @@ func (d *DiskIO) LoopGather(queue chan *types.Sample) {
 			return
 		default:
 			time.Sleep(interval)
-			d.Gather(queue)
+			d.GatherOnce(queue)
 		}
 	}
 }
 
-// overwrite func
-func (d *DiskIO) Gather(queue chan *types.Sample) {
-	var samples []*types.Sample
-
+func (d *DiskIO) GatherOnce(queue chan *types.Sample) {
 	defer func() {
 		if r := recover(); r != nil {
 			if strings.Contains(fmt.Sprint(r), "closed channel") {
@@ -92,16 +89,24 @@ func (d *DiskIO) Gather(queue chan *types.Sample) {
 				log.Println("E! gather metrics panic:", r)
 			}
 		}
-
-		now := time.Now()
-		for i := 0; i < len(samples); i++ {
-			samples[i].Timestamp = now
-			samples[i].Metric = InputName + "_" + samples[i].Metric
-			queue <- samples[i]
-		}
 	}()
 
-	// ----------------------------------------------
+	samples := d.Gather()
+
+	if len(samples) == 0 {
+		return
+	}
+
+	now := time.Now()
+	for i := 0; i < len(samples); i++ {
+		samples[i].Timestamp = now
+		samples[i].Metric = InputName + "_" + samples[i].Metric
+		queue <- samples[i]
+	}
+}
+
+func (d *DiskIO) Gather() []*types.Sample {
+	var samples []*types.Sample
 
 	devices := []string{}
 	if d.deviceFilter == nil {
@@ -112,7 +117,7 @@ func (d *DiskIO) Gather(queue chan *types.Sample) {
 	diskio, err := d.ps.DiskIO(devices)
 	if err != nil {
 		log.Println("E! failed to get disk io:", err)
-		return
+		return samples
 	}
 
 	for _, io := range diskio {
@@ -136,4 +141,6 @@ func (d *DiskIO) Gather(queue chan *types.Sample) {
 
 		samples = append(samples, inputs.NewSamples(fields, map[string]string{"name": io.Name})...)
 	}
+
+	return samples
 }

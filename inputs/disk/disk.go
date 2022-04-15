@@ -65,15 +65,12 @@ func (s *DiskStats) LoopGather(queue chan *types.Sample) {
 			return
 		default:
 			time.Sleep(interval)
-			s.Gather(queue)
+			s.GatherOnce(queue)
 		}
 	}
 }
 
-// overwrite func
-func (s *DiskStats) Gather(queue chan *types.Sample) {
-	var samples []*types.Sample
-
+func (s *DiskStats) GatherOnce(queue chan *types.Sample) {
 	defer func() {
 		if r := recover(); r != nil {
 			if strings.Contains(fmt.Sprint(r), "closed channel") {
@@ -82,21 +79,29 @@ func (s *DiskStats) Gather(queue chan *types.Sample) {
 				log.Println("E! gather metrics panic:", r)
 			}
 		}
-
-		now := time.Now()
-		for i := 0; i < len(samples); i++ {
-			samples[i].Timestamp = now
-			samples[i].Metric = InputName + "_" + samples[i].Metric
-			queue <- samples[i]
-		}
 	}()
 
-	// ----------------------------------------------
+	samples := s.Gather()
+
+	if len(samples) == 0 {
+		return
+	}
+
+	now := time.Now()
+	for i := 0; i < len(samples); i++ {
+		samples[i].Timestamp = now
+		samples[i].Metric = InputName + "_" + samples[i].Metric
+		queue <- samples[i]
+	}
+}
+
+func (s *DiskStats) Gather() []*types.Sample {
+	var samples []*types.Sample
 
 	disks, partitions, err := s.ps.DiskUsage(s.MountPoints, s.IgnoreFS)
 	if err != nil {
 		log.Println("E! failed to get disk usage:", err)
-		return
+		return samples
 	}
 
 	for i, du := range disks {
@@ -129,6 +134,8 @@ func (s *DiskStats) Gather(queue chan *types.Sample) {
 
 		samples = append(samples, inputs.NewSamples(fields, tags)...)
 	}
+
+	return samples
 }
 
 type MountOptions []string
