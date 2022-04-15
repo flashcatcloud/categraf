@@ -16,15 +16,12 @@ import (
 const InputName = "mem"
 
 type MemStats struct {
-	PrintConfigs    bool
-	IntervalSeconds int64
-
-	quit chan struct{}
-
-	ps       system.PS
-	platform string
-
-	CollectPlatformFields bool
+	quit                  chan struct{} `toml:"-"`
+	ps                    system.PS     `toml:"-"`
+	platform              string        `toml:"-"`
+	PrintConfigs          bool          `toml:"print_configs"`
+	IntervalSeconds       int64         `toml:"interval_seconds"`
+	CollectPlatformFields bool          `toml:"collect_platform_fields"`
 }
 
 func init() {

@@ -17,15 +17,12 @@ import (
 const InputName = "cpu"
 
 type CPUStats struct {
-	PrintConfigs    bool
-	IntervalSeconds int64
-
-	quit      chan struct{}
-	lastStats map[string]cpuUtil.TimesStat
-
-	ps system.PS
-
-	CollectPerCPU bool
+	quit            chan struct{}                `toml:"-"`
+	ps              system.PS                    `toml:"-"`
+	lastStats       map[string]cpuUtil.TimesStat `toml:"-"`
+	PrintConfigs    bool                         `toml:"print_configs"`
+	IntervalSeconds int64                        `toml:"interval_seconds"`
+	CollectPerCPU   bool                         `toml:"collect_per_cpu"`
 }
 
 func init() {

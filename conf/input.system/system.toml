@@ -1,5 +1,8 @@
-# # whether collect metric: system_n_users
-# CollectUserNumber = false
+# # whether print configs
+# print_configs = false
 
 # # collect interval, default 15s
-# IntervalSeconds = 15
+# interval_seconds = 15
+
+# # whether collect metric: system_n_users
+# collect_user_number = false

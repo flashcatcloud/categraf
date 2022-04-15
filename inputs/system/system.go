@@ -18,12 +18,10 @@ import (
 const InputName = "system"
 
 type SystemStats struct {
-	PrintConfigs    bool
-	IntervalSeconds int64
-
-	quit chan struct{}
-
-	CollectUserNumber bool
+	quit              chan struct{} `toml:"-"`
+	PrintConfigs      bool          `toml:"print_configs"`
+	IntervalSeconds   int64         `toml:"interval_seconds"`
+	CollectUserNumber bool          `toml:"collect_user_number"`
 }
 
 func init() {

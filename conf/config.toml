@@ -1,37 +1,37 @@
-[Global]
+[global]
 # whether print configs
-PrintConfig = false
+print_configs = false
 # add label(agent_hostname) to series
-Hostname = ""
+hostname = ""
 # will not add label(agent_hostname) if true
-OmitHostname = false
+omit_hostname = false
 # s | ms
-Precision = "ms"
+precision = "ms"
 # global collect interval
-IntervalSeconds = 15
+interval_seconds = 15
 
-[Global.Labels]
+[global.labels]
 region = "shanghai"
 env = "localhost"
 
-[WriterOpt]
+[writer_opt]
 # default: 2000
-Batch = 2000
+batch = 2000
 
-[[Writers]]
-Url = "http://127.0.0.1:19000/prometheus/v1/write"
+[[writers]]
+url = "http://127.0.0.1:19000/prometheus/v1/write"
 # Basic auth username
-BasicAuthUser = ""
+basic_auth_user = ""
 # Basic auth password
-BasicAuthPass = ""
+basic_auth_pass = ""
 # timeout settings, unit: ms
-Timeout = 3000
-DialTimeout = 3000
-TLSHandshakeTimeout = 3000
-ExpectContinueTimeout = 1000
-IdleConnTimeout = 90000
+timeout = 3000
+dial_timeout = 3000
+tls_handshake_timeout = 3000
+expect_continue_timeout = 1000
+idle_conn_timeout = 90000
 # time duration, unit: ms
-KeepAlive = 30000
-MaxConnsPerHost = 0
-MaxIdleConns = 100
-MaxIdleConnsPerHost = 100
+keep_alive = 30000
+max_conns_per_host = 0
+max_idle_conns = 100
+max_idle_conns_per_host = 100

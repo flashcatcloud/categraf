@@ -1,5 +1,8 @@
-# # whether collect per cpu
-# CollectPerCPU = false
+# # whether print configs
+# print_configs = false
 
 # # collect interval, default 15s
-# IntervalSeconds = 15
+# interval_seconds = 15
+
+# # whether collect per cpu
+# collect_per_cpu = false
