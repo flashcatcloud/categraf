@@ -63,15 +63,6 @@ func (s *SystemStats) LoopGather(queue chan *types.Sample) {
 			return
 		default:
 			time.Sleep(interval)
-			defer func() {
-				if r := recover(); r != nil {
-					if strings.Contains(fmt.Sprint(r), "closed channel") {
-						return
-					} else {
-						log.Println("E! gather metrics panic:", r)
-					}
-				}
-			}()
 			s.Gather(queue)
 		}
 	}
@@ -82,6 +73,14 @@ func (s *SystemStats) Gather(queue chan *types.Sample) {
 	var samples []*types.Sample
 
 	defer func() {
+		if r := recover(); r != nil {
+			if strings.Contains(fmt.Sprint(r), "closed channel") {
+				return
+			} else {
+				log.Println("E! gather metrics panic:", r)
+			}
+		}
+
 		now := time.Now()
 		for i := 0; i < len(samples); i++ {
 			samples[i].Timestamp = now
@@ -104,15 +103,15 @@ func (s *SystemStats) Gather(queue chan *types.Sample) {
 		return
 	}
 
-	samples = append(samples,
-		inputs.NewSample("load1", loadavg.Load1),
-		inputs.NewSample("load5", loadavg.Load5),
-		inputs.NewSample("load15", loadavg.Load15),
-		inputs.NewSample("n_cpus", float64(numCPUs)),
-		inputs.NewSample("load_norm_1", loadavg.Load1/float64(numCPUs)),
-		inputs.NewSample("load_norm_5", loadavg.Load5/float64(numCPUs)),
-		inputs.NewSample("load_norm_15", loadavg.Load15/float64(numCPUs)),
-	)
+	fields := map[string]interface{}{
+		"load1":        loadavg.Load1,
+		"load5":        loadavg.Load5,
+		"load15":       loadavg.Load15,
+		"n_cpus":       numCPUs,
+		"load_norm_1":  loadavg.Load1 / float64(numCPUs),
+		"load_norm_5":  loadavg.Load5 / float64(numCPUs),
+		"load_norm_15": loadavg.Load15 / float64(numCPUs),
+	}
 
 	uptime, err := host.Uptime()
 	if err != nil {
@@ -120,16 +119,18 @@ func (s *SystemStats) Gather(queue chan *types.Sample) {
 		return
 	}
 
-	samples = append(samples, inputs.NewSample("uptime", float64(uptime)))
+	fields["uptime"] = uptime
 
 	if s.CollectUserNumber {
 		users, err := host.Users()
 		if err == nil {
-			samples = append(samples, inputs.NewSample("n_users", float64(len(users))))
+			fields["n_users"] = len(users)
 		} else if os.IsNotExist(err) {
 			log.Println("W! reading os users:", err)
 		} else if os.IsPermission(err) {
 			log.Println("W! reading os users:", err)
 		}
 	}
+
+	samples = inputs.NewSamples(fields)
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/toolkits/pkg/file"
 
 	// auto registry
+	_ "flashcat.cloud/categraf/inputs/mem"
 	_ "flashcat.cloud/categraf/inputs/redis"
 	_ "flashcat.cloud/categraf/inputs/system"
 )
