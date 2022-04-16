@@ -21,7 +21,7 @@ interval_seconds = 15
 [writer_opt]
 # default: 2000
 batch = 2000
-# chan size
+# channel(as queue) size
 chan_size = 10000
 
 [[writers]]
