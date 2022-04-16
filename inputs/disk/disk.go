@@ -1,12 +1,9 @@
 package disk
 
 import (
-	"fmt"
 	"log"
 	"strings"
-	"time"
 
-	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
@@ -15,8 +12,7 @@ import (
 const InputName = "disk"
 
 type DiskStats struct {
-	quit chan struct{}
-	ps   system.PS
+	ps system.PS
 
 	PrintConfigs    bool     `toml:"print_configs"`
 	IntervalSeconds int64    `toml:"interval_seconds"`
@@ -28,71 +24,22 @@ func init() {
 	ps := system.NewSystemPS()
 	inputs.Add(InputName, func() inputs.Input {
 		return &DiskStats{
-			quit: make(chan struct{}),
-			ps:   ps,
+			ps: ps,
 		}
 	})
 }
 
-func (s *DiskStats) getInterval() time.Duration {
-	if s.IntervalSeconds != 0 {
-		return time.Duration(s.IntervalSeconds) * time.Second
-	}
-	return config.GetInterval()
+func (s *DiskStats) GetInputName() string {
+	return InputName
+}
+
+func (s *DiskStats) GetIntervalSeconds() int64 {
+	return s.IntervalSeconds
 }
 
 // overwrite func
 func (s *DiskStats) Init() error {
 	return nil
-}
-
-// overwrite func
-func (s *DiskStats) StopGoroutines() {
-	s.quit <- struct{}{}
-}
-
-// overwrite func
-func (s *DiskStats) StartGoroutines(queue chan *types.Sample) {
-	go s.LoopGather(queue)
-}
-
-func (s *DiskStats) LoopGather(queue chan *types.Sample) {
-	interval := s.getInterval()
-	for {
-		select {
-		case <-s.quit:
-			close(s.quit)
-			return
-		default:
-			time.Sleep(interval)
-			s.GatherOnce(queue)
-		}
-	}
-}
-
-func (s *DiskStats) GatherOnce(queue chan *types.Sample) {
-	defer func() {
-		if r := recover(); r != nil {
-			if strings.Contains(fmt.Sprint(r), "closed channel") {
-				return
-			} else {
-				log.Println("E! gather metrics panic:", r)
-			}
-		}
-	}()
-
-	samples := s.Gather()
-
-	if len(samples) == 0 {
-		return
-	}
-
-	now := time.Now()
-	for i := 0; i < len(samples); i++ {
-		samples[i].Timestamp = now
-		samples[i].Metric = InputName + "_" + samples[i].Metric
-		queue <- samples[i]
-	}
 }
 
 func (s *DiskStats) Gather() []*types.Sample {

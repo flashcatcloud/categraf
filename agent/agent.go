@@ -42,7 +42,7 @@ func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
 
 	for name := range InputReaders {
-		InputReaders[name].Instance.StopGoroutines()
+		InputReaders[name].QuitChan <- struct{}{}
 		close(InputReaders[name].Queue)
 	}
 
@@ -92,15 +92,16 @@ func (a *Agent) startInputs() error {
 			continue
 		}
 
-		c := &Reader{
+		reader := &Reader{
 			Instance: instance,
-			Queue:    make(chan *types.Sample, 1000000),
+			QuitChan: make(chan struct{}, 1),
+			Queue:    make(chan *types.Sample, config.Config.WriterOpt.ChanSize),
 		}
 
 		log.Println("I! input:", name, "started")
-		c.Start()
+		reader.Start()
 
-		InputReaders[name] = c
+		InputReaders[name] = reader
 	}
 
 	return nil

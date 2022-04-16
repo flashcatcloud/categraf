@@ -22,7 +22,8 @@ type Global struct {
 }
 
 type WriterOpt struct {
-	Batch int `toml:"batch"`
+	Batch    int `toml:"batch"`
+	ChanSize int `toml:"chan_size"`
 }
 
 type WriterOption struct {

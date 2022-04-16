@@ -1,13 +1,9 @@
 package mem
 
 import (
-	"fmt"
 	"log"
 	"runtime"
-	"strings"
-	"time"
 
-	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
@@ -16,7 +12,6 @@ import (
 const InputName = "mem"
 
 type MemStats struct {
-	quit     chan struct{}
 	ps       system.PS
 	platform string
 
@@ -29,72 +24,23 @@ func init() {
 	ps := system.NewSystemPS()
 	inputs.Add(InputName, func() inputs.Input {
 		return &MemStats{
-			quit: make(chan struct{}),
-			ps:   ps,
+			ps: ps,
 		}
 	})
 }
 
-func (s *MemStats) getInterval() time.Duration {
-	if s.IntervalSeconds != 0 {
-		return time.Duration(s.IntervalSeconds) * time.Second
-	}
-	return config.GetInterval()
+func (s *MemStats) GetInputName() string {
+	return InputName
+}
+
+func (s *MemStats) GetIntervalSeconds() int64 {
+	return s.IntervalSeconds
 }
 
 // overwrite func
 func (s *MemStats) Init() error {
 	s.platform = runtime.GOOS
 	return nil
-}
-
-// overwrite func
-func (s *MemStats) StopGoroutines() {
-	s.quit <- struct{}{}
-}
-
-// overwrite func
-func (s *MemStats) StartGoroutines(queue chan *types.Sample) {
-	go s.LoopGather(queue)
-}
-
-func (s *MemStats) LoopGather(queue chan *types.Sample) {
-	interval := s.getInterval()
-	for {
-		select {
-		case <-s.quit:
-			close(s.quit)
-			return
-		default:
-			time.Sleep(interval)
-			s.GatherOnce(queue)
-		}
-	}
-}
-
-func (s *MemStats) GatherOnce(queue chan *types.Sample) {
-	defer func() {
-		if r := recover(); r != nil {
-			if strings.Contains(fmt.Sprint(r), "closed channel") {
-				return
-			} else {
-				log.Println("E! gather metrics panic:", r)
-			}
-		}
-	}()
-
-	samples := s.Gather()
-
-	if len(samples) == 0 {
-		return
-	}
-
-	now := time.Now()
-	for i := 0; i < len(samples); i++ {
-		samples[i].Timestamp = now
-		samples[i].Metric = InputName + "_" + samples[i].Metric
-		queue <- samples[i]
-	}
 }
 
 func (s *MemStats) Gather() []*types.Sample {

@@ -9,8 +9,9 @@ import (
 
 type Input interface {
 	Init() error
-	StartGoroutines(chan *types.Sample)
-	StopGoroutines()
+	GetInputName() string
+	GetIntervalSeconds() int64
+	Gather() []*types.Sample
 }
 
 type Creator func() Input

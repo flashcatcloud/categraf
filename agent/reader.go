@@ -20,20 +20,66 @@ const agentHostnameLabelKey = "agent_hostname"
 
 type Reader struct {
 	Instance inputs.Input
+	QuitChan chan struct{}
 	Queue    chan *types.Sample
 }
 
 var InputReaders = map[string]*Reader{}
 
-func (c *Reader) Start() {
+func (r *Reader) Start() {
 	// start consumer goroutines
-	go read(c.Queue)
+	go r.read()
 
-	// start collector goroutines
-	c.Instance.StartGoroutines(c.Queue)
+	// start collector instance
+	go r.startInstance()
 }
 
-func read(queue chan *types.Sample) {
+func (r *Reader) startInstance() {
+	interval := config.GetInterval()
+	if r.Instance.GetIntervalSeconds() > 0 {
+		interval = time.Duration(r.Instance.GetIntervalSeconds()) * time.Second
+	}
+	for {
+		select {
+		case <-r.QuitChan:
+			close(r.QuitChan)
+			return
+		default:
+			time.Sleep(interval)
+			r.gatherOnce()
+		}
+	}
+}
+
+func (r *Reader) gatherOnce() {
+	defer func() {
+		if r := recover(); r != nil {
+			if strings.Contains(fmt.Sprint(r), "closed channel") {
+				return
+			} else {
+				log.Println("E! gather metrics panic:", r)
+			}
+		}
+	}()
+
+	samples := r.Instance.Gather()
+
+	if len(samples) == 0 {
+		return
+	}
+
+	now := time.Now()
+	for i := 0; i < len(samples); i++ {
+		if samples[i].Timestamp.IsZero() {
+			samples[i].Timestamp = now
+		}
+
+		samples[i].Metric = r.Instance.GetInputName() + "_" + samples[i].Metric
+		r.Queue <- samples[i]
+	}
+}
+
+func (r *Reader) read() {
 	batch := config.Config.WriterOpt.Batch
 	if batch <= 0 {
 		batch = 2000
@@ -45,7 +91,7 @@ func read(queue chan *types.Sample) {
 
 	for {
 		select {
-		case item := <-queue:
+		case item := <-r.Queue:
 			if item == nil {
 				// queue closed
 				return

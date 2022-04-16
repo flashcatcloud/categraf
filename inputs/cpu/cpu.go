@@ -1,14 +1,10 @@
 package cpu
 
 import (
-	"fmt"
 	"log"
-	"strings"
-	"time"
 
 	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
 
-	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
@@ -17,7 +13,6 @@ import (
 const InputName = "cpu"
 
 type CPUStats struct {
-	quit      chan struct{}
 	ps        system.PS
 	lastStats map[string]cpuUtil.TimesStat
 
@@ -30,71 +25,22 @@ func init() {
 	ps := system.NewSystemPS()
 	inputs.Add(InputName, func() inputs.Input {
 		return &CPUStats{
-			quit: make(chan struct{}),
-			ps:   ps,
+			ps: ps,
 		}
 	})
 }
 
-func (c *CPUStats) getInterval() time.Duration {
-	if c.IntervalSeconds != 0 {
-		return time.Duration(c.IntervalSeconds) * time.Second
-	}
-	return config.GetInterval()
+func (s *CPUStats) GetInputName() string {
+	return InputName
+}
+
+func (s *CPUStats) GetIntervalSeconds() int64 {
+	return s.IntervalSeconds
 }
 
 // overwrite func
 func (c *CPUStats) Init() error {
 	return nil
-}
-
-// overwrite func
-func (c *CPUStats) StopGoroutines() {
-	c.quit <- struct{}{}
-}
-
-// overwrite func
-func (c *CPUStats) StartGoroutines(queue chan *types.Sample) {
-	go c.LoopGather(queue)
-}
-
-func (c *CPUStats) LoopGather(queue chan *types.Sample) {
-	interval := c.getInterval()
-	for {
-		select {
-		case <-c.quit:
-			close(c.quit)
-			return
-		default:
-			time.Sleep(interval)
-			c.GatherOnce(queue)
-		}
-	}
-}
-
-func (c *CPUStats) GatherOnce(queue chan *types.Sample) {
-	defer func() {
-		if r := recover(); r != nil {
-			if strings.Contains(fmt.Sprint(r), "closed channel") {
-				return
-			} else {
-				log.Println("E! gather metrics panic:", r)
-			}
-		}
-	}()
-
-	samples := c.Gather()
-
-	if len(samples) == 0 {
-		return
-	}
-
-	now := time.Now()
-	for i := 0; i < len(samples); i++ {
-		samples[i].Timestamp = now
-		samples[i].Metric = InputName + "_" + samples[i].Metric
-		queue <- samples[i]
-	}
 }
 
 func (c *CPUStats) Gather() []*types.Sample {
