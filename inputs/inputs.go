@@ -1,9 +1,7 @@
 package inputs
 
 import (
-	"fmt"
-	"strconv"
-
+	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -43,7 +41,7 @@ func NewSamples(fields map[string]interface{}, labels ...map[string]string) []*t
 	samples := make([]*types.Sample, 0, count)
 
 	for metric, value := range fields {
-		floatValue, err := toFloat64(value)
+		floatValue, err := conv.ToFloat64(value)
 		if err != nil {
 			continue
 		}
@@ -51,55 +49,4 @@ func NewSamples(fields map[string]interface{}, labels ...map[string]string) []*t
 	}
 
 	return samples
-}
-
-func toFloat64(val interface{}) (float64, error) {
-	switch v := val.(type) {
-	case string:
-		if f, err := strconv.ParseFloat(v, 64); err == nil {
-			return f, nil
-		}
-
-		// try bool
-		b, err := strconv.ParseBool(v)
-		if err == nil {
-			if b {
-				return 1, nil
-			} else {
-				return 0, nil
-			}
-		}
-
-		if v == "Yes" || v == "yes" || v == "YES" || v == "Y" || v == "ON" || v == "on" || v == "On" {
-			return 1, nil
-		}
-
-		if v == "No" || v == "no" || v == "NO" || v == "N" || v == "OFF" || v == "off" || v == "Off" {
-			return 0, nil
-		}
-
-		return 0, fmt.Errorf("unparseable value %v", v)
-	case float64:
-		return v, nil
-	case uint64:
-		return float64(v), nil
-	case int64:
-		return float64(v), nil
-	case bool:
-		if v {
-			return 1, nil
-		} else {
-			return 0, nil
-		}
-	case int:
-		return float64(v), nil
-	case uint:
-		return float64(v), nil
-	case uint8:
-		return float64(v), nil
-	case float32:
-		return float64(v), nil
-	default:
-		return 0, fmt.Errorf("unparseable value %v", v)
-	}
 }
