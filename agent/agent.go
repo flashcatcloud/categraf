@@ -21,6 +21,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/mem"
 	_ "flashcat.cloud/categraf/inputs/net"
 	_ "flashcat.cloud/categraf/inputs/netstat"
+	_ "flashcat.cloud/categraf/inputs/processes"
 	_ "flashcat.cloud/categraf/inputs/redis"
 	_ "flashcat.cloud/categraf/inputs/system"
 )

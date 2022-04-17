@@ -1,0 +1,11 @@
+# # whether print configs
+# print_configs = false
+
+# # collect interval
+interval_seconds = 1
+
+# # force use ps command to gather
+# force_ps = false
+
+# # force use /proc to gather
+# force_proc = false
