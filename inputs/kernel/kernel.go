@@ -15,7 +15,7 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
-const InputName = "kernel"
+const inputName = "kernel"
 
 // /proc/stat file line prefixes to gather stats on:
 var (
@@ -35,7 +35,7 @@ type KernelStats struct {
 }
 
 func init() {
-	inputs.Add(InputName, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &KernelStats{
 			statFile:        "/proc/stat",
 			entropyStatFile: "/proc/sys/kernel/random/entropy_avail",
@@ -44,7 +44,7 @@ func init() {
 }
 
 func (s *KernelStats) GetInputName() string {
-	return InputName
+	return inputName
 }
 
 func (s *KernelStats) GetIntervalSeconds() int64 {

@@ -8,7 +8,7 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
-const InputName = "kernel"
+const inputName = "kernel"
 
 type KernelStats struct {
 	PrintConfigs    bool  `toml:"print_configs"`
@@ -16,13 +16,13 @@ type KernelStats struct {
 }
 
 func init() {
-	inputs.Add(InputName, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &KernelStats{}
 	})
 }
 
 func (s *KernelStats) GetInputName() string {
-	return InputName
+	return inputName
 }
 
 func (s *KernelStats) GetIntervalSeconds() int64 {

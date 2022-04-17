@@ -10,7 +10,7 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
-const InputName = "cpu"
+const inputName = "cpu"
 
 type CPUStats struct {
 	ps        system.PS
@@ -23,7 +23,7 @@ type CPUStats struct {
 
 func init() {
 	ps := system.NewSystemPS()
-	inputs.Add(InputName, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &CPUStats{
 			ps: ps,
 		}
@@ -31,7 +31,7 @@ func init() {
 }
 
 func (s *CPUStats) GetInputName() string {
-	return InputName
+	return inputName
 }
 
 func (s *CPUStats) GetIntervalSeconds() int64 {

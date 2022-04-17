@@ -10,7 +10,7 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
-const InputName = "diskio"
+const inputName = "diskio"
 
 type DiskIO struct {
 	ps system.PS
@@ -23,7 +23,7 @@ type DiskIO struct {
 
 func init() {
 	ps := system.NewSystemPS()
-	inputs.Add(InputName, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &DiskIO{
 			ps: ps,
 		}
@@ -31,7 +31,7 @@ func init() {
 }
 
 func (d *DiskIO) GetInputName() string {
-	return InputName
+	return inputName
 }
 
 func (d *DiskIO) GetIntervalSeconds() int64 {

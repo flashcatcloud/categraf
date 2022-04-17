@@ -9,7 +9,7 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
-const InputName = "mem"
+const inputName = "mem"
 
 type MemStats struct {
 	ps       system.PS
@@ -22,7 +22,7 @@ type MemStats struct {
 
 func init() {
 	ps := system.NewSystemPS()
-	inputs.Add(InputName, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &MemStats{
 			ps: ps,
 		}
@@ -30,7 +30,7 @@ func init() {
 }
 
 func (s *MemStats) GetInputName() string {
-	return InputName
+	return inputName
 }
 
 func (s *MemStats) GetIntervalSeconds() int64 {

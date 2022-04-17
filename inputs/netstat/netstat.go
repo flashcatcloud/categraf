@@ -9,7 +9,7 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
-const InputName = "netstat"
+const inputName = "netstat"
 
 type NetStats struct {
 	ps system.PS
@@ -20,7 +20,7 @@ type NetStats struct {
 
 func init() {
 	ps := system.NewSystemPS()
-	inputs.Add(InputName, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &NetStats{
 			ps: ps,
 		}
@@ -28,7 +28,7 @@ func init() {
 }
 
 func (s *NetStats) GetInputName() string {
-	return InputName
+	return inputName
 }
 
 func (s *NetStats) GetIntervalSeconds() int64 {

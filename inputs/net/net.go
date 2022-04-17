@@ -11,7 +11,7 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
-const InputName = "net"
+const inputName = "net"
 
 type NetIOStats struct {
 	ps system.PS
@@ -26,7 +26,7 @@ type NetIOStats struct {
 
 func init() {
 	ps := system.NewSystemPS()
-	inputs.Add(InputName, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &NetIOStats{
 			ps: ps,
 		}
@@ -34,7 +34,7 @@ func init() {
 }
 
 func (s *NetIOStats) GetInputName() string {
-	return InputName
+	return inputName
 }
 
 func (s *NetIOStats) GetIntervalSeconds() int64 {

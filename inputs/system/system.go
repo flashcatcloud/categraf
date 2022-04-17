@@ -12,7 +12,7 @@ import (
 	"github.com/shirou/gopsutil/v3/load"
 )
 
-const InputName = "system"
+const inputName = "system"
 
 type SystemStats struct {
 	PrintConfigs      bool  `toml:"print_configs"`
@@ -21,13 +21,13 @@ type SystemStats struct {
 }
 
 func init() {
-	inputs.Add(InputName, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &SystemStats{}
 	})
 }
 
 func (s *SystemStats) GetInputName() string {
-	return InputName
+	return inputName
 }
 
 func (s *SystemStats) GetIntervalSeconds() int64 {

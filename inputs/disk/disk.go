@@ -9,7 +9,7 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
-const InputName = "disk"
+const inputName = "disk"
 
 type DiskStats struct {
 	ps system.PS
@@ -22,7 +22,7 @@ type DiskStats struct {
 
 func init() {
 	ps := system.NewSystemPS()
-	inputs.Add(InputName, func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &DiskStats{
 			ps: ps,
 		}
@@ -30,7 +30,7 @@ func init() {
 }
 
 func (s *DiskStats) GetInputName() string {
-	return InputName
+	return inputName
 }
 
 func (s *DiskStats) GetIntervalSeconds() int64 {
