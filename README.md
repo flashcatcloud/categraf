@@ -15,3 +15,17 @@ go build
 ```shell
 tar zcvf categraf.tar.gz categraf conf
 ```
+
+## todo
+
+[]ntp
+[]exec
+[]ping
+[]net_response
+[]http_response
+[]scrape
+[]procstat
+[]oracle
+[]mysql
+[]redis
+[]...

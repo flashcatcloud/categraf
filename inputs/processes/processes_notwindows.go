@@ -15,7 +15,7 @@ import (
 	"syscall"
 
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/inputs/linux_sysctl_fs"
+	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -145,7 +145,7 @@ func (p *Processes) gatherFromPS(fields map[string]interface{}) error {
 
 // get process states from /proc/(pid)/stat files
 func (p *Processes) gatherFromProc(fields map[string]interface{}) error {
-	filenames, err := filepath.Glob(linux_sysctl_fs.GetHostProc() + "/[0-9]*/stat")
+	filenames, err := filepath.Glob(osx.GetHostProc() + "/[0-9]*/stat")
 	if err != nil {
 		return err
 	}

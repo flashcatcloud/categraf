@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -27,7 +28,7 @@ type SysctlFS struct {
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &SysctlFS{
-			path: path.Join(GetHostProc(), "/sys/fs"),
+			path: path.Join(osx.GetHostProc(), "/sys/fs"),
 		}
 	})
 }
