@@ -1,5 +1,5 @@
 # # whether print configs
 # print_configs = false
 
-# # collect interval, default 15s
+# # collect interval
 # interval_seconds = 15
