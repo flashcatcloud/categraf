@@ -11,6 +11,7 @@ import (
 	"path"
 	"strconv"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/types"
@@ -19,8 +20,8 @@ import (
 const inputName = "linux_sysctl_fs"
 
 type SysctlFS struct {
-	PrintConfigs    bool  `toml:"print_configs"`
-	IntervalSeconds int64 `toml:"interval_seconds"`
+	PrintConfigs bool            `toml:"print_configs"`
+	Interval     config.Duration `toml:"interval"`
 
 	path string
 }
@@ -37,8 +38,8 @@ func (s *SysctlFS) GetInputName() string {
 	return inputName
 }
 
-func (s *SysctlFS) GetIntervalSeconds() int64 {
-	return s.IntervalSeconds
+func (s *SysctlFS) GetInterval() config.Duration {
+	return s.Interval
 }
 
 func (s *SysctlFS) Init() error {

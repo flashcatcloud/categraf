@@ -4,6 +4,7 @@ import (
 	"log"
 	"runtime"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
@@ -15,9 +16,9 @@ type MemStats struct {
 	ps       system.PS
 	platform string
 
-	PrintConfigs          bool  `toml:"print_configs"`
-	IntervalSeconds       int64 `toml:"interval_seconds"`
-	CollectPlatformFields bool  `toml:"collect_platform_fields"`
+	PrintConfigs          bool            `toml:"print_configs"`
+	Interval              config.Duration `toml:"interval"`
+	CollectPlatformFields bool            `toml:"collect_platform_fields"`
 }
 
 func init() {
@@ -33,8 +34,8 @@ func (s *MemStats) GetInputName() string {
 	return inputName
 }
 
-func (s *MemStats) GetIntervalSeconds() int64 {
-	return s.IntervalSeconds
+func (s *MemStats) GetInterval() config.Duration {
+	return s.Interval
 }
 
 // overwrite func

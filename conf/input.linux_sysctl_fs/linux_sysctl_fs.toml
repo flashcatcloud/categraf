@@ -2,4 +2,4 @@
 # print_configs = false
 
 # # collect interval
-# interval_seconds = 15
+# interval = 15

@@ -2,7 +2,7 @@
 # print_configs = false
 
 # # collect interval
-# interval_seconds = 15
+# interval = 15
 
 # # By default stats will be gathered for all mount points.
 # # Set mount_points will restrict the stats to only the specified mount points.

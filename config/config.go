@@ -13,12 +13,12 @@ import (
 )
 
 type Global struct {
-	PrintConfigs    bool              `toml:"print_configs"`
-	Hostname        string            `toml:"hostname"`
-	OmitHostname    bool              `toml:"omit_hostname"`
-	Labels          map[string]string `toml:"labels"`
-	Precision       string            `toml:"precision"`
-	IntervalSeconds int64             `toml:"interval_seconds"`
+	PrintConfigs bool              `toml:"print_configs"`
+	Hostname     string            `toml:"hostname"`
+	OmitHostname bool              `toml:"omit_hostname"`
+	Labels       map[string]string `toml:"labels"`
+	Precision    string            `toml:"precision"`
+	Interval     Duration          `toml:"interval"`
 }
 
 type WriterOpt struct {
@@ -86,10 +86,6 @@ func InitConfig(configDir, debugMode string, testMode bool) error {
 		Config.Global.Hostname = name
 	}
 
-	if Config.Global.IntervalSeconds <= 0 {
-		Config.Global.IntervalSeconds = 15
-	}
-
 	if Config.Global.PrintConfigs {
 		bs, _ := json.MarshalIndent(Config, "", "    ")
 		fmt.Println(string(bs))
@@ -99,5 +95,9 @@ func InitConfig(configDir, debugMode string, testMode bool) error {
 }
 
 func GetInterval() time.Duration {
-	return time.Duration(Config.Global.IntervalSeconds) * time.Second
+	if Config.Global.Interval <= 0 {
+		return time.Second * 15
+	}
+
+	return time.Duration(Config.Global.Interval)
 }

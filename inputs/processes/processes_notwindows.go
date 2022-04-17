@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/types"
@@ -22,10 +23,10 @@ import (
 const inputName = "processes"
 
 type Processes struct {
-	PrintConfigs    bool  `toml:"print_configs"`
-	IntervalSeconds int64 `toml:"interval_seconds"`
-	ForcePS         bool  `toml:"force_ps"`
-	ForceProc       bool  `toml:"force_proc"`
+	PrintConfigs bool            `toml:"print_configs"`
+	Interval     config.Duration `toml:"interval"`
+	ForcePS      bool            `toml:"force_ps"`
+	ForceProc    bool            `toml:"force_proc"`
 }
 
 func init() {
@@ -38,8 +39,8 @@ func (p *Processes) GetInputName() string {
 	return inputName
 }
 
-func (p *Processes) GetIntervalSeconds() int64 {
-	return p.IntervalSeconds
+func (p *Processes) GetInterval() config.Duration {
+	return p.Interval
 }
 
 func (p *Processes) Init() error {

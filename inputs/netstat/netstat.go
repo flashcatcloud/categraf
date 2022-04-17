@@ -4,6 +4,7 @@ import (
 	"log"
 	"syscall"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
@@ -14,8 +15,8 @@ const inputName = "netstat"
 type NetStats struct {
 	ps system.PS
 
-	PrintConfigs    bool  `toml:"print_configs"`
-	IntervalSeconds int64 `toml:"interval_seconds"`
+	PrintConfigs bool            `toml:"print_configs"`
+	Interval     config.Duration `toml:"interval"`
 }
 
 func init() {
@@ -31,8 +32,8 @@ func (s *NetStats) GetInputName() string {
 	return inputName
 }
 
-func (s *NetStats) GetIntervalSeconds() int64 {
-	return s.IntervalSeconds
+func (s *NetStats) GetInterval() config.Duration {
+	return s.Interval
 }
 
 func (s *NetStats) Init() error {

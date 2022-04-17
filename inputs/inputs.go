@@ -1,6 +1,7 @@
 package inputs
 
 import (
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
 )
@@ -8,7 +9,7 @@ import (
 type Input interface {
 	Init() error
 	GetInputName() string
-	GetIntervalSeconds() int64
+	GetInterval() config.Duration
 	Gather() []*types.Sample
 }
 

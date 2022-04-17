@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/filter"
@@ -15,10 +16,10 @@ const inputName = "diskio"
 type DiskIO struct {
 	ps system.PS
 
-	PrintConfigs    bool     `toml:"print_configs"`
-	IntervalSeconds int64    `toml:"interval_seconds"`
-	Devices         []string `toml:"devices"`
-	deviceFilter    filter.Filter
+	PrintConfigs bool            `toml:"print_configs"`
+	Interval     config.Duration `toml:"interval"`
+	Devices      []string        `toml:"devices"`
+	deviceFilter filter.Filter
 }
 
 func init() {
@@ -34,8 +35,8 @@ func (d *DiskIO) GetInputName() string {
 	return inputName
 }
 
-func (d *DiskIO) GetIntervalSeconds() int64 {
-	return d.IntervalSeconds
+func (d *DiskIO) GetInterval() config.Duration {
+	return d.Interval
 }
 
 // overwrite func

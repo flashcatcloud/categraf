@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 )
@@ -30,8 +31,8 @@ type KernelStats struct {
 	statFile        string
 	entropyStatFile string
 
-	PrintConfigs    bool  `toml:"print_configs"`
-	IntervalSeconds int64 `toml:"interval_seconds"`
+	PrintConfigs bool            `toml:"print_configs"`
+	Interval     config.Duration `toml:"interval"`
 }
 
 func init() {
@@ -47,8 +48,8 @@ func (s *KernelStats) GetInputName() string {
 	return inputName
 }
 
-func (s *KernelStats) GetIntervalSeconds() int64 {
-	return s.IntervalSeconds
+func (s *KernelStats) GetInterval() config.Duration {
+	return s.Interval
 }
 
 func (s *KernelStats) Init() error {

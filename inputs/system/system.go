@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -15,9 +16,9 @@ import (
 const inputName = "system"
 
 type SystemStats struct {
-	PrintConfigs      bool  `toml:"print_configs"`
-	IntervalSeconds   int64 `toml:"interval_seconds"`
-	CollectUserNumber bool  `toml:"collect_user_number"`
+	PrintConfigs      bool            `toml:"print_configs"`
+	Interval          config.Duration `toml:"interval"`
+	CollectUserNumber bool            `toml:"collect_user_number"`
 }
 
 func init() {
@@ -30,8 +31,8 @@ func (s *SystemStats) GetInputName() string {
 	return inputName
 }
 
-func (s *SystemStats) GetIntervalSeconds() int64 {
-	return s.IntervalSeconds
+func (s *SystemStats) GetInterval() config.Duration {
+	return s.Interval
 }
 
 // overwrite func

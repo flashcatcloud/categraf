@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/filter"
@@ -16,10 +17,10 @@ const inputName = "net"
 type NetIOStats struct {
 	ps system.PS
 
-	PrintConfigs         bool     `toml:"print_configs"`
-	IntervalSeconds      int64    `toml:"interval_seconds"`
-	CollectProtocolStats bool     `toml:"collect_protocol_stats"`
-	Interfaces           []string `toml:"interfaces"`
+	PrintConfigs         bool            `toml:"print_configs"`
+	Interval             config.Duration `toml:"interval"`
+	CollectProtocolStats bool            `toml:"collect_protocol_stats"`
+	Interfaces           []string        `toml:"interfaces"`
 
 	interfaceFilters filter.Filter
 }
@@ -37,8 +38,8 @@ func (s *NetIOStats) GetInputName() string {
 	return inputName
 }
 
-func (s *NetIOStats) GetIntervalSeconds() int64 {
-	return s.IntervalSeconds
+func (s *NetIOStats) GetInterval() config.Duration {
+	return s.Interval
 }
 
 // overwrite func

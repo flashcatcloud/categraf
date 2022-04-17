@@ -36,8 +36,8 @@ func (r *Reader) Start() {
 
 func (r *Reader) startInstance() {
 	interval := config.GetInterval()
-	if r.Instance.GetIntervalSeconds() > 0 {
-		interval = time.Duration(r.Instance.GetIntervalSeconds()) * time.Second
+	if r.Instance.GetInterval() > 0 {
+		interval = time.Duration(r.Instance.GetInterval())
 	}
 	for {
 		select {

@@ -2,7 +2,7 @@
 # print_configs = false
 
 # # collect interval
-# interval_seconds = 15
+# interval = 15
 
 # # whether collect per cpu
 # collect_per_cpu = false

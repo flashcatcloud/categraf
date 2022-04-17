@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
@@ -14,10 +15,10 @@ const inputName = "disk"
 type DiskStats struct {
 	ps system.PS
 
-	PrintConfigs    bool     `toml:"print_configs"`
-	IntervalSeconds int64    `toml:"interval_seconds"`
-	MountPoints     []string `toml:"mount_points"`
-	IgnoreFS        []string `toml:"ignore_fs"`
+	PrintConfigs bool            `toml:"print_configs"`
+	Interval     config.Duration `toml:"interval"`
+	MountPoints  []string        `toml:"mount_points"`
+	IgnoreFS     []string        `toml:"ignore_fs"`
 }
 
 func init() {
@@ -33,8 +34,8 @@ func (s *DiskStats) GetInputName() string {
 	return inputName
 }
 
-func (s *DiskStats) GetIntervalSeconds() int64 {
-	return s.IntervalSeconds
+func (s *DiskStats) GetInterval() config.Duration {
+	return s.Interval
 }
 
 // overwrite func

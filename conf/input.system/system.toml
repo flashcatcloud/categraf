@@ -2,7 +2,7 @@
 # print_configs = false
 
 # # collect interval
-# interval_seconds = 15
+# interval = 15
 
 # # whether collect metric: system_n_users
 # collect_user_number = false

@@ -5,6 +5,7 @@ import (
 
 	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
@@ -16,9 +17,9 @@ type CPUStats struct {
 	ps        system.PS
 	lastStats map[string]cpuUtil.TimesStat
 
-	PrintConfigs    bool  `toml:"print_configs"`
-	IntervalSeconds int64 `toml:"interval_seconds"`
-	CollectPerCPU   bool  `toml:"collect_per_cpu"`
+	PrintConfigs  bool            `toml:"print_configs"`
+	Interval      config.Duration `toml:"interval"`
+	CollectPerCPU bool            `toml:"collect_per_cpu"`
 }
 
 func init() {
@@ -34,8 +35,8 @@ func (s *CPUStats) GetInputName() string {
 	return inputName
 }
 
-func (s *CPUStats) GetIntervalSeconds() int64 {
-	return s.IntervalSeconds
+func (s *CPUStats) GetInterval() config.Duration {
+	return s.Interval
 }
 
 // overwrite func

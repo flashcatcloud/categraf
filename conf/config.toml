@@ -12,7 +12,7 @@ omit_hostname = false
 precision = "ms"
 
 # global collect interval
-interval_seconds = 15
+interval = 15
 
 # [global.labels]
 # region = "shanghai"

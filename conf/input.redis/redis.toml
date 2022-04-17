@@ -2,7 +2,7 @@
 # print_configs = false
 
 # # collect interval
-# interval_seconds = 15
+# interval = 15
 
 # [[instances]]
 # # redis server address
@@ -12,7 +12,7 @@
 # password = ""
 
 # # collect interval for this instance
-# interval_seconds = 15
+# interval = 15
 
 # # append labels for this instance
 # labels = { instnace = "10.23.4.4:6379" }
