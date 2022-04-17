@@ -4,6 +4,13 @@
 package linux_sysctl_fs
 
 import (
+	"bytes"
+	"errors"
+	"log"
+	"os"
+	"path"
+	"strconv"
+
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 )
@@ -41,22 +48,22 @@ func (s *SysctlFS) Gather() []*types.Sample {
 	fields := map[string]interface{}{}
 
 	for _, n := range []string{"aio-nr", "aio-max-nr", "dquot-nr", "dquot-max", "super-nr", "super-max"} {
-		if err := sfs.gatherOne(n, fields); err != nil {
+		if err := s.gatherOne(n, fields); err != nil {
 			log.Println("E! failed to gather sysctl fs:", err)
 		}
 	}
 
-	err := sfs.gatherList("inode-state", fields, "inode-nr", "inode-free-nr", "inode-preshrink-nr")
+	err := s.gatherList("inode-state", fields, "inode-nr", "inode-free-nr", "inode-preshrink-nr")
 	if err != nil {
 		log.Println("E! failed to gather inode-state:", err)
 	}
 
-	err = sfs.gatherList("dentry-state", fields, "dentry-nr", "dentry-unused-nr", "dentry-age-limit", "dentry-want-pages")
+	err = s.gatherList("dentry-state", fields, "dentry-nr", "dentry-unused-nr", "dentry-age-limit", "dentry-want-pages")
 	if err != nil {
 		log.Println("E! failed to gather dentry-state:", err)
 	}
 
-	err = sfs.gatherList("file-nr", fields, "file-nr", "", "file-max")
+	err = s.gatherList("file-nr", fields, "file-nr", "", "file-max")
 	if err != nil {
 		log.Println("E! failed to gather file-nr:", err)
 	}
