@@ -100,8 +100,9 @@ func (o *Oracle) Gather() (samples []*types.Sample) {
 
 	var wg sync.WaitGroup
 	for i := range o.Instances {
+		ins := o.Instances[i]
 		wg.Add(1)
-		go o.collectOnce(&wg, o.Instances[i], slist)
+		go o.collectOnce(&wg, ins, slist)
 	}
 	wg.Wait()
 
@@ -138,8 +139,9 @@ func (o *Oracle) collectOnce(wg *sync.WaitGroup, ins OrclInstance, slist *list.S
 	waitMetrics := new(sync.WaitGroup)
 
 	for i := 0; i < len(o.Metrics); i++ {
+		m := o.Metrics[i]
 		waitMetrics.Add(1)
-		go o.scrapeMetric(waitMetrics, slist, db, o.Metrics[i], tags)
+		go o.scrapeMetric(waitMetrics, slist, db, m, tags)
 	}
 
 	waitMetrics.Wait()
@@ -151,10 +153,6 @@ func (o *Oracle) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList,
 	timeout := time.Duration(metricConf.Timeout)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-
-	if config.Config.DebugMode {
-		log.Println("D! oracle request:", metricConf.Request)
-	}
 
 	rows, err := db.QueryContext(ctx, metricConf.Request)
 
@@ -199,10 +197,6 @@ func (o *Oracle) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList,
 		for i, colName := range cols {
 			val := columnPointers[i].(*interface{})
 			m[strings.ToLower(colName)] = fmt.Sprint(*val)
-		}
-
-		if config.Config.DebugMode {
-			log.Println("D! rows:", m)
 		}
 
 		count := 0
