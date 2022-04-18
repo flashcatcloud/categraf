@@ -167,13 +167,13 @@ func commandRun(command string, timeout time.Duration) ([]byte, []byte, error) {
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 
-	runErr, runTimeout := cmdx.RunTimeout(cmd, timeout)
+	runError, runTimeout := cmdx.RunTimeout(cmd, timeout)
 	if runTimeout {
 		return nil, nil, fmt.Errorf("exec %s timeout", command)
 	}
 
-	if runErr != nil {
-		return nil, nil, runErr
+	if runError != nil {
+		return nil, nil, runError
 	}
 
 	out = removeWindowsCarriageReturns(out)
