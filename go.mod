@@ -6,6 +6,8 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4
+	github.com/influxdata/line-protocol/v2 v2.2.1
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.32.1

@@ -74,7 +74,12 @@ func (r *Reader) gatherOnce() {
 			samples[i].Timestamp = now
 		}
 
-		samples[i].Metric = r.Instance.GetInputName() + "_" + strings.ReplaceAll(samples[i].Metric, "-", "_")
+		if len(r.Instance.GetInputName()) > 0 {
+			samples[i].Metric = r.Instance.GetInputName() + "_" + strings.ReplaceAll(samples[i].Metric, "-", "_")
+		} else {
+			samples[i].Metric = strings.ReplaceAll(samples[i].Metric, "-", "_")
+		}
+
 		r.Queue <- samples[i]
 	}
 }

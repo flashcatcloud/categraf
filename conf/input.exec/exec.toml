@@ -1,0 +1,16 @@
+# # whether print configs
+# print_configs = false
+
+# # collect interval
+# interval = 15
+
+# commands, support glob
+commands = [
+    "/opt/categraf/scripts/*.sh"
+]
+
+# # timeout for each command to complete
+# timeout = 5
+
+# # mesurement,labelkey1=labelval1,labelkey2=labelval2 field1=1.2,field2=2.3
+# data_format = "influx"

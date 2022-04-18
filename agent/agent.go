@@ -16,6 +16,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/cpu"
 	_ "flashcat.cloud/categraf/inputs/disk"
 	_ "flashcat.cloud/categraf/inputs/diskio"
+	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/kernel"
 	_ "flashcat.cloud/categraf/inputs/linux_sysctl_fs"
 	_ "flashcat.cloud/categraf/inputs/mem"
