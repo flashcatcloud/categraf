@@ -178,7 +178,10 @@ func (o *Oracle) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList,
 		log.Println("D! columns:", cols)
 	}
 
+	log.Println("444444")
+
 	for rows.Next() {
+		log.Println("55555")
 		columns := make([]interface{}, len(cols))
 		columnPointers := make([]interface{}, len(cols))
 		for i := range columns {
@@ -199,6 +202,8 @@ func (o *Oracle) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList,
 			m[strings.ToLower(colName)] = fmt.Sprint(*val)
 		}
 
+		log.Println("666666")
+
 		count := 0
 		if err = o.parseRow(m, metricConf, slist, tags); err != nil {
 			log.Println("E! failed to parse row:", err)
@@ -207,6 +212,8 @@ func (o *Oracle) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList,
 			count++
 		}
 
+		log.Println("77777 count:", count)
+
 		if !metricConf.IgnoreZeroResult && count == 0 {
 			log.Println("E! no metrics found while parsing")
 		}
@@ -214,6 +221,7 @@ func (o *Oracle) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList,
 }
 
 func (o *Oracle) parseRow(row map[string]string, metricConf MetricConfig, slist *list.SafeList, tags map[string]string) error {
+	log.Println("33333")
 	labels := make(map[string]string)
 	for k, v := range tags {
 		labels[k] = v
@@ -234,11 +242,11 @@ func (o *Oracle) parseRow(row map[string]string, metricConf MetricConfig, slist 
 		}
 
 		if metricConf.FieldToAppend == "" {
-			log.Println(metricConf.Mesurement+"_"+column, value, labels)
+			log.Println("1111111", metricConf.Mesurement+"_"+column, value, labels)
 			slist.PushFront(inputs.NewSample(metricConf.Mesurement+"_"+column, value, labels))
 		} else {
 			suffix := cleanName(row[metricConf.FieldToAppend])
-			log.Println(metricConf.Mesurement+"_"+suffix+"_"+column, value, labels)
+			log.Println("2222222", metricConf.Mesurement+"_"+suffix+"_"+column, value, labels)
 			slist.PushFront(inputs.NewSample(metricConf.Mesurement+"_"+suffix+"_"+column, value, labels))
 		}
 	}
