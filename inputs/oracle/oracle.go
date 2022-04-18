@@ -1,12 +1,16 @@
 package oracle
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
+	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
 	"github.com/godror/godror"
 	"github.com/godror/godror/dsn"
@@ -110,19 +114,152 @@ func (o *Oracle) Gather() (samples []*types.Sample) {
 }
 
 func (o *Oracle) collectOnce(wg *sync.WaitGroup, ins OrclInstance, slist *list.SafeList) {
-	log.Println("->", ins.Address)
-	log.Println("->", ins.Labels)
-	log.Printf("%#v\n", ins)
-	log.Println("-> metrics count:", len(o.Metrics))
-
-	log.Println(o.Metrics[0].Mesurement)
-	log.Println(o.Metrics[0].Request)
-	log.Println(o.Metrics[0].FieldToAppend)
-	log.Println(o.Metrics[0].IgnoreZeroResult)
-	log.Println(o.Metrics[0].LabelFields)
-	log.Println(o.Metrics[0].MetricFields)
-
 	defer wg.Done()
+
+	tags := map[string]string{"address": ins.Address}
+	for k, v := range ins.Labels {
+		tags[k] = v
+	}
+
+	defer func(begun time.Time) {
+		use := time.Since(begun).Seconds()
+		slist.PushFront(inputs.NewSample("scrape_use_seconds", use, tags))
+	}(time.Now())
+
+	db := o.dbconnpool[ins.Address]
+
+	if err := db.Ping(); err != nil {
+		slist.PushFront(inputs.NewSample("up", 0, tags))
+		log.Println("failed to ping oracle:", ins.Address, "error:", err)
+	} else {
+		slist.PushFront(inputs.NewSample("up", 1, tags))
+	}
+
+	waitMetrics := new(sync.WaitGroup)
+
+	for i := 0; i < len(o.Metrics); i++ {
+		waitMetrics.Add(1)
+		go o.scrapeMetric(waitMetrics, slist, db, o.Metrics[i], tags)
+	}
+
+	waitMetrics.Wait()
+}
+
+func (o *Oracle) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList, db *sqlx.DB, metricConf MetricConfig, tags map[string]string) {
+	defer waitMetrics.Done()
+
+	timeout := time.Duration(metricConf.Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	if config.Config.DebugMode {
+		log.Println("D! oracle request:", metricConf.Request)
+	}
+
+	rows, err := db.QueryContext(ctx, metricConf.Request)
+
+	if ctx.Err() == context.DeadlineExceeded {
+		log.Println("E! oracle query timeout, request:", metricConf.Request)
+		return
+	}
+
+	if err != nil {
+		log.Println("E! failed to query:", err)
+		return
+	}
+
+	defer rows.Close()
+
+	cols, err := rows.Columns()
+	if err != nil {
+		log.Println("E! failed to get columns:", err)
+		return
+	}
+
+	if config.Config.DebugMode {
+		log.Println("D! columns:", cols)
+	}
+
+	for rows.Next() {
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		// Scan the result into the column pointers...
+		if err := rows.Scan(columnPointers...); err != nil {
+			log.Println("E! failed to scan:", err)
+			return
+		}
+
+		// Create our map, and retrieve the value for each column from the pointers slice,
+		// storing it in the map with the name of the column as the key.
+		m := make(map[string]string)
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[strings.ToLower(colName)] = fmt.Sprint(*val)
+		}
+
+		if config.Config.DebugMode {
+			log.Println("D! rows:", m)
+		}
+
+		count := 0
+		if err = o.parseRow(m, metricConf, slist, tags); err != nil {
+			log.Println("E! failed to parse row:", err)
+			continue
+		} else {
+			count++
+		}
+
+		if !metricConf.IgnoreZeroResult && count == 0 {
+			log.Println("E! no metrics found while parsing")
+		}
+	}
+}
+
+func (o *Oracle) parseRow(row map[string]string, metricConf MetricConfig, slist *list.SafeList, tags map[string]string) error {
+	labels := make(map[string]string)
+	for k, v := range tags {
+		labels[k] = v
+	}
+
+	for _, label := range metricConf.LabelFields {
+		labelValue, has := row[label]
+		if has {
+			labels[label] = strings.Replace(labelValue, " ", "_", -1)
+		}
+	}
+
+	for _, column := range metricConf.MetricFields {
+		value, err := conv.ToFloat64(row[column])
+		if err != nil {
+			log.Println("E! failed to convert field:", column, "value:", value, "error:", err)
+			return err
+		}
+
+		if metricConf.FieldToAppend == "" {
+			slist.PushFront(inputs.NewSample(metricConf.Mesurement+"_"+column, value, labels))
+		} else {
+			suffix := cleanName(row[metricConf.FieldToAppend])
+			slist.PushFront(inputs.NewSample(metricConf.Mesurement+"_"+suffix+"_"+column, value, labels))
+		}
+	}
+
+	return nil
+}
+
+// Oracle gives us some ugly names back. This function cleans things up for Prometheus.
+func cleanName(s string) string {
+	s = strings.Replace(s, " ", "_", -1) // Remove spaces
+	s = strings.Replace(s, "(", "", -1)  // Remove open parenthesis
+	s = strings.Replace(s, ")", "", -1)  // Remove close parenthesis
+	s = strings.Replace(s, "/", "", -1)  // Remove forward slashes
+	s = strings.Replace(s, "*", "", -1)  // Remove asterisks
+	s = strings.Replace(s, "%", "percent", -1)
+	s = strings.ToLower(s)
+	return s
 }
 
 func getConnectionString(args OrclInstance) string {
