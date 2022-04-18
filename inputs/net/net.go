@@ -42,7 +42,8 @@ func (s *NetIOStats) GetInterval() config.Duration {
 	return s.Interval
 }
 
-// overwrite func
+func (s *NetIOStats) Drop() {}
+
 func (s *NetIOStats) Init() error {
 	var err error
 

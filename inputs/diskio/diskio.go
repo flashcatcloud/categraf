@@ -39,7 +39,8 @@ func (d *DiskIO) GetInterval() config.Duration {
 	return d.Interval
 }
 
-// overwrite func
+func (d *DiskIO) Drop() {}
+
 func (d *DiskIO) Init() error {
 	for _, device := range d.Devices {
 		if filter.HasMeta(device) {

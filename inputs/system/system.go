@@ -35,10 +35,11 @@ func (s *SystemStats) GetInterval() config.Duration {
 	return s.Interval
 }
 
-// overwrite func
 func (s *SystemStats) Init() error {
 	return nil
 }
+
+func (s *SystemStats) Drop() {}
 
 func (s *SystemStats) Gather() []*types.Sample {
 	var samples []*types.Sample

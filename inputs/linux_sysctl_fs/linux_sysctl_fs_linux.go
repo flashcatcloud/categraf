@@ -46,6 +46,8 @@ func (s *SysctlFS) Init() error {
 	return nil
 }
 
+func (s *SysctlFS) Drop() {}
+
 func (s *SysctlFS) Gather() []*types.Sample {
 	fields := map[string]interface{}{}
 

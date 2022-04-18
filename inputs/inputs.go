@@ -8,6 +8,7 @@ import (
 
 type Input interface {
 	Init() error
+	Drop()
 	GetInputName() string
 	GetInterval() config.Duration
 	Gather() []*types.Sample

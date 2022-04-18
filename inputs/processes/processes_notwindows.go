@@ -43,6 +43,8 @@ func (p *Processes) GetInterval() config.Duration {
 	return p.Interval
 }
 
+func (p *Processes) Drop() {}
+
 func (p *Processes) Init() error {
 	return nil
 }

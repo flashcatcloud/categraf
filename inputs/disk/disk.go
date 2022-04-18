@@ -38,9 +38,11 @@ func (s *DiskStats) GetInterval() config.Duration {
 	return s.Interval
 }
 
-// overwrite func
 func (s *DiskStats) Init() error {
 	return nil
+}
+
+func (s *DiskStats) Drop() {
 }
 
 func (s *DiskStats) Gather() []*types.Sample {

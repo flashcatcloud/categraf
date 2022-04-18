@@ -38,7 +38,8 @@ func (s *MemStats) GetInterval() config.Duration {
 	return s.Interval
 }
 
-// overwrite func
+func (s *MemStats) Drop() {}
+
 func (s *MemStats) Init() error {
 	s.platform = runtime.GOOS
 	return nil

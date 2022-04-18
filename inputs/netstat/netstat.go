@@ -36,6 +36,8 @@ func (s *NetStats) GetInterval() config.Duration {
 	return s.Interval
 }
 
+func (s *NetStats) Drop() {}
+
 func (s *NetStats) Init() error {
 	return nil
 }

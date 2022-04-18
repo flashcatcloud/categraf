@@ -44,6 +44,9 @@ func (c *CPUStats) Init() error {
 	return nil
 }
 
+func (c *CPUStats) Drop() {
+}
+
 func (c *CPUStats) Gather() []*types.Sample {
 	var samples []*types.Sample
 

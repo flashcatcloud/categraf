@@ -56,6 +56,8 @@ func (s *KernelStats) Init() error {
 	return nil
 }
 
+func (s *KernelStats) Drop() {}
+
 func (s *KernelStats) Gather() (samples []*types.Sample) {
 	data, err := s.getProcStat()
 	if err != nil {

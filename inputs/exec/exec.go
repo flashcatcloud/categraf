@@ -47,6 +47,8 @@ func (e *Exec) GetInputName() string {
 	return ""
 }
 
+func (e *Exec) Drop() {}
+
 func (e *Exec) GetInterval() config.Duration {
 	return e.Interval
 }
