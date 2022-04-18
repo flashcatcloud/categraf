@@ -25,7 +25,7 @@ tar zcvf categraf.tar.gz categraf conf
 - []http_response
 - []scrape
 - []procstat
-- []oracle
+- [x]oracle
 - []mysql
 - []redis
 - []...

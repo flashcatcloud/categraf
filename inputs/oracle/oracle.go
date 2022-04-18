@@ -131,7 +131,7 @@ func (o *Oracle) collectOnce(wg *sync.WaitGroup, ins OrclInstance, slist *list.S
 
 	if err := db.Ping(); err != nil {
 		slist.PushFront(inputs.NewSample("up", 0, tags))
-		log.Println("failed to ping oracle:", ins.Address, "error:", err)
+		log.Println("E! failed to ping oracle:", ins.Address, "error:", err)
 	} else {
 		slist.PushFront(inputs.NewSample("up", 1, tags))
 	}
