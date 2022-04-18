@@ -6,7 +6,7 @@ is_sys_dba = false
 is_sys_oper = false
 disable_connection_pool = false
 max_open_connections = 5
-# labels = {region="cloud"}
+# labels = { region="cloud" }
 
 # [[instances]]
 # address = "192.168.10.10:1521/orcl"
@@ -16,4 +16,4 @@ max_open_connections = 5
 # is_sys_oper = false
 # disable_connection_pool = false
 # max_open_connections = 5
-# # labels = {region="local"}
+# # labels = { region="local" }

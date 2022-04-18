@@ -17,13 +17,14 @@ import (
 const inputName = "oracle"
 
 type OrclInstance struct {
-	Address               string `toml:"address"`
-	Username              string `toml:"username"`
-	Password              string `toml:"password"`
-	IsSysDBA              bool   `toml:"is_sys_dba"`
-	IsSysOper             bool   `toml:"is_sys_oper"`
-	DisableConnectionPool bool   `toml:"disable_connection_pool"`
-	MaxOpenConnections    int    `toml:"max_open_connections"`
+	Address               string            `toml:"address"`
+	Username              string            `toml:"username"`
+	Password              string            `toml:"password"`
+	IsSysDBA              bool              `toml:"is_sys_dba"`
+	IsSysOper             bool              `toml:"is_sys_oper"`
+	DisableConnectionPool bool              `toml:"disable_connection_pool"`
+	MaxOpenConnections    int               `toml:"max_open_connections"`
+	Labels                map[string]string `toml:"labels"`
 }
 
 type MetricConfig struct {
@@ -110,6 +111,7 @@ func (o *Oracle) Gather() (samples []*types.Sample) {
 
 func (o *Oracle) collectOnce(wg *sync.WaitGroup, ins OrclInstance, slist *list.SafeList) {
 	log.Println("->", ins.Address)
+	log.Println("->", ins.Labels)
 	log.Printf("%#v\n", ins)
 	log.Println("-> metrics count:", len(o.Metrics))
 

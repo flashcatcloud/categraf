@@ -10,7 +10,7 @@ SELECT status, type, COUNT(*) as value FROM v$session GROUP BY status, type
 [[metrics]]
 mesurement = "resource"
 label_fields = [ "resource_name" ]
-metric_fields = { current_utilization= "float64", limit_value="float64" }
+metric_fields = { current_utilization = "float64", limit_value = "float64" }
 timeout = "3s"
 request = '''
 SELECT resource_name,current_utilization,CASE WHEN TRIM(limit_value) LIKE 'UNLIMITED' THEN '-1' ELSE TRIM(limit_value) END as limit_value FROM v$resource_limit
