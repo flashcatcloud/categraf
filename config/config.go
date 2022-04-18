@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strconv"
 	"time"
 
 	"flashcat.cloud/categraf/pkg/cfg"
@@ -57,20 +56,15 @@ type ConfigType struct {
 
 var Config *ConfigType
 
-func InitConfig(configDir, debugMode string, testMode bool) error {
+func InitConfig(configDir string, debugMode bool, testMode bool) error {
 	configFile := path.Join(configDir, "config.toml")
 	if !file.IsExist(configFile) {
 		return fmt.Errorf("configuration file(%s) not found", configFile)
 	}
 
-	debug, err := strconv.ParseBool(debugMode)
-	if err != nil {
-		return fmt.Errorf("failed to parse bool(%s): %v", debugMode, err)
-	}
-
 	Config = &ConfigType{
 		ConfigDir: configDir,
-		DebugMode: debug,
+		DebugMode: debugMode,
 		TestMode:  testMode,
 	}
 

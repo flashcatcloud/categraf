@@ -19,7 +19,7 @@ import (
 var (
 	version      = "0.0.1"
 	configDir    = flag.String("configs", osx.GetEnv("CATEGRAF_CONFIGS", "conf"), "Specify configuration directory.(env:CATEGRAF_CONFIGS)")
-	debugMode    = flag.String("debug", osx.GetEnv("CATEGRAF_DEBUG", "false"), "Is debug mode?.(env:CATEGRAF_DEBUG)")
+	debugMode    = flag.Bool("debug", false, "Is debug mode?")
 	testMode     = flag.Bool("test", false, "Is test mode? print metrics to stdout")
 	showVersion  = flag.Bool("version", false, "Show version.")
 	inputFilters = flag.String("input-filter", "", "e.g. cpu:mem:system")

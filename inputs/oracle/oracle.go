@@ -234,9 +234,11 @@ func (o *Oracle) parseRow(row map[string]string, metricConf MetricConfig, slist 
 		}
 
 		if metricConf.FieldToAppend == "" {
+			log.Println(metricConf.Mesurement+"_"+column, value, labels)
 			slist.PushFront(inputs.NewSample(metricConf.Mesurement+"_"+column, value, labels))
 		} else {
 			suffix := cleanName(row[metricConf.FieldToAppend])
+			log.Println(metricConf.Mesurement+"_"+suffix+"_"+column, value, labels)
 			slist.PushFront(inputs.NewSample(metricConf.Mesurement+"_"+suffix+"_"+column, value, labels))
 		}
 	}
