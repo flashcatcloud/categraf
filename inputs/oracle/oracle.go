@@ -32,13 +32,13 @@ type OrclInstance struct {
 }
 
 type MetricConfig struct {
-	Mesurement       string            `toml:"mesurement"`
-	LabelFields      []string          `toml:"label_fields"`
-	MetricFields     map[string]string `toml:"metric_fields"` // column_name -> value type(float64, bool, int64)
-	FieldToAppend    string            `toml:"field_to_append"`
-	Timeout          config.Duration   `toml:"timeout"`
-	Request          string            `toml:"request"`
-	IgnoreZeroResult bool              `toml:"ignore_zero_result"`
+	Mesurement       string          `toml:"mesurement"`
+	LabelFields      []string        `toml:"label_fields"`
+	MetricFields     []string        `toml:"metric_fields"` // column_name -> value type(float64, bool, int64)
+	FieldToAppend    string          `toml:"field_to_append"`
+	Timeout          config.Duration `toml:"timeout"`
+	Request          string          `toml:"request"`
+	IgnoreZeroResult bool            `toml:"ignore_zero_result"`
 }
 
 type Oracle struct {
