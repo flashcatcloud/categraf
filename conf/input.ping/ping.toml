@@ -26,7 +26,7 @@ targets = [
 
 ## If set, the time to wait for a ping response in seconds.  Operates like
 ## the "-W" option of the ping command.
-timeout = 1.0
+# timeout = 3.0
 
 ## Interface or source address to send ping from.  Operates like the -I or -S
 ## option of the ping command.
