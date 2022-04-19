@@ -29,7 +29,6 @@ type PingInstance struct {
 	Count         int               `toml:"count"`         // ping -c <COUNT>
 	PingInterval  float64           `toml:"ping_interval"` // ping -i <INTERVAL>
 	Timeout       float64           `toml:"timeout"`       // ping -W <TIMEOUT>
-	Deadline      int               `toml:"deadline"`      // ping -w <DEADLINE>
 	Interface     string            `toml:"interface"`     // ping -I/-S <INTERFACE/SRC_ADDR>
 	IPv6          bool              `toml:"ipv6"`          // Whether to resolve addresses using ipv6 or not.
 	Size          *int              `toml:"size"`          // Packet size
@@ -51,13 +50,9 @@ func (ins *PingInstance) Init() error {
 	}
 
 	if ins.Timeout == 0 {
-		ins.calcTimeout = time.Duration(5) * time.Second
+		ins.calcTimeout = time.Duration(3) * time.Second
 	} else {
 		ins.calcTimeout = time.Duration(ins.Timeout) * time.Second
-	}
-
-	if ins.Deadline <= 0 {
-		ins.Deadline = 5
 	}
 
 	if ins.Interface != "" {
@@ -236,10 +231,7 @@ func (ins *PingInstance) ping(destination string) (*pingStats, error) {
 
 	pinger.Source = ins.sourceAddress
 	pinger.Interval = ins.calcInterval
-
-	if ins.Deadline > 0 {
-		pinger.Timeout = time.Duration(ins.Deadline) * time.Second
-	}
+	pinger.Timeout = ins.calcTimeout
 
 	// Get Time to live (TTL) of first response, matching original implementation
 	once := &sync.Once{}
