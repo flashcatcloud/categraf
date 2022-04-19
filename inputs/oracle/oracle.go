@@ -51,6 +51,7 @@ type Oracle struct {
 
 	dbconnpool map[string]*sqlx.DB // key: instance
 	Counter    uint64
+	wg         sync.WaitGroup
 }
 
 func init() {
@@ -103,13 +104,12 @@ func (o *Oracle) Gather() (samples []*types.Sample) {
 
 	slist := list.NewSafeList()
 
-	var wg sync.WaitGroup
 	for i := range o.Instances {
 		ins := o.Instances[i]
-		wg.Add(1)
-		go o.collectOnce(&wg, ins, slist)
+		o.wg.Add(1)
+		go o.gatherOnce(slist, ins)
 	}
-	wg.Wait()
+	o.wg.Wait()
 
 	interfaceList := slist.PopBackAll()
 	for i := 0; i < len(interfaceList); i++ {
@@ -119,8 +119,8 @@ func (o *Oracle) Gather() (samples []*types.Sample) {
 	return
 }
 
-func (o *Oracle) collectOnce(wg *sync.WaitGroup, ins OrclInstance, slist *list.SafeList) {
-	defer wg.Done()
+func (o *Oracle) gatherOnce(slist *list.SafeList, ins OrclInstance) {
+	defer o.wg.Done()
 
 	if ins.IntervalTimes > 0 {
 		counter := atomic.LoadUint64(&o.Counter)

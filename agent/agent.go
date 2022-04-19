@@ -23,6 +23,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/net"
 	_ "flashcat.cloud/categraf/inputs/netstat"
 	_ "flashcat.cloud/categraf/inputs/oracle"
+	_ "flashcat.cloud/categraf/inputs/ping"
 	_ "flashcat.cloud/categraf/inputs/processes"
 	_ "flashcat.cloud/categraf/inputs/redis"
 	_ "flashcat.cloud/categraf/inputs/system"
