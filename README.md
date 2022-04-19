@@ -20,7 +20,7 @@ tar zcvf categraf.tar.gz categraf conf
 
 - []ntp
 - [x]exec
-- []ping
+- [x]ping
 - []net_response
 - []http_response
 - []scrape
