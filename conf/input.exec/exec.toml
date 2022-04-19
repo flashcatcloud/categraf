@@ -1,11 +1,11 @@
 # # collect interval
 # interval = 15
 
-[[instances]]
-# commands, support glob
-commands = [
-    "/opt/categraf/scripts/*.sh"
-]
+# [[instances]]
+# # commands, support glob
+# commands = [
+#     "/opt/categraf/scripts/*.sh"
+# ]
 
 # # timeout for each command to complete
 # timeout = 5

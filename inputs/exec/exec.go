@@ -58,6 +58,10 @@ func (e *Exec) GetInterval() config.Duration {
 }
 
 func (e *Exec) Init() error {
+	if len(e.Instances) == 0 {
+		return fmt.Errorf("exec instances empty")
+	}
+
 	for i := 0; i < len(e.Instances); i++ {
 		if e.Instances[i].DataFormat == "" || e.Instances[i].DataFormat == "influx" {
 			e.Instances[i].parser = influx.NewSeriesParser()

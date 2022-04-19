@@ -76,6 +76,9 @@ func (o *Oracle) Init() error {
 	o.dbconnpool = make(map[string]*sqlx.DB)
 	for i := 0; i < len(o.Instances); i++ {
 		dbConf := o.Instances[i]
+		if dbConf.Address == "" {
+			return fmt.Errorf("some oracle address is blank")
+		}
 		connString := getConnectionString(dbConf)
 		db, err := sqlx.Open("godror", connString)
 		if err != nil {
