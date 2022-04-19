@@ -160,6 +160,10 @@ func (p *Ping) gatherOnce(slist *list.SafeList, ins *PingInstance) {
 }
 
 func (ins *PingInstance) gather(slist *list.SafeList, target string) {
+	if config.Config.DebugMode {
+		log.Println("D! ping...", target)
+	}
+
 	labels := map[string]string{"target": target}
 	for k, v := range ins.Labels {
 		labels[k] = v
