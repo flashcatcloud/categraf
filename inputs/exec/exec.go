@@ -59,7 +59,7 @@ func (e *Exec) GetInterval() config.Duration {
 
 func (e *Exec) Init() error {
 	if len(e.Instances) == 0 {
-		return fmt.Errorf("exec instances empty")
+		return fmt.Errorf("instances empty")
 	}
 
 	for i := 0; i < len(e.Instances); i++ {

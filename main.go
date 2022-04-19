@@ -22,7 +22,7 @@ var (
 	debugMode    = flag.Bool("debug", false, "Is debug mode?")
 	testMode     = flag.Bool("test", false, "Is test mode? print metrics to stdout")
 	showVersion  = flag.Bool("version", false, "Show version.")
-	inputFilters = flag.String("input-filter", "", "e.g. cpu:mem:system")
+	inputFilters = flag.String("inputs", "", "e.g. cpu:mem:system")
 )
 
 func main() {

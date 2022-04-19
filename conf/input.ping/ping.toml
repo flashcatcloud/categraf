@@ -1,7 +1,7 @@
 # # collect interval
 # interval = 15
 
-[[instances]]
+# [[instances]]
 # send ping packets to
 # targets = [
 #     "www.baidu.com",

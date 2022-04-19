@@ -70,7 +70,7 @@ func (o *Oracle) GetInterval() config.Duration {
 
 func (o *Oracle) Init() error {
 	if len(o.Instances) == 0 {
-		return fmt.Errorf("oracle instances empty")
+		return fmt.Errorf("instances empty")
 	}
 
 	o.dbconnpool = make(map[string]*sqlx.DB)

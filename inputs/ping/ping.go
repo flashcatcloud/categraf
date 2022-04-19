@@ -99,7 +99,7 @@ func (p *Ping) GetInterval() config.Duration {
 
 func (p *Ping) Init() error {
 	if len(p.Instances) == 0 {
-		return fmt.Errorf("ping instances empty")
+		return fmt.Errorf("instances empty")
 	}
 
 	for i := 0; i < len(p.Instances); i++ {
