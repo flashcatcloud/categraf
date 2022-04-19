@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -29,6 +30,7 @@ type OrclInstance struct {
 	DisableConnectionPool bool              `toml:"disable_connection_pool"`
 	MaxOpenConnections    int               `toml:"max_open_connections"`
 	Labels                map[string]string `toml:"labels"`
+	IntervalTimes         int64             `toml:"interval_times"`
 }
 
 type MetricConfig struct {
@@ -48,6 +50,7 @@ type Oracle struct {
 	Metrics      []MetricConfig  `toml:"metrics"`
 
 	dbconnpool map[string]*sqlx.DB // key: instance
+	Counter    uint64
 }
 
 func init() {
@@ -96,6 +99,8 @@ func (o *Oracle) Drop() {
 }
 
 func (o *Oracle) Gather() (samples []*types.Sample) {
+	atomic.AddUint64(&o.Counter, 1)
+
 	slist := list.NewSafeList()
 
 	var wg sync.WaitGroup
@@ -116,6 +121,13 @@ func (o *Oracle) Gather() (samples []*types.Sample) {
 
 func (o *Oracle) collectOnce(wg *sync.WaitGroup, ins OrclInstance, slist *list.SafeList) {
 	defer wg.Done()
+
+	if ins.IntervalTimes > 0 {
+		counter := atomic.LoadUint64(&o.Counter)
+		if counter%uint64(ins.IntervalTimes) != 0 {
+			return
+		}
+	}
 
 	tags := map[string]string{"address": ins.Address}
 	for k, v := range ins.Labels {
