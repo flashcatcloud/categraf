@@ -143,6 +143,12 @@ func (p *Ping) gatherOnce(slist *list.SafeList, ins *PingInstance) {
 		}
 	}
 
+	if config.Config.DebugMode {
+		if len(ins.Targets) == 0 {
+			log.Println("D! ping targets empty")
+		}
+	}
+
 	wg := new(sync.WaitGroup)
 	for _, target := range ins.Targets {
 		wg.Add(1)

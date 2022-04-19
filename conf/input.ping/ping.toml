@@ -3,12 +3,12 @@
 
 [[instances]]
 # send ping packets to
-targets = [
-    "www.baidu.com",
-    "127.0.0.1",
-    "10.4.5.6",
-    "10.4.5.7"
-]
+# targets = [
+#     "www.baidu.com",
+#     "127.0.0.1",
+#     "10.4.5.6",
+#     "10.4.5.7"
+# ]
 
 # # append some labels for series
 # labels = { region="cloud", product="n9e" }
