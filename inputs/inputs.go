@@ -22,10 +22,15 @@ func Add(name string, creator Creator) {
 	InputCreators[name] = creator
 }
 
-func NewSample(metric string, value float64, labels ...map[string]string) *types.Sample {
+func NewSample(metric string, value interface{}, labels ...map[string]string) *types.Sample {
+	floatValue, err := conv.ToFloat64(value)
+	if err != nil {
+		return nil
+	}
+
 	s := &types.Sample{
 		Metric: metric,
-		Value:  value,
+		Value:  floatValue,
 		Labels: make(map[string]string),
 	}
 

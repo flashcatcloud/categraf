@@ -70,6 +70,10 @@ func (r *Reader) gatherOnce() {
 
 	now := time.Now()
 	for i := 0; i < len(samples); i++ {
+		if samples[i] == nil {
+			continue
+		}
+
 		if samples[i].Timestamp.IsZero() {
 			samples[i].Timestamp = now
 		}
