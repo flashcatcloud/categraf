@@ -56,8 +56,8 @@ func (ins *PingInstance) Init() error {
 		ins.calcTimeout = time.Duration(ins.Timeout) * time.Second
 	}
 
-	if ins.Deadline < 0 {
-		ins.Deadline = 10
+	if ins.Deadline <= 0 {
+		ins.Deadline = 5
 	}
 
 	if ins.Interface != "" {
