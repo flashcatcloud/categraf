@@ -22,7 +22,7 @@ tar zcvf categraf.tar.gz categraf conf
 - [x]exec
 - [x]ping
 - [x]net_response
-- []http_response(add cert check)
+- [x]http_response(add cert check)
 - []oom
 - []promscrape
 - []procstat
