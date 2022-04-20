@@ -309,6 +309,11 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 		fields["result_code"] = Success
 	}
 
+	// check tls cert
+	if strings.HasPrefix(target, "https://") && resp.TLS != nil {
+		fields["cert_expire_timestamp"] = getEarliestCertExpiry(resp.TLS).Unix()
+	}
+
 	defer resp.Body.Close()
 
 	// metric: response_code
