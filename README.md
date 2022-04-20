@@ -21,11 +21,15 @@ tar zcvf categraf.tar.gz categraf conf
 - []ntp
 - [x]exec
 - [x]ping
-- []net_response
-- []http_response
-- []scrape
+- [x]net_response
+- []http_response(add cert check)
+- []oom
+- []promscrape
 - []procstat
 - [x]oracle
 - []mysql
 - []redis
+- []nginx vts
+- []tomcat
 - []...
+- []io.util
