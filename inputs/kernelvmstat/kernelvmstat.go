@@ -70,10 +70,14 @@ func (s *KernelVmstat) Gather() (samples []*types.Sample) {
 				continue
 			}
 
-			fields[string(field)] = m
+			key := string(field)
+			if need, has := s.WhiteList[key]; has && need == 1 {
+				fields[key] = m
+			}
 		}
 	}
-	return
+
+	return inputs.NewSamples(fields)
 }
 
 func (s *KernelVmstat) getProcVmstat() ([]byte, error) {
