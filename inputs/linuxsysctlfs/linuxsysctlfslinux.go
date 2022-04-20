@@ -20,8 +20,7 @@ import (
 const inputName = "linuxsysctlfs"
 
 type SysctlFS struct {
-	PrintConfigs bool            `toml:"print_configs"`
-	Interval     config.Duration `toml:"interval"`
+	Interval config.Duration `toml:"interval"`
 
 	path string
 }

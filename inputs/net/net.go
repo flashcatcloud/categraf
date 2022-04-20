@@ -17,7 +17,6 @@ const inputName = "net"
 type NetIOStats struct {
 	ps system.PS
 
-	PrintConfigs         bool            `toml:"print_configs"`
 	Interval             config.Duration `toml:"interval"`
 	CollectProtocolStats bool            `toml:"collect_protocol_stats"`
 	Interfaces           []string        `toml:"interfaces"`

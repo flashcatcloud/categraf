@@ -44,10 +44,9 @@ type MetricConfig struct {
 }
 
 type Oracle struct {
-	PrintConfigs bool            `toml:"print_configs"`
-	Interval     config.Duration `toml:"interval"`
-	Instances    []OrclInstance  `toml:"instances"`
-	Metrics      []MetricConfig  `toml:"metrics"`
+	Interval  config.Duration `toml:"interval"`
+	Instances []OrclInstance  `toml:"instances"`
+	Metrics   []MetricConfig  `toml:"metrics"`
 
 	dbconnpool map[string]*sqlx.DB // key: instance
 	Counter    uint64

@@ -23,10 +23,9 @@ import (
 const inputName = "processes"
 
 type Processes struct {
-	PrintConfigs bool            `toml:"print_configs"`
-	Interval     config.Duration `toml:"interval"`
-	ForcePS      bool            `toml:"force_ps"`
-	ForceProc    bool            `toml:"force_proc"`
+	Interval  config.Duration `toml:"interval"`
+	ForcePS   bool            `toml:"force_ps"`
+	ForceProc bool            `toml:"force_proc"`
 }
 
 func init() {

@@ -16,7 +16,6 @@ import (
 const inputName = "system"
 
 type SystemStats struct {
-	PrintConfigs      bool            `toml:"print_configs"`
 	Interval          config.Duration `toml:"interval"`
 	CollectUserNumber bool            `toml:"collect_user_number"`
 }

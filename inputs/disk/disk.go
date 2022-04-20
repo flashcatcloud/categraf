@@ -15,10 +15,9 @@ const inputName = "disk"
 type DiskStats struct {
 	ps system.PS
 
-	PrintConfigs bool            `toml:"print_configs"`
-	Interval     config.Duration `toml:"interval"`
-	MountPoints  []string        `toml:"mount_points"`
-	IgnoreFS     []string        `toml:"ignore_fs"`
+	Interval    config.Duration `toml:"interval"`
+	MountPoints []string        `toml:"mount_points"`
+	IgnoreFS    []string        `toml:"ignore_fs"`
 }
 
 func init() {

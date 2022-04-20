@@ -17,7 +17,6 @@ type CPUStats struct {
 	ps        system.PS
 	lastStats map[string]cpuUtil.TimesStat
 
-	PrintConfigs  bool            `toml:"print_configs"`
 	Interval      config.Duration `toml:"interval"`
 	CollectPerCPU bool            `toml:"collect_per_cpu"`
 }

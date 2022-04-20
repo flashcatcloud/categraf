@@ -15,8 +15,7 @@ const inputName = "netstat"
 type NetStats struct {
 	ps system.PS
 
-	PrintConfigs bool            `toml:"print_configs"`
-	Interval     config.Duration `toml:"interval"`
+	Interval config.Duration `toml:"interval"`
 }
 
 func init() {

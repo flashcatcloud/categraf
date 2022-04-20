@@ -16,7 +16,6 @@ const inputName = "diskio"
 type DiskIO struct {
 	ps system.PS
 
-	PrintConfigs bool            `toml:"print_configs"`
 	Interval     config.Duration `toml:"interval"`
 	Devices      []string        `toml:"devices"`
 	deviceFilter filter.Filter

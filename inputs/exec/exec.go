@@ -35,10 +35,9 @@ type ExecInstance struct {
 }
 
 type Exec struct {
-	PrintConfigs bool            `toml:"print_configs"`
-	Interval     config.Duration `toml:"interval"`
-	Instances    []ExecInstance  `toml:"instances"`
-	Counter      uint64
+	Interval  config.Duration `toml:"interval"`
+	Instances []ExecInstance  `toml:"instances"`
+	Counter   uint64
 }
 
 func init() {

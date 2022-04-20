@@ -16,7 +16,6 @@ type MemStats struct {
 	ps       system.PS
 	platform string
 
-	PrintConfigs          bool            `toml:"print_configs"`
 	Interval              config.Duration `toml:"interval"`
 	CollectPlatformFields bool            `toml:"collect_platform_fields"`
 }
