@@ -1,0 +1,7 @@
+# # collect interval
+# interval = 15
+
+[white_list]
+pgfree = 0
+pgfault = 1
+oom_kill = 1
