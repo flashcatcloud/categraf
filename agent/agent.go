@@ -25,6 +25,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/net"
 	_ "flashcat.cloud/categraf/inputs/netresponse"
 	_ "flashcat.cloud/categraf/inputs/netstat"
+	_ "flashcat.cloud/categraf/inputs/ntp"
 	_ "flashcat.cloud/categraf/inputs/oracle"
 	_ "flashcat.cloud/categraf/inputs/ping"
 	_ "flashcat.cloud/categraf/inputs/processes"

@@ -18,12 +18,14 @@ tar zcvf categraf.tar.gz categraf conf
 
 ## todo
 
-- []ntp
+- [x]ntp
 - []procstat
+- []nginx vts
+- []tomcat
+- []...
 - []promscrape
 - []mysql
 - []redis
-- []nginx vts
-- []tomcat
+- []statsd
 - []...
 - []io.util
