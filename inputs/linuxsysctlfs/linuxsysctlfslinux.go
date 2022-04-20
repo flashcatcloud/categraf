@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package linux_sysctl_fs
+package linuxsysctlfs
 
 import (
 	"bytes"
@@ -17,7 +17,7 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
-const inputName = "linux_sysctl_fs"
+const inputName = "linuxsysctlfs"
 
 type SysctlFS struct {
 	PrintConfigs bool            `toml:"print_configs"`

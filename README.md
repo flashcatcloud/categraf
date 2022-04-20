@@ -19,14 +19,8 @@ tar zcvf categraf.tar.gz categraf conf
 ## todo
 
 - []ntp
-- [x]exec
-- [x]ping
-- [x]net_response
-- [x]http_response(add cert check)
-- []oom
-- []promscrape
 - []procstat
-- [x]oracle
+- []promscrape
 - []mysql
 - []redis
 - []nginx vts
