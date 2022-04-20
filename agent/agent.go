@@ -21,6 +21,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/linux_sysctl_fs"
 	_ "flashcat.cloud/categraf/inputs/mem"
 	_ "flashcat.cloud/categraf/inputs/net"
+	_ "flashcat.cloud/categraf/inputs/net_response"
 	_ "flashcat.cloud/categraf/inputs/netstat"
 	_ "flashcat.cloud/categraf/inputs/oracle"
 	_ "flashcat.cloud/categraf/inputs/ping"
