@@ -36,7 +36,21 @@ func ToFloat64(val interface{}) (float64, error) {
 		return v, nil
 	case uint64:
 		return float64(v), nil
+	case uint32:
+		return float64(v), nil
+	case uint16:
+		return float64(v), nil
+	case uint8:
+		return float64(v), nil
+	case uint:
+		return float64(v), nil
 	case int64:
+		return float64(v), nil
+	case int32:
+		return float64(v), nil
+	case int16:
+		return float64(v), nil
+	case int8:
 		return float64(v), nil
 	case bool:
 		if v {
@@ -45,10 +59,6 @@ func ToFloat64(val interface{}) (float64, error) {
 			return 0, nil
 		}
 	case int:
-		return float64(v), nil
-	case uint:
-		return float64(v), nil
-	case uint8:
 		return float64(v), nil
 	case float32:
 		return float64(v), nil

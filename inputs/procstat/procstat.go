@@ -4,13 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"github.com/shirou/gopsutil/v3/process"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -25,7 +28,7 @@ type Instance struct {
 	Labels                 map[string]string `toml:"labels"`
 	IntervalTimes          int64             `toml:"interval_times"`
 	Mode                   string            `toml:"mode"`
-	OnlyGatherProcCount    bool              `toml:"only_gather_proc_count"`
+	GatherMoreMetrics      []string          `toml:"gather_more_metrics"`
 
 	searchString string
 	solarisMode  bool
@@ -151,10 +154,152 @@ func (s *Procstat) gatherOnce(slist *list.SafeList, ins *Instance) {
 	}
 
 	slist.PushFront(inputs.NewSample("lookup_count", len(pids), tags))
-	if ins.OnlyGatherProcCount {
+	if len(ins.GatherMoreMetrics) == 0 {
 		return
 	}
 
+	procs := make(map[PID]*process.Process)
+
+	for _, pid := range pids {
+		proc, err := process.NewProcess(int32(pid))
+		if err != nil {
+			continue
+		}
+
+		if name, err := proc.Name(); err != nil || name == "" {
+			continue
+		}
+
+		procs[pid] = proc
+	}
+
+	for _, field := range ins.GatherMoreMetrics {
+		switch field {
+		case "threads":
+			s.gatherThreads(slist, procs, tags)
+		case "fd":
+			s.gatherFD(slist, procs, tags)
+		case "io":
+			s.gatherIO(slist, procs, tags)
+		case "uptime":
+			s.gatherUptime(slist, procs, tags)
+		case "cpu":
+			s.gatherCPU(slist, procs, tags, ins.solarisMode)
+		case "mem":
+			s.gatherMem(slist, procs, tags)
+		case "limit":
+			s.gatherLimit(slist, procs, tags)
+		default:
+			log.Println("unknown choice in gather_more_metrics:", field)
+		}
+	}
+}
+
+func (s *Procstat) gatherThreads(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+	var val int32
+	for pid := range procs {
+		v, err := procs[pid].NumThreads()
+		if err == nil {
+			val += v
+		}
+	}
+	slist.PushFront(inputs.NewSample("num_threads", val, tags))
+}
+
+func (s *Procstat) gatherFD(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+	var val int32
+	for pid := range procs {
+		v, err := procs[pid].NumFDs()
+		if err == nil {
+			val += v
+		}
+	}
+	slist.PushFront(inputs.NewSample("num_fds", val, tags))
+}
+
+func (s *Procstat) gatherIO(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+	var (
+		readCount  uint64
+		writeCount uint64
+		readBytes  uint64
+		writeBytes uint64
+	)
+
+	for pid := range procs {
+		io, err := procs[pid].IOCounters()
+		if err == nil {
+			readCount += io.ReadCount
+			writeCount += io.WriteCount
+			readBytes += io.ReadBytes
+			writeBytes += io.WriteBytes
+		}
+	}
+
+	slist.PushFront(inputs.NewSample("read_count", readCount, tags))
+	slist.PushFront(inputs.NewSample("write_count", writeCount, tags))
+	slist.PushFront(inputs.NewSample("read_bytes", readBytes, tags))
+	slist.PushFront(inputs.NewSample("write_bytes", writeBytes, tags))
+}
+
+func (s *Procstat) gatherUptime(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+	// use the smallest one
+	var value int64 = -1
+	for pid := range procs {
+		v, err := procs[pid].CreateTime() // returns epoch in ms
+		if err == nil {
+			if value == -1 {
+				value = v
+				continue
+			}
+
+			if value > v {
+				value = v
+			}
+		}
+	}
+	slist.PushFront(inputs.NewSample("uptime", value, tags))
+}
+
+func (s *Procstat) gatherCPU(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string, solarisMode bool) {
+	var value float64
+	for pid := range procs {
+		v, err := procs[pid].Percent(time.Duration(0))
+		if err == nil {
+			if solarisMode {
+				value += v / float64(runtime.NumCPU())
+			} else {
+				value += v
+			}
+		}
+	}
+	slist.PushFront(inputs.NewSample("cpu_usage", value, tags))
+}
+
+func (s *Procstat) gatherMem(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+	var value float32
+	for pid := range procs {
+		v, err := procs[pid].MemoryPercent()
+		if err == nil {
+			value += v
+		}
+	}
+	slist.PushFront(inputs.NewSample("mem_usage", value, tags))
+}
+
+func (s *Procstat) gatherLimit(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+	// limit use the first one
+	for pid := range procs {
+		rlims, err := procs[pid].RlimitUsage(false)
+		if err == nil {
+			for _, rlim := range rlims {
+				if rlim.Resource == process.RLIMIT_NOFILE {
+					slist.PushFront(inputs.NewSample("rlimit_num_fds_soft", rlim.Soft, tags))
+					slist.PushFront(inputs.NewSample("rlimit_num_fds_hard", rlim.Hard, tags))
+					return
+				}
+			}
+		}
+	}
 }
 
 func (s *Procstat) winServicePIDs(winService string) ([]PID, error) {
