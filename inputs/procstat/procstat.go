@@ -128,6 +128,10 @@ func (s *Procstat) gatherOnce(slist *list.SafeList, ins *Instance) {
 		tags = map[string]string{"search_string": ins.searchString}
 	)
 
+	for k, v := range ins.Labels {
+		tags[k] = v
+	}
+
 	pg, _ := NewNativeFinder()
 	if ins.SearchExecSubstring != "" {
 		pids, err = pg.Pattern(ins.SearchExecSubstring)
