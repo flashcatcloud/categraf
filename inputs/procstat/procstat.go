@@ -154,6 +154,10 @@ func (s *Procstat) gatherOnce(slist *list.SafeList, ins *Instance) {
 	}
 
 	slist.PushFront(inputs.NewSample("lookup_count", len(pids), tags))
+	if len(pids) == 0 {
+		return
+	}
+
 	if len(ins.GatherMoreMetrics) == 0 {
 		return
 	}
