@@ -32,6 +32,7 @@ type Instance struct {
 
 	searchString string
 	solarisMode  bool
+	procs        map[PID]Process
 }
 
 func (ins *Instance) Init() error {
@@ -162,44 +163,58 @@ func (s *Procstat) gatherOnce(slist *list.SafeList, ins *Instance) {
 		return
 	}
 
-	procs := make(map[PID]*process.Process)
-
-	for _, pid := range pids {
-		proc, err := process.NewProcess(int32(pid))
-		if err != nil {
-			continue
-		}
-
-		if name, err := proc.Name(); err != nil || name == "" {
-			continue
-		}
-
-		procs[pid] = proc
-	}
+	s.updateProcesses(ins, pids)
 
 	for _, field := range ins.GatherMoreMetrics {
 		switch field {
 		case "threads":
-			s.gatherThreads(slist, procs, tags)
+			s.gatherThreads(slist, ins.procs, tags)
 		case "fd":
-			s.gatherFD(slist, procs, tags)
+			s.gatherFD(slist, ins.procs, tags)
 		case "io":
-			s.gatherIO(slist, procs, tags)
+			s.gatherIO(slist, ins.procs, tags)
 		case "uptime":
-			s.gatherUptime(slist, procs, tags)
+			s.gatherUptime(slist, ins.procs, tags)
 		case "cpu":
-			s.gatherCPU(slist, procs, tags, ins.solarisMode)
+			s.gatherCPU(slist, ins.procs, tags, ins.solarisMode)
 		case "mem":
-			s.gatherMem(slist, procs, tags)
+			s.gatherMem(slist, ins.procs, tags)
 		case "limit":
-			s.gatherLimit(slist, procs, tags)
+			s.gatherLimit(slist, ins.procs, tags)
 		default:
 			log.Println("unknown choice in gather_more_metrics:", field)
 		}
 	}
 }
 
-func (s *Procstat) gatherThreads(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+func (s *Procstat) updateProcesses(ins *Instance, pids []PID) {
+	procs := make(map[PID]Process)
+
+	for _, pid := range pids {
+		old, has := ins.procs[pid]
+		if has {
+			if name, err := old.Name(); err != nil || name == "" {
+				continue
+			}
+			procs[pid] = old
+		} else {
+			proc, err := NewProc(pid)
+			if err != nil {
+				continue
+			}
+
+			if name, err := proc.Name(); err != nil || name == "" {
+				continue
+			}
+
+			procs[pid] = proc
+		}
+	}
+
+	ins.procs = procs
+}
+
+func (s *Procstat) gatherThreads(slist *list.SafeList, procs map[PID]Process, tags map[string]string) {
 	var val int32
 	for pid := range procs {
 		v, err := procs[pid].NumThreads()
@@ -210,7 +225,7 @@ func (s *Procstat) gatherThreads(slist *list.SafeList, procs map[PID]*process.Pr
 	slist.PushFront(inputs.NewSample("num_threads", val, tags))
 }
 
-func (s *Procstat) gatherFD(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+func (s *Procstat) gatherFD(slist *list.SafeList, procs map[PID]Process, tags map[string]string) {
 	var val int32
 	for pid := range procs {
 		v, err := procs[pid].NumFDs()
@@ -221,7 +236,7 @@ func (s *Procstat) gatherFD(slist *list.SafeList, procs map[PID]*process.Process
 	slist.PushFront(inputs.NewSample("num_fds", val, tags))
 }
 
-func (s *Procstat) gatherIO(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+func (s *Procstat) gatherIO(slist *list.SafeList, procs map[PID]Process, tags map[string]string) {
 	var (
 		readCount  uint64
 		writeCount uint64
@@ -245,7 +260,7 @@ func (s *Procstat) gatherIO(slist *list.SafeList, procs map[PID]*process.Process
 	slist.PushFront(inputs.NewSample("write_bytes", writeBytes, tags))
 }
 
-func (s *Procstat) gatherUptime(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+func (s *Procstat) gatherUptime(slist *list.SafeList, procs map[PID]Process, tags map[string]string) {
 	// use the smallest one
 	var value int64 = -1
 	for pid := range procs {
@@ -264,7 +279,7 @@ func (s *Procstat) gatherUptime(slist *list.SafeList, procs map[PID]*process.Pro
 	slist.PushFront(inputs.NewSample("uptime", value, tags))
 }
 
-func (s *Procstat) gatherCPU(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string, solarisMode bool) {
+func (s *Procstat) gatherCPU(slist *list.SafeList, procs map[PID]Process, tags map[string]string, solarisMode bool) {
 	var value float64
 	for pid := range procs {
 		v, err := procs[pid].Percent(time.Duration(0))
@@ -279,7 +294,7 @@ func (s *Procstat) gatherCPU(slist *list.SafeList, procs map[PID]*process.Proces
 	slist.PushFront(inputs.NewSample("cpu_usage", value, tags))
 }
 
-func (s *Procstat) gatherMem(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+func (s *Procstat) gatherMem(slist *list.SafeList, procs map[PID]Process, tags map[string]string) {
 	var value float32
 	for pid := range procs {
 		v, err := procs[pid].MemoryPercent()
@@ -290,7 +305,7 @@ func (s *Procstat) gatherMem(slist *list.SafeList, procs map[PID]*process.Proces
 	slist.PushFront(inputs.NewSample("mem_usage", value, tags))
 }
 
-func (s *Procstat) gatherLimit(slist *list.SafeList, procs map[PID]*process.Process, tags map[string]string) {
+func (s *Procstat) gatherLimit(slist *list.SafeList, procs map[PID]Process, tags map[string]string) {
 	// limit use the first one
 	for pid := range procs {
 		rlims, err := procs[pid].RlimitUsage(false)
