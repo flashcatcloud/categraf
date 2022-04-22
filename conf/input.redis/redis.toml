@@ -1,0 +1,20 @@
+# # collect interval
+# interval = 15
+
+# [[instances]]
+# address = "127.0.0.1:6379"
+# username = ""
+# password = ""
+
+# # interval = global.interval * interval_times
+# interval_times = 1
+
+# important! use global unique string to specify redis instance
+# labels = { instance="n9e-10.2.3.4:6379" }
+
+## Optional TLS Config
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = true
