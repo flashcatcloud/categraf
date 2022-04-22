@@ -18,8 +18,6 @@ tar zcvf categraf.tar.gz categraf conf
 
 ## todo
 
-- [x]ntp
-- []procstat
 - []nginx vts
 - []tomcat
 - []...

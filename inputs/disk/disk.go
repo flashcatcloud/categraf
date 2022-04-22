@@ -7,6 +7,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
+	"flashcat.cloud/categraf/pkg/choice"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -15,9 +16,10 @@ const inputName = "disk"
 type DiskStats struct {
 	ps system.PS
 
-	Interval    config.Duration `toml:"interval"`
-	MountPoints []string        `toml:"mount_points"`
-	IgnoreFS    []string        `toml:"ignore_fs"`
+	Interval          config.Duration `toml:"interval"`
+	MountPoints       []string        `toml:"mount_points"`
+	IgnoreFS          []string        `toml:"ignore_fs"`
+	IgnoreMountPoints []string        `toml:"ignore_mount_points"`
 }
 
 func init() {
@@ -58,6 +60,13 @@ func (s *DiskStats) Gather() []*types.Sample {
 			// Skip dummy filesystem (procfs, cgroupfs, ...)
 			continue
 		}
+
+		if len(s.IgnoreMountPoints) > 0 {
+			if choice.Contains(du.Path, s.IgnoreMountPoints) {
+				continue
+			}
+		}
+
 		mountOpts := MountOptions(partitions[i].Opts)
 		tags := map[string]string{
 			"path":   du.Path,

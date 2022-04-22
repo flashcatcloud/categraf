@@ -7,3 +7,5 @@
 
 # Ignore mount points by filesystem type.
 ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
+
+ignore_mount_points = ["/boot"]
