@@ -23,11 +23,11 @@ func ToFloat64(val interface{}) (float64, error) {
 			}
 		}
 
-		if v == "Yes" || v == "yes" || v == "YES" || v == "Y" || v == "ON" || v == "on" || v == "On" {
+		if v == "Yes" || v == "yes" || v == "YES" || v == "Y" || v == "ON" || v == "on" || v == "On" || v == "ok" || v == "up" {
 			return 1, nil
 		}
 
-		if v == "No" || v == "no" || v == "NO" || v == "N" || v == "OFF" || v == "off" || v == "Off" {
+		if v == "No" || v == "no" || v == "NO" || v == "N" || v == "OFF" || v == "off" || v == "Off" || v == "fail" || v == "err" || v == "down" {
 			return 0, nil
 		}
 
