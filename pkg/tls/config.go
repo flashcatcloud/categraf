@@ -12,16 +12,14 @@ import (
 
 // ClientConfig represents the standard client TLS config.
 type ClientConfig struct {
+	UseTLS             bool   `toml:"use_tls"`
 	TLSCA              string `toml:"tls_ca"`
 	TLSCert            string `toml:"tls_cert"`
 	TLSKey             string `toml:"tls_key"`
 	TLSKeyPwd          string `toml:"tls_key_pwd"`
 	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
 	ServerName         string `toml:"tls_server_name"`
-
-	SSLCA   string `toml:"ssl_ca" deprecated:"1.7.0;use 'tls_ca' instead"`
-	SSLCert string `toml:"ssl_cert" deprecated:"1.7.0;use 'tls_cert' instead"`
-	SSLKey  string `toml:"ssl_key" deprecated:"1.7.0;use 'tls_key' instead"`
+	TLSMinVersion      string `toml:"tls_min_version"`
 }
 
 // ServerConfig represents the standard server TLS config.
@@ -39,17 +37,6 @@ type ServerConfig struct {
 // TLSConfig returns a tls.Config, may be nil without error if TLS is not
 // configured.
 func (c *ClientConfig) TLSConfig() (*tls.Config, error) {
-	// Support deprecated variable names
-	if c.TLSCA == "" && c.SSLCA != "" {
-		c.TLSCA = c.SSLCA
-	}
-	if c.TLSCert == "" && c.SSLCert != "" {
-		c.TLSCert = c.SSLCert
-	}
-	if c.TLSKey == "" && c.SSLKey != "" {
-		c.TLSKey = c.SSLKey
-	}
-
 	// This check returns a nil (aka, "use the default")
 	// tls.Config if no field is set that would have an effect on
 	// a TLS connection. That is, any of:
@@ -83,6 +70,16 @@ func (c *ClientConfig) TLSConfig() (*tls.Config, error) {
 
 	if c.ServerName != "" {
 		tlsConfig.ServerName = c.ServerName
+	}
+
+	if c.TLSMinVersion == "1.0" {
+		tlsConfig.MinVersion = tls.VersionTLS10
+	} else if c.TLSMinVersion == "1.1" {
+		tlsConfig.MinVersion = tls.VersionTLS11
+	} else if c.TLSMinVersion == "1.2" {
+		tlsConfig.MinVersion = tls.VersionTLS12
+	} else if c.TLSMinVersion == "1.3" {
+		tlsConfig.MinVersion = tls.VersionTLS13
 	}
 
 	return tlsConfig, nil
