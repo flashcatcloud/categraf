@@ -186,7 +186,7 @@ func (r *Redis) gatherCommandValues(slist *list.SafeList, ins *Instance, tags ma
 	}
 
 	for k, v := range fields {
-		inputs.NewSample("exec_result_"+k, v, tags)
+		slist.PushFront(inputs.NewSample("exec_result_"+k, v, tags))
 	}
 }
 
