@@ -27,8 +27,8 @@ const inputName = "redis"
 var replicationSlaveMetricPrefix = regexp.MustCompile(`^slave\d+`)
 
 type Command struct {
-	Command []string `toml:"command"`
-	Metric  string   `toml:"metric"`
+	Command []interface{} `toml:"command"`
+	Metric  string        `toml:"metric"`
 }
 
 type Instance struct {
@@ -168,9 +168,25 @@ func (r *Redis) gatherOnce(slist *list.SafeList, ins *Instance) {
 }
 
 func (r *Redis) gatherCommandValues(slist *list.SafeList, ins *Instance, tags map[string]string) {
+	fields := make(map[string]interface{})
 	for _, cmd := range ins.Commands {
-		fmt.Println("1111:", cmd.Command)
-		fmt.Println("2222:", cmd.Metric)
+		val, err := ins.client.Do(context.Background(), cmd.Command...).Result()
+		if err != nil {
+			log.Println("E! failed to exec redis command:", cmd.Command)
+			continue
+		}
+
+		fval, err := conv.ToFloat64(val)
+		if err != nil {
+			log.Println("E! failed to convert result of command:", cmd.Command, "error:", err)
+			continue
+		}
+
+		fields[cmd.Metric] = fval
+	}
+
+	for k, v := range fields {
+		inputs.NewSample("exec_result_"+k, v, tags)
 	}
 }
 
