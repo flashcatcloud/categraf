@@ -149,11 +149,11 @@ func (r *Redis) gatherOnce(slist *list.SafeList, ins *Instance) {
 	err := ins.client.Ping(context.Background()).Err()
 	slist.PushFront(inputs.NewSample("ping_use_ms", time.Since(begun).Milliseconds(), tags))
 	if err != nil {
-		slist.PushFront(inputs.NewSample("ping_up", 1, tags))
+		slist.PushFront(inputs.NewSample("up", 0, tags))
 		log.Println("E! failed to ping redis:", ins.Address, "error:", err)
 		return
 	} else {
-		slist.PushFront(inputs.NewSample("ping_up", 0, tags))
+		slist.PushFront(inputs.NewSample("up", 1, tags))
 	}
 
 	r.gatherInfoAll(slist, ins, tags)
