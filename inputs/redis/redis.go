@@ -26,13 +26,20 @@ const inputName = "redis"
 
 var replicationSlaveMetricPrefix = regexp.MustCompile(`^slave\d+`)
 
+type Command struct {
+	Command []string `toml:"command"`
+	Metric  string   `toml:"metric"`
+}
+
 type Instance struct {
-	Address       string            `toml:"address"`
-	Username      string            `toml:"username"`
-	Password      string            `toml:"password"`
-	PoolSize      int               `toml:"pool_size"`
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
+	Address           string            `toml:"address"`
+	Username          string            `toml:"username"`
+	Password          string            `toml:"password"`
+	PoolSize          int               `toml:"pool_size"`
+	Labels            map[string]string `toml:"labels"`
+	IntervalTimes     int64             `toml:"interval_times"`
+	Commands          []Command         `toml:"commands"`
+	UseReplicaRoleTag bool              `toml:"use_replica_role_tag"`
 
 	tls.ClientConfig
 	client *redis.Client
@@ -157,6 +164,14 @@ func (r *Redis) gatherOnce(slist *list.SafeList, ins *Instance) {
 	}
 
 	r.gatherInfoAll(slist, ins, tags)
+	r.gatherCommandValues(slist, ins, tags)
+}
+
+func (r *Redis) gatherCommandValues(slist *list.SafeList, ins *Instance, tags map[string]string) {
+	for _, cmd := range ins.Commands {
+		fmt.Println("1111:", cmd.Command)
+		fmt.Println("2222:", cmd.Metric)
+	}
 }
 
 func (r *Redis) gatherInfoAll(slist *list.SafeList, ins *Instance, tags map[string]string) {
@@ -264,9 +279,11 @@ func (r *Redis) gatherInfoAll(slist *list.SafeList, ins *Instance, tags map[stri
 		}
 
 		// Treat it as a string
-		if name == "role" {
-			tags["replica_role"] = val
-			continue
+		if ins.UseReplicaRoleTag {
+			if name == "role" {
+				tags["replica_role"] = val
+				continue
+			}
 		}
 
 		// ignore other string fields
