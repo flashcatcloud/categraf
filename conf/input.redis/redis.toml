@@ -9,8 +9,8 @@
 
 # # Optional. Specify redis commands to retrieve values
 # commands = [
-#     {command = ["get", "sample-key1"], metric = "some_metric_name1"},
-#     {command = ["get", "sample-key2"], metric = "some_metric_name2"}
+#     {command = ["get", "sample-key1"], metric = "custom_metric_name1"},
+#     {command = ["get", "sample-key2"], metric = "custom_metric_name2"}
 # ]
 
 # use_replica_role_tag = false
