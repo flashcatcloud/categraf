@@ -146,15 +146,15 @@ func (r *Redis) gatherOnce(slist *list.SafeList, ins *Instance) {
 
 	begun := time.Now()
 
-	// scrape use ms
+	// scrape use seconds
 	defer func(begun time.Time) {
-		use := time.Since(begun).Milliseconds()
-		slist.PushFront(inputs.NewSample("scrape_use_ms", use, tags))
+		use := time.Since(begun).Seconds()
+		slist.PushFront(inputs.NewSample("scrape_use_seconds", use, tags))
 	}(begun)
 
 	// ping
 	err := ins.client.Ping(context.Background()).Err()
-	slist.PushFront(inputs.NewSample("ping_use_ms", time.Since(begun).Milliseconds(), tags))
+	slist.PushFront(inputs.NewSample("ping_use_seconds", time.Since(begun).Seconds(), tags))
 	if err != nil {
 		slist.PushFront(inputs.NewSample("up", 0, tags))
 		log.Println("E! failed to ping redis:", ins.Address, "error:", err)
