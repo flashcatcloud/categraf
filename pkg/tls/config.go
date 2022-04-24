@@ -20,6 +20,7 @@ type ClientConfig struct {
 	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
 	ServerName         string `toml:"tls_server_name"`
 	TLSMinVersion      string `toml:"tls_min_version"`
+	TLSMaxVersion      string `toml:"tls_max_version"`
 }
 
 // ServerConfig represents the standard server TLS config.
@@ -37,14 +38,7 @@ type ServerConfig struct {
 // TLSConfig returns a tls.Config, may be nil without error if TLS is not
 // configured.
 func (c *ClientConfig) TLSConfig() (*tls.Config, error) {
-	// This check returns a nil (aka, "use the default")
-	// tls.Config if no field is set that would have an effect on
-	// a TLS connection. That is, any of:
-	//     * client certificate settings,
-	//     * peer certificate authorities,
-	//     * disabled security, or
-	//     * an SNI server name.
-	if c.TLSCA == "" && c.TLSKey == "" && c.TLSCert == "" && !c.InsecureSkipVerify && c.ServerName == "" {
+	if !c.UseTLS {
 		return nil, nil
 	}
 
@@ -80,6 +74,16 @@ func (c *ClientConfig) TLSConfig() (*tls.Config, error) {
 		tlsConfig.MinVersion = tls.VersionTLS12
 	} else if c.TLSMinVersion == "1.3" {
 		tlsConfig.MinVersion = tls.VersionTLS13
+	}
+
+	if c.TLSMaxVersion == "1.0" {
+		tlsConfig.MaxVersion = tls.VersionTLS10
+	} else if c.TLSMaxVersion == "1.1" {
+		tlsConfig.MaxVersion = tls.VersionTLS11
+	} else if c.TLSMaxVersion == "1.2" {
+		tlsConfig.MaxVersion = tls.VersionTLS12
+	} else if c.TLSMaxVersion == "1.3" {
+		tlsConfig.MaxVersion = tls.VersionTLS13
 	}
 
 	return tlsConfig, nil
