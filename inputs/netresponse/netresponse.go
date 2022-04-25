@@ -107,7 +107,7 @@ func (n *NetResponse) GetInterval() config.Duration {
 
 func (n *NetResponse) Init() error {
 	if len(n.Instances) == 0 {
-		return fmt.Errorf("instances empty")
+		return types.ErrInstancesEmpty
 	}
 
 	for i := 0; i < len(n.Instances); i++ {

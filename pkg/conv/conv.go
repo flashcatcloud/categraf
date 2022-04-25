@@ -63,6 +63,6 @@ func ToFloat64(val interface{}) (float64, error) {
 	case float32:
 		return float64(v), nil
 	default:
-		return 0, fmt.Errorf("unparseable value %v", v)
+		return strconv.ParseFloat(fmt.Sprint(v), 64)
 	}
 }

@@ -150,7 +150,7 @@ func (h *HTTPResponse) GetInterval() config.Duration {
 
 func (h *HTTPResponse) Init() error {
 	if len(h.Instances) == 0 {
-		return fmt.Errorf("instances empty")
+		return types.ErrInstancesEmpty
 	}
 
 	for i := 0; i < len(h.Instances); i++ {

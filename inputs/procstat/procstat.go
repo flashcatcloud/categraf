@@ -2,7 +2,6 @@ package procstat
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"runtime"
 	"strings"
@@ -83,7 +82,7 @@ func (s *Procstat) GetInterval() config.Duration {
 
 func (s *Procstat) Init() error {
 	if len(s.Instances) == 0 {
-		return fmt.Errorf("instances empty")
+		return types.ErrInstancesEmpty
 	}
 
 	for i := 0; i < len(s.Instances); i++ {

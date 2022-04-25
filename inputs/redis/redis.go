@@ -3,7 +3,6 @@ package redis
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"regexp"
@@ -89,7 +88,7 @@ func (r *Redis) GetInterval() config.Duration {
 
 func (r *Redis) Init() error {
 	if len(r.Instances) == 0 {
-		return errors.New("instances empty")
+		return types.ErrInstancesEmpty
 	}
 
 	for i := 0; i < len(r.Instances); i++ {

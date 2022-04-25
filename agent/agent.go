@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"path"
@@ -101,7 +102,9 @@ func (a *Agent) startInputs() error {
 		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, "input."+name), instance)
 
 		if err = instance.Init(); err != nil {
-			log.Println("E! failed to init input:", name, "error:", err)
+			if !errors.Is(err, types.ErrInstancesEmpty) {
+				log.Println("E! failed to init input:", name, "error:", err)
+			}
 			continue
 		}
 
