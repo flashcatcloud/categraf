@@ -1,7 +1,7 @@
 package parser
 
-import "flashcat.cloud/categraf/types"
+import "github.com/toolkits/pkg/container/list"
 
 type Parser interface {
-	Parse(input []byte) ([]types.Metric, error)
+	Parse(input []byte, slist *list.SafeList) error
 }

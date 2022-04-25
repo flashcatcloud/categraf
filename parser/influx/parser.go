@@ -5,9 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/types/metric"
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
+	"github.com/toolkits/pkg/container/list"
 )
 
 // Parser is an InfluxDB Line Protocol parser that implements the
@@ -19,15 +21,15 @@ type Parser struct {
 
 type TimeFunc func() time.Time
 
-// NewSeriesParser returns a Parser that accepts a measurement and tagset
-func NewSeriesParser() *Parser {
+// NewParser returns a Parser that accepts a measurement and tagset
+func NewParser() *Parser {
 	return &Parser{
 		defaultTime: time.Now,
 		precision:   lineprotocol.Nanosecond,
 	}
 }
 
-func (p *Parser) Parse(input []byte) ([]types.Metric, error) {
+func (p *Parser) Parse(input []byte, slist *list.SafeList) error {
 	metrics := make([]types.Metric, 0)
 	decoder := lineprotocol.NewDecoderWithBytes(input)
 
@@ -40,7 +42,25 @@ func (p *Parser) Parse(input []byte) ([]types.Metric, error) {
 		metrics = append(metrics, m)
 	}
 
-	return metrics, nil
+	for _, m := range metrics {
+		name := m.Name()
+		tags := m.Tags()
+		fields := m.Fields()
+		for k, v := range fields {
+			floatValue, err := conv.ToFloat64(v)
+			if err != nil {
+				continue
+			}
+
+			slist.PushFront(&types.Sample{
+				Metric: name + "_" + k,
+				Value:  floatValue,
+				Labels: tags,
+			})
+		}
+	}
+
+	return nil
 }
 
 func nextMetric(decoder *lineprotocol.Decoder, precision lineprotocol.Precision, defaultTime TimeFunc) (types.Metric, error) {

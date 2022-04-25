@@ -186,6 +186,10 @@ func convert(item *types.Sample) *prompb.TimeSeries {
 
 	pt := &prompb.TimeSeries{}
 
+	if item.Timestamp.IsZero() {
+		item.Timestamp = time.Now()
+	}
+
 	timestamp := item.Timestamp.UnixMilli()
 	if config.Config.Global.Precision == "s" {
 		timestamp = item.Timestamp.Unix()

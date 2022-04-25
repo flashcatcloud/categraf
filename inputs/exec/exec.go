@@ -16,6 +16,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/parser"
+	"flashcat.cloud/categraf/parser/falcon"
 	"flashcat.cloud/categraf/parser/influx"
 	"flashcat.cloud/categraf/pkg/cmdx"
 	"flashcat.cloud/categraf/types"
@@ -63,7 +64,9 @@ func (e *Exec) Init() error {
 
 	for i := 0; i < len(e.Instances); i++ {
 		if e.Instances[i].DataFormat == "" || e.Instances[i].DataFormat == "influx" {
-			e.Instances[i].parser = influx.NewSeriesParser()
+			e.Instances[i].parser = influx.NewParser()
+		} else if e.Instances[i].DataFormat == "falcon" {
+			e.Instances[i].parser = falcon.NewParser()
 		} else {
 			return fmt.Errorf("data_format(%s) not supported", e.Instances[i].DataFormat)
 		}
@@ -162,24 +165,9 @@ func (e *Exec) ProcessCommand(slist *list.SafeList, command string, ins ExecInst
 		return
 	}
 
-	metrics, err := ins.parser.Parse(out)
+	err := ins.parser.Parse(out, slist)
 	if err != nil {
 		log.Println("E! failed to parse command stdout:", err)
-		return
-	}
-
-	for _, m := range metrics {
-		name := m.Name()
-		tags := m.Tags()
-		fields := m.Fields()
-		newFields := make(map[string]interface{})
-		for k, v := range fields {
-			newFields[name+"_"+k] = v
-		}
-		samples := inputs.NewSamples(newFields, tags)
-		for i := range samples {
-			slist.PushFront(samples[i])
-		}
 	}
 }
 
