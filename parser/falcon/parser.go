@@ -26,7 +26,7 @@ import (
 //     },
 // ]
 
-type FalconSample struct {
+type Sample struct {
 	Endpoint  string      `json:"endpoint"`
 	Metric    string      `json:"metric"`
 	Timestamp int64       `json:"timestamp"`
@@ -34,14 +34,14 @@ type FalconSample struct {
 	Tags      string      `json:"tags"`
 }
 
-type FalconParser struct{}
+type Parser struct{}
 
-func NewParser() *FalconParser {
-	return &FalconParser{}
+func NewParser() *Parser {
+	return &Parser{}
 }
 
-func (p *FalconParser) Parse(input []byte, slist *list.SafeList) error {
-	var samples []FalconSample
+func (p *Parser) Parse(input []byte, slist *list.SafeList) error {
+	var samples []Sample
 
 	if input[0] == '[' {
 		err := json.Unmarshal(input, &samples)
@@ -49,7 +49,7 @@ func (p *FalconParser) Parse(input []byte, slist *list.SafeList) error {
 			return err
 		}
 	} else {
-		var s FalconSample
+		var s Sample
 		err := json.Unmarshal(input, &s)
 		if err != nil {
 			return err
