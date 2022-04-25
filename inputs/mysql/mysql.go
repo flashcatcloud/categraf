@@ -23,6 +23,7 @@ type Instance struct {
 	Address        string `toml:"address"`
 	Username       string `toml:"username"`
 	Password       string `toml:"password"`
+	Parameters     string `toml:"parameters"`
 	TimeoutSeconds int64  `toml:"timeout_seconds"`
 
 	Labels        map[string]string `toml:"labels"`
@@ -37,7 +38,19 @@ func (ins *Instance) Init() error {
 		return errors.New("address is blank")
 	}
 
-	ins.dsn = fmt.Sprintf("%s:%s@tcp(%s)/", ins.Username, ins.Password, ins.Address)
+	if ins.UseTLS {
+		tlsConfig, err := ins.ClientConfig.TLSConfig()
+		if err != nil {
+			return fmt.Errorf("failed to register tls config: %v", err)
+		}
+
+		err = mysql.RegisterTLSConfig("custom", tlsConfig)
+		if err != nil {
+			return fmt.Errorf("failed to register tls config: %v", err)
+		}
+	}
+
+	ins.dsn = fmt.Sprintf("%s:%s@tcp(%s)/?%s", ins.Username, ins.Password, ins.Address, ins.Parameters)
 
 	conf, err := mysql.ParseDSN(ins.dsn)
 	if err != nil {
@@ -136,5 +149,11 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 
 	slist.PushFront(inputs.NewSample("up", 1, tags))
 	defer db.Close()
+
+	m.gatherGlobalStatus(slist, ins, db, tags)
+
+}
+
+func (m *MySQL) gatherGlobalStatus(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
 
 }

@@ -13,12 +13,10 @@
 #     {command = ["get", "sample-key2"], metric = "custom_metric_name2"}
 # ]
 
-# use_replica_role_tag = false
-
 # # interval = global.interval * interval_times
 # interval_times = 1
 
-# important! use global unique string to specify redis instance
+# important! use global unique string to specify instance
 # labels = { instance="n9e-10.2.3.4:6379" }
 
 ## Optional TLS Config

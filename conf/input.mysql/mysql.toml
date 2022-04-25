@@ -6,13 +6,16 @@ address = "127.0.0.1:3306"
 username = "root"
 password = "1234"
 
+# # set tls=custom is enable tls
+# parameters = "tls=false"
+
 # # timeout
 # timeout_seconds = 3
 
 # # interval = global.interval * interval_times
 # interval_times = 1
 
-# important! use global unique string to specify redis instance
+# important! use global unique string to specify instance
 # labels = { instance="n9e-10.2.3.4:3306" }
 
 ## Optional TLS Config

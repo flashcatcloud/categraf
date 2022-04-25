@@ -31,14 +31,13 @@ type Command struct {
 }
 
 type Instance struct {
-	Address           string            `toml:"address"`
-	Username          string            `toml:"username"`
-	Password          string            `toml:"password"`
-	PoolSize          int               `toml:"pool_size"`
-	Labels            map[string]string `toml:"labels"`
-	IntervalTimes     int64             `toml:"interval_times"`
-	Commands          []Command         `toml:"commands"`
-	UseReplicaRoleTag bool              `toml:"use_replica_role_tag"`
+	Address       string            `toml:"address"`
+	Username      string            `toml:"username"`
+	Password      string            `toml:"password"`
+	PoolSize      int               `toml:"pool_size"`
+	Labels        map[string]string `toml:"labels"`
+	IntervalTimes int64             `toml:"interval_times"`
+	Commands      []Command         `toml:"commands"`
 
 	tls.ClientConfig
 	client *redis.Client
@@ -281,14 +280,6 @@ func (r *Redis) gatherInfoAll(slist *list.SafeList, ins *Instance, tags map[stri
 		if fval, err := conv.ToFloat64(val); err == nil {
 			fields[name] = fval
 			continue
-		}
-
-		// Treat it as a string
-		if ins.UseReplicaRoleTag {
-			if name == "role" {
-				tags["replica_role"] = val
-				continue
-			}
 		}
 
 		// ignore other string fields
