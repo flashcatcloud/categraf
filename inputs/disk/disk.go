@@ -8,7 +8,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/choice"
-	"flashcat.cloud/categraf/types"
+	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "disk"
@@ -46,13 +46,11 @@ func (s *DiskStats) Init() error {
 func (s *DiskStats) Drop() {
 }
 
-func (s *DiskStats) Gather() []*types.Sample {
-	var samples []*types.Sample
-
+func (s *DiskStats) Gather(slist *list.SafeList) {
 	disks, partitions, err := s.ps.DiskUsage(s.MountPoints, s.IgnoreFS)
 	if err != nil {
 		log.Println("E! failed to get disk usage:", err)
-		return samples
+		return
 	}
 
 	for i, du := range disks {
@@ -90,10 +88,8 @@ func (s *DiskStats) Gather() []*types.Sample {
 			"inodes_used":  du.InodesUsed,
 		}
 
-		samples = append(samples, inputs.NewSamples(fields, tags)...)
+		inputs.PushSamples(slist, fields, tags)
 	}
-
-	return samples
 }
 
 type MountOptions []string

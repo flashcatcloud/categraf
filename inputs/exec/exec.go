@@ -79,10 +79,8 @@ func (e *Exec) Init() error {
 	return nil
 }
 
-func (e *Exec) Gather() (samples []*types.Sample) {
+func (e *Exec) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&e.Counter, 1)
-
-	slist := list.NewSafeList()
 
 	var wg sync.WaitGroup
 	wg.Add(len(e.Instances))
@@ -92,13 +90,6 @@ func (e *Exec) Gather() (samples []*types.Sample) {
 	}
 
 	wg.Wait()
-
-	interfaceList := slist.PopBackAll()
-	for i := 0; i < len(interfaceList); i++ {
-		samples = append(samples, interfaceList[i].(*types.Sample))
-	}
-
-	return
 }
 
 func (e *Exec) GatherOnce(wg *sync.WaitGroup, slist *list.SafeList, ins ExecInstance) {

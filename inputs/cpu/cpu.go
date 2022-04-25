@@ -4,11 +4,11 @@ import (
 	"log"
 
 	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
+	"github.com/toolkits/pkg/container/list"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
-	"flashcat.cloud/categraf/types"
 )
 
 const inputName = "cpu"
@@ -46,13 +46,11 @@ func (c *CPUStats) Init() error {
 func (c *CPUStats) Drop() {
 }
 
-func (c *CPUStats) Gather() []*types.Sample {
-	var samples []*types.Sample
-
+func (c *CPUStats) Gather(slist *list.SafeList) {
 	times, err := c.ps.CPUTimes(c.CollectPerCPU, true)
 	if err != nil {
 		log.Println("E! failed to get cpu metrics:", err)
-		return samples
+		return
 	}
 
 	for _, cts := range times {
@@ -101,15 +99,13 @@ func (c *CPUStats) Gather() []*types.Sample {
 			"usage_active":     100 * (active - lastActive) / totalDelta,
 		}
 
-		samples = append(samples, inputs.NewSamples(fields, tags)...)
+		inputs.PushSamples(slist, fields, tags)
 	}
 
 	c.lastStats = make(map[string]cpuUtil.TimesStat)
 	for _, cts := range times {
 		c.lastStats[cts.CPU] = cts
 	}
-
-	return samples
 }
 
 func totalCPUTime(t cpuUtil.TimesStat) float64 {

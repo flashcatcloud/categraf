@@ -4,6 +4,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
+	"github.com/toolkits/pkg/container/list"
 )
 
 type Input interface {
@@ -11,7 +12,7 @@ type Input interface {
 	Drop()
 	GetInputName() string
 	GetInterval() config.Duration
-	Gather() []*types.Sample
+	Gather(slist *list.SafeList)
 }
 
 type Creator func() Input
@@ -56,4 +57,14 @@ func NewSamples(fields map[string]interface{}, labels ...map[string]string) []*t
 	}
 
 	return samples
+}
+
+func PushSamples(slist *list.SafeList, fields map[string]interface{}, labels ...map[string]string) {
+	for metric, value := range fields {
+		floatValue, err := conv.ToFloat64(value)
+		if err != nil {
+			continue
+		}
+		slist.PushFront(NewSample(metric, floatValue, labels...))
+	}
 }

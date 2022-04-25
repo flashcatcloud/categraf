@@ -7,7 +7,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
-	"flashcat.cloud/categraf/types"
+	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "netstat"
@@ -41,7 +41,7 @@ func (s *NetStats) Init() error {
 	return nil
 }
 
-func (s *NetStats) Gather() (samples []*types.Sample) {
+func (s *NetStats) Gather(slist *list.SafeList) {
 	netconns, err := s.ps.NetConnections()
 	if err != nil {
 		log.Println("E! failed to get net connections:", err)
@@ -81,6 +81,5 @@ func (s *NetStats) Gather() (samples []*types.Sample) {
 		"udp_socket":      counts["UDP"],
 	}
 
-	samples = append(samples, inputs.NewSamples(fields, tags)...)
-	return
+	inputs.PushSamples(slist, fields, tags)
 }

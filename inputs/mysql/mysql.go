@@ -1,7 +1,10 @@
 package mysql
 
 import (
+	"database/sql"
 	"errors"
+	"fmt"
+	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -10,18 +13,22 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"github.com/go-sql-driver/mysql"
 	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "mysql"
 
 type Instance struct {
-	Address       string            `toml:"address"`
-	Username      string            `toml:"username"`
-	Password      string            `toml:"password"`
+	Address        string `toml:"address"`
+	Username       string `toml:"username"`
+	Password       string `toml:"password"`
+	TimeoutSeconds int64  `toml:"timeout_seconds"`
+
 	Labels        map[string]string `toml:"labels"`
 	IntervalTimes int64             `toml:"interval_times"`
 
+	dsn string
 	tls.ClientConfig
 }
 
@@ -29,6 +36,23 @@ func (ins *Instance) Init() error {
 	if ins.Address == "" {
 		return errors.New("address is blank")
 	}
+
+	ins.dsn = fmt.Sprintf("%s:%s@tcp(%s)/", ins.Username, ins.Password, ins.Address)
+
+	conf, err := mysql.ParseDSN(ins.dsn)
+	if err != nil {
+		return err
+	}
+
+	if conf.Timeout == 0 {
+		if ins.TimeoutSeconds == 0 {
+			ins.TimeoutSeconds = 3
+		}
+		conf.Timeout = time.Second * time.Duration(ins.TimeoutSeconds)
+	}
+
+	ins.dsn = conf.FormatDSN()
+
 	return nil
 }
 
@@ -70,24 +94,14 @@ func (m *MySQL) Init() error {
 
 func (m *MySQL) Drop() {}
 
-func (m *MySQL) Gather() (samples []*types.Sample) {
+func (m *MySQL) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&m.Counter, 1)
-
-	slist := list.NewSafeList()
-
 	for i := range m.Instances {
 		ins := m.Instances[i]
 		m.wg.Add(1)
 		go m.gatherOnce(slist, ins)
 	}
 	m.wg.Wait()
-
-	interfaceList := slist.PopBackAll()
-	for i := 0; i < len(interfaceList); i++ {
-		samples = append(samples, interfaceList[i].(*types.Sample))
-	}
-
-	return
 }
 
 func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
@@ -113,5 +127,14 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 		slist.PushFront(inputs.NewSample("scrape_use_seconds", use, tags))
 	}(begun)
 
-	//
+	db, err := sql.Open("mysql", ins.dsn)
+	if err != nil {
+		slist.PushFront(inputs.NewSample("up", 0, tags))
+		log.Println("E! failed to open mysql:", err)
+		return
+	}
+
+	slist.PushFront(inputs.NewSample("up", 1, tags))
+	defer db.Close()
+
 }

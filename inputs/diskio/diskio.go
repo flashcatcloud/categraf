@@ -8,7 +8,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/filter"
-	"flashcat.cloud/categraf/types"
+	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "diskio"
@@ -53,9 +53,7 @@ func (d *DiskIO) Init() error {
 	return nil
 }
 
-func (d *DiskIO) Gather() []*types.Sample {
-	var samples []*types.Sample
-
+func (d *DiskIO) Gather(slist *list.SafeList) {
 	devices := []string{}
 	if d.deviceFilter == nil {
 		// no glob chars
@@ -65,7 +63,7 @@ func (d *DiskIO) Gather() []*types.Sample {
 	diskio, err := d.ps.DiskIO(devices)
 	if err != nil {
 		log.Println("E! failed to get disk io:", err)
-		return samples
+		return
 	}
 
 	for _, io := range diskio {
@@ -87,8 +85,6 @@ func (d *DiskIO) Gather() []*types.Sample {
 			"merged_writes":    io.MergedWriteCount,
 		}
 
-		samples = append(samples, inputs.NewSamples(fields, map[string]string{"name": io.Name})...)
+		inputs.PushSamples(slist, fields, map[string]string{"name": io.Name})
 	}
-
-	return samples
 }

@@ -96,23 +96,14 @@ func (s *Procstat) Init() error {
 
 func (s *Procstat) Drop() {}
 
-func (s *Procstat) Gather() (samples []*types.Sample) {
+func (s *Procstat) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&s.Counter, 1)
-
-	slist := list.NewSafeList()
-
 	for i := range s.Instances {
 		ins := s.Instances[i]
 		s.wg.Add(1)
 		go s.gatherOnce(slist, ins)
 	}
 	s.wg.Wait()
-
-	interfaceList := slist.PopBackAll()
-	for i := 0; i < len(interfaceList); i++ {
-		samples = append(samples, interfaceList[i].(*types.Sample))
-	}
-	return
 }
 
 func (s *Procstat) gatherOnce(slist *list.SafeList, ins *Instance) {

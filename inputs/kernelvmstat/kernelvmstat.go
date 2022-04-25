@@ -13,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "kernelvmstat"
@@ -46,7 +47,7 @@ func (s *KernelVmstat) Init() error {
 
 func (s *KernelVmstat) Drop() {}
 
-func (s *KernelVmstat) Gather() (samples []*types.Sample) {
+func (s *KernelVmstat) Gather(slist *list.SafeList) {
 	data, err := s.getProcVmstat()
 	if err != nil {
 		log.Println("E! failed to gather vmstat:", err)
@@ -77,7 +78,7 @@ func (s *KernelVmstat) Gather() (samples []*types.Sample) {
 		}
 	}
 
-	return inputs.NewSamples(fields)
+	inputs.PushSamples(slist, fields)
 }
 
 func (s *KernelVmstat) getProcVmstat() ([]byte, error) {

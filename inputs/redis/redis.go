@@ -108,24 +108,14 @@ func (r *Redis) Drop() {
 	}
 }
 
-func (r *Redis) Gather() (samples []*types.Sample) {
+func (r *Redis) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&r.Counter, 1)
-
-	slist := list.NewSafeList()
-
 	for i := range r.Instances {
 		ins := r.Instances[i]
 		r.wg.Add(1)
 		go r.gatherOnce(slist, ins)
 	}
 	r.wg.Wait()
-
-	interfaceList := slist.PopBackAll()
-	for i := 0; i < len(interfaceList); i++ {
-		samples = append(samples, interfaceList[i].(*types.Sample))
-	}
-
-	return
 }
 
 func (r *Redis) gatherOnce(slist *list.SafeList, ins *Instance) {

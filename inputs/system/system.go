@@ -7,10 +7,10 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/types"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
+	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "system"
@@ -40,19 +40,17 @@ func (s *SystemStats) Init() error {
 
 func (s *SystemStats) Drop() {}
 
-func (s *SystemStats) Gather() []*types.Sample {
-	var samples []*types.Sample
-
+func (s *SystemStats) Gather(slist *list.SafeList) {
 	loadavg, err := load.Avg()
 	if err != nil && !strings.Contains(err.Error(), "not implemented") {
 		log.Println("E! failed to gather system load:", err)
-		return samples
+		return
 	}
 
 	numCPUs, err := cpu.Counts(true)
 	if err != nil {
 		log.Println("E! failed to gather cpu number:", err)
-		return samples
+		return
 	}
 
 	fields := map[string]interface{}{
@@ -83,5 +81,5 @@ func (s *SystemStats) Gather() []*types.Sample {
 		}
 	}
 
-	return inputs.NewSamples(fields)
+	inputs.PushSamples(slist, fields)
 }

@@ -164,23 +164,14 @@ func (h *HTTPResponse) Init() error {
 
 func (h *HTTPResponse) Drop() {}
 
-func (h *HTTPResponse) Gather() (samples []*types.Sample) {
+func (h *HTTPResponse) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&h.Counter, 1)
-
-	slist := list.NewSafeList()
-
 	for i := range h.Instances {
 		ins := h.Instances[i]
 		h.wg.Add(1)
 		go h.gatherOnce(slist, ins)
 	}
 	h.wg.Wait()
-
-	interfaceList := slist.PopBackAll()
-	for i := 0; i < len(interfaceList); i++ {
-		samples = append(samples, interfaceList[i].(*types.Sample))
-	}
-	return
 }
 
 func (h *HTTPResponse) gatherOnce(slist *list.SafeList, ins *Instance) {

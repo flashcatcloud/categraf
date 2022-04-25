@@ -14,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "kernel"
@@ -57,7 +58,7 @@ func (s *KernelStats) Init() error {
 
 func (s *KernelStats) Drop() {}
 
-func (s *KernelStats) Gather() (samples []*types.Sample) {
+func (s *KernelStats) Gather(slist *list.SafeList) {
 	data, err := s.getProcStat()
 	if err != nil {
 		log.Println("E! failed to read:", s.statFile, "error:", err)
@@ -121,8 +122,7 @@ func (s *KernelStats) Gather() (samples []*types.Sample) {
 		}
 	}
 
-	samples = append(samples, inputs.NewSamples(fields)...)
-	return
+	inputs.PushSamples(slist, fields)
 }
 
 func (s *KernelStats) getProcStat() ([]byte, error) {

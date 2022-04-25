@@ -6,6 +6,9 @@ address = "127.0.0.1:3306"
 username = "root"
 password = "1234"
 
+# # timeout
+# timeout_seconds = 3
+
 # # interval = global.interval * interval_times
 # interval_times = 1
 

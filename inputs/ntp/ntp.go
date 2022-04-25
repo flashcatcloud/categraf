@@ -7,7 +7,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/types"
+	"github.com/toolkits/pkg/container/list"
 	"github.com/toolkits/pkg/nux"
 )
 
@@ -42,7 +42,7 @@ func (n *NTPStat) Init() error {
 	return nil
 }
 
-func (n *NTPStat) Gather() (samples []*types.Sample) {
+func (n *NTPStat) Gather(slist *list.SafeList) {
 	for _, server := range n.NTPServers {
 		if n.server == "" {
 			n.server = server
@@ -62,9 +62,7 @@ func (n *NTPStat) Gather() (samples []*types.Sample) {
 		duration := ((serverReciveTime.UnixNano() - orgTime.UnixNano()) + (serverTransmitTime.UnixNano() - dstTime.UnixNano())) / 2
 
 		delta := duration / 1e6 // convert to ms
-		samples = append(samples, inputs.NewSample("offset_ms", delta))
+		slist.PushFront(inputs.NewSample("offset_ms", delta))
 		break
 	}
-
-	return
 }

@@ -113,24 +113,14 @@ func (p *Ping) Init() error {
 
 func (p *Ping) Drop() {}
 
-func (p *Ping) Gather() (samples []*types.Sample) {
+func (p *Ping) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&p.Counter, 1)
-
-	slist := list.NewSafeList()
-
 	for i := range p.Instances {
 		ins := p.Instances[i]
 		p.wg.Add(1)
 		go p.gatherOnce(slist, ins)
 	}
 	p.wg.Wait()
-
-	interfaceList := slist.PopBackAll()
-	for i := 0; i < len(interfaceList); i++ {
-		samples = append(samples, interfaceList[i].(*types.Sample))
-	}
-
-	return
 }
 
 func (p *Ping) gatherOnce(slist *list.SafeList, ins *PingInstance) {

@@ -17,7 +17,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/osx"
-	"flashcat.cloud/categraf/types"
+	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "processes"
@@ -48,7 +48,7 @@ func (p *Processes) Init() error {
 	return nil
 }
 
-func (p *Processes) Gather() (samples []*types.Sample) {
+func (p *Processes) Gather(slist *list.SafeList) {
 	// Get an empty map of metric fields
 	fields := getEmptyFields()
 
@@ -74,7 +74,7 @@ func (p *Processes) Gather() (samples []*types.Sample) {
 		}
 	}
 
-	return inputs.NewSamples(fields)
+	inputs.PushSamples(slist, fields)
 }
 
 // Gets empty fields of metrics based on the OS

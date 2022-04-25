@@ -101,24 +101,14 @@ func (o *Oracle) Drop() {
 	}
 }
 
-func (o *Oracle) Gather() (samples []*types.Sample) {
+func (o *Oracle) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&o.Counter, 1)
-
-	slist := list.NewSafeList()
-
 	for i := range o.Instances {
 		ins := o.Instances[i]
 		o.wg.Add(1)
 		go o.gatherOnce(slist, ins)
 	}
 	o.wg.Wait()
-
-	interfaceList := slist.PopBackAll()
-	for i := 0; i < len(interfaceList); i++ {
-		samples = append(samples, interfaceList[i].(*types.Sample))
-	}
-
-	return
 }
 
 func (o *Oracle) gatherOnce(slist *list.SafeList, ins OrclInstance) {

@@ -9,7 +9,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/filter"
-	"flashcat.cloud/categraf/types"
+	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "net"
@@ -56,25 +56,23 @@ func (s *NetIOStats) Init() error {
 	return nil
 }
 
-func (s *NetIOStats) Gather() []*types.Sample {
+func (s *NetIOStats) Gather(slist *list.SafeList) {
 	netio, err := s.ps.NetIO()
 	if err != nil {
 		log.Println("E! failed to get net io metrics:", err)
-		return nil
+		return
 	}
 
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		log.Println("E! failed to list interfaces:", err)
-		return nil
+		return
 	}
 
 	interfacesByName := map[string]net.Interface{}
 	for _, iface := range interfaces {
 		interfacesByName[iface.Name] = iface
 	}
-
-	var samples []*types.Sample
 
 	for _, io := range netio {
 		if len(s.Interfaces) > 0 {
@@ -117,8 +115,6 @@ func (s *NetIOStats) Gather() []*types.Sample {
 			"drop_out":     io.Dropout,
 		}
 
-		samples = append(samples, inputs.NewSamples(fields, tags)...)
+		inputs.PushSamples(slist, fields, tags)
 	}
-
-	return samples
 }

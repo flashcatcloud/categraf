@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/go-ping/ping v0.0.0-20211130115550-779d1e919534
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobwas/glob v0.2.3
 	github.com/godror/godror v0.33.0
 	github.com/golang/protobuf v1.5.2

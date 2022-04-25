@@ -121,23 +121,14 @@ func (n *NetResponse) Init() error {
 
 func (n *NetResponse) Drop() {}
 
-func (n *NetResponse) Gather() (samples []*types.Sample) {
+func (n *NetResponse) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&n.Counter, 1)
-
-	slist := list.NewSafeList()
-
 	for i := range n.Instances {
 		ins := n.Instances[i]
 		n.wg.Add(1)
 		go n.gatherOnce(slist, ins)
 	}
 	n.wg.Wait()
-
-	interfaceList := slist.PopBackAll()
-	for i := 0; i < len(interfaceList); i++ {
-		samples = append(samples, interfaceList[i].(*types.Sample))
-	}
-	return
 }
 
 func (n *NetResponse) gatherOnce(slist *list.SafeList, ins *Instance) {

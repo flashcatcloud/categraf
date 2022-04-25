@@ -14,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/writer"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
+	"github.com/toolkits/pkg/container/list"
 )
 
 const agentHostnameLabelKey = "agent_hostname"
@@ -62,7 +63,12 @@ func (r *Reader) gatherOnce() {
 		}
 	}()
 
-	samples := r.Instance.Gather()
+	// gather
+	slist := list.NewSafeList()
+	r.Instance.Gather(slist)
+
+	// handle result
+	samples := slist.PopBackAll()
 
 	if len(samples) == 0 {
 		return
@@ -74,17 +80,19 @@ func (r *Reader) gatherOnce() {
 			continue
 		}
 
-		if samples[i].Timestamp.IsZero() {
-			samples[i].Timestamp = now
+		s := samples[i].(*types.Sample)
+
+		if s.Timestamp.IsZero() {
+			s.Timestamp = now
 		}
 
 		if len(r.Instance.GetInputName()) > 0 {
-			samples[i].Metric = r.Instance.GetInputName() + "_" + strings.ReplaceAll(samples[i].Metric, "-", "_")
+			s.Metric = r.Instance.GetInputName() + "_" + strings.ReplaceAll(s.Metric, "-", "_")
 		} else {
-			samples[i].Metric = strings.ReplaceAll(samples[i].Metric, "-", "_")
+			s.Metric = strings.ReplaceAll(s.Metric, "-", "_")
 		}
 
-		r.Queue <- samples[i]
+		r.Queue <- s
 	}
 }
 
@@ -185,10 +193,6 @@ func convert(item *types.Sample) *prompb.TimeSeries {
 	}
 
 	pt := &prompb.TimeSeries{}
-
-	if item.Timestamp.IsZero() {
-		item.Timestamp = time.Now()
-	}
 
 	timestamp := item.Timestamp.UnixMilli()
 	if config.Config.Global.Precision == "s" {

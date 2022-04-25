@@ -7,7 +7,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
-	"flashcat.cloud/categraf/types"
+	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "mem"
@@ -44,11 +44,11 @@ func (s *MemStats) Init() error {
 	return nil
 }
 
-func (s *MemStats) Gather() []*types.Sample {
+func (s *MemStats) Gather(slist *list.SafeList) {
 	vm, err := s.ps.VMStat()
 	if err != nil {
 		log.Println("E! failed to get vmstat:", err)
-		return nil
+		return
 	}
 
 	fields := map[string]interface{}{
@@ -113,5 +113,5 @@ func (s *MemStats) Gather() []*types.Sample {
 		}
 	}
 
-	return inputs.NewSamples(fields)
+	inputs.PushSamples(slist, fields)
 }
