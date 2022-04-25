@@ -147,13 +147,19 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 		return
 	}
 
-	slist.PushFront(inputs.NewSample("up", 1, tags))
 	defer db.Close()
 
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+	db.SetConnMaxLifetime(time.Minute)
+
+	if err = db.Ping(); err != nil {
+		slist.PushFront(inputs.NewSample("up", 0, tags))
+		log.Println("E! failed to ping mysql:", err)
+	}
+
+	slist.PushFront(inputs.NewSample("up", 1, tags))
+
 	m.gatherGlobalStatus(slist, ins, db, tags)
-
-}
-
-func (m *MySQL) gatherGlobalStatus(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
-
+	m.gatherGlobalVariables(slist, ins, db, tags)
 }
