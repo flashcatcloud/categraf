@@ -23,6 +23,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/kernelvmstat"
 	_ "flashcat.cloud/categraf/inputs/linuxsysctlfs"
 	_ "flashcat.cloud/categraf/inputs/mem"
+	_ "flashcat.cloud/categraf/inputs/mysql"
 	_ "flashcat.cloud/categraf/inputs/net"
 	_ "flashcat.cloud/categraf/inputs/netresponse"
 	_ "flashcat.cloud/categraf/inputs/netstat"
