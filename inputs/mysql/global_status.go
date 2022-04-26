@@ -133,7 +133,7 @@ func (m *MySQL) gatherGlobalStatus(slist *list.SafeList, ins *Instance, db *sql.
 
 			if evsParsingSuccess {
 				for _, v := range evsMap {
-					slist.PushFront(inputs.NewSample("galera_evs_repl_latency_"+v.name, v.value))
+					slist.PushFront(inputs.NewSample("galera_evs_repl_latency_"+v.name, v.value, tags))
 				}
 			}
 		}
