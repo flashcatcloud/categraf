@@ -1,5 +1,5 @@
 # # collect interval
-# interval = 15
+interval = 3
 
 [[instances]]
 address = "127.0.0.1:3306"
@@ -9,7 +9,7 @@ password = "1234"
 # # set tls=custom is enable tls
 # parameters = "tls=false"
 
-extra_status_metrics = false
+extra_status_metrics = true
 extra_innodb_metrics = false
 
 # # timeout

@@ -232,4 +232,5 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 	m.gatherGlobalVariables(slist, ins, db, tags, cache)
 	m.gatherEngineInnodbStatus(slist, ins, db, tags, cache)
 	m.gatherEngineInnodbStatusCompute(slist, ins, db, tags, cache)
+	m.gatherBinlog(slist, ins, db, tags, cache)
 }
