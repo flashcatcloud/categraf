@@ -77,12 +77,9 @@ func (m *MySQL) gatherGlobalStatus(slist *list.SafeList, ins *Instance, db *sql.
 				slist.PushFront(inputs.NewSample("global_status_connection_errors_total", floatVal, tags, map[string]string{"error": match[2]}))
 			case "innodb_buffer_pool_pages":
 				switch match[2] {
-				case "data", "free", "misc", "old", "total":
+				case "data", "free", "misc", "old", "total", "dirty":
 					// Innodb buffer pool pages by state.
 					slist.PushFront(inputs.NewSample("global_status_buffer_pool_pages", floatVal, tags, map[string]string{"state": match[2]}))
-				case "dirty":
-					// Innodb buffer pool dirty pages.
-					slist.PushFront(inputs.NewSample("global_status_buffer_pool_dirty_pages", floatVal, tags))
 				default:
 					// Innodb buffer pool page state changes.
 					slist.PushFront(inputs.NewSample("global_status_buffer_pool_page_changes_total", floatVal, tags, map[string]string{"operation": match[2]}))
