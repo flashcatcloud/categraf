@@ -1,6 +1,7 @@
 package mysql
 
 var STATUS_VARS = map[string]struct{}{
+	"uptime":                     {},
 	"prepared_stmt_count":        {}, // command metrics
 	"slow_queries":               {},
 	"questions":                  {},
