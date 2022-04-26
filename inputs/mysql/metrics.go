@@ -61,6 +61,7 @@ var VARIABLES_VARS = map[string]struct{}{
 var INNODB_VARS = map[string]struct{}{
 	"innodb_buffer_pool_size":          {},
 	"open_files_limit":                 {},
+	"innodb_log_waits":                 {},
 	"innodb_data_reads":                {},
 	"innodb_data_writes":               {},
 	"innodb_os_log_fsyncs":             {},
@@ -154,7 +155,6 @@ var OPTIONAL_INNODB_VARS = map[string]struct{}{
 	"innodb_lock_structs":                   {},
 	"innodb_locked_tables":                  {},
 	"innodb_locked_transactions":            {},
-	"innodb_log_waits":                      {},
 	"innodb_log_write_requests":             {},
 	"innodb_log_writes":                     {},
 	"innodb_lsn_current":                    {},
