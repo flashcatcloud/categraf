@@ -40,19 +40,19 @@ func (m *MySQL) gatherEngineInnodbStatus(slist *list.SafeList, ins *Instance, db
 			if err != nil {
 				continue
 			}
-			inputs.NewSample("engine_innodb_queries_inside_innodb", value)
+			slist.PushFront(inputs.NewSample("engine_innodb_queries_inside_innodb", value))
 
 			value, err = strconv.ParseFloat(data[2], 64)
 			if err != nil {
 				continue
 			}
-			inputs.NewSample("engine_innodb_queries_in_queue", value)
+			slist.PushFront(inputs.NewSample("engine_innodb_queries_in_queue", value))
 		} else if data := rViews.FindStringSubmatch(line); data != nil {
 			value, err := strconv.ParseFloat(data[1], 64)
 			if err != nil {
 				continue
 			}
-			inputs.NewSample("engine_innodb_read_views_open_inside_innodb", value)
+			slist.PushFront(inputs.NewSample("engine_innodb_read_views_open_inside_innodb", value))
 		}
 	}
 }
