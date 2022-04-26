@@ -157,7 +157,7 @@ func postSeries(series []*prompb.TimeSeries) {
 				sb.WriteString(fmt.Sprint(series[i].Samples[j].Value))
 			}
 
-			log.Println(sb.String())
+			fmt.Println(sb.String())
 		}
 		return
 	}
