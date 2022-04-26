@@ -231,20 +231,5 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 	m.gatherGlobalStatus(slist, ins, db, tags, cache)
 	m.gatherGlobalVariables(slist, ins, db, tags, cache)
 	m.gatherEngineInnodbStatus(slist, ins, db, tags, cache)
-
-	innodbKeys := []string{
-		"innodb_page_size",
-		"innodb_buffer_pool_pages_data",
-		"innodb_buffer_pool_pages_dirty",
-		"innodb_buffer_pool_pages_total",
-		"innodb_buffer_pool_pages_free",
-	}
-
-	for _, key := range innodbKeys {
-		if val, has := cache[key]; has {
-			log.Println("---key:", key, "value:", val)
-		} else {
-			log.Println("---key not found:", key)
-		}
-	}
+	m.gatherEngineInnodbStatusCompute(slist, ins, db, tags, cache)
 }
