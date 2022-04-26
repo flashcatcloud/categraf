@@ -1,50 +1,51 @@
 package mysql
 
 var STATUS_VARS = map[string]struct{}{
-	"uptime":                     {},
-	"prepared_stmt_count":        {}, // command metrics
-	"slow_queries":               {},
-	"questions":                  {},
-	"queries":                    {},
-	"com_select":                 {},
-	"com_insert":                 {},
-	"com_update":                 {},
-	"com_delete":                 {},
-	"com_replace":                {},
-	"com_load":                   {},
-	"com_insert_select":          {},
-	"com_update_multi":           {},
-	"com_delete_multi":           {},
-	"com_replace_select":         {},
-	"connections":                {}, // connection metrics
-	"max_used_connections":       {},
-	"aborted_clients":            {},
-	"aborted_connects":           {},
-	"open_files":                 {}, // table cache metrics
-	"open_tables":                {},
-	"bytes_sent":                 {}, // network metrics
-	"bytes_received":             {},
-	"qcache_hits":                {}, // query cache metrics
-	"qcache_inserts":             {},
-	"qcache_lowmem_prunes":       {},
-	"table_locks_waited":         {}, // table lock metrics
-	"table_locks_waited_rate":    {},
-	"created_tmp_tables":         {}, // temporary table metrics
-	"created_tmp_disk_tables":    {},
-	"created_tmp_files":          {},
-	"threads_connected":          {}, // thread metrics
-	"threads_running":            {},
-	"key_buffer_bytes_unflushed": {}, // myisam metrics
-	"key_buffer_bytes_used":      {},
-	"key_read_requests":          {},
-	"key_reads":                  {},
-	"key_write_requests":         {},
-	"key_writes":                 {},
+	"uptime":                  {},
+	"prepared_stmt_count":     {}, // command metrics
+	"slow_queries":            {},
+	"questions":               {},
+	"queries":                 {},
+	"com_select":              {},
+	"com_insert":              {},
+	"com_update":              {},
+	"com_delete":              {},
+	"com_replace":             {},
+	"com_load":                {},
+	"com_insert_select":       {},
+	"com_update_multi":        {},
+	"com_delete_multi":        {},
+	"com_replace_select":      {},
+	"connections":             {}, // connection metrics
+	"max_used_connections":    {},
+	"aborted_clients":         {},
+	"aborted_connects":        {},
+	"open_files":              {}, // table cache metrics
+	"open_tables":             {},
+	"bytes_sent":              {}, // network metrics
+	"bytes_received":          {},
+	"qcache_hits":             {}, // query cache metrics
+	"qcache_inserts":          {},
+	"qcache_lowmem_prunes":    {},
+	"table_locks_waited":      {}, // table lock metrics
+	"table_locks_waited_rate": {},
+	"created_tmp_tables":      {}, // temporary table metrics
+	"created_tmp_disk_tables": {},
+	"created_tmp_files":       {},
+	"threads_connected":       {}, // thread metrics
+	"threads_running":         {},
+	"key_blocks_used":         {}, // myisam metrics
+	"key_blocks_unused":       {},
+	"key_blocks_not_flushed":  {},
+	"key_read_requests":       {},
+	"key_reads":               {},
+	"key_write_requests":      {},
+	"key_writes":              {},
 }
 
 var VARIABLES_VARS = map[string]struct{}{
 	"key_buffer_size":         {},
-	"key_cache_utilization":   {},
+	"key_cache_block_size":    {},
 	"max_connections":         {},
 	"max_prepared_stmt_count": {},
 	"query_cache_size":        {},
