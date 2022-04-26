@@ -12,7 +12,7 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-func (m *MySQL) gatherGlobalVariables(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
+func (m *MySQL) gatherGlobalVariables(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
 	rows, err := db.Query(SQL_GLOBAL_VARIABLES)
 	if err != nil {
 		log.Println("E! failed to query global variables:", err)
@@ -50,12 +50,14 @@ func (m *MySQL) gatherGlobalVariables(slist *list.SafeList, ins *Instance, db *s
 			continue
 		}
 
-		// collect float fields
-		if _, has := ins.validMetrics[key]; !has {
-			continue
-		}
-
 		if floatVal, ok := parseStatus(val); ok {
+			cache[key] = floatVal
+
+			// collect float fields
+			if _, has := ins.validMetrics[key]; !has {
+				continue
+			}
+
 			slist.PushFront(inputs.NewSample("global_variables_"+key, floatVal, tags))
 			continue
 		}

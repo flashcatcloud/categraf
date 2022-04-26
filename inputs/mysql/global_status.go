@@ -16,7 +16,7 @@ import (
 // Regexp to match various groups of status vars.
 var globalStatusRE = regexp.MustCompile(`^(com|handler|connection_errors|innodb_buffer_pool_pages|innodb_rows|performance_schema)_(.*)$`)
 
-func (m *MySQL) gatherGlobalStatus(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
+func (m *MySQL) gatherGlobalStatus(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
 	rows, err := db.Query(SQL_GLOBAL_STATUS)
 	if err != nil {
 		log.Println("E! failed to query global status:", err)
@@ -51,12 +51,14 @@ func (m *MySQL) gatherGlobalStatus(slist *list.SafeList, ins *Instance, db *sql.
 			continue
 		}
 
-		// collect float fields
-		if _, has := ins.validMetrics[key]; !has {
-			continue
-		}
-
 		if floatVal, ok := parseStatus(val); ok {
+			cache[key] = floatVal
+
+			// collect float fields
+			if _, has := ins.validMetrics[key]; !has {
+				continue
+			}
+
 			match := globalStatusRE.FindStringSubmatch(key)
 			if match == nil {
 				slist.PushFront(inputs.NewSample("global_status_"+key, floatVal, tags))
