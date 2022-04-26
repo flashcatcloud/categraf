@@ -19,7 +19,7 @@ extra_innodb_metrics = false
 # interval_times = 1
 
 # important! use global unique string to specify instance
-# labels = { instance="n9e-10.2.3.4:3306" }
+labels = { instance="n9e-10.2.3.4:3306" }
 
 ## Optional TLS Config
 # use_tls = false
