@@ -59,6 +59,8 @@ var VARIABLES_VARS = map[string]struct{}{
 // "innodb_buffer_pool_bytes_total":       {},
 // "innodb_buffer_pool_pages_utilization": {},
 var INNODB_VARS = map[string]struct{}{
+	"innodb_buffer_pool_size":          {},
+	"open_files_limit":                 {},
 	"innodb_data_reads":                {},
 	"innodb_data_writes":               {},
 	"innodb_os_log_fsyncs":             {},
