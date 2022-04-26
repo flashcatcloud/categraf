@@ -51,24 +51,25 @@ var VARIABLES_VARS = map[string]struct{}{
 	"thread_cache_size":       {},
 }
 
+// auto compute
+// "innodb_buffer_pool_bytes_dirty":       {},
+// "innodb_buffer_pool_bytes_free":        {},
+// "innodb_buffer_pool_bytes_used":        {},
+// "innodb_buffer_pool_bytes_total":       {},
+// "innodb_buffer_pool_pages_utilization": {},
 var INNODB_VARS = map[string]struct{}{
-	"innodb_data_reads":                    {},
-	"innodb_data_writes":                   {},
-	"innodb_os_log_fsyncs":                 {},
-	"innodb_mutex_spin_waits":              {},
-	"innodb_mutex_spin_rounds":             {},
-	"innodb_mutex_os_waits":                {},
-	"innodb_row_lock_waits":                {},
-	"innodb_row_lock_time":                 {},
-	"innodb_row_lock_current_waits":        {},
-	"innodb_current_row_locks":             {},
-	"innodb_buffer_pool_bytes_dirty":       {},
-	"innodb_buffer_pool_bytes_free":        {},
-	"innodb_buffer_pool_bytes_used":        {},
-	"innodb_buffer_pool_bytes_total":       {},
-	"innodb_buffer_pool_read_requests":     {},
-	"innodb_buffer_pool_reads":             {},
-	"innodb_buffer_pool_pages_utilization": {},
+	"innodb_data_reads":                {},
+	"innodb_data_writes":               {},
+	"innodb_os_log_fsyncs":             {},
+	"innodb_mutex_spin_waits":          {},
+	"innodb_mutex_spin_rounds":         {},
+	"innodb_mutex_os_waits":            {},
+	"innodb_row_lock_waits":            {},
+	"innodb_row_lock_time":             {},
+	"innodb_row_lock_current_waits":    {},
+	"innodb_current_row_locks":         {},
+	"innodb_buffer_pool_read_requests": {},
+	"innodb_buffer_pool_reads":         {},
 }
 
 var BINLOG_VARS = map[string]struct{}{
