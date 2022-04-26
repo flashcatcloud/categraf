@@ -9,6 +9,9 @@ password = "1234"
 # # set tls=custom is enable tls
 # parameters = "tls=false"
 
+extra_status_metrics = false
+extra_innodb_metrics = false
+
 # # timeout
 # timeout_seconds = 3
 

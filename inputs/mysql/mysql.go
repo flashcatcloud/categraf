@@ -29,7 +29,11 @@ type Instance struct {
 	Labels        map[string]string `toml:"labels"`
 	IntervalTimes int64             `toml:"interval_times"`
 
-	dsn string
+	ExtraStatusMetrics bool `toml:"extra_status_metrics"`
+	ExtraInnodbMetrics bool `toml:"extra_innodb_metrics"`
+
+	validMetrics map[string]struct{}
+	dsn          string
 	tls.ClientConfig
 }
 
@@ -66,7 +70,69 @@ func (ins *Instance) Init() error {
 
 	ins.dsn = conf.FormatDSN()
 
+	ins.InitValidMetrics()
+
 	return nil
+}
+
+func (ins *Instance) InitValidMetrics() {
+	ins.validMetrics = make(map[string]struct{})
+
+	for key := range STATUS_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	for key := range VARIABLES_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	for key := range INNODB_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	for key := range BINLOG_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	for key := range GALERA_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	for key := range PERFORMANCE_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	for key := range SCHEMA_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	for key := range TABLE_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	for key := range REPLICA_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	for key := range GROUP_REPLICATION_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	for key := range SYNTHETIC_VARS {
+		ins.validMetrics[key] = struct{}{}
+	}
+
+	if ins.ExtraStatusMetrics {
+		for key := range OPTIONAL_STATUS_VARS {
+			ins.validMetrics[key] = struct{}{}
+		}
+	}
+
+	if ins.ExtraInnodbMetrics {
+		for key := range OPTIONAL_INNODB_VARS {
+			ins.validMetrics[key] = struct{}{}
+		}
+	}
 }
 
 type MySQL struct {
