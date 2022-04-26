@@ -7,6 +7,8 @@ package mysql
 const (
 	SQL_GLOBAL_STATUS = `SHOW /*!50002 GLOBAL */ STATUS`
 
+	SQL_GLOBAL_VARIABLES = `SHOW GLOBAL VARIABLES`
+
 	SQL_95TH_PERCENTILE = `SELECT avg_us, ro as percentile FROM
 (SELECT avg_us, @rownum := @rownum + 1 as ro FROM
     (SELECT ROUND(avg_timer_wait / 1000000) as avg_us
