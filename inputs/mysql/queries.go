@@ -11,6 +11,15 @@ const (
 
 	SQL_ENGINE_INNODB_STATUS = `SHOW /*!50000 ENGINE*/ INNODB STATUS`
 
+	SQL_INFO_SCHEMA_PROCESSLIST = `
+        SELECT COALESCE(command,''),COALESCE(state,''),count(*)
+        FROM information_schema.processlist
+        WHERE ID != connection_id()
+        GROUP BY command,state
+        ORDER BY null`
+
+	SQL_INFO_SCHEMA_PROCESSLIST_BY_USER = `SELECT user, sum(1) AS connections FROM INFORMATION_SCHEMA.PROCESSLIST GROUP BY user`
+
 	SQL_95TH_PERCENTILE = `SELECT avg_us, ro as percentile FROM
 (SELECT avg_us, @rownum := @rownum + 1 as ro FROM
     (SELECT ROUND(avg_timer_wait / 1000000) as avg_us

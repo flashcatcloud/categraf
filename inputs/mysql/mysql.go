@@ -31,6 +31,7 @@ type Instance struct {
 
 	ExtraStatusMetrics bool `toml:"extra_status_metrics"`
 	ExtraInnodbMetrics bool `toml:"extra_innodb_metrics"`
+	GatherProcessList  bool `toml:"gather_process_list"`
 
 	validMetrics map[string]struct{}
 	dsn          string
@@ -233,4 +234,6 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 	m.gatherEngineInnodbStatus(slist, ins, db, tags, cache)
 	m.gatherEngineInnodbStatusCompute(slist, ins, db, tags, cache)
 	m.gatherBinlog(slist, ins, db, tags, cache)
+	m.gatherProcesslist(slist, ins, db, tags, cache)
+	m.gatherProcesslistByUser(slist, ins, db, tags, cache)
 }

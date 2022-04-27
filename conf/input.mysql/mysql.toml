@@ -11,6 +11,7 @@ password = "1234"
 
 extra_status_metrics = true
 extra_innodb_metrics = false
+gather_process_list = true
 
 # # timeout
 # timeout_seconds = 3
