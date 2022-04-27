@@ -26,8 +26,6 @@ func (m *MySQL) gatherGlobalStatus(slist *list.SafeList, ins *Instance, db *sql.
 	defer rows.Close()
 
 	var (
-		key       string
-		val       sql.RawBytes
 		tags      = tagx.Copy(globalTags)
 		textItems = map[string]string{
 			"wsrep_local_state_uuid":   "",
@@ -38,6 +36,9 @@ func (m *MySQL) gatherGlobalStatus(slist *list.SafeList, ins *Instance, db *sql.
 	)
 
 	for rows.Next() {
+		var key string
+		var val sql.RawBytes
+
 		if err = rows.Scan(&key, &val); err != nil {
 			continue
 		}

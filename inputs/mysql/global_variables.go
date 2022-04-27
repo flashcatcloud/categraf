@@ -22,8 +22,6 @@ func (m *MySQL) gatherGlobalVariables(slist *list.SafeList, ins *Instance, db *s
 	defer rows.Close()
 
 	var (
-		key       string
-		val       sql.RawBytes
 		tags      = tagx.Copy(globalTags)
 		textItems = map[string]string{
 			"innodb_version":         "",
@@ -37,6 +35,9 @@ func (m *MySQL) gatherGlobalVariables(slist *list.SafeList, ins *Instance, db *s
 	)
 
 	for rows.Next() {
+		var key string
+		var val sql.RawBytes
+
 		if err = rows.Scan(&key, &val); err != nil {
 			continue
 		}

@@ -34,6 +34,6 @@ func (m *MySQL) gatherSchemaSize(slist *list.SafeList, ins *Instance, db *sql.DB
 			return
 		}
 
-		slist.PushFront(inputs.NewSample("schema_size", size, labels, map[string]string{"schema": schema}))
+		slist.PushFront(inputs.NewSample("schema_size_bytes", size, labels, map[string]string{"schema": schema}))
 	}
 }

@@ -103,12 +103,6 @@ func (m *MySQL) gatherProcesslistByState(slist *list.SafeList, ins *Instance, db
 
 	defer rows.Close()
 
-	var (
-		command string
-		state   string
-		count   uint32
-	)
-
 	labels := tagx.Copy(globalTags)
 
 	// mapping of state with its counts
@@ -119,6 +113,12 @@ func (m *MySQL) gatherProcesslistByState(slist *list.SafeList, ins *Instance, db
 	}
 
 	for rows.Next() {
+		var (
+			command string
+			state   string
+			count   uint32
+		)
+
 		err = rows.Scan(&command, &state, &count)
 		if err != nil {
 			log.Println("W! failed to scan rows:", err)
