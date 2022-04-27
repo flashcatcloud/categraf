@@ -36,12 +36,12 @@ labels = { instance="n9e-10.2.3.4:3306" }
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = true
 
-[[instances.queries]]
-mesurement = "users"
-metric_fields = [ "total" ]
-label_fields = [ "product" ]
-# field_to_append = ""
-timeout = "3s"
-request = '''
-select 'n9e' as product, count(*) as total from n9e_v5.users
-'''
+# [[instances.queries]]
+# mesurement = "users"
+# metric_fields = [ "total" ]
+# label_fields = [ "service" ]
+# # field_to_append = ""
+# timeout = "3s"
+# request = '''
+# select 'n9e' as service, count(*) as total from n9e_v5.users
+# '''
