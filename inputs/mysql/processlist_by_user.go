@@ -10,7 +10,7 @@ import (
 )
 
 func (m *MySQL) gatherProcesslistByUser(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
-	if !ins.GatherProcessList {
+	if !ins.GatherProcessListProcessByUser {
 		return
 	}
 

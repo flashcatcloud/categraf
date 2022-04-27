@@ -90,8 +90,8 @@ var (
 	}
 )
 
-func (m *MySQL) gatherProcesslist(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
-	if !ins.GatherProcessList {
+func (m *MySQL) gatherProcesslistByState(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+	if !ins.GatherProcessListProcessByState {
 		return
 	}
 
@@ -131,7 +131,7 @@ func (m *MySQL) gatherProcesslist(slist *list.SafeList, ins *Instance, db *sql.D
 	}
 
 	for s, c := range stateCounts {
-		slist.PushFront(inputs.NewSample("process_list_threads", c, labels, map[string]string{"state": s}))
+		slist.PushFront(inputs.NewSample("processlist_processes_by_state", c, labels, map[string]string{"state": s}))
 	}
 }
 
