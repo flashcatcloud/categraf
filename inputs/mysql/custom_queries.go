@@ -3,7 +3,6 @@ package mysql
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -52,7 +51,7 @@ func (m *MySQL) gatherOneQuery(slist *list.SafeList, ins *Instance, db *sql.DB, 
 	}
 
 	for rows.Next() {
-		columns := make([]interface{}, len(cols))
+		columns := make([]sql.RawBytes, len(cols))
 		columnPointers := make([]interface{}, len(cols))
 		for i := range columns {
 			columnPointers[i] = &columns[i]
@@ -66,8 +65,8 @@ func (m *MySQL) gatherOneQuery(slist *list.SafeList, ins *Instance, db *sql.DB, 
 
 		row := make(map[string]string)
 		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			row[strings.ToLower(colName)] = fmt.Sprint(*val)
+			val := columnPointers[i].(*sql.RawBytes)
+			row[strings.ToLower(colName)] = string(*val)
 		}
 
 		if err = m.parseRow(row, query, slist, globalTags); err != nil {
