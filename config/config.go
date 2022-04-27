@@ -3,8 +3,10 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/pkg/cfg"
@@ -72,17 +74,45 @@ func InitConfig(configDir string, debugMode bool, testMode bool) error {
 		return fmt.Errorf("failed to load configs of dir: %s", configDir)
 	}
 
-	if Config.Global.Hostname == "" {
-		name, err := os.Hostname()
-		if err != nil {
-			return fmt.Errorf("failed to get hostname: %v", err)
-		}
-		Config.Global.Hostname = name
+	if err := Config.fillHostname(); err != nil {
+		return err
 	}
 
 	if Config.Global.PrintConfigs {
 		bs, _ := json.MarshalIndent(Config, "", "    ")
 		fmt.Println(string(bs))
+	}
+
+	return nil
+}
+
+func (c *ConfigType) fillHostname() error {
+	if c.Global.Hostname == "" {
+		name, err := GetHostname()
+		if err != nil {
+			return err
+		}
+
+		c.Global.Hostname = name
+		return nil
+	}
+
+	if strings.Contains(c.Global.Hostname, "$hostname") {
+		name, err := GetHostname()
+		if err != nil {
+			return err
+		}
+
+		c.Global.Hostname = strings.Replace(c.Global.Hostname, "$hostname", name, -1)
+	}
+
+	if strings.Contains(c.Global.Hostname, "$ip") {
+		ip, err := GetOutboundIP()
+		if err != nil {
+			return err
+		}
+
+		c.Global.Hostname = strings.Replace(c.Global.Hostname, "$ip", fmt.Sprint(ip), -1)
 	}
 
 	return nil
@@ -94,4 +124,21 @@ func GetInterval() time.Duration {
 	}
 
 	return time.Duration(Config.Global.Interval)
+}
+
+func GetHostname() (string, error) {
+	return os.Hostname()
+}
+
+// Get preferred outbound ip of this machine
+func GetOutboundIP() (net.IP, error) {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get outbound ip: %v", err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP, nil
 }

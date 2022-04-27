@@ -3,6 +3,11 @@
 print_configs = false
 
 # add label(agent_hostname) to series
+# "" -> auto detect hostname
+# "xx" -> use specified string xx
+# "$hostname" -> auto detect hostname
+# "$ip" -> auto detect ip
+# "$hostname-$ip" -> auto detect hostname and ip to replace the vars
 hostname = ""
 
 # will not add label(agent_hostname) if true
