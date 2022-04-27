@@ -170,8 +170,3 @@ func findThreadState(rawCommand, rawState string) string {
 	// if no mappings found and state is invalid, then return "other" state
 	return "other"
 }
-
-// newNamespace can be used to make a namespace
-func newNamespace(words ...string) string {
-	return strings.Replace(strings.Join(words, "_"), " ", "_", -1)
-}
