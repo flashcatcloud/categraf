@@ -33,6 +33,7 @@ type Instance struct {
 	ExtraInnodbMetrics              bool `toml:"extra_innodb_metrics"`
 	GatherProcessListProcessByState bool `toml:"gather_processlist_processes_by_state"`
 	GatherProcessListProcessByUser  bool `toml:"gather_processlist_processes_by_user"`
+	GatherSchemaSize                bool `toml:"gather_schema_size"`
 
 	validMetrics map[string]struct{}
 	dsn          string
@@ -237,4 +238,5 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 	m.gatherBinlog(slist, ins, db, tags, cache)
 	m.gatherProcesslistByState(slist, ins, db, tags, cache)
 	m.gatherProcesslistByUser(slist, ins, db, tags, cache)
+	m.gatherSchemaSize(slist, ins, db, tags, cache)
 }

@@ -31,7 +31,7 @@ ORDER BY percentile ASC
 LIMIT 1`
 
 	SQL_QUERY_SCHEMA_SIZE = `
-SELECT   table_schema, IFNULL(SUM(data_length+index_length)/1024/1024,0) AS total_mb
+SELECT   table_schema, IFNULL(SUM(data_length+index_length),0) AS total_bytes
 FROM     information_schema.tables
 GROUP BY table_schema`
 

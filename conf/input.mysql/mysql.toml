@@ -6,13 +6,14 @@ address = "127.0.0.1:3306"
 username = "root"
 password = "1234"
 
-# # set tls=custom is enable tls
+# # set tls=custom to enable tls
 # parameters = "tls=false"
 
 extra_status_metrics = true
 extra_innodb_metrics = false
 gather_processlist_processes_by_state = false
 gather_processlist_processes_by_user = true
+gather_schema_size = true
 
 # # timeout
 # timeout_seconds = 3
