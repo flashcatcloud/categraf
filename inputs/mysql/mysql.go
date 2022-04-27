@@ -19,6 +19,15 @@ import (
 
 const inputName = "mysql"
 
+type QueryConfig struct {
+	Mesurement    string          `toml:"mesurement"`
+	LabelFields   []string        `toml:"label_fields"`
+	MetricFields  []string        `toml:"metric_fields"`
+	FieldToAppend string          `toml:"field_to_append"`
+	Timeout       config.Duration `toml:"timeout"`
+	Request       string          `toml:"request"`
+}
+
 type Instance struct {
 	Address        string `toml:"address"`
 	Username       string `toml:"username"`
@@ -28,6 +37,7 @@ type Instance struct {
 
 	Labels        map[string]string `toml:"labels"`
 	IntervalTimes int64             `toml:"interval_times"`
+	Queries       []QueryConfig     `toml:"queries"`
 
 	ExtraStatusMetrics              bool `toml:"extra_status_metrics"`
 	ExtraInnodbMetrics              bool `toml:"extra_innodb_metrics"`
@@ -228,6 +238,7 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 	if err = db.Ping(); err != nil {
 		slist.PushFront(inputs.NewSample("up", 0, tags))
 		log.Println("E! failed to ping mysql:", err)
+		return
 	}
 
 	slist.PushFront(inputs.NewSample("up", 1, tags))
@@ -245,4 +256,5 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 	m.gatherTableSize(slist, ins, db, tags, false)
 	m.gatherTableSize(slist, ins, db, tags, true)
 	m.gatherSlaveStatus(slist, ins, db, tags)
+	m.gatherCustomQueries(slist, ins, db, tags)
 }
