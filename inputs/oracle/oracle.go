@@ -127,8 +127,8 @@ func (o *Oracle) gatherOnce(slist *list.SafeList, ins OrclInstance) {
 	}
 
 	defer func(begun time.Time) {
-		use := time.Since(begun).Milliseconds()
-		slist.PushFront(inputs.NewSample("scrape_use_ms", use, tags))
+		use := time.Since(begun).Seconds()
+		slist.PushFront(inputs.NewSample("scrape_use_seconds", use, tags))
 	}(time.Now())
 
 	db := o.dbconnpool[ins.Address]
