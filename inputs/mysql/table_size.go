@@ -9,7 +9,7 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-func (m *MySQL) gatherTableSize(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64, isSystem bool) {
+func (m *MySQL) gatherTableSize(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, isSystem bool) {
 	query := SQL_QUERY_TABLE_SIZE
 	if isSystem {
 		query = SQL_QUERY_SYSTEM_TABLE_SIZE

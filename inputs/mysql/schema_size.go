@@ -9,7 +9,7 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-func (m *MySQL) gatherSchemaSize(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+func (m *MySQL) gatherSchemaSize(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
 	if !ins.GatherSchemaSize {
 		return
 	}

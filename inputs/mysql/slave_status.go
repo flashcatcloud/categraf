@@ -14,7 +14,7 @@ import (
 var slaveStatusQueries = [2]string{"SHOW ALL SLAVES STATUS", "SHOW SLAVE STATUS"}
 var slaveStatusQuerySuffixes = [3]string{" NONBLOCKING", " NOLOCK", ""}
 
-func (m *MySQL) gatherSlaveStatus(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+func (m *MySQL) gatherSlaveStatus(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
 	if !ins.GatherSlaveStatus {
 		return
 	}
@@ -87,6 +87,11 @@ func (m *MySQL) gatherSlaveStatus(slist *list.SafeList, ins *Instance, db *sql.D
 
 	if textItems["connection_name"] != "" {
 		textItems["channel_name"] = textItems["connection_name"]
+	}
+
+	// default channel name is empty
+	if textItems["channel_name"] == "" {
+		textItems["channel_name"] = "default"
 	}
 
 	for k, v := range fields {
