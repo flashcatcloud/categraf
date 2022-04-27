@@ -236,10 +236,12 @@ var TABLE_VARS = map[string]struct{}{
 	"information_table_data_size":  {},
 }
 
+// "replicas_connected":    {},
 var REPLICA_VARS = map[string]struct{}{
 	"seconds_behind_source": {},
 	"seconds_behind_master": {},
-	"replicas_connected":    {},
+	"slave_io_running":      {},
+	"slave_sql_running":     {},
 }
 
 var GROUP_REPLICATION_VARS = map[string]struct{}{

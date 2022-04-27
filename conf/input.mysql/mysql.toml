@@ -13,9 +13,10 @@ extra_status_metrics = true
 extra_innodb_metrics = false
 gather_processlist_processes_by_state = false
 gather_processlist_processes_by_user = false
-gather_schema_size = false
+gather_schema_size = true
 gather_table_size = false
 gather_system_table_size = false
+gather_slave_status = true
 
 # # timeout
 # timeout_seconds = 3

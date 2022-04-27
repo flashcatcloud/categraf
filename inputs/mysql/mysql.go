@@ -36,6 +36,7 @@ type Instance struct {
 	GatherSchemaSize                bool `toml:"gather_schema_size"`
 	GatherTableSize                 bool `toml:"gather_table_size"`
 	GatherSystemTableSize           bool `toml:"gather_system_table_size"`
+	GatherSlaveStatus               bool `toml:"gather_slave_status"`
 
 	validMetrics map[string]struct{}
 	dsn          string
@@ -243,4 +244,5 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 	m.gatherSchemaSize(slist, ins, db, tags, cache)
 	m.gatherTableSize(slist, ins, db, tags, cache, false)
 	m.gatherTableSize(slist, ins, db, tags, cache, true)
+	m.gatherSlaveStatus(slist, ins, db, tags, cache)
 }
