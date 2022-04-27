@@ -19,7 +19,7 @@ func (m *MySQL) gatherEngineInnodbStatusCompute(slist *list.SafeList, ins *Insta
 	byteTotal := cache["innodb_buffer_pool_pages_total"] * cache["innodb_page_size"]
 	pageUtil := float64(0)
 	if cache["innodb_buffer_pool_pages_total"] != 0 {
-		pageUtil = pageUsed / cache["innodb_buffer_pool_pages_total"]
+		pageUtil = pageUsed / cache["innodb_buffer_pool_pages_total"] * 100
 	}
 
 	slist.PushFront(inputs.NewSample("global_status_buffer_pool_bytes", byteUsed, tags, map[string]string{"state": "used"}))
