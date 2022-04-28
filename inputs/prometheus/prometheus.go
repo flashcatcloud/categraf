@@ -9,6 +9,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
@@ -23,9 +24,10 @@ type Instance struct {
 	BearerToken   string            `toml:"bearer_token"`
 	Username      string            `toml:"username"`
 	Password      string            `toml:"password"`
-	IgnoreMetrics []string          `toml:"ignore_metrics"`
 	Timeout       config.Duration   `toml:"timeout"`
+	IgnoreMetrics []string          `toml:"ignore_metrics"`
 
+	ignoreMetricsFilter filter.Filter
 	tls.ClientConfig
 	client *http.Client
 }
@@ -42,9 +44,17 @@ func (ins *Instance) Init() error {
 	client, err := ins.createHTTPClient()
 	if err != nil {
 		return err
+	} else {
+		ins.client = client
 	}
 
-	ins.client = client
+	if len(ins.IgnoreMetrics) > 0 {
+		ins.ignoreMetricsFilter, err = filter.Compile(ins.IgnoreMetrics)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
