@@ -99,6 +99,7 @@ func (p *Parser) handleSummary(m *dto.Metric, tags map[string]string, metricName
 func (p *Parser) handleHistogram(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
 	slist.PushFront(inputs.NewSample(metricName+"_count", float64(m.GetHistogram().GetSampleCount()), tags))
 	slist.PushFront(inputs.NewSample(metricName+"_sum", m.GetHistogram().GetSampleSum(), tags))
+	slist.PushFront(inputs.NewSample(metricName+"_bucket", float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
 
 	for _, b := range m.GetHistogram().Bucket {
 		le := fmt.Sprint(b.GetUpperBound())
