@@ -37,6 +37,9 @@ func NewSample(metric string, value interface{}, labels ...map[string]string) *t
 
 	for i := 0; i < len(labels); i++ {
 		for k, v := range labels[i] {
+			if v == "-" {
+				continue
+			}
 			s.Labels[k] = v
 		}
 	}
