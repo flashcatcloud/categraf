@@ -34,6 +34,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/procstat"
 	_ "flashcat.cloud/categraf/inputs/redis"
 	_ "flashcat.cloud/categraf/inputs/system"
+	_ "flashcat.cloud/categraf/inputs/tomcat"
 )
 
 type Agent struct {
