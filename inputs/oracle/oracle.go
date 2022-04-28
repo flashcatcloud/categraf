@@ -44,9 +44,9 @@ type MetricConfig struct {
 }
 
 type Oracle struct {
-	Interval  config.Duration `toml:"interval"`
-	Instances []OrclInstance  `toml:"instances"`
-	Metrics   []MetricConfig  `toml:"metrics"`
+	config.Interval
+	Instances []OrclInstance `toml:"instances"`
+	Metrics   []MetricConfig `toml:"metrics"`
 
 	dbconnpool map[string]*sqlx.DB // key: instance
 	Counter    uint64
@@ -61,10 +61,6 @@ func init() {
 
 func (o *Oracle) Prefix() string {
 	return inputName
-}
-
-func (o *Oracle) GetInterval() config.Duration {
-	return o.Interval
 }
 
 func (o *Oracle) Init() error {

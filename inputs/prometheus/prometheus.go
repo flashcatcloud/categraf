@@ -84,8 +84,8 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 }
 
 type Prometheus struct {
-	Interval  config.Duration `toml:"interval"`
-	Instances []*Instance     `toml:"instances"`
+	config.Interval
+	Instances []*Instance `toml:"instances"`
 
 	Counter uint64
 	wg      sync.WaitGroup
@@ -99,10 +99,6 @@ func init() {
 
 func (p *Prometheus) Prefix() string {
 	return ""
-}
-
-func (p *Prometheus) GetInterval() config.Duration {
-	return p.Interval
 }
 
 func (p *Prometheus) Init() error {

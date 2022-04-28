@@ -18,8 +18,8 @@ import (
 const inputName = "kernelvmstat"
 
 type KernelVmstat struct {
-	Interval  config.Duration `toml:"interval"`
-	WhiteList map[string]int  `toml:"white_list"`
+	config.Interval
+	WhiteList map[string]int `toml:"white_list"`
 
 	statFile string
 }
@@ -34,10 +34,6 @@ func init() {
 
 func (s *KernelVmstat) Prefix() string {
 	return inputName
-}
-
-func (s *KernelVmstat) GetInterval() config.Duration {
-	return s.Interval
 }
 
 func (s *KernelVmstat) Init() error {

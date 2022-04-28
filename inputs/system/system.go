@@ -16,8 +16,8 @@ import (
 const inputName = "system"
 
 type SystemStats struct {
-	Interval          config.Duration `toml:"interval"`
-	CollectUserNumber bool            `toml:"collect_user_number"`
+	config.Interval
+	CollectUserNumber bool `toml:"collect_user_number"`
 }
 
 func init() {
@@ -28,10 +28,6 @@ func init() {
 
 func (s *SystemStats) Prefix() string {
 	return inputName
-}
-
-func (s *SystemStats) GetInterval() config.Duration {
-	return s.Interval
 }
 
 func (s *SystemStats) Init() error {

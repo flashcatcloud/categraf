@@ -152,8 +152,8 @@ func (ins *Instance) InitValidMetrics() {
 }
 
 type MySQL struct {
-	Interval  config.Duration `toml:"interval"`
-	Instances []*Instance     `toml:"instances"`
+	config.Interval
+	Instances []*Instance `toml:"instances"`
 
 	Counter uint64
 	wg      sync.WaitGroup
@@ -167,10 +167,6 @@ func init() {
 
 func (m *MySQL) Prefix() string {
 	return inputName
-}
-
-func (m *MySQL) GetInterval() config.Duration {
-	return m.Interval
 }
 
 func (m *MySQL) Init() error {

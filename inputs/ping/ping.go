@@ -22,7 +22,7 @@ const (
 	defaultPingDataBytesSize = 56
 )
 
-type PingInstance struct {
+type Instance struct {
 	Targets       []string          `toml:"targets"`
 	Labels        map[string]string `toml:"labels"`
 	IntervalTimes int64             `toml:"interval_times"`
@@ -38,7 +38,7 @@ type PingInstance struct {
 	sourceAddress string
 }
 
-func (ins *PingInstance) Init() error {
+func (ins *Instance) Init() error {
 	if ins.Count < 1 {
 		ins.Count = 1
 	}
@@ -77,8 +77,8 @@ func (ins *PingInstance) Init() error {
 }
 
 type Ping struct {
-	Interval  config.Duration `toml:"interval"`
-	Instances []*PingInstance `toml:"instances"`
+	config.Interval
+	Instances []*Instance `toml:"instances"`
 	Counter   uint64
 	wg        sync.WaitGroup
 }
@@ -91,10 +91,6 @@ func init() {
 
 func (p *Ping) Prefix() string {
 	return inputName
-}
-
-func (p *Ping) GetInterval() config.Duration {
-	return p.Interval
 }
 
 func (p *Ping) Init() error {
@@ -123,7 +119,7 @@ func (p *Ping) Gather(slist *list.SafeList) {
 	p.wg.Wait()
 }
 
-func (p *Ping) gatherOnce(slist *list.SafeList, ins *PingInstance) {
+func (p *Ping) gatherOnce(slist *list.SafeList, ins *Instance) {
 	defer p.wg.Done()
 
 	if ins.IntervalTimes > 0 {
@@ -150,7 +146,7 @@ func (p *Ping) gatherOnce(slist *list.SafeList, ins *PingInstance) {
 	wg.Wait()
 }
 
-func (ins *PingInstance) gather(slist *list.SafeList, target string) {
+func (ins *Instance) gather(slist *list.SafeList, target string) {
 	if config.Config.DebugMode {
 		log.Println("D! ping...", target)
 	}
@@ -206,7 +202,7 @@ type pingStats struct {
 	ttl int
 }
 
-func (ins *PingInstance) ping(destination string) (*pingStats, error) {
+func (ins *Instance) ping(destination string) (*pingStats, error) {
 	ps := &pingStats{}
 
 	pinger, err := ping.NewPinger(destination)

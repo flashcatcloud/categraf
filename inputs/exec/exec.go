@@ -36,8 +36,8 @@ type ExecInstance struct {
 }
 
 type Exec struct {
-	Interval  config.Duration `toml:"interval"`
-	Instances []ExecInstance  `toml:"instances"`
+	config.Interval
+	Instances []ExecInstance `toml:"instances"`
 	Counter   uint64
 }
 
@@ -52,10 +52,6 @@ func (e *Exec) Prefix() string {
 }
 
 func (e *Exec) Drop() {}
-
-func (e *Exec) GetInterval() config.Duration {
-	return e.Interval
-}
 
 func (e *Exec) Init() error {
 	if len(e.Instances) == 0 {

@@ -14,8 +14,8 @@ import (
 const inputName = "ntp"
 
 type NTPStat struct {
-	Interval   config.Duration `toml:"interval"`
-	NTPServers []string        `toml:"ntp_servers"`
+	config.Interval
+	NTPServers []string `toml:"ntp_servers"`
 	server     string
 }
 
@@ -27,10 +27,6 @@ func init() {
 
 func (n *NTPStat) Prefix() string {
 	return inputName
-}
-
-func (n *NTPStat) GetInterval() config.Duration {
-	return n.Interval
 }
 
 func (n *NTPStat) Drop() {}

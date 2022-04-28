@@ -64,8 +64,8 @@ func (ins *Instance) Init() error {
 }
 
 type Redis struct {
-	Interval  config.Duration `toml:"interval"`
-	Instances []*Instance     `toml:"instances"`
+	config.Interval
+	Instances []*Instance `toml:"instances"`
 
 	Counter uint64
 	wg      sync.WaitGroup
@@ -79,10 +79,6 @@ func init() {
 
 func (r *Redis) Prefix() string {
 	return inputName
-}
-
-func (r *Redis) GetInterval() config.Duration {
-	return r.Interval
 }
 
 func (r *Redis) Init() error {

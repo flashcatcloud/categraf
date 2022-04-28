@@ -85,8 +85,8 @@ func (ins *Instance) Init() error {
 }
 
 type NetResponse struct {
-	Interval  config.Duration `toml:"interval"`
-	Instances []*Instance     `toml:"instances"`
+	config.Interval
+	Instances []*Instance `toml:"instances"`
 	Counter   uint64
 	wg        sync.WaitGroup
 }
@@ -99,10 +99,6 @@ func init() {
 
 func (n *NetResponse) Prefix() string {
 	return inputName
-}
-
-func (n *NetResponse) GetInterval() config.Duration {
-	return n.Interval
 }
 
 func (n *NetResponse) Init() error {

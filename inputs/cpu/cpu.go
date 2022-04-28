@@ -17,8 +17,8 @@ type CPUStats struct {
 	ps        system.PS
 	lastStats map[string]cpuUtil.TimesStat
 
-	Interval      config.Duration `toml:"interval"`
-	CollectPerCPU bool            `toml:"collect_per_cpu"`
+	config.Interval
+	CollectPerCPU bool `toml:"collect_per_cpu"`
 }
 
 func init() {
@@ -32,10 +32,6 @@ func init() {
 
 func (s *CPUStats) Prefix() string {
 	return inputName
-}
-
-func (s *CPUStats) GetInterval() config.Duration {
-	return s.Interval
 }
 
 // overwrite func

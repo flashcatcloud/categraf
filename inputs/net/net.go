@@ -17,9 +17,9 @@ const inputName = "net"
 type NetIOStats struct {
 	ps system.PS
 
-	Interval             config.Duration `toml:"interval"`
-	CollectProtocolStats bool            `toml:"collect_protocol_stats"`
-	Interfaces           []string        `toml:"interfaces"`
+	config.Interval
+	CollectProtocolStats bool     `toml:"collect_protocol_stats"`
+	Interfaces           []string `toml:"interfaces"`
 
 	interfaceFilters filter.Filter
 }
@@ -35,10 +35,6 @@ func init() {
 
 func (s *NetIOStats) Prefix() string {
 	return inputName
-}
-
-func (s *NetIOStats) GetInterval() config.Duration {
-	return s.Interval
 }
 
 func (s *NetIOStats) Drop() {}

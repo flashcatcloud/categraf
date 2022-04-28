@@ -14,8 +14,7 @@ const inputName = "netstat"
 
 type NetStats struct {
 	ps system.PS
-
-	Interval config.Duration `toml:"interval"`
+	config.Interval
 }
 
 func init() {
@@ -29,10 +28,6 @@ func init() {
 
 func (s *NetStats) Prefix() string {
 	return inputName
-}
-
-func (s *NetStats) GetInterval() config.Duration {
-	return s.Interval
 }
 
 func (s *NetStats) Drop() {}

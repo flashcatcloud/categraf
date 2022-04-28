@@ -133,8 +133,8 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 }
 
 type Tomcat struct {
-	Interval  config.Duration `toml:"interval"`
-	Instances []*Instance     `toml:"instances"`
+	config.Interval
+	Instances []*Instance `toml:"instances"`
 
 	Counter uint64
 	wg      sync.WaitGroup
@@ -148,10 +148,6 @@ func init() {
 
 func (t *Tomcat) Prefix() string {
 	return inputName
-}
-
-func (t *Tomcat) GetInterval() config.Duration {
-	return t.Interval
 }
 
 func (t *Tomcat) Init() error {

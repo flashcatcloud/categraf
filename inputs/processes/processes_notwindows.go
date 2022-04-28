@@ -23,9 +23,9 @@ import (
 const inputName = "processes"
 
 type Processes struct {
-	Interval  config.Duration `toml:"interval"`
-	ForcePS   bool            `toml:"force_ps"`
-	ForceProc bool            `toml:"force_proc"`
+	config.Interval
+	ForcePS   bool `toml:"force_ps"`
+	ForceProc bool `toml:"force_proc"`
 }
 
 func init() {
@@ -36,10 +36,6 @@ func init() {
 
 func (p *Processes) Prefix() string {
 	return inputName
-}
-
-func (p *Processes) GetInterval() config.Duration {
-	return p.Interval
 }
 
 func (p *Processes) Drop() {}

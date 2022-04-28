@@ -20,7 +20,7 @@ import (
 const inputName = "linuxsysctlfs"
 
 type SysctlFS struct {
-	Interval config.Duration `toml:"interval"`
+	config.Interval
 
 	path string
 }
@@ -35,10 +35,6 @@ func init() {
 
 func (s *SysctlFS) Prefix() string {
 	return inputName
-}
-
-func (s *SysctlFS) GetInterval() config.Duration {
-	return s.Interval
 }
 
 func (s *SysctlFS) Init() error {

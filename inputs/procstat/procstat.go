@@ -60,8 +60,8 @@ func (ins *Instance) Init() error {
 }
 
 type Procstat struct {
-	Interval  config.Duration `toml:"interval"`
-	Instances []*Instance     `toml:"instances"`
+	config.Interval
+	Instances []*Instance `toml:"instances"`
 	Counter   uint64
 	wg        sync.WaitGroup
 }
@@ -74,10 +74,6 @@ func init() {
 
 func (s *Procstat) Prefix() string {
 	return inputName
-}
-
-func (s *Procstat) GetInterval() config.Duration {
-	return s.Interval
 }
 
 func (s *Procstat) Init() error {

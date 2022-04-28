@@ -16,8 +16,8 @@ type MemStats struct {
 	ps       system.PS
 	platform string
 
-	Interval              config.Duration `toml:"interval"`
-	CollectPlatformFields bool            `toml:"collect_platform_fields"`
+	config.Interval
+	CollectPlatformFields bool `toml:"collect_platform_fields"`
 }
 
 func init() {
@@ -31,10 +31,6 @@ func init() {
 
 func (s *MemStats) Prefix() string {
 	return inputName
-}
-
-func (s *MemStats) GetInterval() config.Duration {
-	return s.Interval
 }
 
 func (s *MemStats) Drop() {}

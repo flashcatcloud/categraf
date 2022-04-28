@@ -16,10 +16,10 @@ const inputName = "disk"
 type DiskStats struct {
 	ps system.PS
 
-	Interval          config.Duration `toml:"interval"`
-	MountPoints       []string        `toml:"mount_points"`
-	IgnoreFS          []string        `toml:"ignore_fs"`
-	IgnoreMountPoints []string        `toml:"ignore_mount_points"`
+	config.Interval
+	MountPoints       []string `toml:"mount_points"`
+	IgnoreFS          []string `toml:"ignore_fs"`
+	IgnoreMountPoints []string `toml:"ignore_mount_points"`
 }
 
 func init() {
@@ -33,10 +33,6 @@ func init() {
 
 func (s *DiskStats) Prefix() string {
 	return inputName
-}
-
-func (s *DiskStats) GetInterval() config.Duration {
-	return s.Interval
 }
 
 func (s *DiskStats) Init() error {

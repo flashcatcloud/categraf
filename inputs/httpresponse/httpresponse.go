@@ -128,8 +128,8 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 }
 
 type HTTPResponse struct {
-	Interval  config.Duration `toml:"interval"`
-	Instances []*Instance     `toml:"instances"`
+	config.Interval
+	Instances []*Instance `toml:"instances"`
 	Counter   uint64
 	wg        sync.WaitGroup
 }
@@ -142,10 +142,6 @@ func init() {
 
 func (h *HTTPResponse) Prefix() string {
 	return inputName
-}
-
-func (h *HTTPResponse) GetInterval() config.Duration {
-	return h.Interval
 }
 
 func (h *HTTPResponse) Init() error {

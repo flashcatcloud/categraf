@@ -28,10 +28,10 @@ var (
 )
 
 type KernelStats struct {
+	config.Interval
+
 	statFile        string
 	entropyStatFile string
-
-	Interval config.Duration `toml:"interval"`
 }
 
 func init() {
@@ -45,10 +45,6 @@ func init() {
 
 func (s *KernelStats) Prefix() string {
 	return inputName
-}
-
-func (s *KernelStats) GetInterval() config.Duration {
-	return s.Interval
 }
 
 func (s *KernelStats) Init() error {

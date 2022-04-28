@@ -16,8 +16,8 @@ const inputName = "diskio"
 type DiskIO struct {
 	ps system.PS
 
-	Interval     config.Duration `toml:"interval"`
-	Devices      []string        `toml:"devices"`
+	config.Interval
+	Devices      []string `toml:"devices"`
 	deviceFilter filter.Filter
 }
 
@@ -32,10 +32,6 @@ func init() {
 
 func (d *DiskIO) Prefix() string {
 	return inputName
-}
-
-func (d *DiskIO) GetInterval() config.Duration {
-	return d.Interval
 }
 
 func (d *DiskIO) Drop() {}
