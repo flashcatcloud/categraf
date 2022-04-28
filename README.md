@@ -22,8 +22,6 @@ tar zcvf categraf.tar.gz categraf conf
 - []tomcat
 - []...
 - []promscrape
-- []mysql
-- []redis
 - []statsd
 - []...
 - []io.util
