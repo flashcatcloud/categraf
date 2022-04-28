@@ -12,6 +12,8 @@ urls = [
 # username = ""
 # password = ""
 
+headers = ["X-From", "categraf"]
+
 # # interval = global.interval * interval_times
 # interval_times = 1
 

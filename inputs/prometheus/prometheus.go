@@ -2,13 +2,17 @@ package prometheus
 
 import (
 	"errors"
+	"io"
+	"log"
 	"net/http"
+	"net/url"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
@@ -16,6 +20,7 @@ import (
 )
 
 const inputName = "prometheus"
+const acceptHeader = `application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily;encoding=delimited;q=0.7,text/plain;version=0.0.4;q=0.3,*/*;q=0.1`
 
 type Instance struct {
 	URLs          []string          `toml:"urls"`
@@ -26,6 +31,7 @@ type Instance struct {
 	Password      string            `toml:"password"`
 	Timeout       config.Duration   `toml:"timeout"`
 	IgnoreMetrics []string          `toml:"ignore_metrics"`
+	Headers       []string          `toml:"headers"`
 
 	ignoreMetricsFilter filter.Filter
 	tls.ClientConfig
@@ -135,5 +141,83 @@ func (p *Prometheus) gatherOnce(slist *list.SafeList, ins *Instance) {
 		}
 	}
 
-	// TODO
+	urlwg := new(sync.WaitGroup)
+	defer urlwg.Wait()
+
+	for i := 0; i < len(ins.URLs); i++ {
+		urlwg.Add(1)
+		go p.gatherUrl(slist, ins, ins.URLs[i], urlwg)
+	}
+}
+
+func (p *Prometheus) gatherUrl(slist *list.SafeList, ins *Instance, uri string, urlwg *sync.WaitGroup) {
+	defer urlwg.Done()
+
+	u, err := url.Parse(uri)
+	if err != nil {
+		log.Println("E! failed to parse url:", uri, "error:", err)
+		return
+	}
+
+	if u.Path == "" {
+		u.Path = "/metrics"
+	}
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		log.Println("E! failed to new request for url:", u.String(), "error:", err)
+		return
+	}
+
+	ins.setHeaders(req)
+
+	labels := map[string]string{"url": u.String()}
+	for key, val := range ins.Labels {
+		labels[key] = val
+	}
+
+	res, err := ins.client.Do(req)
+	if err != nil {
+		slist.PushFront(inputs.NewSample("up", 0, labels))
+		log.Println("E! failed to query url:", u.String(), "error:", err)
+		return
+	}
+
+	if res.StatusCode != http.StatusOK {
+		slist.PushFront(inputs.NewSample("up", 0, labels))
+		log.Println("E! failed to query url:", u.String(), "status code:", res.StatusCode)
+		return
+	}
+
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		slist.PushFront(inputs.NewSample("up", 0, labels))
+		log.Println("E! failed to read response body, error:", err)
+		return
+	}
+
+	slist.PushFront(inputs.NewSample("up", 1, labels))
+
+	parser := prometheus.NewParser(labels, res.Header, ins.ignoreMetricsFilter)
+	if err = parser.Parse(body, slist); err != nil {
+		log.Println("E! failed to parse response body, url:", u.String(), "error:", err)
+	}
+}
+
+func (ins *Instance) setHeaders(req *http.Request) {
+	if ins.Username != "" && ins.Password != "" {
+		req.SetBasicAuth(ins.Username, ins.Password)
+	}
+
+	if ins.BearerToken != "" {
+		req.Header.Set("Authorization", "Bearer "+ins.BearerToken)
+	}
+
+	req.Header.Set("Accept", acceptHeader)
+
+	for i := 0; i < len(ins.Headers); i += 2 {
+		req.Header.Set(ins.Headers[i], ins.Headers[i+1])
+	}
 }

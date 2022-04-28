@@ -14,7 +14,9 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
+	github.com/matttproud/golang_protobuf_extensions v1.0.1
 	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.32.1
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/shirou/gopsutil/v3 v3.22.3
