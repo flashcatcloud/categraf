@@ -32,7 +32,7 @@ func init() {
 	})
 }
 
-func (s *KernelVmstat) GetInputName() string {
+func (s *KernelVmstat) Prefix() string {
 	return inputName
 }
 

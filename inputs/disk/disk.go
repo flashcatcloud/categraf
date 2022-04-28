@@ -31,7 +31,7 @@ func init() {
 	})
 }
 
-func (s *DiskStats) GetInputName() string {
+func (s *DiskStats) Prefix() string {
 	return inputName
 }
 

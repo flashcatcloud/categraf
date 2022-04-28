@@ -10,7 +10,7 @@ import (
 type Input interface {
 	Init() error
 	Drop()
-	GetInputName() string
+	Prefix() string
 	GetInterval() config.Duration
 	Gather(slist *list.SafeList)
 }

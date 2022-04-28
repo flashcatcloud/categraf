@@ -30,7 +30,7 @@ func init() {
 	})
 }
 
-func (s *CPUStats) GetInputName() string {
+func (s *CPUStats) Prefix() string {
 	return inputName
 }
 

@@ -140,7 +140,7 @@ func init() {
 	})
 }
 
-func (h *HTTPResponse) GetInputName() string {
+func (h *HTTPResponse) Prefix() string {
 	return inputName
 }
 

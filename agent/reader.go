@@ -86,8 +86,8 @@ func (r *Reader) gatherOnce() {
 			s.Timestamp = now
 		}
 
-		if len(r.Instance.GetInputName()) > 0 {
-			s.Metric = r.Instance.GetInputName() + "_" + strings.ReplaceAll(s.Metric, "-", "_")
+		if len(r.Instance.Prefix()) > 0 {
+			s.Metric = r.Instance.Prefix() + "_" + strings.ReplaceAll(s.Metric, "-", "_")
 		} else {
 			s.Metric = strings.ReplaceAll(s.Metric, "-", "_")
 		}

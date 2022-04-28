@@ -34,7 +34,7 @@ func init() {
 	})
 }
 
-func (p *Processes) GetInputName() string {
+func (p *Processes) Prefix() string {
 	return inputName
 }
 

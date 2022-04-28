@@ -146,7 +146,7 @@ func init() {
 	})
 }
 
-func (t *Tomcat) GetInputName() string {
+func (t *Tomcat) Prefix() string {
 	return inputName
 }
 

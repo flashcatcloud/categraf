@@ -89,7 +89,7 @@ func init() {
 	})
 }
 
-func (p *Ping) GetInputName() string {
+func (p *Ping) Prefix() string {
 	return inputName
 }
 

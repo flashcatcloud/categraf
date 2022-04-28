@@ -72,7 +72,7 @@ func init() {
 	})
 }
 
-func (s *Procstat) GetInputName() string {
+func (s *Procstat) Prefix() string {
 	return inputName
 }
 

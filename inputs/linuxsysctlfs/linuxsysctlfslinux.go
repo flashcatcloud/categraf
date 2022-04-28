@@ -33,7 +33,7 @@ func init() {
 	})
 }
 
-func (s *SysctlFS) GetInputName() string {
+func (s *SysctlFS) Prefix() string {
 	return inputName
 }
 

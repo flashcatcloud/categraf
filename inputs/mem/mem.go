@@ -29,7 +29,7 @@ func init() {
 	})
 }
 
-func (s *MemStats) GetInputName() string {
+func (s *MemStats) Prefix() string {
 	return inputName
 }
 

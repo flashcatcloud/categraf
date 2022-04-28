@@ -33,7 +33,7 @@ func init() {
 	})
 }
 
-func (s *NetIOStats) GetInputName() string {
+func (s *NetIOStats) Prefix() string {
 	return inputName
 }
 

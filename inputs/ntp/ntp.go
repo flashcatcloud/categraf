@@ -25,7 +25,7 @@ func init() {
 	})
 }
 
-func (n *NTPStat) GetInputName() string {
+func (n *NTPStat) Prefix() string {
 	return inputName
 }
 

@@ -47,7 +47,7 @@ func init() {
 	})
 }
 
-func (e *Exec) GetInputName() string {
+func (e *Exec) Prefix() string {
 	return ""
 }
 

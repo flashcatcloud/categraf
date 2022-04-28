@@ -43,7 +43,7 @@ func init() {
 	})
 }
 
-func (s *KernelStats) GetInputName() string {
+func (s *KernelStats) Prefix() string {
 	return inputName
 }
 

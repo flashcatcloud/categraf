@@ -26,7 +26,7 @@ func init() {
 	})
 }
 
-func (s *SystemStats) GetInputName() string {
+func (s *SystemStats) Prefix() string {
 	return inputName
 }
 

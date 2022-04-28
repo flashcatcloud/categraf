@@ -59,7 +59,7 @@ func init() {
 	})
 }
 
-func (o *Oracle) GetInputName() string {
+func (o *Oracle) Prefix() string {
 	return inputName
 }
 

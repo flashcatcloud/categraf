@@ -97,7 +97,7 @@ func init() {
 	})
 }
 
-func (n *NetResponse) GetInputName() string {
+func (n *NetResponse) Prefix() string {
 	return inputName
 }
 

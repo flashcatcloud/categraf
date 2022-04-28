@@ -81,7 +81,7 @@ func init() {
 	})
 }
 
-func (p *Prometheus) GetInputName() string {
+func (p *Prometheus) Prefix() string {
 	return ""
 }
 

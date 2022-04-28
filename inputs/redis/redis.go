@@ -77,7 +77,7 @@ func init() {
 	})
 }
 
-func (r *Redis) GetInputName() string {
+func (r *Redis) Prefix() string {
 	return inputName
 }
 

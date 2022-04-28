@@ -30,7 +30,7 @@ func init() {
 	})
 }
 
-func (d *DiskIO) GetInputName() string {
+func (d *DiskIO) Prefix() string {
 	return inputName
 }
 

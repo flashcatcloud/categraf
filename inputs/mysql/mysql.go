@@ -165,7 +165,7 @@ func init() {
 	})
 }
 
-func (m *MySQL) GetInputName() string {
+func (m *MySQL) Prefix() string {
 	return inputName
 }
 

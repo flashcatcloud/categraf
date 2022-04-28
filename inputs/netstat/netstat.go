@@ -27,7 +27,7 @@ func init() {
 	})
 }
 
-func (s *NetStats) GetInputName() string {
+func (s *NetStats) Prefix() string {
 	return inputName
 }
 
