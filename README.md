@@ -38,6 +38,8 @@ tar zcvf categraf.tar.gz categraf conf
 - []zookeeper
 - []statsd
 - []snmp
+- []ipmi
+- []smartctl
 - []logging
 - []trace
 - []io.util
