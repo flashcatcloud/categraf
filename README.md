@@ -18,10 +18,23 @@ tar zcvf categraf.tar.gz categraf conf
 
 ## todo
 
+- []k8s solution
 - []nginx vts
-- []tomcat
-- []...
-- []promscrape
+- []mongodb
+- []tomcat dashboard
+- []rabbitmq dashboard
+- []kafka
+- []elasticsearch
+- []prometheus discovery
+- []windows
+- []mssql
+- []iis
+- []weblogic
+- []was
+- []hadoop
+- []ad
+- []zookeeper
 - []statsd
-- []...
+- []logging
+- []trace
 - []io.util
