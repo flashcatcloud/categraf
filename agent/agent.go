@@ -33,6 +33,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/processes"
 	_ "flashcat.cloud/categraf/inputs/procstat"
 	_ "flashcat.cloud/categraf/inputs/prometheus"
+	_ "flashcat.cloud/categraf/inputs/rabbitmq"
 	_ "flashcat.cloud/categraf/inputs/redis"
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
