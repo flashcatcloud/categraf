@@ -23,6 +23,8 @@ tar zcvf categraf.tar.gz categraf conf
 - []mongodb
 - []tomcat dashboard
 - []rabbitmq dashboard
+- []rocketmq
+- []activemq
 - []kafka
 - []elasticsearch
 - []prometheus discovery
@@ -35,6 +37,7 @@ tar zcvf categraf.tar.gz categraf conf
 - []ad
 - []zookeeper
 - []statsd
+- []snmp
 - []logging
 - []trace
 - []io.util
