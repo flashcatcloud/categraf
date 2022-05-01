@@ -159,14 +159,7 @@ func (ins *Instance) gather(slist *list.SafeList, target string) {
 		log.Println("D! net_response... target:", target)
 	}
 
-	host, port, err := net.SplitHostPort(target)
-	if err != nil {
-		// should never happen
-		log.Println("E! failed to split host port, target:", target, "error:", err)
-		return
-	}
-
-	labels := map[string]string{"server": host, "port": port}
+	labels := map[string]string{"target": target}
 	for k, v := range ins.Labels {
 		labels[k] = v
 	}
@@ -180,6 +173,7 @@ func (ins *Instance) gather(slist *list.SafeList, target string) {
 	}()
 
 	var returnTags map[string]string
+	var err error
 
 	switch ins.Protocol {
 	case "tcp":
