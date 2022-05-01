@@ -1,10 +1,10 @@
 # # collect interval
 # interval = 15
 
-[[instances]]
-urls = [
-    "http://localhost:9104/metrics"
-]
+# [[instances]]
+# urls = [
+#     "http://localhost:9104/metrics"
+# ]
 
 # bearer_token = ""
 
@@ -12,7 +12,7 @@ urls = [
 # username = ""
 # password = ""
 
-headers = ["X-From", "categraf"]
+# headers = ["X-From", "categraf"]
 
 # # interval = global.interval * interval_times
 # interval_times = 1
@@ -20,10 +20,10 @@ headers = ["X-From", "categraf"]
 # labels = {}
 
 # support glob
-ignore_metrics = [ "go_*" ]
+# ignore_metrics = [ "go_*" ]
 
 # timeout for every url
-timeout = "3s"
+# timeout = "3s"
 
 ## Optional TLS Config
 # use_tls = false
