@@ -18,27 +18,27 @@ tar zcvf categraf.tar.gz categraf conf
 
 ## todo
 
-- [] k8s solution
-- [] nginx vts
-- [] mongodb
-- [] rabbitmq dashboard
-- [] rocketmq
-- [] activemq
-- [] kafka
-- [] elasticsearch
-- [] prometheus discovery
-- [] windows
-- [] mssql
-- [] iis
-- [] weblogic
-- [] was
-- [] hadoop
-- [] ad
-- [] zookeeper
-- [] statsd
-- [] snmp
-- [] ipmi
-- [] smartctl
-- [] logging
-- [] trace
-- [] io.util
+- [ ] k8s solution
+- [ ] nginx vts
+- [ ] mongodb
+- [ ] rabbitmq dashboard
+- [ ] rocketmq
+- [ ] activemq
+- [ ] kafka
+- [ ] elasticsearch
+- [ ] prometheus discovery
+- [ ] windows
+- [ ] mssql
+- [ ] iis
+- [ ] weblogic
+- [ ] was
+- [ ] hadoop
+- [ ] ad
+- [ ] zookeeper
+- [ ] statsd
+- [ ] snmp
+- [ ] ipmi
+- [ ] smartctl
+- [ ] logging
+- [ ] trace
+- [ ] io.util
