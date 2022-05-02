@@ -431,7 +431,7 @@ func (ins *Instance) requestEndpoint(u string) ([]byte, error) {
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode%100 != 2 {
+	if resp.StatusCode/100 != 2 {
 		return nil, fmt.Errorf("getting %q failed: %v %v", u, resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 
@@ -460,7 +460,7 @@ func (ins *Instance) requestJSON(u string, target interface{}) error {
 }
 
 func gatherOverview(ins *Instance, slist *list.SafeList) {
-	overview := &OverviewResponse{}
+	overview := OverviewResponse{}
 
 	err := ins.requestJSON("/api/overview", &overview)
 	if err != nil {
