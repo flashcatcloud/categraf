@@ -55,4 +55,4 @@
 # interval_times = 1
 
 # important! use global unique string to specify instance
-# labels = { instance="xxx" }
+# labels = { instance="rabbitmq-001" }
