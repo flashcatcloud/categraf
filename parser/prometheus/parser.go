@@ -66,7 +66,7 @@ func (p *Parser) Parse(buf []byte, slist *list.SafeList) error {
 
 	// read metrics
 	for metricName, mf := range metricFamilies {
-		if p.IgnoreMetricsFilter.Match(metricName) {
+		if p.IgnoreMetricsFilter != nil && p.IgnoreMetricsFilter.Match(metricName) {
 			continue
 		}
 		for _, m := range mf.Metric {

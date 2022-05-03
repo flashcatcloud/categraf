@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -498,6 +497,7 @@ func gatherOverview(ins *Instance, slist *list.SafeList) {
 		"overview_queues":                 overview.ObjectTotals.Queues,
 		"overview_messages_acked":         overview.MessageStats.Ack,
 		"overview_messages_delivered":     overview.MessageStats.Deliver,
+		"overview_messages_redelivered":   overview.MessageStats.Redeliver,
 		"overview_messages_delivered_get": overview.MessageStats.DeliverGet,
 		"overview_messages_published":     overview.MessageStats.Publish,
 		"overview_clustering_listeners":   clusteringListeners,
@@ -523,13 +523,13 @@ func gatherExchanges(ins *Instance, slist *list.SafeList) {
 			continue
 		}
 		tags := map[string]string{
-			"url":         ins.URL,
-			"exchange":    exchange.Name,
-			"type":        exchange.Type,
-			"vhost":       exchange.Vhost,
-			"internal":    strconv.FormatBool(exchange.Internal),
-			"durable":     strconv.FormatBool(exchange.Durable),
-			"auto_delete": strconv.FormatBool(exchange.AutoDelete),
+			"url":      ins.URL,
+			"exchange": exchange.Name,
+			"type":     exchange.Type,
+			"vhost":    exchange.Vhost,
+			// "internal":    strconv.FormatBool(exchange.Internal),
+			// "durable":     strconv.FormatBool(exchange.Durable),
+			// "auto_delete": strconv.FormatBool(exchange.AutoDelete),
 		}
 
 		for k, v := range ins.Labels {
@@ -778,12 +778,12 @@ func gatherQueues(ins *Instance, slist *list.SafeList) {
 		}
 
 		tags := map[string]string{
-			"url":         ins.URL,
-			"queue":       queue.Name,
-			"vhost":       queue.Vhost,
-			"node":        queue.Node,
-			"durable":     strconv.FormatBool(queue.Durable),
-			"auto_delete": strconv.FormatBool(queue.AutoDelete),
+			"url":   ins.URL,
+			"queue": queue.Name,
+			"vhost": queue.Vhost,
+			"node":  queue.Node,
+			// "durable":     strconv.FormatBool(queue.Durable),
+			// "auto_delete": strconv.FormatBool(queue.AutoDelete),
 		}
 
 		fields := map[string]interface{}{
