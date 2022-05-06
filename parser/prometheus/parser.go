@@ -18,16 +18,18 @@ import (
 )
 
 type Parser struct {
-	DefaultTags         map[string]string
-	Header              http.Header
-	IgnoreMetricsFilter filter.Filter
+	DefaultTags           map[string]string
+	Header                http.Header
+	IgnoreMetricsFilter   filter.Filter
+	IgnoreLabelKeysFilter filter.Filter
 }
 
-func NewParser(defaultTags map[string]string, header http.Header, ignoreMetricsFilter filter.Filter) *Parser {
+func NewParser(defaultTags map[string]string, header http.Header, ignoreMetricsFilter, ignoreLabelKeysFilter filter.Filter) *Parser {
 	return &Parser{
-		DefaultTags:         defaultTags,
-		Header:              header,
-		IgnoreMetricsFilter: ignoreMetricsFilter,
+		DefaultTags:           defaultTags,
+		Header:                header,
+		IgnoreMetricsFilter:   ignoreMetricsFilter,
+		IgnoreLabelKeysFilter: ignoreLabelKeysFilter,
 	}
 }
 
@@ -71,7 +73,7 @@ func (p *Parser) Parse(buf []byte, slist *list.SafeList) error {
 		}
 		for _, m := range mf.Metric {
 			// reading tags
-			tags := makeLabels(m, p.DefaultTags)
+			tags := p.makeLabels(m)
 
 			if mf.GetType() == dto.MetricType_SUMMARY {
 				p.handleSummary(m, tags, metricName, slist)
@@ -109,14 +111,17 @@ func (p *Parser) handleHistogram(m *dto.Metric, tags map[string]string, metricNa
 }
 
 // Get labels from metric
-func makeLabels(m *dto.Metric, defaultTags map[string]string) map[string]string {
+func (p *Parser) makeLabels(m *dto.Metric) map[string]string {
 	result := map[string]string{}
 
 	for _, lp := range m.Label {
+		if p.IgnoreLabelKeysFilter != nil && p.IgnoreLabelKeysFilter.Match(lp.GetName()) {
+			continue
+		}
 		result[lp.GetName()] = lp.GetValue()
 	}
 
-	for key, value := range defaultTags {
+	for key, value := range p.DefaultTags {
 		result[key] = value
 	}
 

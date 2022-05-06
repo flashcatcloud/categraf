@@ -22,6 +22,9 @@
 # support glob
 # ignore_metrics = [ "go_*" ]
 
+# support glob
+# ignore_label_keys = []
+
 # timeout for every url
 # timeout = "3s"
 

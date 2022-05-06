@@ -23,17 +23,19 @@ const inputName = "prometheus"
 const acceptHeader = `application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily;encoding=delimited;q=0.7,text/plain;version=0.0.4;q=0.3,*/*;q=0.1`
 
 type Instance struct {
-	URLs          []string          `toml:"urls"`
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
-	BearerToken   string            `toml:"bearer_token"`
-	Username      string            `toml:"username"`
-	Password      string            `toml:"password"`
-	Timeout       config.Duration   `toml:"timeout"`
-	IgnoreMetrics []string          `toml:"ignore_metrics"`
-	Headers       []string          `toml:"headers"`
+	URLs            []string          `toml:"urls"`
+	Labels          map[string]string `toml:"labels"`
+	IntervalTimes   int64             `toml:"interval_times"`
+	BearerToken     string            `toml:"bearer_token"`
+	Username        string            `toml:"username"`
+	Password        string            `toml:"password"`
+	Timeout         config.Duration   `toml:"timeout"`
+	IgnoreMetrics   []string          `toml:"ignore_metrics"`
+	IgnoreLabelKeys []string          `toml:"ignore_label_keys"`
+	Headers         []string          `toml:"headers"`
 
-	ignoreMetricsFilter filter.Filter
+	ignoreMetricsFilter   filter.Filter
+	ignoreLabelKeysFilter filter.Filter
 	tls.ClientConfig
 	client *http.Client
 }
@@ -56,6 +58,13 @@ func (ins *Instance) Init() error {
 
 	if len(ins.IgnoreMetrics) > 0 {
 		ins.ignoreMetricsFilter, err = filter.Compile(ins.IgnoreMetrics)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(ins.IgnoreLabelKeys) > 0 {
+		ins.ignoreLabelKeysFilter, err = filter.Compile(ins.IgnoreLabelKeys)
 		if err != nil {
 			return err
 		}
@@ -196,7 +205,7 @@ func (p *Prometheus) gatherUrl(slist *list.SafeList, ins *Instance, uri string, 
 
 	slist.PushFront(inputs.NewSample("up", 1, labels))
 
-	parser := prometheus.NewParser(labels, res.Header, ins.ignoreMetricsFilter)
+	parser := prometheus.NewParser(labels, res.Header, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
 	if err = parser.Parse(body, slist); err != nil {
 		log.Println("E! failed to parse response body, url:", u.String(), "error:", err)
 	}
