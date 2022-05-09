@@ -2,4 +2,4 @@
 # interval = 15
 
 # # ntp servers
-ntp_servers = ["ntp1.aliyun.com"]
+# ntp_servers = ["ntp1.aliyun.com"]
