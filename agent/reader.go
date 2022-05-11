@@ -113,6 +113,11 @@ func (r *Reader) read() {
 				// queue closed
 				return
 			}
+
+			if item == nil {
+				continue
+			}
+
 			series = append(series, convert(item))
 			count++
 			if count >= batch {
