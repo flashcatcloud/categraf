@@ -108,8 +108,8 @@ func (r *Reader) read() {
 
 	for {
 		select {
-		case item := <-r.Queue:
-			if item == nil {
+		case item, open := <-r.Queue:
+			if !open {
 				// queue closed
 				return
 			}
