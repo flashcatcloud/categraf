@@ -55,7 +55,7 @@ func main() {
 
 func handleSignal(ag *agent.Agent) {
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	signal.Notify(sc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGPIPE)
 
 EXIT:
 	for {
@@ -66,6 +66,9 @@ EXIT:
 			break EXIT
 		case syscall.SIGHUP:
 			ag.Reload()
+		case syscall.SIGPIPE:
+			// https://pkg.go.dev/os/signal#hdr-SIGPIPE
+			// do nothing
 		default:
 			break EXIT
 		}
