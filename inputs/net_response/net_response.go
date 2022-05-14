@@ -1,4 +1,4 @@
-package netresponse
+package net_response
 
 import (
 	"bufio"
@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	inputName = "netresponse"
+	inputName = "net_response"
 
 	Success          uint64 = 0
 	Timeout          uint64 = 1

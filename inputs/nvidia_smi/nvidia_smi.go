@@ -1,4 +1,4 @@
-package nvidiasmi
+package nvidia_smi
 
 // This is a fork of https://github.com/utkuozdemir/nvidia_gpu_exporter
 

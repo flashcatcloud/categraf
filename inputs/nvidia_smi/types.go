@@ -1,4 +1,4 @@
-package nvidiasmi
+package nvidia_smi
 
 import (
 	"errors"
