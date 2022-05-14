@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package kernelvmstat
+package kernel_vmstat
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-const inputName = "kernelvmstat"
+const inputName = "kernel_vmstat"
 
 type KernelVmstat struct {
 	config.Interval

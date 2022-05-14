@@ -1,7 +1,7 @@
 //go:build linux
 // +build linux
 
-package linuxsysctlfs
+package linux_sysctl_fs
 
 import (
 	"bytes"
@@ -17,7 +17,7 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-const inputName = "linuxsysctlfs"
+const inputName = "linux_sysctl_fs"
 
 type SysctlFS struct {
 	config.Interval

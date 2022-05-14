@@ -63,7 +63,7 @@
               "weight": 0
             },
             {
-              "configs": "{\"targets\":[{\"refId\":\"A\",\"expr\":\"linuxsysctlfs_file_nr{ident=\\\"$ident\\\"}/linuxsysctlfs_file_max{ident=\\\"$ident\\\"}*100\"}],\"name\":\"FD使用率\",\"custom\":{\"textMode\":\"value\",\"colorMode\":\"value\",\"calc\":\"lastNotNull\",\"colSpan\":1,\"textSize\":{\"value\":25}},\"options\":{\"valueMappings\":[{\"type\":\"range\",\"match\":{\"from\":0,\"to\":50},\"result\":{\"color\":\"#129b22\"}},{\"type\":\"range\",\"match\":{\"from\":50,\"to\":100},\"result\":{\"color\":\"#f51919\"}}],\"standardOptions\":{\"util\":\"percent\",\"decimals\":2}},\"version\":\"2.0.0\",\"type\":\"stat\",\"layout\":{\"h\":1,\"w\":3,\"x\":18,\"y\":0,\"i\":\"7\"}}",
+              "configs": "{\"targets\":[{\"refId\":\"A\",\"expr\":\"linux_sysctl_fs_file_nr{ident=\\\"$ident\\\"}/linux_sysctl_fs_file_max{ident=\\\"$ident\\\"}*100\"}],\"name\":\"FD使用率\",\"custom\":{\"textMode\":\"value\",\"colorMode\":\"value\",\"calc\":\"lastNotNull\",\"colSpan\":1,\"textSize\":{\"value\":25}},\"options\":{\"valueMappings\":[{\"type\":\"range\",\"match\":{\"from\":0,\"to\":50},\"result\":{\"color\":\"#129b22\"}},{\"type\":\"range\",\"match\":{\"from\":50,\"to\":100},\"result\":{\"color\":\"#f51919\"}}],\"standardOptions\":{\"util\":\"percent\",\"decimals\":2}},\"version\":\"2.0.0\",\"type\":\"stat\",\"layout\":{\"h\":1,\"w\":3,\"x\":18,\"y\":0,\"i\":\"7\"}}",
               "weight": 0
             }
           ]
@@ -127,7 +127,7 @@
               "weight": 0
             },
             {
-              "configs": "{\"targets\":[{\"refId\":\"A\",\"expr\":\"linuxsysctlfs_file_max{ident=\\\"$ident\\\"}\"},{\"expr\":\"linuxsysctlfs_file_nr{ident=\\\"$ident\\\"}\",\"refId\":\"B\"}],\"name\":\"fd使用\",\"options\":{\"tooltip\":{\"mode\":\"all\",\"sort\":\"desc\"},\"legend\":{\"displayMode\":\"hidden\"},\"standardOptions\":{},\"thresholds\":{}},\"custom\":{\"drawStyle\":\"lines\",\"lineInterpolation\":\"smooth\",\"fillOpacity\":0.5,\"stack\":\"off\"},\"version\":\"2.0.0\",\"type\":\"timeseries\",\"layout\":{\"h\":2,\"w\":8,\"x\":8,\"y\":0,\"i\":\"1\"}}",
+              "configs": "{\"targets\":[{\"refId\":\"A\",\"expr\":\"linux_sysctl_fs_file_max{ident=\\\"$ident\\\"}\"},{\"expr\":\"linux_sysctl_fs_file_nr{ident=\\\"$ident\\\"}\",\"refId\":\"B\"}],\"name\":\"fd使用\",\"options\":{\"tooltip\":{\"mode\":\"all\",\"sort\":\"desc\"},\"legend\":{\"displayMode\":\"hidden\"},\"standardOptions\":{},\"thresholds\":{}},\"custom\":{\"drawStyle\":\"lines\",\"lineInterpolation\":\"smooth\",\"fillOpacity\":0.5,\"stack\":\"off\"},\"version\":\"2.0.0\",\"type\":\"timeseries\",\"layout\":{\"h\":2,\"w\":8,\"x\":8,\"y\":0,\"i\":\"1\"}}",
               "weight": 0
             },
             {
