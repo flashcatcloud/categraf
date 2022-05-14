@@ -1,4 +1,4 @@
-package httpresponse
+package http_response
 
 import (
 	"errors"
@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	inputName = "httpresponse"
+	inputName = "http_response"
 
 	Success          uint64 = 0
 	ConnectionFailed uint64 = 1

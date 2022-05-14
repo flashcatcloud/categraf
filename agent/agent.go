@@ -18,7 +18,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/disk"
 	_ "flashcat.cloud/categraf/inputs/diskio"
 	_ "flashcat.cloud/categraf/inputs/exec"
-	_ "flashcat.cloud/categraf/inputs/httpresponse"
+	_ "flashcat.cloud/categraf/inputs/http_response"
 	_ "flashcat.cloud/categraf/inputs/kernel"
 	_ "flashcat.cloud/categraf/inputs/kernelvmstat"
 	_ "flashcat.cloud/categraf/inputs/linuxsysctlfs"

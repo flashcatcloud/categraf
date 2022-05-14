@@ -1,4 +1,4 @@
-package httpresponse
+package http_response
 
 import (
 	"crypto/tls"
