@@ -1,22 +1,31 @@
-# categraf
+# Categraf
 
-monitoring agent
+Categraf is a monitoring agent for nightingale.
 
-## build
+## Build
 
 ```shell
-export GO111MODULE=on
-export GOPROXY=https://goproxy.cn
+# export GO111MODULE=on
+# export GOPROXY=https://goproxy.cn
 go build
 ```
 
-## pack
+## Test
+
+```shell
+./categraf --test
+
+# usage:
+./categraf --help
+```
+
+## Pack
 
 ```shell
 tar zcvf categraf.tar.gz categraf conf
 ```
 
-## todo
+## TODO
 
 - [ ] k8s solution
 - [ ] nginx vts
@@ -42,3 +51,7 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] logging
 - [ ] trace
 - [ ] io.util
+
+## Thanks
+
+Categraf is developed on the basis of Telegraf and Exporters. Thanks to the great open source community.
