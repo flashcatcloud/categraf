@@ -30,7 +30,6 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] k8s solution
 - [ ] nginx vts
 - [ ] mongodb
-- [ ] rabbitmq dashboard
 - [ ] rocketmq
 - [ ] activemq
 - [ ] kafka
