@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -23,16 +25,17 @@ const inputName = "prometheus"
 const acceptHeader = `application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily;encoding=delimited;q=0.7,text/plain;version=0.0.4;q=0.3,*/*;q=0.1`
 
 type Instance struct {
-	URLs            []string          `toml:"urls"`
-	Labels          map[string]string `toml:"labels"`
-	IntervalTimes   int64             `toml:"interval_times"`
-	BearerToken     string            `toml:"bearer_token"`
-	Username        string            `toml:"username"`
-	Password        string            `toml:"password"`
-	Timeout         config.Duration   `toml:"timeout"`
-	IgnoreMetrics   []string          `toml:"ignore_metrics"`
-	IgnoreLabelKeys []string          `toml:"ignore_label_keys"`
-	Headers         []string          `toml:"headers"`
+	URLs              []string          `toml:"urls"`
+	Labels            map[string]string `toml:"labels"`
+	IntervalTimes     int64             `toml:"interval_times"`
+	BearerTokenString string            `toml:"bearer_token_string"`
+	BearerTokeFile    string            `toml:"bearer_token_file"`
+	Username          string            `toml:"username"`
+	Password          string            `toml:"password"`
+	Timeout           config.Duration   `toml:"timeout"`
+	IgnoreMetrics     []string          `toml:"ignore_metrics"`
+	IgnoreLabelKeys   []string          `toml:"ignore_label_keys"`
+	Headers           []string          `toml:"headers"`
 
 	ignoreMetricsFilter   filter.Filter
 	ignoreLabelKeysFilter filter.Filter
@@ -216,8 +219,18 @@ func (ins *Instance) setHeaders(req *http.Request) {
 		req.SetBasicAuth(ins.Username, ins.Password)
 	}
 
-	if ins.BearerToken != "" {
-		req.Header.Set("Authorization", "Bearer "+ins.BearerToken)
+	if ins.BearerTokeFile != "" {
+		content, err := os.ReadFile(ins.BearerTokeFile)
+		if err != nil {
+			log.Println("E! failed to read bearer token file:", ins.BearerTokeFile, "error:", err)
+			return
+		}
+
+		ins.BearerTokenString = strings.TrimSpace(string(content))
+	}
+
+	if ins.BearerTokenString != "" {
+		req.Header.Set("Authorization", "Bearer "+ins.BearerTokenString)
 	}
 
 	req.Header.Set("Accept", acceptHeader)

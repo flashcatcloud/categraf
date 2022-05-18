@@ -6,7 +6,10 @@
 #     "http://localhost:9104/metrics"
 # ]
 
-# bearer_token = ""
+# bearer_token_string = ""
+
+# e.g. /run/secrets/kubernetes.io/serviceaccount/token
+# bearer_token_file = ""
 
 # # basic auth
 # username = ""
