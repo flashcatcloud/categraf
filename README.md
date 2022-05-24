@@ -25,8 +25,32 @@ go build
 tar zcvf categraf.tar.gz categraf conf
 ```
 
-## TODO
+## Plan
 
+- [x] system
+- [x] kernel
+- [x] kernel_vmstat
+- [x] linux_sysctl_fs
+- [x] cpu
+- [x] mem
+- [x] net
+- [x] netstat
+- [x] disk
+- [x] diskio
+- [x] ntp
+- [x] processes
+- [x] exec
+- [x] ping
+- [x] http_response
+- [x] net_response
+- [x] procstat
+- [x] mysql
+- [x] redis
+- [x] oracle
+- [x] rabbitmq
+- [x] prometheus
+- [x] tomcat
+- [x] nvidia_smi
 - [ ] k8s solution
 - [ ] nginx vts
 - [ ] mongodb
@@ -49,7 +73,6 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] smartctl
 - [ ] logging
 - [ ] trace
-- [ ] io.util
 
 ## Thanks
 
