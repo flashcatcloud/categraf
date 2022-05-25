@@ -1,0 +1,35 @@
+# # collect interval
+# interval = "300s"
+
+switch_id_label = "ident"
+
+[mappings]
+"192.168.88.160" = "switch001.bj"
+"192.168.88.161" = "switch002.bj"
+
+[[instances]]
+# # interval = global.interval * interval_times
+# interval_times = 1
+
+# use global unique string to specify instance
+# labels = { region="beijing" }
+
+ips = [
+    # "172.16.2.1",
+    # "172.16.4/24",
+    "192.168.56.102-192.168.56.120"
+]
+
+community = "public"
+
+# true: use gosnmp, false: use snmpwalk
+use_gosnmp = true
+
+# whether use index tag
+index_tag = false
+
+# ping timeout, unix: ms
+ping_timeout_ms = 300
+
+# ping retry count
+ping_retries = 4
