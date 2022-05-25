@@ -1,7 +1,6 @@
 package switch_legacy
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 
@@ -43,10 +42,6 @@ func (s *Switch) Init() error {
 		} else {
 			s.Instances[i].parent = s
 		}
-	}
-
-	for k, v := range s.Mappings {
-		fmt.Println(k, v)
 	}
 
 	return nil
