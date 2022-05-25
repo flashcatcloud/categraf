@@ -42,6 +42,8 @@ snmp_retries = 5
 
 gather_ping_metrics = true
 gather_flow_metrics = true
+gather_cpu_metrics = true
+gather_mem_metrics = true
 gather_oper_status = false
 gather_pkt = false
 gather_broadcast_pkt = false
