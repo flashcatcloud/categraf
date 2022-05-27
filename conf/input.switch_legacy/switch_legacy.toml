@@ -1,7 +1,7 @@
 # # collect interval
 # interval = "300s"
 
-switch_id_label = "ident"
+switch_id_label = "ip"
 
 [mappings]
 "192.168.88.160" = "switch001.bj"
