@@ -32,16 +32,9 @@ type WriterOption struct {
 	BasicAuthUser string `toml:"basic_auth_user"`
 	BasicAuthPass string `toml:"basic_auth_pass"`
 
-	Timeout               int64 `toml:"timeout"`
-	DialTimeout           int64 `toml:"dial_timeout"`
-	TLSHandshakeTimeout   int64 `toml:"tls_handshake_timeout"`
-	ExpectContinueTimeout int64 `toml:"expect_continue_timeout"`
-	IdleConnTimeout       int64 `toml:"idle_conn_timeout"`
-	KeepAlive             int64 `toml:"keep_alive"`
-
-	MaxConnsPerHost     int `toml:"max_conns_per_host"`
-	MaxIdleConns        int `toml:"max_idle_conns"`
-	MaxIdleConnsPerHost int `toml:"max_idle_conns_per_host"`
+	Timeout             int64 `toml:"timeout"`
+	DialTimeout         int64 `toml:"dial_timeout"`
+	MaxIdleConnsPerHost int   `toml:"max_idle_conns_per_host"`
 }
 
 type ConfigType struct {
