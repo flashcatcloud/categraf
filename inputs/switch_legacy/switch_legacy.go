@@ -143,7 +143,6 @@ func (ins *Instance) Init() error {
 func (ins *Instance) gatherOnce(slist *list.SafeList) error {
 	ips := ins.parseIPs()
 	if len(ips) == 0 {
-		log.Println("W! switch ips empty")
 		return nil
 	}
 
