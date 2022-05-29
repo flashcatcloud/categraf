@@ -3,6 +3,7 @@ module flashcat.cloud/categraf
 go 1.17
 
 require (
+	github.com/chai2010/winsvc v0.0.0-20200705094454-db7ec320025c
 	github.com/gaochao1/sw v1.0.0
 	github.com/go-ping/ping v0.0.0-20211130115550-779d1e919534
 	github.com/go-redis/redis/v8 v8.11.5
