@@ -21,7 +21,7 @@ require (
 	github.com/prometheus/common v0.32.1
 	github.com/prometheus/prometheus v2.5.0+incompatible
 	github.com/shirou/gopsutil/v3 v3.22.3
-	github.com/toolkits/pkg v1.2.9
+	github.com/toolkits/pkg v1.3.0
 	github.com/ulricqin/gosnmp v0.0.1
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27
 )
