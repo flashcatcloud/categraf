@@ -4,6 +4,8 @@
 package main
 
 import (
+	"log"
+
 	"flashcat.cloud/categraf/agent"
 	"github.com/chai2010/winsvc"
 )
