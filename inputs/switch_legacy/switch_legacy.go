@@ -1,6 +1,7 @@
 package switch_legacy
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -136,6 +137,11 @@ type Custom struct {
 }
 
 func (ins *Instance) Init() error {
+	ips := ins.parseIPs()
+	if len(ips) == 0 {
+		return errors.New("ips empty")
+	}
+
 	ins.lastifmap = NewLastifMap()
 	return nil
 }
