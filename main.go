@@ -21,7 +21,6 @@ import (
 
 var (
 	appPath      string
-	version      = "0.1.0"
 	configDir    = flag.String("configs", osx.GetEnv("CATEGRAF_CONFIGS", "conf"), "Specify configuration directory.(env:CATEGRAF_CONFIGS)")
 	debugMode    = flag.Bool("debug", false, "Is debug mode?")
 	testMode     = flag.Bool("test", false, "Is test mode? print metrics to stdout")
@@ -51,7 +50,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Println(version)
+		fmt.Println(config.Version)
 		os.Exit(0)
 	}
 
