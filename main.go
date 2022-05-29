@@ -120,7 +120,7 @@ func doWinsvc() {
 	// install service
 	if *flagWinSvcInstall && runtime.GOOS == "windows" {
 		if err := winsvc.InstallService(appPath, *flagWinSvcName, *flagWinSvcDesc); err != nil {
-			log.Fatalln("failed to install service:", *flagWinSvcName, "error:", err)
+			log.Fatalln("F! failed to install service:", *flagWinSvcName, "error:", err)
 		}
 		fmt.Println("done")
 		os.Exit(0)
@@ -129,7 +129,7 @@ func doWinsvc() {
 	// uninstall service
 	if *flagWinSvcUninstall && runtime.GOOS == "windows" {
 		if err := winsvc.RemoveService(*flagWinSvcName); err != nil {
-			log.Fatalln("failed to uninstall service:", *flagWinSvcName, "error:", err)
+			log.Fatalln("F! failed to uninstall service:", *flagWinSvcName, "error:", err)
 		}
 		fmt.Println("done")
 		os.Exit(0)
@@ -138,7 +138,7 @@ func doWinsvc() {
 	// start service
 	if *flagWinSvcStart && runtime.GOOS == "windows" {
 		if err := winsvc.StartService(*flagWinSvcName); err != nil {
-			log.Fatalln("failed to start service:", *flagWinSvcName, "error:", err)
+			log.Fatalln("F! failed to start service:", *flagWinSvcName, "error:", err)
 		}
 		fmt.Println("done")
 		os.Exit(0)
@@ -147,7 +147,7 @@ func doWinsvc() {
 	// stop service
 	if *flagWinSvcStop && runtime.GOOS == "windows" {
 		if err := winsvc.StopService(*flagWinSvcName); err != nil {
-			log.Fatalln("failed to stop service:", *flagWinSvcName, "error:", err)
+			log.Fatalln("F! failed to stop service:", *flagWinSvcName, "error:", err)
 		}
 		fmt.Println("done")
 		os.Exit(0)
