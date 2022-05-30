@@ -2,6 +2,10 @@
 
 Categraf is a monitoring agent for nightingale/prometheus/m3db/thanos/influxdb/tdengine.
 
+## QuickStart
+
+[QuickStart](https://www.gitlink.org.cn/flashcat/categraf/wiki)
+
 ## Releases
 
 [Releases](https://www.gitlink.org.cn/flashcat/categraf/releases)
