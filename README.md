@@ -1,6 +1,6 @@
 # Categraf
 
-Categraf is a monitoring agent for nightingale.
+Categraf is a monitoring agent for nightingale/prometheus/m3db/thanos/influxdb/tdengine.
 
 ## Releases
 
