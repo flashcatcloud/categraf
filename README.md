@@ -2,6 +2,10 @@
 
 Categraf is a monitoring agent for nightingale.
 
+## Releases
+
+[Releases](https://www.gitlink.org.cn/flashcat/categraf/releases)
+
 ## Build
 
 ```shell
@@ -73,6 +77,10 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] smartctl
 - [ ] logging
 - [ ] trace
+
+## FAQ
+
+[FAQ](https://www.gitlink.org.cn/flashcat/categraf/wiki)
 
 ## Thanks
 
