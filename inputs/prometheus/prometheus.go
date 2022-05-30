@@ -14,6 +14,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/inputs/logs"
 	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
@@ -98,6 +99,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 type Prometheus struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
+	logs.Logs
 
 	Counter uint64
 	wg      sync.WaitGroup

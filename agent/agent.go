@@ -59,6 +59,7 @@ func (a *Agent) Start() {
 func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
 
+	stopLogAgent()
 	for name := range InputReaders {
 		InputReaders[name].QuitChan <- struct{}{}
 		close(InputReaders[name].Queue)
@@ -103,6 +104,9 @@ func (a *Agent) startInputs() error {
 		// construct input instance
 		instance := creator()
 
+		if config.Config.Logs.Enable {
+			go startLogAgent(instance)
+		}
 		// set configurations for input instance
 		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, "input."+name), instance)
 

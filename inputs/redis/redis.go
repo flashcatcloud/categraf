@@ -14,6 +14,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/inputs/logs"
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
@@ -66,6 +67,7 @@ func (ins *Instance) Init() error {
 type Redis struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
+	logs.Logs
 
 	Counter uint64
 	wg      sync.WaitGroup
