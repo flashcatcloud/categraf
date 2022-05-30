@@ -26,6 +26,7 @@ const acceptHeader = `application/vnd.google.protobuf;proto=io.prometheus.client
 
 type Instance struct {
 	URLs              []string          `toml:"urls"`
+	NamePrefix        string            `toml:"name_prefix"`
 	Labels            map[string]string `toml:"labels"`
 	IntervalTimes     int64             `toml:"interval_times"`
 	BearerTokenString string            `toml:"bearer_token_string"`
@@ -208,7 +209,7 @@ func (p *Prometheus) gatherUrl(slist *list.SafeList, ins *Instance, uri string, 
 
 	slist.PushFront(inputs.NewSample("up", 1, labels))
 
-	parser := prometheus.NewParser(labels, res.Header, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
+	parser := prometheus.NewParser(ins.NamePrefix, labels, res.Header, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
 	if err = parser.Parse(body, slist); err != nil {
 		log.Println("E! failed to parse response body, url:", u.String(), "error:", err)
 	}
