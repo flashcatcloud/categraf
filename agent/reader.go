@@ -186,7 +186,7 @@ func convert(item *types.Sample) *prompb.TimeSeries {
 	// add label: agent_hostname
 	if _, has := item.Labels[agentHostnameLabelKey]; !has {
 		if !config.Config.Global.OmitHostname {
-			item.Labels[agentHostnameLabelKey] = config.Config.Global.Hostname
+			item.Labels[agentHostnameLabelKey] = config.Config.GetHostname()
 		}
 	}
 
