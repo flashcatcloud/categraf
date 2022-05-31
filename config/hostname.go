@@ -41,12 +41,12 @@ func InitHostname() error {
 		name: hostname,
 	}
 
-	go loopUpdateHostname()
+	go Hostname.update()
 
 	return nil
 }
 
-func loopUpdateHostname() {
+func (c *HostnameCache) update() {
 	for {
 		time.Sleep(time.Second)
 		name, err := os.Hostname()
