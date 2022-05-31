@@ -13,6 +13,11 @@ func ToFloat64(val interface{}) (float64, error) {
 			return f, nil
 		}
 
+		// try int
+		if i, err := strconv.ParseInt(v, 0, 64); err == nil {
+			return float64(i), nil
+		}
+
 		// try bool
 		b, err := strconv.ParseBool(v)
 		if err == nil {

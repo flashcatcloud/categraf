@@ -36,6 +36,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/prometheus"
 	_ "flashcat.cloud/categraf/inputs/rabbitmq"
 	_ "flashcat.cloud/categraf/inputs/redis"
+	_ "flashcat.cloud/categraf/inputs/switch_legacy"
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
 )

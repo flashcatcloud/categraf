@@ -11,6 +11,7 @@ import (
 
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/filter"
+	"flashcat.cloud/categraf/pkg/prom"
 	"github.com/matttproud/golang_protobuf_extensions/pbutil"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -18,14 +19,16 @@ import (
 )
 
 type Parser struct {
+	NamePrefix            string
 	DefaultTags           map[string]string
 	Header                http.Header
 	IgnoreMetricsFilter   filter.Filter
 	IgnoreLabelKeysFilter filter.Filter
 }
 
-func NewParser(defaultTags map[string]string, header http.Header, ignoreMetricsFilter, ignoreLabelKeysFilter filter.Filter) *Parser {
+func NewParser(namePrefix string, defaultTags map[string]string, header http.Header, ignoreMetricsFilter, ignoreLabelKeysFilter filter.Filter) *Parser {
 	return &Parser{
+		NamePrefix:            namePrefix,
 		DefaultTags:           defaultTags,
 		Header:                header,
 		IgnoreMetricsFilter:   ignoreMetricsFilter,
@@ -90,23 +93,23 @@ func (p *Parser) Parse(buf []byte, slist *list.SafeList) error {
 }
 
 func (p *Parser) handleSummary(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
-	slist.PushFront(inputs.NewSample(metricName+"_count", float64(m.GetSummary().GetSampleCount()), tags))
-	slist.PushFront(inputs.NewSample(metricName+"_sum", m.GetSummary().GetSampleSum(), tags))
+	slist.PushFront(inputs.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags))
+	slist.PushFront(inputs.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags))
 
 	for _, q := range m.GetSummary().Quantile {
-		slist.PushFront(inputs.NewSample(metricName, q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
+		slist.PushFront(inputs.NewSample(prom.BuildMetric(p.NamePrefix, metricName), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
 	}
 }
 
 func (p *Parser) handleHistogram(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
-	slist.PushFront(inputs.NewSample(metricName+"_count", float64(m.GetHistogram().GetSampleCount()), tags))
-	slist.PushFront(inputs.NewSample(metricName+"_sum", m.GetHistogram().GetSampleSum(), tags))
-	slist.PushFront(inputs.NewSample(metricName+"_bucket", float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
+	slist.PushFront(inputs.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags))
+	slist.PushFront(inputs.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags))
+	slist.PushFront(inputs.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
 
 	for _, b := range m.GetHistogram().Bucket {
 		le := fmt.Sprint(b.GetUpperBound())
 		value := float64(b.GetCumulativeCount())
-		slist.PushFront(inputs.NewSample(metricName+"_bucket", value, tags, map[string]string{"le": le}))
+		slist.PushFront(inputs.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "sum"), value, tags, map[string]string{"le": le}))
 	}
 }
 

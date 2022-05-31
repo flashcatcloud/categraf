@@ -82,16 +82,10 @@ func Init(opts []config.WriterOption) error {
 				// TLSClientConfig: tlsConfig,
 				Proxy: http.ProxyFromEnvironment,
 				DialContext: (&net.Dialer{
-					Timeout:   time.Duration(opts[i].DialTimeout) * time.Millisecond,
-					KeepAlive: time.Duration(opts[i].KeepAlive) * time.Millisecond,
+					Timeout: time.Duration(opts[i].DialTimeout) * time.Millisecond,
 				}).DialContext,
 				ResponseHeaderTimeout: time.Duration(opts[i].Timeout) * time.Millisecond,
-				TLSHandshakeTimeout:   time.Duration(opts[i].TLSHandshakeTimeout) * time.Millisecond,
-				ExpectContinueTimeout: time.Duration(opts[i].ExpectContinueTimeout) * time.Millisecond,
-				MaxConnsPerHost:       opts[i].MaxConnsPerHost,
-				MaxIdleConns:          opts[i].MaxIdleConns,
 				MaxIdleConnsPerHost:   opts[i].MaxIdleConnsPerHost,
-				IdleConnTimeout:       time.Duration(opts[i].IdleConnTimeout) * time.Millisecond,
 			},
 		})
 
