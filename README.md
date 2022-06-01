@@ -59,6 +59,7 @@ tar zcvf categraf.tar.gz categraf conf
 - [x] prometheus
 - [x] tomcat
 - [x] nvidia_smi
+- [x] nginx_upstream_check
 - [ ] k8s solution
 - [ ] nginx vts
 - [ ] mongodb
@@ -67,7 +68,7 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] kafka
 - [ ] elasticsearch
 - [ ] prometheus discovery
-- [ ] windows
+- [x] windows
 - [ ] mssql
 - [ ] iis
 - [ ] weblogic
@@ -77,6 +78,7 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] zookeeper
 - [ ] statsd
 - [ ] snmp
+- [x] switch_legacy
 - [ ] ipmi
 - [ ] smartctl
 - [ ] logging
