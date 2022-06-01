@@ -21,6 +21,10 @@ func LoadConfigs(configDir string, configPtr interface{}) error {
 	}
 
 	for _, fpath := range files {
+		// logs.toml 单独解析
+		if fpath == "logs.toml" {
+			continue
+		}
 		if strings.HasSuffix(fpath, "toml") {
 			loaders = append(loaders, &multiconfig.TOMLLoader{Path: path.Join(configDir, fpath)})
 		}
