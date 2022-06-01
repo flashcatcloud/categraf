@@ -78,6 +78,10 @@ func (a *Agent) Reload() {
 }
 
 func (a *Agent) startInputs() error {
+	if config.LogConfig.Enable {
+		go startLogAgent()
+	}
+
 	names, err := a.getInputsByDirs()
 	if err != nil {
 		return err
@@ -86,10 +90,6 @@ func (a *Agent) startInputs() error {
 	if len(names) == 0 {
 		log.Println("I! no inputs")
 		return nil
-	}
-
-	if config.LogConfig.Enable {
-		go startLogAgent()
 	}
 
 	for _, name := range names {
