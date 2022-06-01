@@ -51,7 +51,7 @@ func InitLogConfig(configDir string) error {
 	data := struct {
 		Logs Logs `toml:"logs"`
 	}{}
-	err = cfg.LoadConfig(configFile, data)
+	err = cfg.LoadConfig(configFile, &data)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %s, err: %s", configFile, err)
 	}
