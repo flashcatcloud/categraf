@@ -150,13 +150,11 @@ const (
 func startLogAgent() {
 
 	logSources := logsconfig.NewLogSources()
-	var sources []*logsconfig.LogSource
 	for _, c := range coreConfig.LogConfig.Items {
 		if c == nil {
 			continue
 		}
 		source := logsconfig.NewLogSource(c.Name, c)
-		sources = append(sources, source)
 		if err := c.Validate(); err != nil {
 			log.Println("W! Invalid logs configuration:", err)
 			source.Status.Error(err)
@@ -165,7 +163,7 @@ func startLogAgent() {
 		logSources.AddSource(source)
 	}
 
-	if len(sources) == 0 {
+	if coreConfig.LogConfig != nil && len(coreConfig.LogConfig.Items) == 0 {
 		return
 	}
 	httpConnectivity := logsconfig.HTTPConnectivityFailure
