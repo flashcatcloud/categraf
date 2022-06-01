@@ -61,7 +61,10 @@ func main() {
 	if err := config.InitConfig(*configDir, *debugMode, *testMode); err != nil {
 		log.Fatalln("F! failed to init config:", err)
 	}
-
+	// init log config
+	if err := config.InitLogConfig(*configDir); err != nil {
+		log.Fatalln("F! failed to init config:", err)
+	}
 	// init writers
 	if err := writer.Init(config.Config.Writers); err != nil {
 		log.Fatalln("F! failed to init writer:", err)

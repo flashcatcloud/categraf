@@ -29,12 +29,12 @@ func BuildEndpoints(httpConnectivity logsconfig.HTTPConnectivity, intakeTrackTyp
 
 // BuildEndpointsWithConfig returns the endpoints to send logs.
 func BuildEndpointsWithConfig(endpointPrefix string, httpConnectivity logsconfig.HTTPConnectivity, intakeTrackType logsconfig.IntakeTrackType, intakeProtocol logsconfig.IntakeProtocol, intakeOrigin logsconfig.IntakeOrigin) (*logsconfig.Endpoints, error) {
-	logsConfig := coreconfig.Config.Logs
+	logsConfig := coreconfig.LogConfig
 
 	if logsConfig.SendType == "http" || (bool(httpConnectivity) && !(logsConfig.SendType == "tcp")) {
 		return BuildHTTPEndpointsWithConfig(endpointPrefix, intakeTrackType, intakeProtocol, intakeOrigin)
 	}
-	return buildTCPEndpoints(logsConfig)
+	return buildTCPEndpoints(*logsConfig)
 }
 
 func buildTCPEndpoints(logsConfig coreconfig.Logs) (*logsconfig.Endpoints, error) {
@@ -69,8 +69,8 @@ func BuildHTTPEndpoints(intakeTrackType logsconfig.IntakeTrackType, intakeProtoc
 // BuildHTTPEndpointsWithConfig uses two arguments that instructs it how to access configuration parameters, then returns the HTTP endpoints to send logs to. This function is able to default to the 'classic' BuildHTTPEndpoints() w ldHTTPEndpointsWithConfigdefault variables logsConfigDefaultKeys and httpEndpointPrefix
 func BuildHTTPEndpointsWithConfig(endpointPrefix string, intakeTrackType logsconfig.IntakeTrackType, intakeProtocol logsconfig.IntakeProtocol, intakeOrigin logsconfig.IntakeOrigin) (*logsconfig.Endpoints, error) {
 	// Provide default values for legacy settings when the configuration key does not exist
-	logsConfig := coreconfig.Config.Logs
-	defaultTLS := coreconfig.Config.Logs.SendWithTLS
+	logsConfig := coreconfig.LogConfig
+	defaultTLS := coreconfig.LogConfig.SendWithTLS
 
 	main := logsconfig.Endpoint{
 		APIKey:                  strings.TrimSpace(logsConfig.APIKey),
@@ -130,7 +130,7 @@ func parseAddress(address string) (string, int, error) {
 
 // NewEndpoints returns a new endpoints composite with default batching settings
 func NewEndpoints(main logsconfig.Endpoint, useProto bool, useHTTP bool) *logsconfig.Endpoints {
-	logsConfig := coreconfig.Config.Logs
+	logsConfig := coreconfig.LogConfig
 	return &logsconfig.Endpoints{
 		Main:        main,
 		Additionals: nil,

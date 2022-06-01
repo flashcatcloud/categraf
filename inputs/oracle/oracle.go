@@ -14,7 +14,6 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/inputs/logs"
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
 	"github.com/godror/godror"
@@ -49,9 +48,8 @@ type MetricConfig struct {
 
 type Oracle struct {
 	config.Interval
-	Instances []OrclInstance `toml:"instances"`
-	Metrics   []MetricConfig `toml:"metrics"`
-	logs.Logs
+	Instances  []OrclInstance      `toml:"instances"`
+	Metrics    []MetricConfig      `toml:"metrics"`
 	dbconnpool map[string]*sqlx.DB // key: instance
 	Counter    uint64
 	wg         sync.WaitGroup

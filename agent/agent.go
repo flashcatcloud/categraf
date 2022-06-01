@@ -105,8 +105,8 @@ func (a *Agent) startInputs() error {
 		// construct input instance
 		instance := creator()
 
-		if config.Config.Logs.Enable {
-			go startLogAgent(instance)
+		if config.LogConfig.Enable {
+			go startLogAgent()
 		}
 		// set configurations for input instance
 		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, "input."+name), instance)

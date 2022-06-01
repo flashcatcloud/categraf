@@ -11,7 +11,6 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/inputs/logs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	"github.com/go-sql-driver/mysql"
@@ -155,7 +154,6 @@ func (ins *Instance) InitValidMetrics() {
 type MySQL struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
-	logs.Logs
 
 	Counter uint64
 	wg      sync.WaitGroup

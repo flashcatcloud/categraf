@@ -13,7 +13,6 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/inputs/logs"
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
@@ -27,7 +26,6 @@ type RabbitMQ struct {
 	counter   uint64
 	waitgrp   sync.WaitGroup
 	Instances []*Instance `toml:"instances"`
-	logs.Logs
 }
 
 func init() {

@@ -1,7 +1,14 @@
 package config
 
 import (
+	"encoding/json"
+	"fmt"
+	"path"
+
+	"github.com/toolkits/pkg/file"
+
 	logsconfig "flashcat.cloud/categraf/config/logs"
+	"flashcat.cloud/categraf/pkg/cfg"
 )
 
 const (
@@ -22,39 +29,63 @@ type Logs struct {
 	OpenFilesLimit        int                          `toml:"open_files_limit"`
 	ScanPeriod            int                          `toml:"scan_period"`
 	FrameSize             int                          `toml:"frame_size"`
-	CollectContainerAll   bool                         `toml:"container_collect_all"`
+	CollectContainerAll   bool                         `toml:"collect_container_all"`
 	GlobalProcessingRules []*logsconfig.ProcessingRule `toml:"processing_rules"`
+	Items                 []*logsconfig.LogsConfig     `toml:"items"`
+}
+
+var (
+	LogConfig *Logs
+)
+
+func InitLogConfig(configDir string) error {
+	configFile := path.Join(configDir, "logs.toml")
+	if !file.IsExist(configFile) {
+		return fmt.Errorf("configuration file(%s) not found", configFile)
+	}
+
+	LogConfig = &Logs{}
+	if err := cfg.LoadConfig(configFile, LogConfig); err != nil {
+		return fmt.Errorf("failed to load configs of dir: %s", configDir)
+	}
+
+	if Config != nil && Config.Global.PrintConfigs {
+		bs, _ := json.MarshalIndent(LogConfig, "", "    ")
+		fmt.Println(string(bs))
+	}
+
+	return nil
 }
 
 func GetLogRunPath() string {
-	if len(Config.Logs.RunPath) == 0 {
-		Config.Logs.RunPath = "/opt/categraf/run"
+	if len(LogConfig.RunPath) == 0 {
+		LogConfig.RunPath = "/opt/categraf/run"
 	}
-	return Config.Logs.RunPath
+	return LogConfig.RunPath
 }
 func GetLogReadTimeout() int {
 	return 30
 }
 
 func OpenLogsLimit() int {
-	if Config.Logs.OpenFilesLimit == 0 {
-		Config.Logs.OpenFilesLimit = 100
+	if LogConfig.OpenFilesLimit == 0 {
+		LogConfig.OpenFilesLimit = 100
 	}
-	return Config.Logs.OpenFilesLimit
+	return LogConfig.OpenFilesLimit
 }
 
 func FileScanPeriod() int {
-	if Config.Logs.ScanPeriod == 0 {
-		Config.Logs.ScanPeriod = 10
+	if LogConfig.ScanPeriod == 0 {
+		LogConfig.ScanPeriod = 10
 	}
-	return Config.Logs.ScanPeriod
+	return LogConfig.ScanPeriod
 }
 
 func LogFrameSize() int {
-	if Config.Logs.FrameSize == 0 {
-		Config.Logs.FrameSize = 9000
+	if LogConfig.FrameSize == 0 {
+		LogConfig.FrameSize = 9000
 	}
-	return Config.Logs.FrameSize
+	return LogConfig.FrameSize
 }
 
 func ValidatePodContainerID() bool {
@@ -66,5 +97,5 @@ func IsFeaturePresent(t string) bool {
 }
 
 func GetContainerCollectAll() bool {
-	return Config.Logs.CollectContainerAll
+	return LogConfig.CollectContainerAll
 }

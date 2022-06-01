@@ -15,7 +15,6 @@ import (
 	coreConfig "flashcat.cloud/categraf/config"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
-	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/logs/auditor"
 	"flashcat.cloud/categraf/pkg/logs/client"
 	"flashcat.cloud/categraf/pkg/logs/client/http"
@@ -148,24 +147,22 @@ const (
 	invalidProcessingRules  = "invalid_global_processing_rules"
 )
 
-func startLogAgent(instance inputs.Input) {
+func startLogAgent() {
 
 	logSources := logsconfig.NewLogSources()
 	var sources []*logsconfig.LogSource
-	if coreConfig.Config.Logs.Enable {
-		for _, c := range instance.LogsConfig() {
-			if c == nil {
-				continue
-			}
-			source := logsconfig.NewLogSource(c.Name, c)
-			sources = append(sources, source)
-			if err := c.Validate(); err != nil {
-				log.Println("W! Invalid logs configuration:", err)
-				source.Status.Error(err)
-				continue
-			}
-			logSources.AddSource(source)
+	for _, c := range coreConfig.LogConfig.Items {
+		if c == nil {
+			continue
 		}
+		source := logsconfig.NewLogSource(c.Name, c)
+		sources = append(sources, source)
+		if err := c.Validate(); err != nil {
+			log.Println("W! Invalid logs configuration:", err)
+			source.Status.Error(err)
+			continue
+		}
+		logSources.AddSource(source)
 	}
 
 	if len(sources) == 0 {
@@ -202,7 +199,7 @@ func GetContainerColloectAll() bool {
 
 // GlobalProcessingRules returns the global processing rules to apply to all logs.
 func GlobalProcessingRules() ([]*logsconfig.ProcessingRule, error) {
-	rules := coreConfig.Config.Logs.GlobalProcessingRules
+	rules := coreConfig.LogConfig.GlobalProcessingRules
 	err := logsconfig.ValidateProcessingRules(rules)
 	if err != nil {
 		return nil, err

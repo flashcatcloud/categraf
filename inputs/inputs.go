@@ -2,7 +2,6 @@ package inputs
 
 import (
 	"flashcat.cloud/categraf/config"
-	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
@@ -14,7 +13,6 @@ type Input interface {
 	Prefix() string
 	GetInterval() config.Duration
 	Gather(slist *list.SafeList)
-	LogsConfig() []*logsconfig.LogsConfig
 }
 
 type Creator func() Input

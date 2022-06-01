@@ -13,7 +13,6 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/inputs/logs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
@@ -136,7 +135,6 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 type Tomcat struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
-	logs.Logs
 
 	Counter uint64
 	wg      sync.WaitGroup

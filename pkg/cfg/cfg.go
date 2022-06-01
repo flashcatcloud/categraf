@@ -39,3 +39,26 @@ func LoadConfigs(configDir string, configPtr interface{}) error {
 
 	return m.Load(configPtr)
 }
+
+func LoadConfig(configFile string, configPtr interface{}) error {
+	var (
+		loader multiconfig.Loader
+	)
+
+	if strings.HasSuffix(configFile, "toml") {
+		loader = &multiconfig.TOMLLoader{Path: configFile}
+	}
+	if strings.HasSuffix(configFile, "json") {
+		loader = &multiconfig.JSONLoader{Path: configFile}
+	}
+	if strings.HasSuffix(configFile, "yaml") || strings.HasSuffix(configFile, "yml") {
+		loader = &multiconfig.YAMLLoader{Path: configFile}
+	}
+
+	m := multiconfig.DefaultLoader{
+		Loader:    multiconfig.MultiLoader(loader),
+		Validator: multiconfig.MultiValidator(&multiconfig.RequiredValidator{}),
+	}
+
+	return m.Load(configPtr)
+}
