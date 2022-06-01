@@ -1,8 +1,11 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"path"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
@@ -59,13 +62,30 @@ func InitLogConfig(configDir string) error {
 }
 
 func loadLogConfig(file string) (*Logs, error) {
+	// v := viper.New()
+	// v.SetConfigFile(file)
+	// err := v.ReadInConfig()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// l := Logs{}
+	// err = v.Unmarshal(&l)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// return &l, nil
 	v := viper.New()
-	v.SetConfigFile(file)
-	err := v.ReadInConfig()
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("%s\n", data)
 	l := Logs{}
+	v.SetConfigType("toml")
+	err = v.ReadConfig(bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
 	err = v.Unmarshal(&l)
 	if err != nil {
 		return nil, err
