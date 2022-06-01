@@ -56,7 +56,7 @@ type LogsConfig struct {
 
 	// used as input only by the Channel tailer.
 	// could have been unidirectional but the tailer could not close it in this case.
-	Channel chan *ChannelMessage
+	Channel chan *ChannelMessage `json:"-"`
 
 	Service         string
 	Source          string

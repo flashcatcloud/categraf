@@ -18,24 +18,24 @@ const (
 
 type (
 	Logs struct {
-		APIKey                string                       `mapstructure:"api_key" toml:"api_key"`
-		Enable                bool                         `mapstructure:"enable" toml:"enable"`
-		SendTo                string                       `mapstructure:"send_to" toml:"send_to"`
-		SendType              string                       `mapstructure:"send_type" toml:"send_type"`
-		UseCompression        bool                         `mapstructure:"use_compression" toml:"use_compression"`
-		CompressionLevel      int                          `mapstructure:"compression_level" toml:"compression_level"`
-		SendWithTLS           bool                         `mapstructure:"send_with_tls" toml:"send_with_tls"`
-		BatchWait             int                          `mapstructure:"batch_wait" toml:"batch_wait"`
-		RunPath               string                       `mapstructure:"run_path" toml:"run_path"`
-		OpenFilesLimit        int                          `mapstructure:"open_files_limit" toml:"open_files_limit"`
-		ScanPeriod            int                          `mapstructure:"scan_period" toml:"scan_period"`
-		FrameSize             int                          `mapstructure:"frame_size" toml:"frame_size"`
-		CollectContainerAll   bool                         `mapstructure:"collect_container_all" toml:"collect_container_all"`
-		GlobalProcessingRules []*logsconfig.ProcessingRule `mapstructure:"processing_rules" toml:"processing_rules"`
-		Items                 []*logsconfig.LogsConfig     `mapstructure:"items" toml:"items"`
+		APIKey                string                       `json:"api_key" toml:"api_key"`
+		Enable                bool                         `json:"enable" toml:"enable"`
+		SendTo                string                       `json:"send_to" toml:"send_to"`
+		SendType              string                       `json:"send_type" toml:"send_type"`
+		UseCompression        bool                         `json:"use_compression" toml:"use_compression"`
+		CompressionLevel      int                          `json:"compression_level" toml:"compression_level"`
+		SendWithTLS           bool                         `json:"send_with_tls" toml:"send_with_tls"`
+		BatchWait             int                          `json:"batch_wait" toml:"batch_wait"`
+		RunPath               string                       `json:"run_path" toml:"run_path"`
+		OpenFilesLimit        int                          `json:"open_files_limit" toml:"open_files_limit"`
+		ScanPeriod            int                          `json:"scan_period" toml:"scan_period"`
+		FrameSize             int                          `json:"frame_size" toml:"frame_size"`
+		CollectContainerAll   bool                         `json:"collect_container_all" toml:"collect_container_all"`
+		GlobalProcessingRules []*logsconfig.ProcessingRule `json:"processing_rules" toml:"processing_rules"`
+		Items                 []*logsconfig.LogsConfig     `json:"items" toml:"items"`
 	}
 	LogType struct {
-		Logs Logs `toml:"logs"`
+		Logs *Logs `json:"logs" toml:"logs"`
 	}
 )
 
@@ -57,7 +57,7 @@ func InitLogConfig(configDir string) error {
 		return fmt.Errorf("failed to load config: %s, err: %s", configFile, err)
 	}
 
-	LogConfig = &data.Logs
+	LogConfig = data.Logs
 	if Config != nil && Config.Global.PrintConfigs {
 		bs, _ := json.MarshalIndent(LogConfig, "", "    ")
 		fmt.Println(string(bs))
