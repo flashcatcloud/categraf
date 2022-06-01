@@ -22,7 +22,7 @@ func LoadConfigs(configDir string, configPtr interface{}) error {
 
 	for _, fpath := range files {
 		// logs.toml 单独解析
-		if fpath == "logs.toml" {
+		if fpath == "logs.toml" || fpath == "logs.yaml" || fpath == "logs.json" {
 			continue
 		}
 		if strings.HasSuffix(fpath, "toml") {

@@ -48,8 +48,9 @@ type MetricConfig struct {
 
 type Oracle struct {
 	config.Interval
-	Instances  []OrclInstance      `toml:"instances"`
-	Metrics    []MetricConfig      `toml:"metrics"`
+	Instances []OrclInstance `toml:"instances"`
+	Metrics   []MetricConfig `toml:"metrics"`
+
 	dbconnpool map[string]*sqlx.DB // key: instance
 	Counter    uint64
 	wg         sync.WaitGroup
