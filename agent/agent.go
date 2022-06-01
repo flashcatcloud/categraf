@@ -88,6 +88,10 @@ func (a *Agent) startInputs() error {
 		return nil
 	}
 
+	if config.LogConfig.Enable {
+		go startLogAgent()
+	}
+
 	for _, name := range names {
 		if len(a.InputFilters) > 0 {
 			// do filter
@@ -104,10 +108,6 @@ func (a *Agent) startInputs() error {
 
 		// construct input instance
 		instance := creator()
-
-		if config.LogConfig.Enable {
-			go startLogAgent()
-		}
 		// set configurations for input instance
 		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, "input."+name), instance)
 
