@@ -34,6 +34,9 @@ type (
 		GlobalProcessingRules []*logsconfig.ProcessingRule `mapstructure:"processing_rules" toml:"processing_rules"`
 		Items                 []*logsconfig.LogsConfig     `mapstructure:"items" toml:"items"`
 	}
+	LogType struct {
+		Logs Logs `toml:"logs"`
+	}
 )
 
 var (
@@ -48,10 +51,8 @@ func InitLogConfig(configDir string) error {
 	if !file.IsExist(configFile) {
 		return fmt.Errorf("configuration file(%s) not found", configFile)
 	}
-	data := struct {
-		Logs Logs `toml:"logs"`
-	}{}
-	err = cfg.LoadConfig(configFile, &data)
+	data := &LogType{}
+	err = cfg.LoadConfig(configFile, data)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %s, err: %s", configFile, err)
 	}
