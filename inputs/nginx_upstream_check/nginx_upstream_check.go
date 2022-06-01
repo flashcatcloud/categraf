@@ -239,7 +239,6 @@ func (ins *Instance) gather(slist *list.SafeList, target string) {
 		}
 
 		fields := map[string]interface{}{
-			"status":      server.Status,
 			"status_code": getStatusCode(server.Status),
 			"rise":        server.Rise,
 			"fall":        server.Fall,
