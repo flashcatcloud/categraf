@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/toolkits/pkg/file"
-
 	logsconfig "flashcat.cloud/categraf/config/logs"
-	"flashcat.cloud/categraf/pkg/cfg"
+	"github.com/spf13/viper"
+	"github.com/toolkits/pkg/file"
 )
 
 const (
@@ -17,21 +16,21 @@ const (
 )
 
 type Logs struct {
-	APIKey                string                       `toml:"api_key"`
-	Enable                bool                         `toml:"enable"`
-	SendTo                string                       `toml:"send_to"`
-	SendType              string                       `toml:"send_type"`
-	UseCompression        bool                         `toml:"use_compression"`
-	CompressionLevel      int                          `toml:"compression_level"`
-	SendWithTLS           bool                         `toml:"send_with_tls"`
-	BatchWait             int                          `toml:"batch_wait"`
-	RunPath               string                       `toml:"run_path"`
-	OpenFilesLimit        int                          `toml:"open_files_limit"`
-	ScanPeriod            int                          `toml:"scan_period"`
-	FrameSize             int                          `toml:"frame_size"`
-	CollectContainerAll   bool                         `toml:"collect_container_all"`
-	GlobalProcessingRules []*logsconfig.ProcessingRule `toml:"processing_rules"`
-	Items                 []*logsconfig.LogsConfig     `toml:"items"`
+	APIKey                string                       `mapstructure:"api_key" toml:"api_key"`
+	Enable                bool                         `mapstructure:"enable" toml:"enable"`
+	SendTo                string                       `mapstructure:"send_to" toml:"send_to"`
+	SendType              string                       `mapstructure:"send_type" toml:"send_type"`
+	UseCompression        bool                         `mapstructure:"use_compression" toml:"use_compression"`
+	CompressionLevel      int                          `mapstructure:"compression_level" toml:"compression_level"`
+	SendWithTLS           bool                         `mapstructure:"send_with_tls" toml:"send_with_tls"`
+	BatchWait             int                          `mapstructure:"batch_wait" toml:"batch_wait"`
+	RunPath               string                       `mapstructure:"run_path" toml:"run_path"`
+	OpenFilesLimit        int                          `mapstructure:"open_files_limit" toml:"open_files_limit"`
+	ScanPeriod            int                          `mapstructure:"scan_period" toml:"scan_period"`
+	FrameSize             int                          `mapstructure:"frame_size" toml:"frame_size"`
+	CollectContainerAll   bool                         `mapstructure:"collect_container_all" toml:"collect_container_all"`
+	GlobalProcessingRules []*logsconfig.ProcessingRule `mapstructure:"processing_rules" toml:"processing_rules"`
+	Items                 []*logsconfig.LogsConfig     `mapstructure:"items" toml:"items"`
 }
 
 var (
@@ -39,13 +38,15 @@ var (
 )
 
 func InitLogConfig(configDir string) error {
+	var (
+		err error
+	)
 	configFile := path.Join(configDir, "logs.toml")
 	if !file.IsExist(configFile) {
 		return fmt.Errorf("configuration file(%s) not found", configFile)
 	}
-
-	LogConfig = &Logs{}
-	if err := cfg.LoadConfig(configFile, LogConfig); err != nil {
+	LogConfig, err = loadLogConfig(configFile)
+	if err != nil {
 		return fmt.Errorf("failed to load config: %s, err: %s", configFile, err)
 	}
 
@@ -55,6 +56,21 @@ func InitLogConfig(configDir string) error {
 	}
 
 	return nil
+}
+
+func loadLogConfig(file string) (*Logs, error) {
+	v := viper.New()
+	v.SetConfigFile(file)
+	err := v.ReadInConfig()
+	if err != nil {
+		return nil, err
+	}
+	l := Logs{}
+	err = v.Unmarshal(&l)
+	if err != nil {
+		return nil, err
+	}
+	return &l, nil
 }
 
 func GetLogRunPath() string {
