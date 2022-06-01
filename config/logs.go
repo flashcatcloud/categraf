@@ -46,7 +46,7 @@ func InitLogConfig(configDir string) error {
 
 	LogConfig = &Logs{}
 	if err := cfg.LoadConfig(configFile, LogConfig); err != nil {
-		return fmt.Errorf("failed to load configs of dir: %s", configDir)
+		return fmt.Errorf("failed to load config: %s, err: %s", configFile, err)
 	}
 
 	if Config != nil && Config.Global.PrintConfigs {
