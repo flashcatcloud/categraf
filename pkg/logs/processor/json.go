@@ -27,8 +27,8 @@ type jsonPayload struct {
 	Timestamp int64  `json:"timestamp"`
 	Hostname  string `json:"hostname"`
 	Service   string `json:"service"`
-	Source    string `json:"ddsource"`
-	Tags      string `json:"ddtags"`
+	Source    string `json:"fcsource"`
+	Tags      string `json:"fctags"`
 }
 
 // Encode encodes a message into a JSON byte array.
