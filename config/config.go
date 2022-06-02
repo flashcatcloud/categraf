@@ -47,6 +47,7 @@ type ConfigType struct {
 	Global    Global         `toml:"global"`
 	WriterOpt WriterOpt      `toml:"writer_opt"`
 	Writers   []WriterOption `toml:"writers"`
+	Logs      Logs           `toml:"logs"`
 }
 
 var Config *ConfigType

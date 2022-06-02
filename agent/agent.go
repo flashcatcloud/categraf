@@ -55,12 +55,14 @@ func NewAgent(filters map[string]struct{}) *Agent {
 func (a *Agent) Start() {
 	log.Println("I! agent starting")
 
+	a.startLogAgent()
 	a.startInputs()
 }
 
 func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
 
+	stopLogAgent()
 	for name := range InputReaders {
 		InputReaders[name].QuitChan <- struct{}{}
 		close(InputReaders[name].Queue)
@@ -104,7 +106,6 @@ func (a *Agent) startInputs() error {
 
 		// construct input instance
 		instance := creator()
-
 		// set configurations for input instance
 		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, "input."+name), instance)
 
