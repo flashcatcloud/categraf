@@ -108,14 +108,20 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		}
 	}
 
+	trans := &http.Transport{
+		Proxy:             httpx.GetProxyFunc(ins.HTTPProxy),
+		DialContext:       dialer.DialContext,
+		DisableKeepAlives: true,
+		TLSClientConfig:   tlsCfg,
+	}
+
+	if ins.UseTLS {
+		trans.TLSClientConfig = tlsCfg
+	}
+
 	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy:             httpx.GetProxyFunc(ins.HTTPProxy),
-			DialContext:       dialer.DialContext,
-			DisableKeepAlives: true,
-			TLSClientConfig:   tlsCfg,
-		},
-		Timeout: time.Duration(ins.ResponseTimeout),
+		Transport: trans,
+		Timeout:   time.Duration(ins.ResponseTimeout),
 	}
 
 	if !ins.FollowRedirects {
