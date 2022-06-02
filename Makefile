@@ -1,7 +1,7 @@
 .PHONY: start build
 
 APP = categraf
-VER = 0.1.0
+VER = 0.1.1
 
 all: build
 
