@@ -151,23 +151,10 @@ func (a *Agent) startLogAgent() {
 	if coreconfig.LogConfig != nil && !coreconfig.LogConfig.Enable {
 		return
 	}
-	logSources := logsconfig.NewLogSources()
-	for _, c := range coreconfig.LogConfig.Items {
-		if c == nil {
-			continue
-		}
-		source := logsconfig.NewLogSource(c.Name, c)
-		if err := c.Validate(); err != nil {
-			log.Println("W! Invalid logs configuration:", err)
-			source.Status.Error(err)
-			continue
-		}
-		logSources.AddSource(source)
-	}
-
 	if len(coreconfig.LogConfig.Items) == 0 {
 		return
 	}
+
 	httpConnectivity := logsconfig.HTTPConnectivityFailure
 	if endpoints, err := BuildHTTPEndpoints(intakeTrackType, AgentJSONIntakeProtocol, logsconfig.DefaultIntakeOrigin); err == nil {
 		httpConnectivity = http.CheckConnectivity(endpoints.Main)
@@ -181,10 +168,25 @@ func (a *Agent) startLogAgent() {
 		return
 	}
 
+	sources := logsconfig.NewLogSources()
 	services := logService.NewServices()
 	log.Println("I! Starting logs-agent...")
-	logAgent = NewLogAgent(logSources, services, processingRules, endpoints)
+	logAgent = NewLogAgent(sources, services, processingRules, endpoints)
 	logAgent.Start()
+
+	// add source
+	for _, c := range coreconfig.LogConfig.Items {
+		if c == nil {
+			continue
+		}
+		source := logsconfig.NewLogSource(c.Name, c)
+		if err := c.Validate(); err != nil {
+			log.Println("W! Invalid logs configuration:", err)
+			source.Status.Error(err)
+			continue
+		}
+		sources.AddSource(source)
+	}
 }
 
 func stopLogAgent() {
