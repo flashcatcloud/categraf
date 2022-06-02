@@ -9,8 +9,6 @@ import (
 	"expvar"
 	"sync"
 	"time"
-
-	"flashcat.cloud/categraf/pkg/util"
 )
 
 // SourceType used for log line parsing logic.
@@ -47,7 +45,7 @@ type LogSource struct {
 	ParentSource *LogSource
 	// LatencyStats tracks internal stats on the time spent by messages from this source in a processing pipeline, i.e.
 	// the duration between when a message is decoded by the tailer/listener/decoder and when the message is handled by a sender
-	LatencyStats *util.StatsTracker
+	LatencyStats *StatsTracker
 }
 
 // NewLogSource creates a new log source.
@@ -61,7 +59,7 @@ func NewLogSource(name string, config *LogsConfig) *LogSource {
 		Messages:     NewMessages(),
 		BytesRead:    expvar.Int{},
 		info:         make(map[string]InfoProvider),
-		LatencyStats: util.NewStatsTracker(time.Hour*24, time.Hour),
+		LatencyStats: NewStatsTracker(time.Hour*24, time.Hour),
 	}
 }
 

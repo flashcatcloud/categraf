@@ -14,8 +14,8 @@ import (
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/client"
-	"flashcat.cloud/categraf/pkg/util/backoff"
-	httputils "flashcat.cloud/categraf/pkg/util/http"
+	"flashcat.cloud/categraf/pkg/backoff"
+	httputils "flashcat.cloud/categraf/pkg/httpx"
 )
 
 // ContentType options,
