@@ -29,39 +29,35 @@ type (
 	}
 )
 
-var (
-	LogConfig *Logs
-)
-
 func GetLogRunPath() string {
-	if len(LogConfig.RunPath) == 0 {
-		LogConfig.RunPath = "/opt/categraf/run"
+	if len(Config.Logs.RunPath) == 0 {
+		Config.Logs.RunPath = "/opt/categraf/run"
 	}
-	return LogConfig.RunPath
+	return Config.Logs.RunPath
 }
 func GetLogReadTimeout() int {
 	return 30
 }
 
 func OpenLogsLimit() int {
-	if LogConfig.OpenFilesLimit == 0 {
-		LogConfig.OpenFilesLimit = 100
+	if Config.Logs.OpenFilesLimit == 0 {
+		Config.Logs.OpenFilesLimit = 100
 	}
-	return LogConfig.OpenFilesLimit
+	return Config.Logs.OpenFilesLimit
 }
 
 func FileScanPeriod() int {
-	if LogConfig.ScanPeriod == 0 {
-		LogConfig.ScanPeriod = 10
+	if Config.Logs.ScanPeriod == 0 {
+		Config.Logs.ScanPeriod = 10
 	}
-	return LogConfig.ScanPeriod
+	return Config.Logs.ScanPeriod
 }
 
 func LogFrameSize() int {
-	if LogConfig.FrameSize == 0 {
-		LogConfig.FrameSize = 9000
+	if Config.Logs.FrameSize == 0 {
+		Config.Logs.FrameSize = 9000
 	}
-	return LogConfig.FrameSize
+	return Config.Logs.FrameSize
 }
 
 func ValidatePodContainerID() bool {
@@ -73,5 +69,5 @@ func IsFeaturePresent(t string) bool {
 }
 
 func GetContainerCollectAll() bool {
-	return LogConfig.CollectContainerAll
+	return Config.Logs.CollectContainerAll
 }

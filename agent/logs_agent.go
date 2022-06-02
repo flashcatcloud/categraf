@@ -148,10 +148,9 @@ const (
 )
 
 func (a *Agent) startLogAgent() {
-	if coreconfig.LogConfig != nil && !coreconfig.LogConfig.Enable {
-		return
-	}
-	if len(coreconfig.LogConfig.Items) == 0 {
+	if coreconfig.Config == nil ||
+		!coreconfig.Config.Logs.Enable ||
+		len(coreconfig.Config.Logs.Items) == 0 {
 		return
 	}
 
@@ -175,7 +174,7 @@ func (a *Agent) startLogAgent() {
 	logAgent.Start()
 
 	// add source
-	for _, c := range coreconfig.LogConfig.Items {
+	for _, c := range coreconfig.Config.Logs.Items {
 		if c == nil {
 			continue
 		}
@@ -201,7 +200,7 @@ func GetContainerColloectAll() bool {
 
 // GlobalProcessingRules returns the global processing rules to apply to all logs.
 func GlobalProcessingRules() ([]*logsconfig.ProcessingRule, error) {
-	rules := coreconfig.LogConfig.GlobalProcessingRules
+	rules := coreconfig.Config.Logs.GlobalProcessingRules
 	err := logsconfig.ValidateProcessingRules(rules)
 	if err != nil {
 		return nil, err
