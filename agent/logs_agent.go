@@ -148,7 +148,7 @@ const (
 )
 
 func (a *Agent) startLogAgent() {
-	if !coreconfig.LogConfig.Enable {
+	if coreconfig.LogConfig != nil && !coreconfig.LogConfig.Enable {
 		return
 	}
 	logSources := logsconfig.NewLogSources()
@@ -165,7 +165,7 @@ func (a *Agent) startLogAgent() {
 		logSources.AddSource(source)
 	}
 
-	if coreconfig.LogConfig != nil && len(coreconfig.LogConfig.Items) == 0 {
+	if len(coreconfig.LogConfig.Items) == 0 {
 		return
 	}
 	httpConnectivity := logsconfig.HTTPConnectivityFailure
@@ -183,7 +183,7 @@ func (a *Agent) startLogAgent() {
 
 	services := logService.NewServices()
 	log.Println("I! Starting logs-agent...")
-	logAgent := NewLogAgent(logSources, services, processingRules, endpoints)
+	logAgent = NewLogAgent(logSources, services, processingRules, endpoints)
 	logAgent.Start()
 }
 
