@@ -11,8 +11,10 @@ package file
 import (
 	"fmt"
 	"io"
+	"log"
 	"path/filepath"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/decoder"
 )
 
@@ -27,7 +29,9 @@ func (t *Tailer) setup(offset int64, whence int) error {
 	// adds metadata to enable users to filter logs by filename
 	t.tags = t.buildTailerTags()
 
-	// log.Println("I! Opening", t.file.Path, "for tailer key", t.file.GetScanKey())
+	if coreconfig.Config.DebugMode {
+		log.Println("I! Opening", t.file.Path, "for tailer key", t.file.GetScanKey())
+	}
 	f, err := openFile(fullpath)
 	if err != nil {
 		return err
