@@ -6,6 +6,7 @@ import (
 	"log"
 	"path"
 	"strings"
+	"sync"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -54,7 +55,20 @@ func NewAgent(filters map[string]struct{}) *Agent {
 func (a *Agent) Start() {
 	log.Println("I! agent starting")
 
-	a.startInputs()
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		a.startLogAgent()
+	}()
+	go func() {
+		defer wg.Done()
+		err := a.startInputs()
+		if err != nil {
+			log.Println("E!", err)
+		}
+	}()
+	wg.Wait()
 }
 
 func (a *Agent) Stop() {
@@ -78,10 +92,6 @@ func (a *Agent) Reload() {
 }
 
 func (a *Agent) startInputs() error {
-	if config.LogConfig.Enable {
-		go startLogAgent()
-	}
-
 	names, err := a.getInputsByDirs()
 	if err != nil {
 		return err
