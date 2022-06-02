@@ -21,10 +21,6 @@ func LoadConfigs(configDir string, configPtr interface{}) error {
 	}
 
 	for _, fpath := range files {
-		// logs.toml 单独解析
-		if fpath == "logs.toml" || fpath == "logs.yaml" || fpath == "logs.json" {
-			continue
-		}
 		if strings.HasSuffix(fpath, "toml") {
 			loaders = append(loaders, &multiconfig.TOMLLoader{Path: path.Join(configDir, fpath)})
 		}
@@ -34,30 +30,6 @@ func LoadConfigs(configDir string, configPtr interface{}) error {
 		if strings.HasSuffix(fpath, "yaml") {
 			loaders = append(loaders, &multiconfig.YAMLLoader{Path: path.Join(configDir, fpath)})
 		}
-	}
-
-	m := multiconfig.DefaultLoader{
-		Loader:    multiconfig.MultiLoader(loaders...),
-		Validator: multiconfig.MultiValidator(&multiconfig.RequiredValidator{}),
-	}
-
-	return m.Load(configPtr)
-}
-
-func LoadConfig(configFile string, configPtr interface{}) error {
-	loaders := []multiconfig.Loader{
-		&multiconfig.TagLoader{},
-		&multiconfig.EnvironmentLoader{},
-	}
-
-	if strings.HasSuffix(configFile, "toml") {
-		loaders = append(loaders, &multiconfig.TOMLLoader{Path: configFile})
-	}
-	if strings.HasSuffix(configFile, "json") {
-		loaders = append(loaders, &multiconfig.JSONLoader{Path: configFile})
-	}
-	if strings.HasSuffix(configFile, "yaml") || strings.HasSuffix(configFile, "yml") {
-		loaders = append(loaders, &multiconfig.YAMLLoader{Path: configFile})
 	}
 
 	m := multiconfig.DefaultLoader{

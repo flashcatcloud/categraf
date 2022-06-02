@@ -1,14 +1,7 @@
 package config
 
 import (
-	"encoding/json"
-	"fmt"
-	"path"
-
-	"github.com/toolkits/pkg/file"
-
 	logsconfig "flashcat.cloud/categraf/config/logs"
-	"flashcat.cloud/categraf/pkg/cfg"
 )
 
 const (
@@ -34,37 +27,11 @@ type (
 		GlobalProcessingRules []*logsconfig.ProcessingRule `json:"processing_rules" toml:"processing_rules"`
 		Items                 []*logsconfig.LogsConfig     `json:"items" toml:"items"`
 	}
-	LogType struct {
-		Logs *Logs `json:"logs" toml:"logs"`
-	}
 )
 
 var (
 	LogConfig *Logs
 )
-
-func InitLogConfig(configDir string) error {
-	var (
-		err error
-	)
-	configFile := path.Join(configDir, "logs.toml")
-	if !file.IsExist(configFile) {
-		return fmt.Errorf("configuration file(%s) not found", configFile)
-	}
-	data := &LogType{}
-	err = cfg.LoadConfig(configFile, data)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %s, err: %s", configFile, err)
-	}
-
-	LogConfig = data.Logs
-	if Config != nil && Config.Global.PrintConfigs {
-		bs, _ := json.MarshalIndent(LogConfig, "", "    ")
-		fmt.Println(string(bs))
-	}
-
-	return nil
-}
 
 func GetLogRunPath() string {
 	if len(LogConfig.RunPath) == 0 {
