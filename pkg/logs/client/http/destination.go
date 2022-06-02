@@ -133,6 +133,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 		// this can happen when the method or the url are valid.
 		return err
 	}
+	req.Header.Set("User-Agent", "categraf")
 	req.Header.Set("CATEGRAF-API-KEY", d.apiKey)
 	req.Header.Set("Content-Type", d.contentType)
 	req.Header.Set("Content-Encoding", d.contentEncoding.name())

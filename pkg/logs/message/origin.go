@@ -39,11 +39,11 @@ func (o *Origin) TagsPayload() []byte {
 
 	source := o.Source()
 	if source != "" {
-		tagsPayload = append(tagsPayload, []byte("[dd ddsource=\""+source+"\"]")...)
+		tagsPayload = append(tagsPayload, []byte("[fc fcsource=\""+source+"\"]")...)
 	}
 	sourceCategory := o.LogSource.Config.SourceCategory
 	if sourceCategory != "" {
-		tagsPayload = append(tagsPayload, []byte("[dd ddsourcecategory=\""+sourceCategory+"\"]")...)
+		tagsPayload = append(tagsPayload, []byte("[fc fcsourcecategory=\""+sourceCategory+"\"]")...)
 	}
 
 	var tags []string
@@ -51,7 +51,7 @@ func (o *Origin) TagsPayload() []byte {
 	tags = append(tags, o.tags...)
 
 	if len(tags) > 0 {
-		tagsPayload = append(tagsPayload, []byte("[dd ddtags=\""+strings.Join(tags, ",")+"\"]")...)
+		tagsPayload = append(tagsPayload, []byte("[fc fctags=\""+strings.Join(tags, ",")+"\"]")...)
 	}
 	if len(tagsPayload) == 0 {
 		tagsPayload = []byte{}

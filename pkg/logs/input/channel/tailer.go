@@ -15,7 +15,7 @@ import (
 )
 
 // serviceEnvVar is the environment variable of the service tag (this is used only for the serverless agent)
-const serviceEnvVar = "DD_SERVICE"
+const serviceEnvVar = "FC_SERVICE"
 
 // Tailer consumes and processes a channel of strings, and sends them to a stream of log messages.
 type Tailer struct {
