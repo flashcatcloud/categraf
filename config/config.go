@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"os"
 	"path"
 	"strings"
 	"time"
@@ -16,6 +15,7 @@ import (
 type Global struct {
 	PrintConfigs bool              `toml:"print_configs"`
 	Hostname     string            `toml:"hostname"`
+	IP           string            `toml:"-"`
 	OmitHostname bool              `toml:"omit_hostname"`
 	Labels       map[string]string `toml:"labels"`
 	Precision    string            `toml:"precision"`
@@ -68,7 +68,11 @@ func InitConfig(configDir string, debugMode bool, testMode bool) error {
 		return fmt.Errorf("failed to load configs of dir: %s", configDir)
 	}
 
-	if err := Config.fillHostname(); err != nil {
+	if err := Config.fillIP(); err != nil {
+		return err
+	}
+
+	if err := InitHostname(); err != nil {
 		return err
 	}
 
@@ -80,36 +84,32 @@ func InitConfig(configDir string, debugMode bool, testMode bool) error {
 	return nil
 }
 
-func (c *ConfigType) fillHostname() error {
-	if c.Global.Hostname == "" {
-		name, err := GetHostname()
-		if err != nil {
-			return err
-		}
-
-		c.Global.Hostname = name
+func (c *ConfigType) fillIP() error {
+	if !strings.Contains(c.Global.Hostname, "$ip") {
 		return nil
 	}
 
-	if strings.Contains(c.Global.Hostname, "$hostname") {
-		name, err := GetHostname()
-		if err != nil {
-			return err
-		}
-
-		c.Global.Hostname = strings.Replace(c.Global.Hostname, "$hostname", name, -1)
+	ip, err := GetOutboundIP()
+	if err != nil {
+		return err
 	}
 
-	if strings.Contains(c.Global.Hostname, "$ip") {
-		ip, err := GetOutboundIP()
-		if err != nil {
-			return err
-		}
-
-		c.Global.Hostname = strings.Replace(c.Global.Hostname, "$ip", fmt.Sprint(ip), -1)
-	}
-
+	c.Global.IP = fmt.Sprint(ip)
 	return nil
+}
+
+func (c *ConfigType) GetHostname() string {
+	ret := c.Global.Hostname
+
+	name := Hostname.Get()
+	if ret == "" {
+		return name
+	}
+
+	ret = strings.Replace(ret, "$hostname", name, -1)
+	ret = strings.Replace(ret, "$ip", c.Global.IP, -1)
+
+	return ret
 }
 
 func GetInterval() time.Duration {
@@ -118,10 +118,6 @@ func GetInterval() time.Duration {
 	}
 
 	return time.Duration(Config.Global.Interval)
-}
-
-func GetHostname() (string, error) {
-	return os.Hostname()
 }
 
 // Get preferred outbound ip of this machine

@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/auditor"
 	"flashcat.cloud/categraf/logs/message"
@@ -260,7 +261,9 @@ func (s *Scanner) startNewTailer(file *File, m logsconfig.TailingMode) bool {
 		log.Println("W! Could not recover offset for file with path", file.Path, err)
 	}
 
-	log.Printf("Starting a new tailer for: %s (offset: %d, whence: %d) for tailer key %s\n", file.Path, offset, whence, file.GetScanKey())
+	if coreconfig.Config.DebugMode {
+		log.Printf("Starting a new tailer for: %s (offset: %d, whence: %d) for tailer key %s\n", file.Path, offset, whence, file.GetScanKey())
+	}
 	err = tailer.Start(offset, whence)
 	if err != nil {
 		log.Println(err)
