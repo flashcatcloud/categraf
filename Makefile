@@ -1,17 +1,37 @@
-.PHONY: start build
+#.SILENT:
+.PHONY: build build-linux build-windows pack
 
-APP = categraf
-VER = 0.1.1
+APP:=categraf
+ROOT:=$(shell pwd -P)
 
-all: build
+GIT_COMMIT:=$(shell git --work-tree ${ROOT}  rev-parse 'HEAD^{commit}')
+_GIT_VERSION:=$(shell git --work-tree ${ROOT} describe --tags --abbrev=14 "${GIT_COMMIT}^{commit}" 2>/dev/null)
+GIT_VERSION:=$(shell echo "${_GIT_VERSION}"| sed "s/-g\([0-9a-f]\{14\}\)$$/+\1/")
+TAR_TAG:=$(shell echo ${GIT_VERSION}| awk -F"-" '{print $$1}')
+BUILD_VERSION:='flashcat.cloud/categraf/config.VERSION=$(GIT_VERSION)'
+LDFLAGS:="-w -s -X $(BUILD_VERSION)"
+
+vendor:
+	GOPROXY=https://goproxy.cn go mod vendor
 
 build:
-	go build -ldflags "-w -s -X flashcat.cloud/categraf/config.Version=$(VER)"
+	echo "Building version $(GIT_VERSION)"
+	go build -ldflags $(LDFLAGS) -o $(APP)
 
-pack:
-	env GOOS=linux GOARCH=amd64 go build -ldflags "-w -s -X flashcat.cloud/categraf/config.VERSION=$(VER)"
-	env GOOS=windows GOARCH=amd64 go build -ldflags "-w -s -X flashcat.cloud/categraf/config.VERSION=$(VER)"
-	rm -rf $(APP)-$(VER).tar.gz
-	rm -rf $(APP)-$(VER).zip
-	tar -zcvf $(APP)-$(VER)-linux-amd64.tar.gz conf $(APP)
-	zip -r $(APP)-$(VER)-windows-amd64.zip conf $(APP).exe
+build-linux:
+	echo "Building version $(GIT_VERSION) for linux"
+	CGO_ENABLE=1 GOOS=linux GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP)
+
+build-windows:
+	echo "Building version $(GIT_VERSION) for windows"
+	 GOOS=windows GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).exe
+
+build-mac:
+	echo "Building version $(GIT_VERSION) for mac"
+	env GOOS=darwin GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).mac
+
+pack:build-linux build-windows
+	rm -rf $(APP)-$(TAR_TAG).tar.gz
+	rm -rf $(APP)-$(TAR_TAG).zip
+	tar -zcvf $(APP)-$(TAR_TAG)-linux-amd64.tar.gz conf $(APP)
+	zip -r $(APP)-$(TAR_TAG)-windows-amd64.zip conf $(APP).exe

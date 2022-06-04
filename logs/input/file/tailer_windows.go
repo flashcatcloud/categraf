@@ -9,6 +9,7 @@
 package file
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -90,7 +91,7 @@ func (t *Tailer) read() (int, error) {
 		return n, nil
 	} else if err != nil {
 		t.file.Source.Status.Error(err)
-		return n, fmt.Error("Err: ", err)
+		return n, fmt.Errorf("Err: %s", err)
 	}
 	return n, nil
 }
