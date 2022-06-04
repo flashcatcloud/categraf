@@ -8,7 +8,7 @@ GIT_COMMIT:=$(shell git --work-tree ${ROOT}  rev-parse 'HEAD^{commit}')
 _GIT_VERSION:=$(shell git --work-tree ${ROOT} describe --tags --abbrev=14 "${GIT_COMMIT}^{commit}" 2>/dev/null)
 GIT_VERSION:=$(shell echo "${_GIT_VERSION}"| sed "s/-g\([0-9a-f]\{14\}\)$$/+\1/")
 TAR_TAG:=$(shell echo ${GIT_VERSION}| awk -F"-" '{print $$1}')
-BUILD_VERSION:='flashcat.cloud/categraf/config.VERSION=$(GIT_VERSION)'
+BUILD_VERSION:='flashcat.cloud/categraf/config.Version=$(GIT_VERSION)'
 LDFLAGS:="-w -s -X $(BUILD_VERSION)"
 
 vendor:
