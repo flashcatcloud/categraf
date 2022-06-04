@@ -42,6 +42,8 @@ import (
 	_ "flashcat.cloud/categraf/inputs/tomcat"
 )
 
+const inputFilePrefix = "input."
+
 type Agent struct {
 	InputFilters map[string]struct{}
 }
@@ -107,7 +109,7 @@ func (a *Agent) startInputs() error {
 		// construct input instance
 		instance := creator()
 		// set configurations for input instance
-		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, "input."+name), instance)
+		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, inputFilePrefix+name), instance)
 
 		if err = instance.Init(); err != nil {
 			if !errors.Is(err, types.ErrInstancesEmpty) {
@@ -145,8 +147,8 @@ func (a *Agent) getInputsByDirs() ([]string, error) {
 
 	names := make([]string, 0, count)
 	for i := 0; i < count; i++ {
-		if strings.HasPrefix(dirs[i], "input.") {
-			names = append(names, dirs[i][6:])
+		if strings.HasPrefix(dirs[i], inputFilePrefix) {
+			names = append(names, dirs[i][len(inputFilePrefix):])
 		}
 	}
 
