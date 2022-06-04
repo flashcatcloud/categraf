@@ -1,4 +1,4 @@
-#.SILENT:
+.SILENT:
 .PHONY: build build-linux build-windows pack
 
 APP:=categraf
@@ -24,11 +24,11 @@ build-linux:
 
 build-windows:
 	echo "Building version $(GIT_VERSION) for windows"
-	 GOOS=windows GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).exe
+	GOOS=windows GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).exe
 
 build-mac:
 	echo "Building version $(GIT_VERSION) for mac"
-	env GOOS=darwin GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).mac
+	GOOS=darwin GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).mac
 
 pack:build-linux build-windows
 	rm -rf $(APP)-$(TAR_TAG).tar.gz
