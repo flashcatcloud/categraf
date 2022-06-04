@@ -1,3 +1,13 @@
+# As of 3.8.0, RabbitMQ ships with built-in Prometheus & Grafana support.
+# Support for Prometheus metric collector ships in the rabbitmq_prometheus plugin.
+# The plugin exposes all RabbitMQ metrics on a dedicated TCP port, in Prometheus text format.
+#
+# enable prometheus plugin:
+# `rabbitmq-plugins enable rabbitmq_prometheus`
+# `curl http://localhost:15692/metrics`
+# 
+# then use categraf prometheus plugin scrape http://localhost:15692/metrics instead of this rabbitmq plugin
+
 # # collect interval
 # interval = 15
 
