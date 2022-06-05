@@ -1,0 +1,41 @@
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+
+snapshot:
+  name_template: '{{ .Tag }}'
+checksum:
+  name_template: 'checksums.txt'
+changelog:
+  skip: true
+
+builds:
+  - id: build
+    main: ./
+    binary: categraf
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
+
+archives:
+  - id: categraf
+    format: tar.gz
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    files:
+      - none*
+
+release:
+  github:
+    owner: flashcatcloud
+    name: categraf
+  name_template: "{{ .ProjectName }}-v{{ .Version }}"
