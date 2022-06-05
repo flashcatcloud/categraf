@@ -28,9 +28,12 @@ builds:
 archives:
   - id: categraf
     format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     files:
-      - none*
+      - conf/*
 
 release:
   github:
