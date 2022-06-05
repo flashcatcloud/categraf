@@ -19,7 +19,7 @@ build:
 
 build-linux:
 	echo "Building version $(GIT_VERSION) for linux"
-	CGO_ENABLE=1 GOOS=linux GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP)
+	GOOS=linux GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP)
 
 build-windows:
 	echo "Building version $(GIT_VERSION) for windows"
