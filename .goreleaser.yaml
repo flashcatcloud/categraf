@@ -38,6 +38,6 @@ archives:
 
 release:
   github:
-    owner: kongfei605 
+    owner: flashcatcloud
     name: categraf
   name_template: "{{ .ProjectName }}-v{{ .Version }}"
