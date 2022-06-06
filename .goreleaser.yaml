@@ -40,4 +40,4 @@ release:
   github:
     owner: flashcatcloud
     name: categraf
-  name_template: "{{ .ProjectName }}-v{{ .Version }}"
+  name_template: "v{{ .Version }}"
