@@ -16,7 +16,6 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/pkg/httpx"
 	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
@@ -87,7 +86,6 @@ type Instance struct {
 	IntervalTimes int64             `toml:"interval_times"`
 
 	Targets         []string        `toml:"targets"`
-	HTTPProxy       string          `toml:"http_proxy"`
 	Interface       string          `toml:"interface"`
 	Method          string          `toml:"method"`
 	FollowRedirects bool            `toml:"follow_redirects"`
@@ -95,6 +93,7 @@ type Instance struct {
 	Password        string          `toml:"password"`
 	Headers         []string        `toml:"headers"`
 	Timeout         config.Duration `toml:"timeout"`
+	config.HTTPProxy
 
 	tls.ClientConfig
 	client httpClient
@@ -157,8 +156,13 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		}
 	}
 
+	proxy, err := ins.Proxy()
+	if err != nil {
+		return nil, err
+	}
+
 	trans := &http.Transport{
-		Proxy:             httpx.GetProxyFunc(ins.HTTPProxy),
+		Proxy:             proxy,
 		DialContext:       dialer.DialContext,
 		DisableKeepAlives: true,
 	}
