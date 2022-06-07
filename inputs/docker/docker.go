@@ -105,6 +105,7 @@ type Instance struct {
 
 	Endpoint                   string   `toml:"endpoint"`
 	GatherServices             bool     `toml:"gather_services"`
+	GatherExtendMemstats       bool     `toml:"gather_extend_memstats"`
 	ContainerIDLabelEnable     bool     `toml:"container_id_label_enable"`
 	ContainerIDLabelShortStyle bool     `toml:"container_id_label_short_style"`
 	PerDeviceInclude           []string `toml:"perdevice_include"`
@@ -353,43 +354,54 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *li
 func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.SafeList, tags map[string]string, ostype string) {
 	// memory
 
-	memstats := []string{
-		// "active_anon",
-		// "active_file",
+	basicMemstats := []string{
 		"cache",
-		// "hierarchical_memory_limit",
-		// "inactive_anon",
-		// "inactive_file",
-		// "mapped_file",
-		// "pgfault",
-		// "pgmajfault",
-		// "pgpgin",
-		// "pgpgout",
 		"rss",
-		// "rss_huge",
-		// "total_active_anon",
-		// "total_active_file",
 		"total_cache",
-		// "total_inactive_anon",
-		// "total_inactive_file",
-		// "total_mapped_file",
-		// "total_pgfault",
-		// "total_pgmajfault",
-		// "total_pgpgin",
-		// "total_pgpgout",
 		"total_rss",
-		// "total_rss_huge",
-		// "total_unevictable",
-		// "total_writeback",
-		// "unevictable",
-		// "writeback",
+	}
+
+	extendMemstats := []string{
+		"active_anon",
+		"active_file",
+		"hierarchical_memory_limit",
+		"inactive_anon",
+		"inactive_file",
+		"mapped_file",
+		"pgfault",
+		"pgmajfault",
+		"pgpgin",
+		"pgpgout",
+		"rss_huge",
+		"total_active_anon",
+		"total_active_file",
+		"total_inactive_anon",
+		"total_inactive_file",
+		"total_mapped_file",
+		"total_pgfault",
+		"total_pgmajfault",
+		"total_pgpgin",
+		"total_pgpgout",
+		"total_rss_huge",
+		"total_unevictable",
+		"total_writeback",
+		"unevictable",
+		"writeback",
 	}
 
 	memfields := map[string]interface{}{}
 
-	for _, field := range memstats {
+	for _, field := range basicMemstats {
 		if value, ok := stat.MemoryStats.Stats[field]; ok {
 			memfields["docker_container_mem_"+field] = value
+		}
+	}
+
+	if ins.GatherExtendMemstats {
+		for _, field := range extendMemstats {
+			if value, ok := stat.MemoryStats.Stats[field]; ok {
+				memfields["docker_container_mem_"+field] = value
+			}
 		}
 	}
 

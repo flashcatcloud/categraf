@@ -15,6 +15,7 @@ endpoint = "unix:///var/run/docker.sock"
 
 ## Set to true to collect Swarm metrics(desired_replicas, running_replicas)
 gather_services = false
+gather_extend_memstats = false
 
 container_id_label_enable = true
 container_id_label_short_style = true
