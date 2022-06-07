@@ -319,8 +319,6 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *li
 		}
 	}
 
-	tags["container_id"] = container.ID
-
 	statefields := make(map[string]interface{})
 	finished, err := time.Parse(time.RFC3339, info.State.FinishedAt)
 	if err == nil && !finished.IsZero() {
