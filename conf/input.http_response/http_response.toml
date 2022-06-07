@@ -47,6 +47,7 @@ targets = [
 # expect_response_status_code = 0
 
 ## Optional TLS Config
+# use_tls = false
 # tls_ca = "/etc/categraf/ca.pem"
 # tls_cert = "/etc/categraf/cert.pem"
 # tls_key = "/etc/categraf/key.pem"

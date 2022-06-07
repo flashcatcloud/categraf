@@ -10,6 +10,8 @@ TAR_TAG:=$(shell echo ${GIT_VERSION}| awk -F"-" '{print $$1}')
 BUILD_VERSION:='flashcat.cloud/categraf/config.Version=$(GIT_VERSION)'
 LDFLAGS:="-w -s -X $(BUILD_VERSION)"
 
+all: build
+
 vendor:
 	GOPROXY=https://goproxy.cn go mod vendor
 
