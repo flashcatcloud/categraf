@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -102,18 +103,19 @@ type Instance struct {
 	Labels        map[string]string `toml:"labels"`
 	IntervalTimes int64             `toml:"interval_times"`
 
-	Endpoint              string   `toml:"endpoint"`
-	GatherServices        bool     `toml:"gather_services"`
-	IncludeSourceTag      bool     `toml:"source_tag"`
-	PerDeviceInclude      []string `toml:"perdevice_include"`
-	TotalInclude          []string `toml:"total_include"`
-	TagEnvironment        []string `toml:"tag_env"`
-	LabelInclude          []string `toml:"docker_label_include"`
-	LabelExclude          []string `toml:"docker_label_exclude"`
-	ContainerInclude      []string `toml:"container_name_include"`
-	ContainerExclude      []string `toml:"container_name_exclude"`
-	ContainerStateInclude []string `toml:"container_state_include"`
-	ContainerStateExclude []string `toml:"container_state_exclude"`
+	Endpoint                   string   `toml:"endpoint"`
+	GatherServices             bool     `toml:"gather_services"`
+	ContainerIDLabelEnable     bool     `toml:"container_id_label_enable"`
+	ContainerIDLabelShortStyle bool     `toml:"container_id_label_short_style"`
+	PerDeviceInclude           []string `toml:"perdevice_include"`
+	TotalInclude               []string `toml:"total_include"`
+	TagEnvironment             []string `toml:"tag_env"`
+	LabelInclude               []string `toml:"docker_label_include"`
+	LabelExclude               []string `toml:"docker_label_exclude"`
+	ContainerInclude           []string `toml:"container_name_include"`
+	ContainerExclude           []string `toml:"container_name_exclude"`
+	ContainerStateInclude      []string `toml:"container_state_include"`
+	ContainerStateExclude      []string `toml:"container_state_exclude"`
 
 	Timeout config.Duration
 	tlsx.ClientConfig
@@ -158,6 +160,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 	if ins.client == nil {
 		c, err := ins.getNewClient()
 		if err != nil {
+			slist.PushFront(inputs.NewSample("docker_up", 0, ins.Labels))
 			log.Println("E! failed to new docker client:", err)
 			return
 		}
@@ -166,7 +169,13 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 
 	defer ins.client.Close()
 
-	ins.gatherInfo(slist)
+	if err := ins.gatherInfo(slist); err != nil {
+		slist.PushFront(inputs.NewSample("docker_up", 0, ins.Labels))
+		log.Println("E! failed to gather docker info:", err)
+		return
+	}
+
+	slist.PushFront(inputs.NewSample("docker_up", 1, ins.Labels))
 
 	if ins.GatherServices {
 		ins.gatherSwarmInfo(slist)
@@ -240,8 +249,11 @@ func (ins *Instance) gatherContainer(container types.Container, slist *list.Safe
 		// "container_version": imageVersion,
 	}
 
-	if ins.IncludeSourceTag {
-		tags["source"] = hostnameFromID(container.ID)
+	if ins.ContainerIDLabelEnable {
+		tags["container_id"] = container.ID
+		if ins.ContainerIDLabelShortStyle {
+			tags["container_id"] = hostnameFromID(container.ID)
+		}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
@@ -667,19 +679,17 @@ func (ins *Instance) gatherSwarmInfo(slist *list.SafeList) {
 	}
 }
 
-func (ins *Instance) gatherInfo(slist *list.SafeList) {
+func (ins *Instance) gatherInfo(slist *list.SafeList) error {
 	// Get info from docker daemon
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
 	defer cancel()
 
 	info, err := ins.client.Info(ctx)
 	if err == context.DeadlineExceeded {
-		log.Println("E! failed to gather docker info: timeout")
-		return
+		return errors.New("timeout")
 	}
 	if err != nil {
-		log.Println("E! failed to gather docker info:", err)
-		return
+		return err
 	}
 
 	fields := map[string]interface{}{
@@ -694,6 +704,7 @@ func (ins *Instance) gatherInfo(slist *list.SafeList) {
 	}
 
 	inputs.PushSamples(slist, fields, ins.Labels)
+	return nil
 }
 
 func (ins *Instance) getNewClient() (Client, error) {
