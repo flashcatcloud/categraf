@@ -234,12 +234,12 @@ func (ins *Instance) gatherContainer(container types.Container, slist *list.Safe
 		return
 	}
 
-	imageName, imageVersion := dock.ParseImage(container.Image)
+	imageName, _ := dock.ParseImage(container.Image)
 
 	tags := map[string]string{
-		"container_name":    cname,
-		"container_image":   imageName,
-		"container_version": imageVersion,
+		"container_name":  cname,
+		"container_image": imageName,
+		// "container_version": imageVersion,
 	}
 
 	if ins.IncludeSourceTag {
