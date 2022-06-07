@@ -309,6 +309,8 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *li
 		}
 	}
 
+	tags["container_id"] = container.ID
+
 	statefields := make(map[string]interface{})
 	finished, err := time.Parse(time.RFC3339, info.State.FinishedAt)
 	if err == nil && !finished.IsZero() {
@@ -335,14 +337,12 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *li
 		slist.PushFront(inputs.NewSample("docker_container_health_failing_streak", info.ContainerJSONBase.State.Health.FailingStreak, tags, ins.Labels))
 	}
 
-	ins.parseContainerStats(v, slist, tags, container.ID, daemonOSType)
+	ins.parseContainerStats(v, slist, tags, daemonOSType)
 
 	return nil
 }
 
-func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.SafeList, tags map[string]string, id, ostype string) {
-	idtags := map[string]string{"container_id": id}
-
+func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.SafeList, tags map[string]string, ostype string) {
 	// memory
 
 	// memstats := []string{
@@ -403,7 +403,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 		memfields["docker_container_mem_private_working_set"] = stat.MemoryStats.PrivateWorkingSet
 	}
 
-	inputs.PushSamples(slist, memfields, idtags, tags, ins.Labels)
+	inputs.PushSamples(slist, memfields, tags, ins.Labels)
 
 	// cpu
 
@@ -428,7 +428,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 			cpufields["docker_container_cpu_usage_percent"] = cpuPercent
 		}
 
-		inputs.PushSamples(slist, cpufields, map[string]string{"cpu": "cpu-total"}, idtags, tags, ins.Labels)
+		inputs.PushSamples(slist, cpufields, map[string]string{"cpu": "cpu-total"}, tags, ins.Labels)
 	}
 
 	if choice.Contains("cpu", ins.PerDeviceInclude) && len(stat.CPUStats.CPUUsage.PercpuUsage) > 0 {
@@ -444,7 +444,6 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 				"docker_container_cpu_usage_total",
 				percpu,
 				map[string]string{"cpu": fmt.Sprintf("cpu%d", i)},
-				idtags,
 				tags,
 				ins.Labels,
 			))
@@ -467,7 +466,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 		}
 
 		if choice.Contains("network", ins.PerDeviceInclude) {
-			inputs.PushSamples(slist, netfields, map[string]string{"network": network}, idtags, tags, ins.Labels)
+			inputs.PushSamples(slist, netfields, map[string]string{"network": network}, tags, ins.Labels)
 		}
 
 		if choice.Contains("network", ins.TotalInclude) {
@@ -494,15 +493,13 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 
 	// totalNetworkStatMap could be empty if container is running with --net=host.
 	if choice.Contains("network", ins.TotalInclude) && len(totalNetworkStatMap) != 0 {
-		inputs.PushSamples(slist, totalNetworkStatMap, map[string]string{"network": "total"}, idtags, tags, ins.Labels)
+		inputs.PushSamples(slist, totalNetworkStatMap, map[string]string{"network": "total"}, tags, ins.Labels)
 	}
 
-	ins.gatherBlockIOMetrics(slist, stat, tags, id)
+	ins.gatherBlockIOMetrics(slist, stat, tags)
 }
 
-func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.StatsJSON, tags map[string]string, id string) {
-	idtags := map[string]string{"container_id": id}
-
+func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.StatsJSON, tags map[string]string) {
 	perDeviceBlkio := choice.Contains("blkio", ins.PerDeviceInclude)
 	totalBlkio := choice.Contains("blkio", ins.TotalInclude)
 
@@ -512,7 +509,7 @@ func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.Stat
 	totalStatMap := make(map[string]interface{})
 	for device, fields := range deviceStatMap {
 		if perDeviceBlkio {
-			inputs.PushSamples(slist, fields, map[string]string{"device": device}, idtags, tags, ins.Labels)
+			inputs.PushSamples(slist, fields, map[string]string{"device": device}, tags, ins.Labels)
 		}
 		if totalBlkio {
 			for field, value := range fields {
@@ -537,7 +534,7 @@ func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.Stat
 	}
 
 	if totalBlkio {
-		inputs.PushSamples(slist, totalStatMap, map[string]string{"device": "total"}, idtags, tags, ins.Labels)
+		inputs.PushSamples(slist, totalStatMap, map[string]string{"device": "total"}, tags, ins.Labels)
 	}
 }
 
@@ -695,6 +692,7 @@ func (ins *Instance) gatherInfo(slist *list.SafeList) {
 		"docker_n_containers_stopped":    info.ContainersStopped,
 		"docker_n_containers_paused":     info.ContainersPaused,
 		"docker_n_images":                info.Images,
+		"docker_memory_total":            info.MemTotal,
 	}
 
 	inputs.PushSamples(slist, fields, ins.Labels)
