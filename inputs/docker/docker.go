@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -38,7 +37,7 @@ const (
 )
 
 var (
-	sizeRegex              = regexp.MustCompile(`^(\d+(\.\d+)*) ?([kKmMgGtTpP])?[bB]?$`)
+	// sizeRegex              = regexp.MustCompile(`^(\d+(\.\d+)*) ?([kKmMgGtTpP])?[bB]?$`)
 	containerStates        = []string{"created", "restarting", "running", "removing", "paused", "exited", "dead"}
 	containerMetricClasses = []string{"cpu", "network", "blkio"}
 )
@@ -345,45 +344,45 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *li
 func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.SafeList, tags map[string]string, ostype string) {
 	// memory
 
-	// memstats := []string{
-	// 	"active_anon",
-	// 	"active_file",
-	// 	"cache",
-	// 	"hierarchical_memory_limit",
-	// 	"inactive_anon",
-	// 	"inactive_file",
-	// 	"mapped_file",
-	// 	"pgfault",
-	// 	"pgmajfault",
-	// 	"pgpgin",
-	// 	"pgpgout",
-	// 	"rss",
-	// 	"rss_huge",
-	// 	"total_active_anon",
-	// 	"total_active_file",
-	// 	"total_cache",
-	// 	"total_inactive_anon",
-	// 	"total_inactive_file",
-	// 	"total_mapped_file",
-	// 	"total_pgfault",
-	// 	"total_pgmajfault",
-	// 	"total_pgpgin",
-	// 	"total_pgpgout",
-	// 	"total_rss",
-	// 	"total_rss_huge",
-	// 	"total_unevictable",
-	// 	"total_writeback",
-	// 	"unevictable",
-	// 	"writeback",
-	// }
+	memstats := []string{
+		// "active_anon",
+		// "active_file",
+		"cache",
+		// "hierarchical_memory_limit",
+		// "inactive_anon",
+		// "inactive_file",
+		// "mapped_file",
+		// "pgfault",
+		// "pgmajfault",
+		// "pgpgin",
+		// "pgpgout",
+		"rss",
+		// "rss_huge",
+		// "total_active_anon",
+		// "total_active_file",
+		"total_cache",
+		// "total_inactive_anon",
+		// "total_inactive_file",
+		// "total_mapped_file",
+		// "total_pgfault",
+		// "total_pgmajfault",
+		// "total_pgpgin",
+		// "total_pgpgout",
+		"total_rss",
+		// "total_rss_huge",
+		// "total_unevictable",
+		// "total_writeback",
+		// "unevictable",
+		// "writeback",
+	}
 
 	memfields := map[string]interface{}{}
 
-	// for _, field := range memstats {
-	// 	if value, ok := stat.MemoryStats.Stats[field]; ok {
-	// 		memfields["docker_container_mem_"+field] = value
-	// 	}
-	// }
+	for _, field := range memstats {
+		if value, ok := stat.MemoryStats.Stats[field]; ok {
+			memfields["docker_container_mem_"+field] = value
+		}
+	}
 
 	if stat.MemoryStats.Failcnt != 0 {
 		memfields["docker_container_mem_fail_count"] = stat.MemoryStats.Failcnt
