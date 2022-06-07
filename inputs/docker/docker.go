@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -748,22 +747,22 @@ func hostnameFromID(id string) string {
 }
 
 // Parses the human-readable size string into the amount it represents.
-func parseSize(sizeStr string) (int64, error) {
-	matches := sizeRegex.FindStringSubmatch(sizeStr)
-	if len(matches) != 4 {
-		return -1, fmt.Errorf("invalid size: %s", sizeStr)
-	}
+// func parseSize(sizeStr string) (int64, error) {
+// 	matches := sizeRegex.FindStringSubmatch(sizeStr)
+// 	if len(matches) != 4 {
+// 		return -1, fmt.Errorf("invalid size: %s", sizeStr)
+// 	}
 
-	size, err := strconv.ParseFloat(matches[1], 64)
-	if err != nil {
-		return -1, err
-	}
+// 	size, err := strconv.ParseFloat(matches[1], 64)
+// 	if err != nil {
+// 		return -1, err
+// 	}
 
-	uMap := map[string]int64{"k": KB, "m": MB, "g": GB, "t": TB, "p": PB}
-	unitPrefix := strings.ToLower(matches[3])
-	if mul, ok := uMap[unitPrefix]; ok {
-		size *= float64(mul)
-	}
+// 	uMap := map[string]int64{"k": KB, "m": MB, "g": GB, "t": TB, "p": PB}
+// 	unitPrefix := strings.ToLower(matches[3])
+// 	if mul, ok := uMap[unitPrefix]; ok {
+// 		size *= float64(mul)
+// 	}
 
-	return int64(size), nil
-}
+// 	return int64(size), nil
+// }
