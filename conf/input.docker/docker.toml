@@ -16,9 +16,6 @@ endpoint = "unix:///var/run/docker.sock"
 ## Set to true to collect Swarm metrics(desired_replicas, running_replicas)
 gather_services = false
 
-## Set the source tag for the metrics to the container ID hostname, eg first 12 chars
-source_tag = false
-
 ## Containers to include and exclude. Globs accepted.
 ## Note that an empty array for both will include all containers
 container_name_include = []
