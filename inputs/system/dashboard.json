@@ -70,7 +70,7 @@
               "targets": [
                   {
                       "refId": "A",
-                      "expr": "topk(10, (100-mem_used_percent))"
+                      "expr": "topk(10, (mem_used_percent))"
                   }
               ],
               "name": "内存率 top10",

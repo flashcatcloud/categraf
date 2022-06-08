@@ -7,10 +7,10 @@ package diagnostic
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/message"
 )
@@ -137,10 +137,7 @@ func shouldHandleMessage(m *message.Message, filters *Filters) bool {
 }
 
 func formatMessage(m *message.Message, redactedMsg []byte) string {
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "unknown"
-	}
+	hostname := coreconfig.Config.GetHostname()
 
 	ts := time.Now().UTC()
 	if !m.Timestamp.IsZero() {

@@ -34,7 +34,7 @@ type Log struct {
 	Status    string `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	Timestamp int64  `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// from host
-	Hostname string `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Hostname string `protobuf:"bytes,4,opt,name=agent_hostname,proto3" json:"hostname,omitempty"`
 	// from config
 	Service string `protobuf:"bytes,5,opt,name=service,proto3" json:"service,omitempty"`
 	Source  string `protobuf:"bytes,6,opt,name=source,proto3" json:"source,omitempty"`
