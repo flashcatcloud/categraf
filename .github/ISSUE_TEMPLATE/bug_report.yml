@@ -1,14 +1,13 @@
----
 name: Bug report
-about: Report a bug encountered while running categraf
+description: Report a bug encountered while running categraf
 title: ''
-labels: kind/bug
+labels: ["kind/bug"]
 assignees: ''
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking time to fill out this bug report! We reserve categraf issues for bugs for reproducible problems.
+        Thanks for taking time to fill out this bug report! 
         Please redirect any questions about categraf usage to our [Wechat Group]() we have a lot of talented community members there who could help answer your question more quickly.
   - type: textarea
     id: config
