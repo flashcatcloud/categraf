@@ -4,12 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"path"
 	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/pkg/cfg"
 	"github.com/toolkits/pkg/file"
+)
+
+var envVarEscaper = strings.NewReplacer(
+	`"`, `\"`,
+	`\`, `\\`,
 )
 
 type Global struct {
@@ -108,8 +114,14 @@ func (c *ConfigType) GetHostname() string {
 
 	ret = strings.Replace(ret, "$hostname", name, -1)
 	ret = strings.Replace(ret, "$ip", c.Global.IP, -1)
+	ret = os.Expand(ret, getEnv)
 
 	return ret
+}
+
+func getEnv(key string) string {
+	v := os.Getenv(key)
+	return envVarEscaper.Replace(v)
 }
 
 func GetInterval() time.Duration {
