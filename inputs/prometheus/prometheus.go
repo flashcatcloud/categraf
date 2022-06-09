@@ -1,7 +1,6 @@
 package prometheus
 
 import (
-	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -26,6 +25,7 @@ const acceptHeader = `application/vnd.google.protobuf;proto=io.prometheus.client
 
 type Instance struct {
 	URLs              []string          `toml:"urls"`
+	ConsulConfig      ConsulConfig      `toml:"consul"`
 	NamePrefix        string            `toml:"name_prefix"`
 	Labels            map[string]string `toml:"labels"`
 	IntervalTimes     int64             `toml:"interval_times"`
@@ -45,8 +45,15 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
-	if len(ins.URLs) == 0 {
-		return errors.New("urls is empty")
+	if ins.ConsulConfig.Enabled {
+		if len(ins.ConsulConfig.Queries) == 0 {
+			return types.ErrInstancesEmpty
+		}
+		if err := ins.InitConsulClient(); err != nil {
+			return err
+		}
+	} else if len(ins.URLs) == 0 {
+		return types.ErrInstancesEmpty
 	}
 
 	if ins.Timeout <= 0 {
@@ -100,8 +107,8 @@ type Prometheus struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
 
-	Counter uint64
-	wg      sync.WaitGroup
+	counter uint64
+	waitgrp sync.WaitGroup
 }
 
 func init() {
@@ -131,42 +138,61 @@ func (p *Prometheus) Init() error {
 func (p *Prometheus) Drop() {}
 
 func (p *Prometheus) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&p.Counter, 1)
+	atomic.AddUint64(&p.counter, 1)
+
 	for i := range p.Instances {
 		ins := p.Instances[i]
-		p.wg.Add(1)
-		go p.gatherOnce(slist, ins)
+
+		p.waitgrp.Add(1)
+		go func(slist *list.SafeList, ins *Instance) {
+			defer p.waitgrp.Done()
+
+			if ins.IntervalTimes > 0 {
+				counter := atomic.LoadUint64(&p.counter)
+				if counter%uint64(ins.IntervalTimes) != 0 {
+					return
+				}
+			}
+
+			p.gatherOnce(slist, ins)
+		}(slist, ins)
 	}
-	p.wg.Wait()
+
+	p.waitgrp.Wait()
 }
 
 func (p *Prometheus) gatherOnce(slist *list.SafeList, ins *Instance) {
-	defer p.wg.Done()
-
-	if ins.IntervalTimes > 0 {
-		counter := atomic.LoadUint64(&p.Counter)
-		if counter%uint64(ins.IntervalTimes) != 0 {
-			return
-		}
-	}
-
 	urlwg := new(sync.WaitGroup)
 	defer urlwg.Wait()
 
 	for i := 0; i < len(ins.URLs); i++ {
+		u, err := url.Parse(ins.URLs[i])
+		if err != nil {
+			log.Println("E! failed to parse prometheus scrape url:", ins.URLs[i], "error:", err)
+			continue
+		}
+
 		urlwg.Add(1)
-		go p.gatherUrl(slist, ins, ins.URLs[i], urlwg)
+
+		go p.gatherUrl(urlwg, slist, ins, ScrapeUrl{URL: u, Tags: map[string]string{}})
+	}
+
+	urls, err := ins.UrlsFromConsul()
+	if err != nil {
+		log.Println("E! failed to query urls from consul:", err)
+		return
+	}
+
+	for i := 0; i < len(urls); i++ {
+		urlwg.Add(1)
+		go p.gatherUrl(urlwg, slist, ins, urls[i])
 	}
 }
 
-func (p *Prometheus) gatherUrl(slist *list.SafeList, ins *Instance, uri string, urlwg *sync.WaitGroup) {
+func (p *Prometheus) gatherUrl(urlwg *sync.WaitGroup, slist *list.SafeList, ins *Instance, uri ScrapeUrl) {
 	defer urlwg.Done()
 
-	u, err := url.Parse(uri)
-	if err != nil {
-		log.Println("E! failed to parse url:", uri, "error:", err)
-		return
-	}
+	u := uri.URL
 
 	if u.Path == "" {
 		u.Path = "/metrics"
@@ -182,6 +208,10 @@ func (p *Prometheus) gatherUrl(slist *list.SafeList, ins *Instance, uri string, 
 
 	labels := map[string]string{"url": u.String()}
 	for key, val := range ins.Labels {
+		labels[key] = val
+	}
+
+	for key, val := range uri.Tags {
 		labels[key] = val
 	}
 

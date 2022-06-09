@@ -2,4 +2,4 @@
 .vscode
 /categraf*
 *.log
-vendor
+/vendor
