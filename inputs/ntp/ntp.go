@@ -1,12 +1,12 @@
 package ntp
 
 import (
-	"errors"
 	"log"
 	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 	"github.com/toolkits/pkg/nux"
 )
@@ -33,7 +33,7 @@ func (n *NTPStat) Drop() {}
 
 func (n *NTPStat) Init() error {
 	if len(n.NTPServers) == 0 {
-		return errors.New("ntp servers empty")
+		return types.ErrInstancesEmpty
 	}
 	return nil
 }

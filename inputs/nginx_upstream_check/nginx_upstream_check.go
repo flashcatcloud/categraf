@@ -2,7 +2,6 @@ package nginx_upstream_check
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -113,7 +112,7 @@ func (ins *Instance) Init() error {
 	}
 
 	if len(ins.Targets) == 0 {
-		return errors.New("nginx_upstream_check targets empty")
+		return types.ErrInstancesEmpty
 	}
 
 	client, err := ins.createHTTPClient()
