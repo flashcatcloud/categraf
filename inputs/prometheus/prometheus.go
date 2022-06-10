@@ -38,6 +38,8 @@ type Instance struct {
 	IgnoreLabelKeys   []string          `toml:"ignore_label_keys"`
 	Headers           []string          `toml:"headers"`
 
+	config.UrlLabel
+
 	ignoreMetricsFilter   filter.Filter
 	ignoreLabelKeysFilter filter.Filter
 	tls.ClientConfig
@@ -79,6 +81,10 @@ func (ins *Instance) Init() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if err := ins.PrepareUrlTemplate(); err != nil {
+		return err
 	}
 
 	return nil
@@ -206,7 +212,16 @@ func (p *Prometheus) gatherUrl(urlwg *sync.WaitGroup, slist *list.SafeList, ins 
 
 	ins.setHeaders(req)
 
-	labels := map[string]string{"url": u.String()}
+	labels := map[string]string{}
+
+	urlKey, urlVal, err := ins.GenerateLabel(u)
+	if err != nil {
+		log.Println("E! failed to generate url label value:", err)
+		return
+	}
+
+	labels[urlKey] = urlVal
+
 	for key, val := range ins.Labels {
 		labels[key] = val
 	}

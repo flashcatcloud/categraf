@@ -6,6 +6,9 @@
 #     "http://localhost:9104/metrics"
 # ]
 
+url_label_key = "instance"
+url_label_value = "{{.Host}}"
+
 ## Scrape Services available in Consul Catalog
 [instances.consul]
   enabled = false
