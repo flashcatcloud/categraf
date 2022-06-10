@@ -25,8 +25,8 @@ type jsonPayload struct {
 	Message   string `json:"message"`
 	Status    string `json:"status"`
 	Timestamp int64  `json:"timestamp"`
-	Hostname  string `json:"hostname"`
-	Service   string `json:"service"`
+	Hostname  string `json:"agent_hostname"`
+	Service   string `json:"fcservice"`
 	Source    string `json:"fcsource"`
 	Tags      string `json:"fctags"`
 }

@@ -19,17 +19,17 @@ run_path = "/opt/categraf/run"
 open_files_limit = 100
 ## 定期扫描目录下是否有新增日志
 scan_period = 10
-##
-frame_size = 10
+## udp 读buffer的大小
+frame_size = 9000
 ##
 collect_container_all = true
   ## 全局的处理规则
   [[logs.Processing_rules]]
   ## 单个日志采集配置
   [[logs.items]]
-  ## file/journald
+  ## file/journald/tcp/udp
   type = "file"
-  ## type=file时 path必填，type=journald时 port必填
+  ## type=file时 path必填，type=journald/tcp/udp时 port必填
   path = "/opt/tomcat/logs/*.txt"
   source = "tomcat"
   service = "my_service"
