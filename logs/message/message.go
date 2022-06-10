@@ -6,9 +6,9 @@
 package message
 
 import (
-	"os"
 	"time"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 )
 
@@ -78,14 +78,5 @@ func (m *Message) GetLatency() int64 {
 
 // GetHostname returns the hostname to applied the given log message
 func (m *Message) GetHostname() string {
-	if m.Lambda != nil {
-		return m.Lambda.ARN
-	}
-	hostname, err := os.Hostname()
-	if err != nil {
-		// this scenario is not likely to happen since
-		// the agent cannot start without a hostname
-		hostname = "unknown"
-	}
-	return hostname
+	return coreconfig.Config.GetHostname()
 }
