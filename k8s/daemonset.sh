@@ -7,20 +7,22 @@ else
 	dry_run_params=""
 fi
 
+target="input.cpu input.disk input.diskio input.docker input.kernel input.kernel_vmstat input.linux_sysctl_fs input.mem input.net input.netstat input.processes input.system"
+
 function install() {
   #config.toml
-  kubectl create cm categraf-config -n $namespace --from-literal=config.toml=../conf/config.toml --from-literal=logs.toml=../conf/logs.toml ${dry_run_params}
+  kubectl create cm categraf-config -n $namespace --from-file=../conf/config.toml --from-file=../conf/logs.toml ${dry_run_params}
   
   #input.xxx
-  for dir in $(find ../conf/ -maxdepth 1 -type d ! -path "../conf/" )
+  for dir in $(echo $target | sed 's/ /\n/g')
   do
-  	name=$(echo $dir |  sed -e 's/..\/conf\///g' -e 's/\./-/g' -e 's/_/\-/g' -e 's/ //g')
-  	relative=$(echo $dir | sed -e 's/\.\.\///g' -e 's/ //g')
-  	kubectl create cm $name -n $namespace --from-file=$dir ${dry_run_params}
+  	name=$(echo $dir |  sed -e 's/\./-/g' -e 's/_/\-/g' -e 's/ //g')
+  	relative=$(echo $dir | sed -e 's/ //g')
+  	kubectl create cm $name -n $namespace --from-file=../conf/$dir ${dry_run_params}
   	if [[ "X$mount" == "X" ]] ; then
-  	   mount=$(echo "        - mountPath: /etc/categraf/$relative\n          name: $name")
+  	   mount=$(echo "        - mountPath: /etc/categraf/conf/$relative\n          name: $name")
   	else 
-  	   mount=$(echo "$mount\n        - mountPath: /etc/categraf/$relative\n          name: $name")
+  	   mount=$(echo "$mount\n        - mountPath: /etc/categraf/conf/$relative\n          name: $name")
   	fi
   	if [[ "X$volume" == "X" ]]; then
   	   volume=$(echo "      - name: $name\n        configMap:\n          name: $name")
@@ -38,12 +40,28 @@ function uninstall() {
   # config.toml
   kubectl delete cm categraf-config -n $namespace ${dry_run_params}
   # input.xxx
-  for dir in $(find ../conf/ -maxdepth 1 -type d ! -path "../conf/" )
+  for dir in $(echo $target | sed 's/ /\n/g')
   do
-    kubectl delete cm $name -n $namespace
+    name=$(echo $dir |  sed -e 's/\./-/g' -e 's/_/\-/g' -e 's/ //g')
+    kubectl delete cm -n $namespace $name ${dry_run_params}
   done
   # daemonset
-  kubectl delete ds -n $namespace nightingale-categraf
+  kubectl delete ds -n $namespace nightingale-categraf ${dry_run_params}
+
+}
+
+function exp() {
+  echo "" > categraf.yaml
+  # config.toml
+  kubectl get cm categraf-config -n $namespace -o yaml | sed -e '/creationTimestamp:/d' -e '/namespace:/d' -e '/resourceVersion:/d' -e '/uid:/d' >> categraf.yaml
+  # input.xxx
+  for dir in $(echo $target | sed 's/ /\n/g')
+  do
+    name=$(echo $dir |  sed -e 's/\./-/g' -e 's/_/\-/g' -e 's/ //g')
+    kubectl get cm -n $namespace $name -o yaml >> categraf.yaml
+  done
+  # daemonset
+  kubectl get ds -n $namespace nightingale-categraf -o yaml >> categraf.yaml 
 
 }
 
@@ -62,7 +80,11 @@ case $action in
     "uninstall" )
         uninstall
         ;;
+    "export" )
+        exp
+        ;;
     * )
         usage
         ;;
 esac
+

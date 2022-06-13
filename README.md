@@ -21,9 +21,9 @@ go build
 ## Deploy categraf as daemonset
 
 ```shell
-edit k8s/damonset.sh and set namespace (default test) and dry_run to false, then
+edit k8s/categraf.yaml, replace NSERVER_SERVICE_WITH_PORT with service ip:port of nserver in your cluster, run:
 
-cd k8s && sh daemonset.sh install
+kubectl apply -n monitoring -f ks8/categraf.yaml
 ```
 
 ## Test
