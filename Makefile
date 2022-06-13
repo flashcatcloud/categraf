@@ -5,8 +5,8 @@ APP:=categraf
 ROOT:=$(shell pwd -P)
 GIT_COMMIT:=$(shell git --work-tree ${ROOT}  rev-parse 'HEAD^{commit}')
 _GIT_VERSION:=$(shell git --work-tree ${ROOT} describe --tags --abbrev=14 "${GIT_COMMIT}^{commit}" 2>/dev/null)
-GIT_VERSION:=$(shell echo "${_GIT_VERSION}"| sed "s/-g\([0-9a-f]\{14\}\)$$/+\1/")
-TAR_TAG:=$(shell echo ${GIT_VERSION}| awk -F"-" '{print $$1}')
+TAG=$(shell echo "${_GIT_VERSION}" |  awk -F"-" '{print $$1}')
+GIT_VERSION:="$(TAG)-$(GIT_COMMIT)"
 BUILD_VERSION:='flashcat.cloud/categraf/config.Version=$(GIT_VERSION)'
 LDFLAGS:="-w -s -X $(BUILD_VERSION)"
 
@@ -18,6 +18,7 @@ vendor:
 build:
 	echo "Building version $(GIT_VERSION)"
 	go build -ldflags $(LDFLAGS) -o $(APP)
+
 
 build-linux:
 	echo "Building version $(GIT_VERSION) for linux"
@@ -31,8 +32,12 @@ build-mac:
 	echo "Building version $(GIT_VERSION) for mac"
 	GOOS=darwin GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).mac
 
+build-image: build-linux
+	echo "Building image flashcatcloud/categraf:$(TAG)"
+	cp -f categraf docker/ && cd docker && docker build -t flashcatcloud/categraf:$(TAG) .
+
 pack:build-linux build-windows
-	rm -rf $(APP)-$(TAR_TAG).tar.gz
-	rm -rf $(APP)-$(TAR_TAG).zip
-	tar -zcvf $(APP)-$(TAR_TAG)-linux-amd64.tar.gz conf $(APP)
-	zip -r $(APP)-$(TAR_TAG)-windows-amd64.zip conf $(APP).exe
+	rm -rf $(APP)-$(TAG).tar.gz
+	rm -rf $(APP)-$(TAG).zip
+	tar -zcvf $(APP)-$(TAG)-linux-amd64.tar.gz conf $(APP)
+	zip -r $(APP)-$(TAG)-windows-amd64.zip conf $(APP).exe
