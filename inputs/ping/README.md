@@ -1,4 +1,24 @@
-### File Limit
+# ping
+
+ping 监控插件，探测远端目标地址能否 ping 通，如果机器没有禁 ping，这就是一个很好用的探测机器存活的手段
+
+## Configuration
+
+要探测的机器配置到 targets 中，targets 是个数组，可以配置多个，当然也可以拆成多个 `[[instances]]` 配置段，比如：
+
+```
+[[instances]]
+targets = [ "10.4.5.6" ]
+labels = { region="cloud", product="n9e" }
+
+[[instances]]
+targets = [ "10.4.5.7" ]
+labels = { region="cloud", product="zbx" }
+```
+
+上例中是 ping 两个地址，为了信息更丰富，附加了 region 和 product 标签
+
+## File Limit
 
 ```sh
 systemctl edit categraf
@@ -52,5 +72,8 @@ setting capabilities.
 
 When using `method = "native"`, you will need permissions similar to the executable ping program for your OS.
 
+## 监控大盘和告警规则
+
+该 README 的同级目录下，提供了 dashboard.json 就是监控大盘的配置，alerts.json 是告警规则，可以导入夜莺使用。
 
 

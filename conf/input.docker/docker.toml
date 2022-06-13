@@ -18,7 +18,7 @@ gather_services = false
 gather_extend_memstats = false
 
 container_id_label_enable = true
-container_id_label_short_style = true
+container_id_label_short_style = false
 
 ## Containers to include and exclude. Globs accepted.
 ## Note that an empty array for both will include all containers

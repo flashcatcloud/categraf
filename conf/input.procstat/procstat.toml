@@ -20,6 +20,12 @@
 # # mode to use when calculating CPU usage. can be one of 'solaris' or 'irix'
 # mode = "irix"
 
+# sum of threads/fd/io/cpu/mem, min of uptime/limit
+gather_total = true
+
+# will append pid as tag
+gather_per_pid = false
+
 # gather_more_metrics = [
 #     "threads",
 #     "fd",
