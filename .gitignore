@@ -3,3 +3,5 @@
 /categraf*
 *.log
 /vendor
+docker/conf
+docker/categraf
