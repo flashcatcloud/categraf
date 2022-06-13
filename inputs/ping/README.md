@@ -72,5 +72,8 @@ setting capabilities.
 
 When using `method = "native"`, you will need permissions similar to the executable ping program for your OS.
 
+## 监控大盘和告警规则
+
+该 README 的同级目录下，提供了 dashboard.json 就是监控大盘的配置，alerts.json 是告警规则，可以导入夜莺使用。
 
 
