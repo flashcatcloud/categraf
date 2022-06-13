@@ -21,7 +21,7 @@ go build
 ## Deploy categraf as daemonset
 
 ```shell
-edit k8s/damonset.sh and set namespace (default test) and dry_run to false, then
+edit k8s/damonset.sh, set dry_run to false and set namespace (default test), then
 
 cd k8s && sh daemonset.sh install
 ```
