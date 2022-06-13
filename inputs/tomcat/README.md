@@ -42,3 +42,7 @@ password = "s3cret"
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = true
 ```
+
+## 监控大盘
+
+本 README 文件的同级目录下放置了用于 Tomcat 的 dashboard.json，大家可以导入使用。

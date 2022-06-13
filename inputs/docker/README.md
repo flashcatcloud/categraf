@@ -1,4 +1,4 @@
-# docker plugin
+# docker
 
 forked from telegraf/inputs.docker
 
