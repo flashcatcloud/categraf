@@ -10,6 +10,8 @@ nginx_upstream_check_status_code != 1
 
 ## Configuration
 
+配置文件在 `conf/input.nginx_upstream_check/nginx_upstream_check.toml`
+
 ```toml
 # # collect interval
 # interval = 15
