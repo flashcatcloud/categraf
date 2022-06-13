@@ -46,6 +46,16 @@ func (o *Oracle) parseRow(row map[string]string, metricConf MetricConfig, slist 
 }
 ```
 
+## instantclient
+
+oracle 采集插件需要依赖 [instantclient](https://www.oracle.com/database/technologies/instant-client/downloads.html) ，这是 Oracle 官方提供的lib库，启动 Categraf 之前，要导出 LD_LIBRARY_PATH 环境变量，举例：
+
+```shell
+export LD_LIBRARY_PATH=/opt/oracle/instantclient_21_5
+cd /opt/categraf
+nohup ./categraf &> stdout.log &
+```
+
 ## 监控大盘
 
 本 README 文件的同级目录下，提供了 dashboard.json 就是 Oracle 的监控大盘，可以导入夜莺使用。
