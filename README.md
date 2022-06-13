@@ -18,6 +18,14 @@ Categraf is a monitoring agent for nightingale/prometheus/m3db/victoriametrics/t
 go build
 ```
 
+## Build
+
+```shell
+edit k8s/damonset.sh and set namespace (default test) and dry_run to false, then
+
+cd k8s && sh daemonset.sh install
+```
+
 ## Test
 
 ```shell
