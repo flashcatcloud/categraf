@@ -15,7 +15,7 @@ data:
     # "$hostname" -> auto detect hostname
     # "$ip" -> auto detect ip
     # "$hostname-$ip" -> auto detect hostname and ip to replace the vars
-    hostname = ""
+    hostname = "$HOSTNAME"
 
     # will not add label(agent_hostname) if true
     omit_hostname = false
