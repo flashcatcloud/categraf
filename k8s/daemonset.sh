@@ -59,11 +59,9 @@ function exp() {
   do
     name=$(echo $dir |  sed -e 's/\./-/g' -e 's/_/\-/g' -e 's/ //g')
     kubectl get cm -n $namespace $name -o yaml >> categraf.yaml
-    echo -e "---\n" >> categraf.yaml
   done
   # daemonset
   kubectl get ds -n $namespace nightingale-categraf -o yaml >> categraf.yaml 
-  echo -e "---\n" >> categraf.yaml
 
 }
 
