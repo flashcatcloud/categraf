@@ -102,7 +102,9 @@ func (s *NetIOStats) Gather(slist *list.SafeList) {
 
 		fields := map[string]interface{}{
 			"bytes_sent":   io.BytesSent,
+			"bits_sent":    io.BytesSent * 8,
 			"bytes_recv":   io.BytesRecv,
+			"bits_recv":    io.BytesRecv * 8,
 			"packets_sent": io.PacketsSent,
 			"packets_recv": io.PacketsRecv,
 			"err_in":       io.Errin,
