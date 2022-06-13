@@ -324,6 +324,10 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 	wg.Wait()
 
 	for ip := range result {
+		if result[ip] == nil {
+			continue
+		}
+
 		if result[ip].IP == "" {
 			continue
 		}
