@@ -1,0 +1,586 @@
+---
+kind: ConfigMap
+metadata:
+  name: categraf-config
+apiVersion: v1
+data:
+  config.toml: |
+    [global]
+    # whether print configs
+    print_configs = false
+
+    # add label(agent_hostname) to series
+    # "" -> auto detect hostname
+    # "xx" -> use specified string xx
+    # "$hostname" -> auto detect hostname
+    # "$ip" -> auto detect ip
+    # "$hostname-$ip" -> auto detect hostname and ip to replace the vars
+    hostname = "$HOSTNAME"
+
+    # will not add label(agent_hostname) if true
+    omit_hostname = false
+
+    # s | ms
+    precision = "ms"
+
+    # global collect interval
+    interval = 15
+
+    # [global.labels]
+    # region = "shanghai"
+    # env = "localhost"
+
+    [writer_opt]
+    # default: 2000
+    batch = 2000
+    # channel(as queue) size
+    chan_size = 10000
+
+    [[writers]]
+    url = "http://NSERVER_SERVICE_WITH_PORT/prometheus/v1/write"
+
+    # Basic auth username
+    basic_auth_user = ""
+
+    # Basic auth password
+    basic_auth_pass = ""
+
+    # timeout settings, unit: ms
+    timeout = 5000
+    dial_timeout = 2500
+    max_idle_conns_per_host = 100
+  logs.toml: |
+    [logs]
+    ## key 占位符
+    api_key = "ef4ahfbwzwwtlwfpbertgq1i6mq0ab1q"
+    ## 是否开启日志采集
+    enable = false
+    ## 接受日志的server地址
+    send_to = "127.0.0.1:17878"
+    ## 发送日志的协议 http/tcp
+    send_type = "http"
+    ## 是否压缩发送
+    use_compress = false
+    ## 是否采用ssl
+    send_with_tls = false
+    ##
+    batch_wait = 5
+    ## 日志offset信息保存目录
+    run_path = "/opt/categraf/run"
+    ## 最多同时采集多少个日志文件
+    open_files_limit = 100
+    ## 定期扫描目录下是否有新增日志
+    scan_period = 10
+    ## udp 读buffer的大小
+    frame_size = 9000
+    ##
+    collect_container_all = true
+      ## 全局的处理规则
+      [[logs.Processing_rules]]
+      ## 单个日志采集配置
+      [[logs.items]]
+      ## file/journald/tcp/udp
+      type = "file"
+      ## type=file时 path必填，type=journald/tcp/udp时 port必填
+      path = "/opt/tomcat/logs/*.txt"
+      source = "tomcat"
+      service = "my_service"
+---
+kind: ConfigMap
+metadata:
+  name: input-cpu
+apiVersion: v1
+data:
+  cpu.toml: |
+    # # collect interval
+    # interval = 15
+
+    # # whether collect per cpu
+    # collect_per_cpu = false
+---
+kind: ConfigMap
+metadata:
+  name: input-disk
+apiVersion: v1
+data:
+  disk.toml: |
+    # # collect interval
+    # interval = 15
+
+    # # By default stats will be gathered for all mount points.
+    # # Set mount_points will restrict the stats to only the specified mount points.
+    # mount_points = ["/"]
+
+    # Ignore mount points by filesystem type.
+    ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs"]
+
+    ignore_mount_points = ["/boot"]
+---
+kind: ConfigMap
+metadata:
+  name: input-diskio
+apiVersion: v1
+data:
+  diskio.toml: |-
+    # # collect interval
+    # interval = 15
+
+    # # By default, categraf will gather stats for all devices including disk partitions.
+    # # Setting devices will restrict the stats to the specified devices.
+    # devices = ["sda", "sdb", "vd*"]
+---
+kind: ConfigMap
+metadata:
+  name: input-docker
+apiVersion: v1
+data:
+  docker.toml: |
+    # # collect interval
+    # interval = 15
+
+    [[instances]]
+    # # append some labels for series
+    # labels = { region="cloud", product="n9e" }
+
+    # # interval = global.interval * interval_times
+    # interval_times = 1
+
+    ## Docker Endpoint
+    ##   To use TCP, set endpoint = "tcp://[ip]:[port]"
+    ##   To use environment variables (ie, docker-machine), set endpoint = "ENV"
+    endpoint = "unix:///var/run/docker.sock"
+
+    ## Set to true to collect Swarm metrics(desired_replicas, running_replicas)
+    gather_services = false
+    gather_extend_memstats = false
+
+    container_id_label_enable = true
+    container_id_label_short_style = false
+
+    ## Containers to include and exclude. Globs accepted.
+    ## Note that an empty array for both will include all containers
+    container_name_include = []
+    container_name_exclude = []
+
+    ## Container states to include and exclude. Globs accepted.
+    ## When empty only containers in the "running" state will be captured.
+    ## example: container_state_include = ["created", "restarting", "running", "removing", "paused", "exited", "dead"]
+    ## example: container_state_exclude = ["created", "restarting", "running", "removing", "paused", "exited", "dead"]
+    # container_state_include = []
+    # container_state_exclude = []
+
+    ## Timeout for docker list, info, and stats commands
+    timeout = "5s"
+
+    ## Specifies for which classes a per-device metric should be issued
+    ## Possible values are 'cpu' (cpu0, cpu1, ...), 'blkio' (8:0, 8:1, ...) and 'network' (eth0, eth1, ...)
+    ## Please note that this setting has no effect if 'perdevice' is set to 'true'
+    perdevice_include = []
+
+    ## Specifies for which classes a total metric should be issued. Total is an aggregated of the 'perdevice' values.
+    ## Possible values are 'cpu', 'blkio' and 'network'
+    ## Total 'cpu' is reported directly by Docker daemon, and 'network' and 'blkio' totals are aggregated by this plugin.
+    ## Please note that this setting has no effect if 'total' is set to 'false'
+    total_include = ["cpu", "blkio", "network"]
+
+    ## Which environment variables should we use as a tag
+    ##tag_env = ["JAVA_HOME", "HEAP_SIZE"]
+
+    ## docker labels to include and exclude as tags. Globs accepted.
+    ## Note that an empty array for both will include all labels as tags
+    docker_label_include = []
+    docker_label_exclude = ["annotation*", "io.kubernetes*", "*description*", "*maintainer*", "*hash", "*author*"]
+
+    ## Optional TLS Config
+    # use_tls = false
+    # tls_ca = "/etc/telegraf/ca.pem"
+    # tls_cert = "/etc/telegraf/cert.pem"
+    # tls_key = "/etc/telegraf/key.pem"
+    ## Use TLS but skip chain & host verification
+    # insecure_skip_verify = false
+---
+kind: ConfigMap
+metadata:
+  name: input-kernel
+apiVersion: v1
+data:
+  kernel.toml: |
+    # # collect interval
+    # interval = 15
+---
+kind: ConfigMap
+metadata:
+  name: input-kernel-vmstat
+apiVersion: v1
+data:
+  kernel_vmstat.toml: |
+    # # collect interval
+    # interval = 15
+
+    # file: /proc/vmstat
+    [white_list]
+    oom_kill = 1
+    nr_free_pages = 0
+    nr_alloc_batch = 0
+    nr_inactive_anon = 0
+    nr_active_anon = 0
+    nr_inactive_file = 0
+    nr_active_file = 0
+    nr_unevictable = 0
+    nr_mlock = 0
+    nr_anon_pages = 0
+    nr_mapped = 0
+    nr_file_pages = 0
+    nr_dirty = 0
+    nr_writeback = 0
+    nr_slab_reclaimable = 0
+    nr_slab_unreclaimable = 0
+    nr_page_table_pages = 0
+    nr_kernel_stack = 0
+    nr_unstable = 0
+    nr_bounce = 0
+    nr_vmscan_write = 0
+    nr_vmscan_immediate_reclaim = 0
+    nr_writeback_temp = 0
+    nr_isolated_anon = 0
+    nr_isolated_file = 0
+    nr_shmem = 0
+    nr_dirtied = 0
+    nr_written = 0
+    numa_hit = 0
+    numa_miss = 0
+    numa_foreign = 0
+    numa_interleave = 0
+    numa_local = 0
+    numa_other = 0
+    workingset_refault = 0
+    workingset_activate = 0
+    workingset_nodereclaim = 0
+    nr_anon_transparent_hugepages = 0
+    nr_free_cma = 0
+    nr_dirty_threshold = 0
+    nr_dirty_background_threshold = 0
+    pgpgin = 0
+    pgpgout = 0
+    pswpin = 0
+    pswpout = 0
+    pgalloc_dma = 0
+    pgalloc_dma32 = 0
+    pgalloc_normal = 0
+    pgalloc_movable = 0
+    pgfree = 0
+    pgactivate = 0
+    pgdeactivate = 0
+    pgfault = 0
+    pgmajfault = 0
+    pglazyfreed = 0
+    pgrefill_dma = 0
+    pgrefill_dma32 = 0
+    pgrefill_normal = 0
+    pgrefill_movable = 0
+    pgsteal_kswapd_dma = 0
+    pgsteal_kswapd_dma32 = 0
+    pgsteal_kswapd_normal = 0
+    pgsteal_kswapd_movable = 0
+    pgsteal_direct_dma = 0
+    pgsteal_direct_dma32 = 0
+    pgsteal_direct_normal = 0
+    pgsteal_direct_movable = 0
+    pgscan_kswapd_dma = 0
+    pgscan_kswapd_dma32 = 0
+    pgscan_kswapd_normal = 0
+    pgscan_kswapd_movable = 0
+    pgscan_direct_dma = 0
+    pgscan_direct_dma32 = 0
+    pgscan_direct_normal = 0
+    pgscan_direct_movable = 0
+    pgscan_direct_throttle = 0
+    zone_reclaim_failed = 0
+    pginodesteal = 0
+    slabs_scanned = 0
+    kswapd_inodesteal = 0
+    kswapd_low_wmark_hit_quickly = 0
+    kswapd_high_wmark_hit_quickly = 0
+    pageoutrun = 0
+    allocstall = 0
+    pgrotated = 0
+    drop_pagecache = 0
+    drop_slab = 0
+    numa_pte_updates = 0
+    numa_huge_pte_updates = 0
+    numa_hint_faults = 0
+    numa_hint_faults_local = 0
+    numa_pages_migrated = 0
+    pgmigrate_success = 0
+    pgmigrate_fail = 0
+    compact_migrate_scanned = 0
+    compact_free_scanned = 0
+    compact_isolated = 0
+    compact_stall = 0
+    compact_fail = 0
+    compact_success = 0
+    htlb_buddy_alloc_success = 0
+    htlb_buddy_alloc_fail = 0
+    unevictable_pgs_culled = 0
+    unevictable_pgs_scanned = 0
+    unevictable_pgs_rescued = 0
+    unevictable_pgs_mlocked = 0
+    unevictable_pgs_munlocked = 0
+    unevictable_pgs_cleared = 0
+    unevictable_pgs_stranded = 0
+    thp_fault_alloc = 0
+    thp_fault_fallback = 0
+    thp_collapse_alloc = 0
+    thp_collapse_alloc_failed = 0
+    thp_split = 0
+    thp_zero_page_alloc = 0
+    thp_zero_page_alloc_failed = 0
+    balloon_inflate = 0
+    balloon_deflate = 0
+    balloon_migrate = 0
+---
+kind: ConfigMap
+metadata:
+  name: input-linux-sysctl-fs
+apiVersion: v1
+data:
+  linux_sysctl_fs.toml: |
+    # # collect interval
+    # interval = 15
+---
+kind: ConfigMap
+metadata:
+  name: input-mem
+apiVersion: v1
+data:
+  mem.toml: |
+    # # collect interval
+    # interval = 15
+
+    # # whether collect platform specified metrics
+    collect_platform_fields = true
+---
+kind: ConfigMap
+metadata:
+  name: input-net
+apiVersion: v1
+data:
+  net.toml: |-
+    # # collect interval
+    # interval = 15
+
+    # # whether collect protocol stats on Linux
+    # collect_protocol_stats = false
+
+    # # setting interfaces will tell categraf to gather these explicit interfaces
+    # interfaces = ["eth0"]
+---
+kind: ConfigMap
+metadata:
+  name: input-netstat
+apiVersion: v1
+data:
+  netstat.toml: |
+    # # collect interval
+    # interval = 15
+---
+kind: ConfigMap
+metadata:
+  name: input-processes
+apiVersion: v1
+data:
+  processes.toml: |-
+    # # collect interval
+    # interval = 15
+
+    # # force use ps command to gather
+    # force_ps = false
+
+    # # force use /proc to gather
+    # force_proc = false
+---
+kind: ConfigMap
+metadata:
+  name: input-system
+apiVersion: v1
+data:
+  system.toml: |
+    # # collect interval
+    # interval = 15
+
+    # # whether collect metric: system_n_users
+    # collect_user_number = false
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations: {}
+  labels:
+    app: n9e
+    component: categraf
+    release: nightingale
+  name: nightingale-categraf
+spec:
+  selector:
+    matchLabels:
+      app: n9e
+      component: categraf
+      release: nightingale
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: n9e
+        component: categraf
+        release: nightingale
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+      containers:
+      - env:
+        - name: TZ
+          value: Asia/Shanghai
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: HOSTIP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        - name: HOST_PROC
+          value: /hostfs/proc
+        - name: HOST_SYS
+          value: /hostfs/sys
+        - name: HOST_MOUNT_PREFIX
+          value: /hostfs
+        image: flashcatcloud/categraf:v0.1.3
+        imagePullPolicy: IfNotPresent
+        name: categraf
+        resources: {}
+        volumeMounts:
+        - mountPath: /etc/categraf/conf/config.toml
+          name: categraf-config
+          subPath: config.toml
+        - mountPath: /etc/categraf/conf/logs.toml
+          name: categraf-config
+          subPath: logs.toml
+        - mountPath: /etc/categraf/conf/input.cpu
+          name: input-cpu
+        - mountPath: /etc/categraf/conf/input.disk
+          name: input-disk
+        - mountPath: /etc/categraf/conf/input.diskio
+          name: input-diskio
+        - mountPath: /etc/categraf/conf/input.docker
+          name: input-docker
+        - mountPath: /etc/categraf/conf/input.kernel
+          name: input-kernel
+        - mountPath: /etc/categraf/conf/input.kernel_vmstat
+          name: input-kernel-vmstat
+        - mountPath: /etc/categraf/conf/input.linux_sysctl_fs
+          name: input-linux-sysctl-fs
+        - mountPath: /etc/categraf/conf/input.mem
+          name: input-mem
+        - mountPath: /etc/categraf/conf/input.net
+          name: input-net
+        - mountPath: /etc/categraf/conf/input.netstat
+          name: input-netstat
+        - mountPath: /etc/categraf/conf/input.processes
+          name: input-processes
+        - mountPath: /etc/categraf/conf/input.system
+          name: input-system
+        - mountPath: /var/run/utmp
+          name: hostroutmp
+          readOnly: true
+        - mountPath: /hostfs
+          name: hostrofs
+          readOnly: true
+        - mountPath: /var/run/docker.sock
+          name: docker-socket
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: config.toml
+            path: config.toml
+          - key: logs.toml
+            path: logs.toml
+          name: categraf-config
+        name: categraf-config
+      - configMap:
+          defaultMode: 420
+          name: input-cpu
+        name: input-cpu
+      - configMap:
+          defaultMode: 420
+          name: input-disk
+        name: input-disk
+      - configMap:
+          defaultMode: 420
+          name: input-diskio
+        name: input-diskio
+      - configMap:
+          defaultMode: 420
+          name: input-docker
+        name: input-docker
+      - configMap:
+          defaultMode: 420
+          name: input-kernel
+        name: input-kernel
+      - configMap:
+          defaultMode: 420
+          name: input-kernel-vmstat
+        name: input-kernel-vmstat
+      - configMap:
+          defaultMode: 420
+          name: input-linux-sysctl-fs
+        name: input-linux-sysctl-fs
+      - configMap:
+          defaultMode: 420
+          name: input-mem
+        name: input-mem
+      - configMap:
+          defaultMode: 420
+          name: input-net
+        name: input-net
+      - configMap:
+          defaultMode: 420
+          name: input-netstat
+        name: input-netstat
+      - configMap:
+          defaultMode: 420
+          name: input-processes
+        name: input-processes
+      - configMap:
+          defaultMode: 420
+          name: input-system
+        name: input-system
+      - hostPath:
+          path: /
+          type: ""
+        name: hostrofs
+      - hostPath:
+          path: /var/run/utmp
+          type: ""
+        name: hostroutmp
+      - hostPath:
+          path: /var/run/docker.sock
+          type: Socket
+        name: docker-socket

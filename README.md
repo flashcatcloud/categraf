@@ -18,6 +18,14 @@ Categraf is a monitoring agent for nightingale/prometheus/m3db/victoriametrics/t
 go build
 ```
 
+## Deploy categraf as daemonset
+
+```shell
+edit k8s/categraf.yaml, replace NSERVER_SERVICE_WITH_PORT with service ip:port of nserver in your cluster, run:
+
+kubectl apply -n monitoring -f ks8/categraf.yaml
+```
+
 ## Test
 
 ```shell
