@@ -43,31 +43,32 @@ tar zcvf categraf.tar.gz categraf conf
 
 ## Plan
 
-- [x] system
-- [x] kernel
-- [x] kernel_vmstat
-- [x] linux_sysctl_fs
-- [x] cpu
-- [x] mem
-- [x] net
-- [x] netstat
-- [x] disk
-- [x] diskio
-- [x] ntp
-- [x] processes
-- [x] exec
-- [x] ping
-- [x] http_response
-- [x] net_response
-- [x] procstat
-- [x] mysql
-- [x] redis
-- [x] oracle
-- [x] rabbitmq
-- [x] prometheus
-- [x] tomcat
-- [x] nvidia_smi
-- [x] nginx_upstream_check
+- [x] [system](inputs/system)
+- [x] [kernel](inputs/kernel)
+- [x] [kernel_vmstat](inputs/kernel_vmstat)
+- [x] [linux_sysctl_fs](inputs/linux_sysctl_fs)
+- [x] [cpu](inputs/cpu)
+- [x] [mem](inputs/mem)
+- [x] [net](inputs/net)
+- [x] [netstat](inputs/netstat)
+- [x] [disk](inputs/disk)
+- [x] [diskio](inputs/diskio)
+- [x] [ntp](inputs/ntp)
+- [x] [processes](inputs/processes)
+- [x] [exec](inputs/exec)
+- [x] [ping](inputs/ping)
+- [x] [http_response](inputs/http_response)
+- [x] [net_response](inputs/net_response)
+- [x] [procstat](inputs/procstat)
+- [x] [mysql](inputs/mysql)
+- [x] [redis](inputs/redis)
+- [x] [oracle](inputs/oracle)
+- [x] [rabbitmq](inputs/rabbitmq)
+- [x] [prometheus](inputs/prometheus)
+- [x] [tomcat](inputs/tomcat)
+- [x] [nvidia_smi](inputs/nvidia_smi)
+- [x] [nginx_upstream_check](inputs/nginx_upstream_check)
+- [x] [kubernetes(read metrics from kubelet api)](inputs/kubernetes)
 - [ ] k8s solution
 - [ ] nginx vts
 - [ ] mongodb
@@ -86,7 +87,7 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] zookeeper
 - [ ] statsd
 - [ ] snmp
-- [x] switch_legacy
+- [x] [switch_legacy](inputs/switch_legacy)
 - [ ] ipmi
 - [ ] smartctl
 - [ ] logging
