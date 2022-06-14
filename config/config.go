@@ -114,12 +114,12 @@ func (c *ConfigType) GetHostname() string {
 
 	ret = strings.Replace(ret, "$hostname", name, -1)
 	ret = strings.Replace(ret, "$ip", c.Global.IP, -1)
-	ret = os.Expand(ret, getEnv)
+	ret = os.Expand(ret, GetEnv)
 
 	return ret
 }
 
-func getEnv(key string) string {
+func GetEnv(key string) string {
 	v := os.Getenv(key)
 	return envVarEscaper.Replace(v)
 }

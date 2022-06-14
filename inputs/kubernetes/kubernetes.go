@@ -116,6 +116,8 @@ func (ins *Instance) Init() error {
 		return errors.New("url is blank")
 	}
 
+	ins.URL = os.Expand(ins.URL, config.GetEnv)
+
 	// If neither are provided, use the default service account.
 	if ins.BearerToken == "" && ins.BearerTokenString == "" {
 		ins.BearerToken = defaultServiceAccountPath
