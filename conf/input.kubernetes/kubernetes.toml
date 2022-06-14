@@ -12,7 +12,7 @@
 url = "http://127.0.0.1:10255"
 
 gather_system_container_metrics = true
-gather_node_metrics = false
+gather_node_metrics = true
 gather_pod_container_metrics = true
 gather_pod_volume_metrics = true
 gather_pod_network_metrics = true

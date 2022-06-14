@@ -6,11 +6,11 @@ forked from telegraf/kubernetes
 
 `gather_system_container_metrics = true`
 
-是否采集静态容器，比如 kubelet 一般就是静态容器，非业务容器
+是否采集 system 容器（kubelet、runtime、misc、pods），比如 kubelet 一般就是静态容器，非业务容器
 
-`gather_node_metrics = false`
+`gather_node_metrics = true`
 
-是否采集 node 层面的指标，机器层面的指标其实 categraf 来采集了，这里理论上不需要再采集了
+是否采集 node 层面的指标，机器层面的指标其实 categraf 来采集了，这里理论上不需要再采集了，可以设置为 false，采集也没问题，也没多少数据
 
 `gather_pod_container_metrics = true`
 
