@@ -1,0 +1,16 @@
+FROM --platform=$BUILDPLATFORM alpine:3.15
+
+RUN echo 'hosts: files dns' >> /etc/nsswitch.conf
+RUN apk add --no-cache iputils ca-certificates net-snmp-tools procps lm_sensors tzdata su-exec libcap wget tar libc6-compat file && \
+    update-ca-certificates
+
+RUN set -ex && \
+    mkdir -p /usr/bin /etc/categraf
+
+COPY categraf  /usr/bin/categraf
+
+COPY docker/entrypoint.sh /entrypoint.sh
+
+COPY conf /etc/categraf/conf
+
+CMD ["/entrypoint.sh"]
