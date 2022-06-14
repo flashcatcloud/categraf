@@ -41,3 +41,41 @@ release:
     owner: flashcatcloud
     name: categraf
   name_template: "v{{ .Version }}"
+
+dockers:
+  - image_templates:
+      - flashcatcloud/categraf:amd64-{{ .Tag }}
+    goos: linux
+    goarch: amd64
+    ids:
+      - build
+    dockerfile: docker/Dockerfile.goreleaser
+    extra_files:
+      - docker/entrypoint.sh
+      - conf/config.toml
+      - conf/logs.toml
+      - conf/input.cpu/cpu.toml
+      - conf/input.mem/mem.toml
+      - conf/input.disk/disk.toml
+      - conf/input.diskio/diskio.toml
+      - conf/input.kernel/kernel.toml
+      - conf/input.linux_sysctl_fs/linux_sysctl_fs.toml
+      - conf/input.system/system.toml
+      - conf/input.kernel_vmstat/kernel_vmstat.toml
+      - conf/input.netstat/netstat.toml
+      - conf/input.net/net.toml
+      - conf/input.docker/docker.toml
+      - conf/input.processes/processes.toml
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+
+docker_manifests:
+
+  - name_template: flashcatcloud/categraf:{{ .Tag }}
+    image_templates:
+      - flashcatcloud/categraf:amd64-{{ .Tag }}
+
+  - name_template: flashcatcloud/categraf:latest
+    image_templates:
+      - flashcatcloud/categraf:amd64-{{ .Tag }}
