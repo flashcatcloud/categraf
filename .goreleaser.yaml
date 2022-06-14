@@ -65,6 +65,7 @@ dockers:
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
       - conf/input.docker/docker.toml
+      - conf/input.kubernetes/kubernetes.toml
       - conf/input.processes/processes.toml
     use: buildx
     build_flag_templates:
