@@ -9,6 +9,6 @@ COPY categraf  /usr/bin/categraf
 
 COPY conf /etc/categraf/conf
 
-COPY entrypoint.sh /entrypoint.sh
+COPY docker/entrypoint.sh /entrypoint.sh
 
 CMD ["/entrypoint.sh"]
