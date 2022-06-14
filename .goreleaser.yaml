@@ -78,4 +78,4 @@ docker_manifests:
 
   - name_template: flashcatcloud/categraf:latest
     image_templates:
-      - flashcatcloud/categraf:amd64-{{ .Tag }}
+      - flashcatcloud/categraf:{{ .Tag }}
