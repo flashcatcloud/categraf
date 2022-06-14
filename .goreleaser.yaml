@@ -44,7 +44,7 @@ release:
 
 dockers:
   - image_templates:
-      - flashcatcloud/categraf:amd64-{{ .Tag }}
+      - flashcatcloud/categraf:{{ .Tag }}
     goos: linux
     goarch: amd64
     ids:
