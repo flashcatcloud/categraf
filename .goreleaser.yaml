@@ -15,7 +15,7 @@ builds:
     main: ./
     binary: categraf
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
     goos:
       - linux
       - windows
