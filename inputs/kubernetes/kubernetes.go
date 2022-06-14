@@ -22,7 +22,7 @@ import (
 
 const (
 	inputName                 = "kubernetes"
-	defaultServiceAccountPath = "/run/secrets/kubernetes.io/serviceaccount/token"
+	defaultServiceAccountPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
 
 type Kubernetes struct {
