@@ -1,4 +1,55 @@
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations: {}
+  labels:
+    app: n9e
+    component: categraf
+    release: nightingale
+  name: n9e-categraf
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes/metrics
+  - nodes/stats
+  - nodes/proxy
+  verbs:
+  - get
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations: {}
+  labels:
+    app: n9e
+    component: categraf
+    release: nightingale
+  name: n9e-categraf
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations: {}
+  labels:
+    app: n9e
+    component: categraf
+    release: nightingale
+  name: n9e-categraf
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: n9e-categraf
+subjects:
+- kind: ServiceAccount
+  name: n9e-categraf
+  namespace: ${CATEGRAF_NAMESPACE}
+---
 kind: ConfigMap
 metadata:
   name: categraf-config
@@ -37,7 +88,7 @@ data:
     chan_size = 10000
 
     [[writers]]
-    url = "http://NSERVER_SERVICE_WITH_PORT/prometheus/v1/write"
+    url = "http://${NSERVER_SERVICE_WITH_PORT}/prometheus/v1/write"
 
     # Basic auth username
     basic_auth_user = ""
@@ -198,6 +249,54 @@ data:
     # tls_key = "/etc/telegraf/key.pem"
     ## Use TLS but skip chain & host verification
     # insecure_skip_verify = false
+---
+kind: ConfigMap
+metadata:
+  name: input-docker
+apiVersion: v1
+data:
+  kubernetes.toml: |-
+    # # collect interval
+    # interval = 15
+
+    [[instances]]
+    # # append some labels for series
+    # labels = { region="cloud", product="n9e" }
+
+    # # interval = global.interval * interval_times
+    # interval_times = 1
+
+    # URL for the kubelet
+    url = "https://127.0.0.1:10250"
+
+    gather_system_container_metrics = true
+    gather_node_metrics = true
+    gather_pod_container_metrics = true
+    gather_pod_volume_metrics = true
+    gather_pod_network_metrics = true
+
+    ## Use bearer token for authorization. ('bearer_token' takes priority)
+    ## If both of these are empty, we'll use the default serviceaccount:
+    ## at: /var/run/secrets/kubernetes.io/serviceaccount/token
+    # bearer_token = "/path/to/bearer/token"
+    ## OR
+    # bearer_token_string = "abc_123"
+
+    ## Pod labels to be added as tags.  An empty array for both include and
+    ## exclude will include all labels.
+    # label_include = []
+    # label_exclude = ["*"]
+
+    ## Set response_timeout (default 5 seconds)
+    # response_timeout = "5s"
+
+    ## Optional TLS Config
+    use_tls = true
+    # tls_ca = "/etc/categraf/ca.pem"
+    # tls_cert = "/etc/categraf/cert.pem"
+    # tls_key = "/etc/categraf/key.pem"
+    ## Use TLS but skip chain & host verification
+    insecure_skip_verify = true
 ---
 kind: ConfigMap
 metadata:
@@ -463,7 +562,7 @@ spec:
           value: /hostfs/sys
         - name: HOST_MOUNT_PREFIX
           value: /hostfs
-        image: flashcatcloud/categraf:v0.1.3
+        image: flashcatcloud/categraf:v0.1.5
         imagePullPolicy: IfNotPresent
         name: categraf
         resources: {}
@@ -482,6 +581,8 @@ spec:
           name: input-diskio
         - mountPath: /etc/categraf/conf/input.docker
           name: input-docker
+        - mountPath: /etc/categraf/conf/input.kubernetes
+          name: input-kubernetes
         - mountPath: /etc/categraf/conf/input.kernel
           name: input-kernel
         - mountPath: /etc/categraf/conf/input.kernel_vmstat
@@ -540,6 +641,10 @@ spec:
           defaultMode: 420
           name: input-docker
         name: input-docker
+      - configMap:
+          defaultMode: 420
+          name: input-kubernetes
+        name: input-kubernetes
       - configMap:
           defaultMode: 420
           name: input-kernel
