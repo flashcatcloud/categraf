@@ -1,4 +1,4 @@
-FROM ubuntu:22.10
+FROM debian:buster-slim
 
 RUN echo 'hosts: files dns' >> /etc/nsswitch.conf
 

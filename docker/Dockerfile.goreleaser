@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM ubuntu:22.10
+FROM --platform=$BUILDPLATFORM debian:buster-slim
 
 RUN echo 'hosts: files dns' >> /etc/nsswitch.conf
 
