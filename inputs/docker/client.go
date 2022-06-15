@@ -20,6 +20,7 @@ type Client interface {
 	ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error)
 	ContainerStats(ctx context.Context, containerID string, stream bool) (types.ContainerStats, error)
 	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
+	Ping(ctx context.Context) (types.Ping, error)
 	ServiceList(ctx context.Context, options types.ServiceListOptions) ([]swarm.Service, error)
 	TaskList(ctx context.Context, options types.TaskListOptions) ([]swarm.Task, error)
 	NodeList(ctx context.Context, options types.NodeListOptions) ([]swarm.Node, error)
@@ -61,6 +62,9 @@ type SocketClient struct {
 
 func (c *SocketClient) Info(ctx context.Context) (types.Info, error) {
 	return c.client.Info(ctx)
+}
+func (c *SocketClient) Ping(ctx context.Context) (types.Ping, error) {
+	return c.client.Ping(ctx)
 }
 func (c *SocketClient) ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error) {
 	return c.client.ContainerList(ctx, options)
