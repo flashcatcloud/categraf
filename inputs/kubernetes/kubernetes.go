@@ -146,8 +146,11 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 	err := ins.LoadJSON(urlpath, summaryMetrics)
 	if err != nil {
 		log.Println("E! failed to load", urlpath, "error:", err)
+		slist.PushFront(inputs.NewSample("kubelet_up", 0, ins.Labels))
 		return
 	}
+
+	slist.PushFront(inputs.NewSample("kubelet_up", 1, ins.Labels))
 
 	podInfos, err := ins.gatherPodInfo(ins.URL)
 	if err != nil {
