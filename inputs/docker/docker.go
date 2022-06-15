@@ -128,7 +128,13 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
-	err := choice.CheckSlice(ins.PerDeviceInclude, containerMetricClasses)
+	c, err := ins.getNewClient()
+	if err != nil {
+		return err
+	}
+	ins.client = c
+
+	err = choice.CheckSlice(ins.PerDeviceInclude, containerMetricClasses)
 	if err != nil {
 		return fmt.Errorf("error validating 'perdevice_include' setting : %v", err)
 	}
@@ -727,7 +733,17 @@ func (ins *Instance) getNewClient() (Client, error) {
 		return nil, err
 	}
 
-	return NewClient(ins.Endpoint, tlsConfig)
+	c, err := NewClient(ins.Endpoint, tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
+	defer cancel()
+	if _, err := c.Ping(ctx); err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 func (ins *Instance) createContainerFilters() error {
