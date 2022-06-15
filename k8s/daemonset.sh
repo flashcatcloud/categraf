@@ -7,7 +7,7 @@ else
 	dry_run_params=""
 fi
 
-target="input.cpu input.disk input.diskio input.docker input.kernel input.kernel_vmstat input.linux_sysctl_fs input.mem input.net input.netstat input.processes input.system"
+target="input.cpu input.disk input.diskio input.docker input.kernel input.kernel_vmstat input.linux_sysctl_fs input.mem input.net input.netstat input.processes input.system input.kubernetes"
 
 function install() {
   #config.toml
