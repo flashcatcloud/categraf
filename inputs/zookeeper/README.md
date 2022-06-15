@@ -17,7 +17,7 @@ address = "127.0.0.1:2181"
 labels = { instance="n9e-10.23.25.2:2181" }
 ```
 
-如果要监控多个 zookeeper 实例，就增加 instances 即可：
+如果要监控多个 zookeeper 实例 (同一集群的多个实例也请分别添加，可在 `labels` 中添加 `cluster_name="xxx"` 来进行标识)，就增加 instances 即可：
 
 ```toml
 [[instances]]
