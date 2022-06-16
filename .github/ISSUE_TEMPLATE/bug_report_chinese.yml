@@ -1,0 +1,72 @@
+name: 报bug 
+description: 汇报categraf运行时的bug 
+labels: ["kind/bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈categraf的bug, 如果是使用问题，请联系[公众号](https://n9e.github.io/images/wx.jpg)添加微信群，群里有很多经验丰富的成员，他们回答问题可能会更快一些。
+  - type: textarea
+    id: config
+    attributes:
+      label: config.toml和相关插件的配置
+      description: Place config in the toml code section. This will be automatically formatted into toml, so no need for backticks.(将相关配置贴到这里)
+      render: toml
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: categraf的log 
+      description: 可以通过添加 ```--debug  --test``` 获取输出，并填写到这里
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: system-info
+    attributes:
+      label: 系统信息
+      description: categraf 版本, os , 或者其他相关的信息
+      placeholder: 比如. categraf 0.1.0, Ubuntu 20.04, Docker 20.10.8
+    validations:
+      required: true
+  - type: textarea
+    id: docker
+    attributes:
+      label: Docker版本信息
+      description: 提供相应的dockerfile或者docker-compose.yaml
+    validations:
+      required: false
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 请描述复现问题的详细步骤
+      value: |
+        1.
+        2.
+        3.
+        ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: 预期结果
+      description: 通过上述步骤 你预期出现的结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: 实际结果
+      description: 通过上述步骤 实际运行结果
+    validations:
+      required: true
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: 附加信息
+      description: gist或其他相关的配置、log等信息
+    validations:
+      required: false
