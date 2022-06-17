@@ -1,16 +1,19 @@
 package agent
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"path"
 	"strings"
+	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/types"
+	"flashcat.cloud/categraf/writer"
 	"github.com/toolkits/pkg/file"
 
 	// auto registry
@@ -46,18 +49,21 @@ import (
 const inputFilePrefix = "input."
 
 type Agent struct {
-	InputFilters map[string]struct{}
+	InputFilters         map[string]struct{}
+	ClickHouseMetricChan chan *types.Sample
 }
 
 func NewAgent(filters map[string]struct{}) *Agent {
 	return &Agent{
-		InputFilters: filters,
+		InputFilters:         filters,
+		ClickHouseMetricChan: make(chan *types.Sample, 100000),
 	}
 }
 
 func (a *Agent) Start() {
 	log.Println("I! agent starting")
-
+	// 指标数据写clickhouse
+	go a.startWriteMetricToClickHouse()
 	a.startLogAgent()
 	a.startInputs()
 }
@@ -126,7 +132,7 @@ func (a *Agent) startInputs() error {
 		}
 
 		log.Println("I! input:", name, "started")
-		reader.Start()
+		reader.Start(a.ClickHouseMetricChan)
 
 		InputReaders[name] = reader
 	}
@@ -154,4 +160,133 @@ func (a *Agent) getInputsByDirs() ([]string, error) {
 	}
 
 	return names, nil
+}
+
+// start write metric to clickhouse
+func (a *Agent) startWriteMetricToClickHouse() {
+
+	batch := config.Config.WriterOpt.Batch
+	if batch <= 0 {
+		batch = 10000
+	}
+
+	batchs := make([]*types.ClickHouseSample, 0, batch)
+
+	var count int
+
+	for {
+		select {
+		case item, open := <-a.ClickHouseMetricChan:
+			if !open {
+				// queue closed
+				return
+			}
+			if item == nil {
+				continue
+			}
+
+			batchs = append(batchs, convertToClickhouse(item))
+			count++
+			if count >= batch {
+				start := time.Now()
+				writeClickHouse(batchs)
+				log.Println("This batchs insert coset: ", time.Since(start))
+				count = 0
+				batchs = make([]*types.ClickHouseSample, 0, batch)
+			}
+		default:
+			if len(batchs) > 0 {
+				start := time.Now()
+				writeClickHouse(batchs)
+				log.Println("This batchs insert coset: ", time.Since(start))
+				count = 0
+				batchs = make([]*types.ClickHouseSample, 0, batch)
+			}
+			time.Sleep(time.Second * 60)
+		}
+	}
+}
+
+func convertToClickhouse(item *types.Sample) *types.ClickHouseSample {
+	if item.Labels == nil {
+		item.Labels = make(map[string]string)
+	}
+
+	// add label: agent_hostname
+	if _, has := item.Labels[agentHostnameLabelKey]; !has {
+		if !config.Config.Global.OmitHostname {
+			item.Labels[agentHostnameLabelKey] = config.Config.GetHostname()
+		}
+	}
+
+	// add global labels
+	for k, v := range config.Config.Global.Labels {
+		if _, has := item.Labels[k]; !has {
+			item.Labels[k] = v
+		}
+	}
+
+	cs := &types.ClickHouseSample{}
+
+	cs.Timestamp = item.Timestamp
+	cs.Value = item.Value
+	cs.Metric = item.Metric
+
+	tag := ""
+
+	// add other labels
+	for k, v := range item.Labels {
+		k = strings.Replace(k, "/", "_", -1)
+		k = strings.Replace(k, ".", "_", -1)
+		k = strings.Replace(k, "-", "_", -1)
+		k = strings.Replace(k, " ", "_", -1)
+		tag = fmt.Sprint(tag, "|", k, "=", v)
+	}
+
+	cs.Tags = strings.Trim(tag, "|")
+
+	return cs
+}
+
+func writeClickHouse(batchs []*types.ClickHouseSample) error {
+	ctx := context.Background()
+	conn := <-writer.ClickHouseWriterChan
+	defer func() {
+		writer.ClickHouseWriterChan <- conn
+	}()
+	err := (*conn).Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS metric_log (
+			  event_time DateTime
+			, event_date Date
+			, metric LowCardinality(String)
+			, tags String
+			, value Float64
+		) ENGINE = MergeTree
+		PARTITION BY toYYYYMM(event_date)
+		ORDER BY (event_time, metric, tags)
+		TTL event_date + toIntervalDay(365)
+		SETTINGS index_granularity = 8192
+	`)
+	if err != nil {
+		return err
+	}
+
+	batch, err := (*conn).PrepareBatch(ctx, "INSERT INTO metric_log")
+	if err != nil {
+		return err
+	}
+
+	for _, e := range batchs {
+		err := batch.Append(
+			e.Timestamp, //会自动转换时间格式
+			e.Timestamp, //会自动转换时间格式
+			e.Metric,
+			e.Tags,
+			e.Value,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return batch.Send()
 }

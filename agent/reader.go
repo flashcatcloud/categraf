@@ -27,15 +27,15 @@ type Reader struct {
 
 var InputReaders = map[string]*Reader{}
 
-func (r *Reader) Start() {
+func (r *Reader) Start(clickhouseMetricChan chan *types.Sample) {
 	// start consumer goroutines
 	go r.read()
 
 	// start collector instance
-	go r.startInstance()
+	go r.startInstance(clickhouseMetricChan)
 }
 
-func (r *Reader) startInstance() {
+func (r *Reader) startInstance(clikchouseMetricChan chan *types.Sample) {
 	interval := config.GetInterval()
 	if r.Instance.GetInterval() > 0 {
 		interval = time.Duration(r.Instance.GetInterval())
@@ -47,12 +47,12 @@ func (r *Reader) startInstance() {
 			return
 		default:
 			time.Sleep(interval)
-			r.gatherOnce()
+			r.gatherOnce(clikchouseMetricChan)
 		}
 	}
 }
 
-func (r *Reader) gatherOnce() {
+func (r *Reader) gatherOnce(clikchouseMetricChan chan *types.Sample) {
 	defer func() {
 		if r := recover(); r != nil {
 			if strings.Contains(fmt.Sprint(r), "closed channel") {
@@ -93,6 +93,11 @@ func (r *Reader) gatherOnce() {
 		}
 
 		r.Queue <- s
+
+		// gather to clickhouse
+		if config.Config.Global.WriteClickHouse {
+			clikchouseMetricChan <- s
+		}
 	}
 }
 

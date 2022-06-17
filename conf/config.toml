@@ -1,4 +1,6 @@
 [global]
+# whether write to clickhouse
+write_clickhouse = true
 # whether print configs
 print_configs = false
 
@@ -29,11 +31,30 @@ batch = 2000
 # channel(as queue) size
 chan_size = 10000
 
-[[writers]]
-url = "http://127.0.0.1:19000/prometheus/v1/write"
+#[[writers]]
+#url = "http://127.0.0.1:19000/prometheus/v1/write"
 
 # Basic auth username
-basic_auth_user = ""
+#basic_auth_user = ""
+
+# Basic auth password
+#basic_auth_pass = ""
+
+# timeout settings, unit: ms
+#timeout = 5000
+#dial_timeout = 2500
+#max_idle_conns_per_host = 100
+
+[[writers]]
+# Support for clickhouse
+storage_type = "OLAP"
+
+clickhouse_endpoints = ["1.1.1.17:9000", "11.1.1.8:9000"]
+
+clickhouse_db = "default"
+
+# Basic auth username
+basic_auth_user = "default"
 
 # Basic auth password
 basic_auth_pass = ""
@@ -41,4 +62,4 @@ basic_auth_pass = ""
 # timeout settings, unit: ms
 timeout = 5000
 dial_timeout = 2500
-max_idle_conns_per_host = 100
+max_idle_conns_per_host = 10

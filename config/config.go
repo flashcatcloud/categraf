@@ -19,13 +19,14 @@ var envVarEscaper = strings.NewReplacer(
 )
 
 type Global struct {
-	PrintConfigs bool              `toml:"print_configs"`
-	Hostname     string            `toml:"hostname"`
-	IP           string            `toml:"-"`
-	OmitHostname bool              `toml:"omit_hostname"`
-	Labels       map[string]string `toml:"labels"`
-	Precision    string            `toml:"precision"`
-	Interval     Duration          `toml:"interval"`
+	WriteClickHouse bool              `toml:"write_clickhouse"`
+	PrintConfigs    bool              `toml:"print_configs"`
+	Hostname        string            `toml:"hostname"`
+	IP              string            `toml:"-"`
+	OmitHostname    bool              `toml:"omit_hostname"`
+	Labels          map[string]string `toml:"labels"`
+	Precision       string            `toml:"precision"`
+	Interval        Duration          `toml:"interval"`
 }
 
 type WriterOpt struct {
@@ -34,9 +35,12 @@ type WriterOpt struct {
 }
 
 type WriterOption struct {
-	Url           string `toml:"url"`
-	BasicAuthUser string `toml:"basic_auth_user"`
-	BasicAuthPass string `toml:"basic_auth_pass"`
+	Url                 string   `toml:"url"`
+	ClickHouseEndpoints []string `toml:"clickhouse_endpoints"`
+	StorageType         string   `toml:"storage_type"`
+	ClickHouseDB        string   `toml:"clickhouse_db"`
+	BasicAuthUser       string   `toml:"basic_auth_user"`
+	BasicAuthPass       string   `toml:"basic_auth_pass"`
 
 	Timeout             int64 `toml:"timeout"`
 	DialTimeout         int64 `toml:"dial_timeout"`

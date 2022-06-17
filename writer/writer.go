@@ -76,6 +76,9 @@ var Writers = make(map[string]WriterType)
 
 func Init(opts []config.WriterOption) error {
 	for i := 0; i < len(opts); i++ {
+		if opts[i].StorageType == "OLAP" {
+			continue
+		}
 		cli, err := api.NewClient(api.Config{
 			Address: opts[i].Url,
 			RoundTripper: &http.Transport{
@@ -101,5 +104,7 @@ func Init(opts []config.WriterOption) error {
 		Writers[opts[i].Url] = writer
 	}
 
-	return nil
+	err := InitClickHouseConnect(opts)
+
+	return err
 }
