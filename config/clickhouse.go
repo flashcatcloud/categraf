@@ -14,4 +14,5 @@ type MetricsHouse struct {
 	ConnMaxLifetime Duration `toml:"conn_max_lifetime"`
 	QueueSize       int      `toml:"queue_size"`
 	BatchSize       int      `toml:"batch_size"`
+	IdleDuration    Duration `toml:"idle_duration"`
 }

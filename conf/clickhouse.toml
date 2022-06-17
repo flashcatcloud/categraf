@@ -13,3 +13,4 @@ max_idle_conns = 5
 conn_max_lifetime = "1h"
 queue_size = 100000
 batch_size = 10000
+idle_duration = "30s"

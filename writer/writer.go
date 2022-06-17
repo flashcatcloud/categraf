@@ -5,9 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
-	"time"
 
 	"flashcat.cloud/categraf/config"
 	"github.com/golang/protobuf/proto"
@@ -67,39 +65,6 @@ func (w WriterType) Post(req []byte) error {
 	if resp.StatusCode >= 400 {
 		err = fmt.Errorf("push data with remote write request got status code: %v, response body: %s", resp.StatusCode, string(body))
 		return err
-	}
-
-	return nil
-}
-
-var Writers = make(map[string]WriterType)
-
-func InitWriters() error {
-	opts := config.Config.Writers
-	for i := 0; i < len(opts); i++ {
-		cli, err := api.NewClient(api.Config{
-			Address: opts[i].Url,
-			RoundTripper: &http.Transport{
-				// TLSClientConfig: tlsConfig,
-				Proxy: http.ProxyFromEnvironment,
-				DialContext: (&net.Dialer{
-					Timeout: time.Duration(opts[i].DialTimeout) * time.Millisecond,
-				}).DialContext,
-				ResponseHeaderTimeout: time.Duration(opts[i].Timeout) * time.Millisecond,
-				MaxIdleConnsPerHost:   opts[i].MaxIdleConnsPerHost,
-			},
-		})
-
-		if err != nil {
-			return err
-		}
-
-		writer := WriterType{
-			Opts:   opts[i],
-			Client: cli,
-		}
-
-		Writers[opts[i].Url] = writer
 	}
 
 	return nil

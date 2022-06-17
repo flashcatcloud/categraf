@@ -96,7 +96,7 @@ func (mh *MetricsHouseType) consume() {
 				count = 0
 				series = make([]*types.Sample, 0, batch)
 			}
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Duration(mh.Opts.IdleDuration))
 		}
 	}
 }
@@ -137,7 +137,9 @@ func (mh *MetricsHouseType) post(conn driver.Conn, series []*types.Sample) error
 }
 
 func (mh *MetricsHouseType) Push(s *types.Sample) {
-	mh.Chan <- s
+	if config.Config.MetricsHouse.Enable {
+		mh.Chan <- s
+	}
 }
 
 const SQLCreateTable = `
