@@ -13,6 +13,7 @@ import (
 
 	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/house"
 	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/writer"
 	"github.com/chai2010/winsvc"
@@ -62,13 +63,20 @@ func main() {
 		log.Fatalln("F! failed to init config:", err)
 	}
 
-	// init writers
-	if err := writer.Init(config.Config.Writers); err != nil {
-		log.Fatalln("F! failed to init writer:", err)
-	}
+	initWriters()
 
 	ag := agent.NewAgent(parseFilter(*inputFilters))
 	runAgent(ag)
+}
+
+func initWriters() {
+	if err := writer.InitWriters(); err != nil {
+		log.Fatalln("F! failed to init writer:", err)
+	}
+
+	if err := house.InitMetricsHouse(); err != nil {
+		log.Fatalln("F! failed to init metricshouse:", err)
+	}
 }
 
 func handleSignal(ag *agent.Agent) {

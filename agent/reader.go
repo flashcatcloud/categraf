@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/house"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
@@ -18,6 +19,8 @@ import (
 )
 
 const agentHostnameLabelKey = "agent_hostname"
+
+var metricReplacer = strings.NewReplacer("-", "_", ".", "_")
 
 type Reader struct {
 	Instance inputs.Input
@@ -87,12 +90,34 @@ func (r *Reader) gatherOnce() {
 		}
 
 		if len(r.Instance.Prefix()) > 0 {
-			s.Metric = r.Instance.Prefix() + "_" + strings.ReplaceAll(s.Metric, "-", "_")
+			s.Metric = r.Instance.Prefix() + "_" + metricReplacer.Replace(s.Metric)
 		} else {
-			s.Metric = strings.ReplaceAll(s.Metric, "-", "_")
+			s.Metric = metricReplacer.Replace(s.Metric)
 		}
 
+		if s.Labels == nil {
+			s.Labels = make(map[string]string)
+		}
+
+		// add label: agent_hostname
+		if _, has := s.Labels[agentHostnameLabelKey]; !has {
+			if !config.Config.Global.OmitHostname {
+				s.Labels[agentHostnameLabelKey] = config.Config.GetHostname()
+			}
+		}
+
+		// add global labels
+		for k, v := range config.Config.Global.Labels {
+			if _, has := s.Labels[k]; !has {
+				s.Labels[k] = v
+			}
+		}
+
+		// write to remote write queue
 		r.Queue <- s
+
+		// write to clickhouse queue
+		house.MetricsHouse.Push(s)
 	}
 }
 
@@ -179,24 +204,6 @@ func postSeries(series []*prompb.TimeSeries) {
 }
 
 func convert(item *types.Sample) *prompb.TimeSeries {
-	if item.Labels == nil {
-		item.Labels = make(map[string]string)
-	}
-
-	// add label: agent_hostname
-	if _, has := item.Labels[agentHostnameLabelKey]; !has {
-		if !config.Config.Global.OmitHostname {
-			item.Labels[agentHostnameLabelKey] = config.Config.GetHostname()
-		}
-	}
-
-	// add global labels
-	for k, v := range config.Config.Global.Labels {
-		if _, has := item.Labels[k]; !has {
-			item.Labels[k] = v
-		}
-	}
-
 	pt := &prompb.TimeSeries{}
 
 	timestamp := item.Timestamp.UnixMilli()

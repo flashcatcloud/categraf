@@ -74,7 +74,8 @@ func (w WriterType) Post(req []byte) error {
 
 var Writers = make(map[string]WriterType)
 
-func Init(opts []config.WriterOption) error {
+func InitWriters() error {
+	opts := config.Config.Writers
 	for i := 0; i < len(opts); i++ {
 		cli, err := api.NewClient(api.Config{
 			Address: opts[i].Url,

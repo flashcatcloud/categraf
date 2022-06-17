@@ -50,10 +50,11 @@ type ConfigType struct {
 	TestMode  bool
 
 	// from config.toml
-	Global    Global         `toml:"global"`
-	WriterOpt WriterOpt      `toml:"writer_opt"`
-	Writers   []WriterOption `toml:"writers"`
-	Logs      Logs           `toml:"logs"`
+	Global       Global         `toml:"global"`
+	WriterOpt    WriterOpt      `toml:"writer_opt"`
+	Writers      []WriterOption `toml:"writers"`
+	Logs         Logs           `toml:"logs"`
+	MetricsHouse MetricsHouse   `toml:"metricshouse"`
 }
 
 var Config *ConfigType
