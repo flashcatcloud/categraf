@@ -12,7 +12,7 @@ kube-state-metrics 这个组件，一般只需要部署成一个单副本的 dep
 
 ## 指标爆炸问题
 
-这个插件采集的数据量很大，是所有的 Kubernetes 中的对象的信息，如果集群比较大，请求 `/metrics` 甚至可能拉个几十秒种，为了提升这个拉取速度，避免指标爆炸，我们可以对 kube_state_metrics 做一些参数控制，让它只采集部分对象的数据，典型的控制手段是通过 `--resources` 参数来控制，比如我只想采集负载类型的对象：`--resources=cronjobs,jobs,daemonsets,deployments,nodes,statefulsets,pods`
+这个插件采集的数据量很大，是所有的 Kubernetes 中的对象的信息，如果集群比较大，请求 `/metrics` 甚至可能拉个几十秒种，为了提升这个拉取速度，避免指标爆炸，我们可以对 kube_state_metrics 做一些参数控制，让它只采集部分对象的数据，典型的控制手段是通过 `--resources` 参数来控制，比如我只想采集负载类型的对象：`--resources=cronjobs,jobs,daemonsets,deployments,nodes,statefulsets,pods` [完整对象列表在这里](https://github.com/prometheus-community/helm-charts/blob/56a8d0386b6e480d018033666741451f1cf35cd8/charts/kube-state-metrics/values.yaml#L160)
 
 然后，对于这些资源类型，我们可能还想更细粒度做控制，假设有个指标：kube_deployment_spec_strategy_rollingupdate_max_surge 我们可以通过 `--metric-denylist` 来控制：
 
