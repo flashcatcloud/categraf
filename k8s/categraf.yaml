@@ -608,7 +608,7 @@ spec:
         - mountPath: /var/run/docker.sock
           name: docker-socket
       dnsPolicy: ClusterFirstWithHostNet
-      serviceAccount: n9e-categraf
+      serviceAccountName: n9e-categraf
       hostNetwork: true
       restartPolicy: Always
       schedulerName: default-scheduler
