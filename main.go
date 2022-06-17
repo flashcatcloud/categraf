@@ -67,7 +67,9 @@ func main() {
 		log.Fatalln("F! failed to init writer:", err)
 	}
 
-	ag := agent.NewAgent(parseFilter(*inputFilters))
+	// init configuration discovery service
+	cds := config.NewFileDiscovery(config.Config.ConfigDir)
+	ag := agent.NewAgent(parseFilter(*inputFilters), cds)
 	runAgent(ag)
 }
 

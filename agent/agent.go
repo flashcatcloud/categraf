@@ -2,16 +2,11 @@ package agent
 
 import (
 	"errors"
-	"fmt"
 	"log"
-	"path"
-	"strings"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/file"
 
 	// auto registry
 	_ "flashcat.cloud/categraf/inputs/cpu"
@@ -44,15 +39,15 @@ import (
 	_ "flashcat.cloud/categraf/inputs/tomcat"
 )
 
-const inputFilePrefix = "input."
-
 type Agent struct {
 	InputFilters map[string]struct{}
+	cds          config.Discovery
 }
 
-func NewAgent(filters map[string]struct{}) *Agent {
+func NewAgent(filters map[string]struct{}, cds config.Discovery) *Agent {
 	return &Agent{
 		InputFilters: filters,
+		cds:          cds,
 	}
 }
 
@@ -84,7 +79,7 @@ func (a *Agent) Reload() {
 }
 
 func (a *Agent) startInputs() error {
-	names, err := a.getInputsByDirs()
+	names, err := a.cds.Inputs()
 	if err != nil {
 		return err
 	}
@@ -110,8 +105,11 @@ func (a *Agent) startInputs() error {
 
 		// construct input instance
 		instance := creator()
-		// set configurations for input instance
-		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, inputFilePrefix+name), instance)
+		// load configurations from configuration discovery service
+		if err = a.cds.Load(instance); err != nil {
+			log.Println("E! failed to load input configuration:", name, "error:", err)
+			continue
+		}
 
 		if err = instance.Init(); err != nil {
 			if !errors.Is(err, types.ErrInstancesEmpty) {
@@ -133,26 +131,4 @@ func (a *Agent) startInputs() error {
 	}
 
 	return nil
-}
-
-// input dir should has prefix input.
-func (a *Agent) getInputsByDirs() ([]string, error) {
-	dirs, err := file.DirsUnder(config.Config.ConfigDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get dirs under %s : %v", config.Config.ConfigDir, err)
-	}
-
-	count := len(dirs)
-	if count == 0 {
-		return dirs, nil
-	}
-
-	names := make([]string, 0, count)
-	for i := 0; i < count; i++ {
-		if strings.HasPrefix(dirs[i], inputFilePrefix) {
-			names = append(names, dirs[i][len(inputFilePrefix):])
-		}
-	}
-
-	return names, nil
 }
