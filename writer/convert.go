@@ -9,6 +9,8 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 )
 
+var labelReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "/", "_")
+
 func convert(item *types.Sample) *prompb.TimeSeries {
 	pt := &prompb.TimeSeries{}
 
@@ -30,12 +32,8 @@ func convert(item *types.Sample) *prompb.TimeSeries {
 
 	// add other labels
 	for k, v := range item.Labels {
-		k = strings.Replace(k, "/", "_", -1)
-		k = strings.Replace(k, ".", "_", -1)
-		k = strings.Replace(k, "-", "_", -1)
-		k = strings.Replace(k, " ", "_", -1)
 		pt.Labels = append(pt.Labels, &prompb.Label{
-			Name:  k,
+			Name:  labelReplacer.Replace(k),
 			Value: v,
 		})
 	}
