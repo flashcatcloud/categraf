@@ -54,8 +54,6 @@ spec:
         imagePullPolicy: IfNotPresent
         name: categraf
         resources: {}
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
         volumeMounts:
         - mountPath: /etc/categraf/conf/config.toml
           name: categraf-config
@@ -73,6 +71,7 @@ MOUNTS
         - mountPath: /var/run/docker.sock
           name: docker-socket
       dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: n9e-categraf
       hostNetwork: true
       restartPolicy: Always
       schedulerName: default-scheduler
