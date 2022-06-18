@@ -10,6 +10,8 @@ kube-state-metrics 这个组件，一般只需要部署成一个单副本的 dep
 
 为啥 Prometheus 抓取的时候不需要 ClusterIP 呢，因为它支持 Kubernetes 的服务发现，可以查找所有的 Pod 列表，从中找到 kube-state-metrics，然后直接请求 Pod IP，这种方式可以工作，但是其实挺浪费的，个人感觉使用一个固定的 ClusterIP 会更方便。
 
+最后，采集的时候，请为不同的 Kubernetes 集群定义一个 cluster 标签，用于区分不同的集群，该 README 同级的监控大盘，就是用了 cluster 作为大盘筛选变量。
+
 ## 指标爆炸问题
 
 这个插件采集的数据量很大，是所有的 Kubernetes 中的对象的信息，如果集群比较大，请求 `/metrics` 甚至可能拉个几十秒种，为了提升这个拉取速度，避免指标爆炸，我们可以对 kube_state_metrics 做一些参数控制，让它只采集部分对象的数据，典型的控制手段是通过 `--resources` 参数来控制，比如我只想采集负载类型的对象：`--resources=cronjobs,jobs,daemonsets,deployments,nodes,statefulsets,pods` [完整对象列表在这里](https://github.com/prometheus-community/helm-charts/blob/56a8d0386b6e480d018033666741451f1cf35cd8/charts/kube-state-metrics/values.yaml#L160)
