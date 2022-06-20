@@ -242,6 +242,8 @@ var REPLICA_VARS = map[string]struct{}{
 	"seconds_behind_master": {},
 	"slave_io_running":      {},
 	"slave_sql_running":     {},
+	"master_server_id":      {},
+	"source_server_id":      {},
 }
 
 var GROUP_REPLICATION_VARS = map[string]struct{}{
