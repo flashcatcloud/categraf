@@ -78,7 +78,6 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] activemq
 - [ ] kafka
 - [ ] elasticsearch
-- [ ] prometheus discovery
 - [x] windows
 - [ ] mssql
 - [ ] iis
