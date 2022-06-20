@@ -1,0 +1,603 @@
+{
+    "name": "Zookeeper",
+    "tags": "",
+    "configs": {
+        "var": [
+            {
+                "definition": "label_values(zk_up,zk_cluster)",
+                "name": "zk_cluster"
+            }
+        ],
+        "panels": [
+            {
+                "type": "row",
+                "id": "204ed80c-88a7-4075-90bf-0dce6f319caa",
+                "name": "分组",
+                "collapsed": true,
+                "layout": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 0,
+                    "i": "204ed80c-88a7-4075-90bf-0dce6f319caa",
+                    "isResizable": false
+                }
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_up{zk_cluster=\"$zk_cluster\"}",
+                        "legend": "{{ zk_host }}"
+                    }
+                ],
+                "name": "Status",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 4,
+                    "x": 0,
+                    "y": 1,
+                    "i": "ef4804c3-5eb2-43b6-af4f-35cad5114e7e",
+                    "isResizable": true
+                },
+                "id": "ef4804c3-5eb2-43b6-af4f-35cad5114e7e"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_server_leader{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{zk_host}}"
+                    }
+                ],
+                "name": "Is Leader",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 4,
+                    "x": 4,
+                    "y": 1,
+                    "i": "3f1d1548-fc5b-4188-bf72-d5fea7c682ca",
+                    "isResizable": true
+                },
+                "id": "f73b13a6-62d2-4b7d-9448-b0c4cb0d5144"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_ephemerals_count{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{zk_host}}"
+                    }
+                ],
+                "name": "Ephemerals Count",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 4,
+                    "x": 8,
+                    "y": 1,
+                    "i": "78ff9d1f-8d3c-440e-9fd7-4040575eddf9",
+                    "isResizable": true
+                },
+                "id": "d55c0555-b3fa-466d-a380-4a2a98af3431"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_znode_count{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{zk_host}}"
+                    }
+                ],
+                "name": "Znode Count",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 4,
+                    "x": 12,
+                    "y": 1,
+                    "i": "612b69b8-346a-419e-bb22-1d372535bac8",
+                    "isResizable": true
+                },
+                "id": "15c3ddc5-a30f-4e32-904f-4590494ee11b"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_watch_count{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{zk_host}}"
+                    }
+                ],
+                "name": "Watch Count",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 4,
+                    "x": 16,
+                    "y": 1,
+                    "i": "a2417ea6-e3d7-41cd-9985-d6ea5db43217",
+                    "isResizable": true
+                },
+                "id": "3b903da1-c9a4-4a87-b0a0-afd3defe4c15"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_version{zk_cluster=~\"$zk_cluster\"}"
+                    }
+                ],
+                "name": "Version",
+                "custom": {
+                    "showHeader": true,
+                    "calc": "lastNotNull",
+                    "displayMode": "labelsOfSeriesToRows",
+                    "columns": [
+                        "zk_host",
+                        "version"
+                    ]
+                },
+                "options": {
+                    "valueMappings": [],
+                    "standardOptions": {}
+                },
+                "overrides": [
+                    {}
+                ],
+                "version": "2.0.0",
+                "type": "table",
+                "layout": {
+                    "h": 4,
+                    "w": 4,
+                    "x": 20,
+                    "y": 1,
+                    "i": "4cc8bad9-b441-4d10-abb3-7d50bb624967",
+                    "isResizable": true
+                },
+                "id": "8a3cf9d0-bb26-4b67-8fe6-c9d76e5eb618"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "rate(zk_packets_sent{zk_cluster=~\"$zk_cluster\"}[5m])",
+                        "legend": "{{ zk_host }}"
+                    }
+                ],
+                "name": "Pakages Sent",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 0,
+                    "y": 5,
+                    "i": "9dcf936f-72c1-434b-af93-369c9c991bb2",
+                    "isResizable": true
+                },
+                "id": "9dcf936f-72c1-434b-af93-369c9c991bb2"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "rate(zk_packets_received{zk_cluster=~\"$zk_cluster\"}[5m])",
+                        "legend": "{{ zk_host }}"
+                    }
+                ],
+                "name": "Pakages Recieved",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 5,
+                    "i": "bf87aba7-3d5b-427c-a0cf-426c65fbecae",
+                    "isResizable": true
+                },
+                "id": "e085001a-f693-4723-958a-b910843e0339"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_num_alive_connections{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{ zk_host }}"
+                    }
+                ],
+                "name": "Alive Connections",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 0,
+                    "y": 9,
+                    "i": "f7043b0a-a853-4e4c-aec3-46e2dcf52586",
+                    "isResizable": true
+                },
+                "id": "5e2183f9-6277-43f9-b9be-6dbaa35cb582"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_open_file_descriptor_count{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{ zk_host }}"
+                    }
+                ],
+                "name": "File Descriptors",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 9,
+                    "i": "d298a41a-26e9-46d7-b9e4-7497d1f9ef7d",
+                    "isResizable": true
+                },
+                "id": "ba3aebdc-5982-4b89-82be-c28d03776c0f"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_avg_latency{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{ zk_host }}"
+                    }
+                ],
+                "name": "Avg Latency",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "seconds"
+                    },
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 0,
+                    "y": 13,
+                    "i": "97b6b491-6d71-4e54-8ac5-9c1214f5b42e",
+                    "isResizable": true
+                },
+                "id": "a2e8a9bc-6b09-40d9-80c1-1dc0f0cbd5e2"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_min_latency{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{ zk_host }}"
+                    }
+                ],
+                "name": "Min Latency(seconds)",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 13,
+                    "i": "6abdaef3-9985-4325-a563-929f515ddbbd",
+                    "isResizable": true
+                },
+                "id": "7eb7f2f2-7319-42b2-9fa1-2868fa490eaf"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_max_latency{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{ zk_host }}"
+                    }
+                ],
+                "name": "Max Latency(seconds)",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 18,
+                    "y": 13,
+                    "i": "b2c368fa-f61c-4ddd-a7d8-d214ec67182d",
+                    "isResizable": true
+                },
+                "id": "524ca86b-2854-4ed4-a3bc-a506ae7763eb"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_outstanding_requests{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{ zk_host }}"
+                    }
+                ],
+                "name": "Outstanding Requests",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "none"
+                    },
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 0,
+                    "y": 17,
+                    "i": "eb83dd45-98e7-4d76-94c3-24681b4957a8",
+                    "isResizable": true
+                },
+                "id": "e24f9e2b-ce0a-4cf2-bf0d-bead1df222b2"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "zk_approximate_data_size{zk_cluster=~\"$zk_cluster\"}",
+                        "legend": "{{ zk_host }}"
+                    }
+                ],
+                "name": "Approx Data Size",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "bytesIEC"
+                    },
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 17,
+                    "i": "a1ea51d8-9b26-4eb8-8be4-97acf92f7ca2",
+                    "isResizable": true
+                },
+                "id": "c94ba892-2af9-4a31-9f0f-d7e7786c7530"
+            }
+        ],
+        "version": "2.0.0"
+    }
+}
