@@ -1,6 +1,7 @@
 # zookeeper
+**注意: >=3.6.0 zookeeper 版本内置 [prometheus 的支持](https://zookeeper.apache.org/doc/current/zookeeperMonitor.html)，即，如果 zookeeper 启用了 prometheus，Categraf 可使用 prometheus 插件从这个 metrics 接口拉取数据即可;**
 
-移植于 [dabealu/zookeeper-exporter](https://github.com/dabealu/zookeeper-exporter)，原理就是利用 Zookeper 提供的四字命令（The Four Letter Words）获取监控信息；
+移植于 [dabealu/zookeeper-exporter](https://github.com/dabealu/zookeeper-exporter)，适用于 `<3.6.0` 版本的 zookeeper, 原理就是利用 Zookeper 提供的四字命令（The Four Letter Words）获取监控信息；
 
 需要注意的是，在 zookeeper v3.4.10 以后添加了四字命令白名单，需要在 zookeeper 的配置文件 `zoo.cfg` 中新增白名单配置:
 ```
@@ -9,31 +10,28 @@
 
 ## Configuration
 
-zookeeper 插件的配置在 `conf/input.zookeeper/zookeeper.toml` 最简单的配置如下：
+zookeeper 插件的配置在 `conf/input.zookeeper/zookeeper.toml` 集群中的多个实例地址请用空格分隔：
 
 ```toml
 [[instances]]
-address = "127.0.0.1:2181"
-labels = { instance="n9e-10.23.25.2:2181" }
+cluster_name = "dev-zk-cluster"
+addresses = "127.0.0.1:2181"
+timeout = 10
 ```
 
-如果要监控多个 zookeeper 实例 (同一集群的多个实例也请分别添加，可在 `labels` 中添加 `cluster_name="xxx"` 来进行标识)，就增加 instances 即可：
+如果要监控多个 zookeeper 集群，就增加 instances 即可：
 
 ```toml
 [[instances]]
-address = "10.23.25.2:2181"
-username = ""
-password = ""
-labels = { instance="n9e-10.23.25.2:2181" }
+cluster_name = "dev-zk-cluster"
+addresses = "127.0.0.1:2181"
+timeout = 10
 
 [[instances]]
-address = "10.23.25.3:2181"
-username = ""
-password = ""
-labels = { instance="n9e-10.23.25.3:2181" }
+cluster_name = "test-zk-cluster"
+addresses = "127.0.0.1:2181 127.0.0.1:2182 127.0.0.1:2183"
+timeout = 10
 ```
-
-建议通过 labels 配置附加一个 instance 标签，便于后面复用监控大盘。
 
 ## 监控大盘和告警规则
 

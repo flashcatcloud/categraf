@@ -33,17 +33,22 @@ var (
 )
 
 type Instance struct {
-	Address string            `toml:"address"`
-	Timeout int               `toml:"timeout"`
-	Labels  map[string]string `toml:"labels"`
+	Addresses   string            `toml:"addresses"`
+	Timeout     int               `toml:"timeout"`
+	ClusterName string            `toml:"cluster_name"`
+	Labels      map[string]string `toml:"labels"`
 	tls.ClientConfig
 }
 
-func (i *Instance) ZkConnect() (net.Conn, error) {
+func (i *Instance) ZkHosts() []string {
+	return strings.Fields(i.Addresses)
+}
+
+func (i *Instance) ZkConnect(host string) (net.Conn, error) {
 	dialer := net.Dialer{Timeout: time.Duration(i.Timeout) * time.Second}
-	tcpaddr, err := net.ResolveTCPAddr("tcp", i.Address)
+	tcpaddr, err := net.ResolveTCPAddr("tcp", host)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve zookeeper address: %s: %v", i.Address, err)
+		return nil, fmt.Errorf("failed to resolve zookeeper(cluster: %s) address: %s: %v", i.ClusterName, host, err)
 	}
 
 	if !i.UseTLS {
@@ -87,17 +92,23 @@ func (z *Zookeeper) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&z.Counter, 1)
 	for i := range z.Instances {
 		ins := z.Instances[i]
-		z.wg.Add(1)
-		go z.gatherOnce(slist, ins)
+		zkHosts := ins.ZkHosts()
+		if len(zkHosts) == 0 {
+			log.Printf("E! no target zookeeper cluster %s addresses specified", ins.ClusterName)
+			continue
+		}
+		for _, zkHost := range zkHosts {
+			z.wg.Add(1)
+			go z.gatherOnce(slist, ins, zkHost)
+		}
 	}
 	z.wg.Wait()
 }
 
-func (z *Zookeeper) gatherOnce(slist *list.SafeList, ins *Instance) {
+func (z *Zookeeper) gatherOnce(slist *list.SafeList, ins *Instance, zkHost string) {
 	defer z.wg.Done()
 
-	// metrics labels
-	tags := map[string]string{"address": ins.Address, "zk_host": ins.Address}
+	tags := map[string]string{"zk_host": zkHost, "zk_cluster": ins.ClusterName}
 	for k, v := range ins.Labels {
 		tags[k] = v
 	}
@@ -111,21 +122,29 @@ func (z *Zookeeper) gatherOnce(slist *list.SafeList, ins *Instance) {
 	}(begun)
 
 	// zk_up
-	conn, err := ins.ZkConnect()
+	conn, err := ins.ZkConnect(zkHost)
 	if err != nil {
 		slist.PushFront(inputs.NewSample("zk_up", 0, tags))
-		log.Println("E! failed connect to zookeeper:"+ins.Address, "err:", err)
+		log.Println("E! :"+zkHost, "err:", err)
 		return
 	}
+
 	defer conn.Close()
-
 	z.gatherMntrResult(conn, slist, ins, tags)
-	z.gatherRuokResult(conn, slist, ins, tags)
 
+	// zk_ruok
+	ruokConn, err := ins.ZkConnect(zkHost)
+	if err != nil {
+		slist.PushFront(inputs.NewSample("zk_ruok", 0, tags))
+		log.Println("E! :"+zkHost, "err:", err)
+		return
+	}
+	defer ruokConn.Close()
+	z.gatherRuokResult(ruokConn, slist, ins, tags)
 }
 
 func (z *Zookeeper) gatherMntrResult(conn net.Conn, slist *list.SafeList, ins *Instance, globalTags map[string]string) {
-	res := sendZookeeperCmd(conn, ins.Address, "mntr")
+	res := sendZookeeperCmd(conn, "mntr")
 
 	// get slice of strings from response, like 'zk_avg_latency 0'
 	lines := strings.Split(res, "\n")
@@ -133,7 +152,7 @@ func (z *Zookeeper) gatherMntrResult(conn net.Conn, slist *list.SafeList, ins *I
 	// 'mntr' command isn't allowed in zk config, log as warning
 	if strings.Contains(lines[0], cmdNotExecutedSffx) {
 		slist.PushFront(inputs.NewSample("zk_up", 0, globalTags))
-		log.Printf(commandNotAllowedTmpl, "mntr", ins.Address)
+		log.Printf(commandNotAllowedTmpl, "mntr", conn.RemoteAddr().String())
 		return
 	}
 
@@ -151,7 +170,7 @@ func (z *Zookeeper) gatherMntrResult(conn net.Conn, slist *list.SafeList, ins *I
 			continue
 		}
 
-		kv := strings.Split(strings.Replace(l, "\t", " ", -1), " ")
+		kv := strings.Fields(l)
 		key := kv[0]
 		value := kv[1]
 
@@ -172,29 +191,35 @@ func (z *Zookeeper) gatherMntrResult(conn net.Conn, slist *list.SafeList, ins *I
 
 		default:
 			var k string
-			k = metricNameReplacer.Replace(key)
+
 			if !isDigit(value) {
 				log.Printf("warning: skipping metric %q which holds not-digit value: %q", key, value)
 				continue
 			}
-			slist.PushFront(inputs.NewSample(k, value, globalTags))
+			k = metricNameReplacer.Replace(key)
+			if strings.Contains(k, "{") {
+				labels := parseLabels(k)
+				slist.PushFront(inputs.NewSample(k, value, globalTags, labels))
+			} else {
+				slist.PushFront(inputs.NewSample(k, value, globalTags))
+			}
 		}
 	}
 }
 
 func (z *Zookeeper) gatherRuokResult(conn net.Conn, slist *list.SafeList, ins *Instance, globalTags map[string]string) {
-	res := sendZookeeperCmd(conn, ins.Address, "ruok")
+	res := sendZookeeperCmd(conn, "ruok")
 	if res == "imok" {
 		slist.PushFront(inputs.NewSample("zk_ruok", 1, globalTags))
 	} else {
 		if strings.Contains(res, cmdNotExecutedSffx) {
-			log.Printf(commandNotAllowedTmpl, "ruok", ins.Address)
+			log.Printf(commandNotAllowedTmpl, "ruok", conn.RemoteAddr().String())
 		}
 		slist.PushFront(inputs.NewSample("zk_ruok", 0, globalTags))
 	}
 }
 
-func sendZookeeperCmd(conn net.Conn, host, cmd string) string {
+func sendZookeeperCmd(conn net.Conn, cmd string) string {
 	_, err := conn.Write([]byte(cmd))
 	if err != nil {
 		log.Println("E! failed to exec Zookeeper command:", cmd)
@@ -202,7 +227,7 @@ func sendZookeeperCmd(conn net.Conn, host, cmd string) string {
 
 	res, err := ioutil.ReadAll(conn)
 	if err != nil {
-		log.Printf("E! failed read Zookeeper command: '%s' response from '%s': %s", cmd, host, err)
+		log.Printf("E! failed read Zookeeper command: '%s' response from '%s': %s", cmd, conn.RemoteAddr().String(), err)
 	}
 	return string(res)
 }
@@ -216,4 +241,24 @@ func isDigit(in string) bool {
 		}
 	}
 	return true
+}
+
+func parseLabels(in string) map[string]string {
+	labels := map[string]string{}
+
+	labelsRE := regexp.MustCompile(`{(.*)}`)
+	labelRE := regexp.MustCompile(`(.*)\=(\".*\")`)
+	matchLables := labelsRE.FindStringSubmatch(in)
+	if len(matchLables) > 1 {
+		labelsStr := matchLables[1]
+		for _, labelStr := range strings.Split(labelsStr, ",") {
+			m := labelRE.FindStringSubmatch(labelStr)
+			if len(m) == 3 {
+				key := m[1]
+				value := m[2]
+				labels[key] = value
+			}
+		}
+	}
+	return labels
 }
