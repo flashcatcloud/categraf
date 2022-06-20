@@ -194,7 +194,7 @@ func (ins *Instance) gatherMntrResult(conn net.Conn, slist *list.SafeList, globa
 		}
 
 		kv := strings.Fields(l)
-		if len(kv) != 2 {
+		if len(kv) < 2 {
 			continue
 		}
 
