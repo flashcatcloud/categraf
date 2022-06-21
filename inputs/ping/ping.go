@@ -194,7 +194,18 @@ func (ins *Instance) gather(slist *list.SafeList, target string) {
 		return
 	}
 
+	// Set TTL only on supported platform. See golang.org/x/net/ipv4/payload_cmsg.go
+	switch runtime.GOOS {
+	case "aix", "darwin", "dragonfly", "freebsd", "linux", "netbsd", "openbsd", "solaris":
+		fields["ttl"] = stats.ttl
+	}
+
+	//nolint:unconvert // Conversion may be needed for float64 https://github.com/mdempsky/unconvert/issues/40
 	fields["percent_packet_loss"] = float64(stats.PacketLoss)
+	fields["minimum_response_ms"] = float64(stats.MinRtt) / float64(time.Millisecond)
+	fields["average_response_ms"] = float64(stats.AvgRtt) / float64(time.Millisecond)
+	fields["maximum_response_ms"] = float64(stats.MaxRtt) / float64(time.Millisecond)
+	fields["standard_deviation_ms"] = float64(stats.StdDevRtt) / float64(time.Millisecond)
 }
 
 type pingStats struct {

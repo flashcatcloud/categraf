@@ -73,7 +73,7 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] k8s solution
 - [x] [kubernetes](inputs/kubernetes)
 - [x] [kube_state_metrics](inputs/kube_state_metrics)
-- [x] [nginx vts](inputs/nginx_vts)
+- [x] [nginx_vts](inputs/nginx_vts)
 - [ ] mongodb
 - [ ] rocketmq
 - [ ] activemq
