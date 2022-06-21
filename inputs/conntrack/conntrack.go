@@ -21,6 +21,7 @@ type Conntrack struct {
 	config.Interval
 	Dirs  []string `toml:"dirs"`
 	Files []string `toml:"files"`
+	Quiet bool     `toml:"quiet"`
 }
 
 var dfltDirs = []string{
@@ -95,7 +96,7 @@ func (c *Conntrack) Gather(slist *list.SafeList) {
 		}
 	}
 
-	if len(fields) == 0 {
+	if len(fields) == 0 && !c.Quiet {
 		log.Println("E! Conntrack input failed to collect metrics. Is the conntrack kernel module loaded?")
 	}
 

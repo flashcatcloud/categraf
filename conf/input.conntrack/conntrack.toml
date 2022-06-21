@@ -12,3 +12,6 @@ dirs = [
     "/proc/sys/net/ipv4/netfilter",
     "/proc/sys/net/netfilter"
 ]
+
+# ignore errors
+quiet = true
