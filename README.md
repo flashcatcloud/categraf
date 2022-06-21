@@ -53,6 +53,7 @@ tar zcvf categraf.tar.gz categraf conf
 - [x] [netstat](inputs/netstat)
 - [x] [disk](inputs/disk)
 - [x] [diskio](inputs/diskio)
+- [x] [conntrack](inputs/conntrack)
 - [x] [ntp](inputs/ntp)
 - [x] [processes](inputs/processes)
 - [x] [exec](inputs/exec)
@@ -85,7 +86,7 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] was
 - [ ] hadoop
 - [ ] ad
-- [ ] zookeeper
+- [x] [zookeeper](inputs/zookeeper)
 - [ ] statsd
 - [ ] snmp
 - [x] [switch_legacy](inputs/switch_legacy)
