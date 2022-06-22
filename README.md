@@ -71,7 +71,6 @@ tar zcvf categraf.tar.gz categraf conf
 - [x] [nginx_upstream_check](inputs/nginx_upstream_check)
 - [x] [kubernetes(read metrics from kubelet api)](inputs/kubernetes)
 - [ ] k8s solution
-- [x] [kubernetes](inputs/kubernetes)
 - [x] [kube_state_metrics](inputs/kube_state_metrics)
 - [x] [nginx_vts](inputs/nginx_vts)
 - [ ] mongodb
