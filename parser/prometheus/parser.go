@@ -109,7 +109,7 @@ func (p *Parser) handleHistogram(m *dto.Metric, tags map[string]string, metricNa
 	for _, b := range m.GetHistogram().Bucket {
 		le := fmt.Sprint(b.GetUpperBound())
 		value := float64(b.GetCumulativeCount())
-		slist.PushFront(inputs.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "sum"), value, tags, map[string]string{"le": le}))
+		slist.PushFront(inputs.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}))
 	}
 }
 
