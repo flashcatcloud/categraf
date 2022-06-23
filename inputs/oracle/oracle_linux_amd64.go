@@ -1,3 +1,6 @@
+//go:build enterpise
+// +build enterpise
+
 package oracle
 
 import (
