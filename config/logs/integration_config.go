@@ -7,7 +7,6 @@ package logs
 
 import (
 	"fmt"
-	"github.com/Shopify/sarama"
 	"strings"
 )
 
@@ -69,13 +68,6 @@ type (
 		AutoMultiLine               bool    `mapstructure:"auto_multi_line_detection" json:"auto_multi_line_detection"`
 		AutoMultiLineSampleSize     int     `mapstructure:"auto_multi_line_sample_size" json:"auto_multi_line_sample_size"`
 		AutoMultiLineMatchThreshold float64 `mapstructure:"auto_multi_line_match_threshold" json:"auto_multi_line_match_threshold"`
-
-		Kafka KafkaConfig `json:"kafka" toml:"kafka"`
-	}
-	KafkaConfig struct {
-		Brokers []string `json:"brokers" toml:"brokers"`
-		Topic   string   `json:"topic" toml:"brokers"`
-		*sarama.Config
 	}
 )
 

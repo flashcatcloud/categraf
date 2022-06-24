@@ -33,7 +33,3 @@ collect_container_all = true
   path = "/opt/tomcat/logs/*.txt"
   source = "tomcat"
   service = "my_service"
-  [logs.itmes.output]
-  #  kafka topic for this item
-  #  brokers = [""]
-  #  topic = ""
