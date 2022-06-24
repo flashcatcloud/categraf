@@ -278,6 +278,11 @@ func (r *Redis) gatherInfoAll(slist *list.SafeList, ins *Instance, tags map[stri
 			continue
 		}
 
+		if name == "role" {
+			tags["replica_role"] = val
+			continue
+		}
+
 		// ignore other string fields
 	}
 
