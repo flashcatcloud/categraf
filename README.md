@@ -1,14 +1,13 @@
 # Categraf
 
-Categraf is a monitoring agent for nightingale/prometheus/m3db/victoriametrics/thanos/influxdb/tdengine.
+Categraf is a monitoring agent for nightingale / prometheus / m3db / victoriametrics / thanos / influxdb / tdengine.
 
-## QuickStart
+## Links
 
-[QuickStart](https://www.gitlink.org.cn/flashcat/categraf/wiki)
-
-## Releases
-
-[Releases](https://www.gitlink.org.cn/flashcat/categraf/releases)
+- [QuickStart](https://www.gitlink.org.cn/flashcat/categraf/wiki/QuickStart)
+- [FAQ](https://www.gitlink.org.cn/flashcat/categraf/wiki/FAQ)
+- [Github Releases](https://github.com/flashcatcloud/categraf/releases)
+- [Gitlink Releases](https://www.gitlink.org.cn/flashcat/categraf/releases)
 
 ## Build
 
@@ -18,30 +17,51 @@ Categraf is a monitoring agent for nightingale/prometheus/m3db/victoriametrics/t
 go build
 ```
 
-## Deploy categraf as daemonset
-
-```shell
-edit k8s/categraf.yaml, replace NSERVER_SERVICE_WITH_PORT with service ip:port of nserver in your cluster, replace CATEGRAF_NAMESPACE with namespace value, then run:
-
-kubectl apply -n monitoring -f ks8/categraf.yaml
-```
-
-## Test
-
-```shell
-./categraf --test
-
-# usage:
-./categraf --help
-```
-
 ## Pack
 
 ```shell
 tar zcvf categraf.tar.gz categraf conf
 ```
 
-## Plan
+
+## Run
+
+```shell
+# test mode: just print metrics to stdout
+./categraf --test
+
+# test system and mem plugins
+./categraf --test --inputs system:mem
+
+# print usage message
+./categraf --help
+
+# run
+./categraf
+
+# run with specified config directory
+./categraf --configs /path/to/conf-directory
+
+# only enable system and mem plugins
+./categraf --inputs system:mem
+
+# use nohup to start categraf
+nohup ./categraf &> stdout.log &
+```
+
+
+## Deploy categraf as daemonset
+
+edit k8s/categraf.yaml, replace NSERVER_SERVICE_WITH_PORT with service ip:port of nserver in your cluster, replace CATEGRAF_NAMESPACE with namespace value, then run:
+
+```shell
+kubectl apply -n monitoring -f ks8/categraf.yaml
+```
+
+
+## Plugin
+
+Click on the links to see the README of each plugin.
 
 - [x] [system](inputs/system)
 - [x] [kernel](inputs/kernel)
@@ -93,9 +113,6 @@ tar zcvf categraf.tar.gz categraf conf
 - [ ] logging
 - [ ] trace
 
-## FAQ
-
-[FAQ](https://www.gitlink.org.cn/flashcat/categraf/wiki)
 
 ## Thanks
 
