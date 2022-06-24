@@ -394,7 +394,7 @@ func gatherReplicationLine(
 	}
 
 	tags["replica_id"] = strings.TrimLeft(name, "slave")
-	tags["replica_role"] = "slave"
+	// tags["replica_role"] = "slave"
 
 	parts := strings.Split(line, ",")
 	for _, part := range parts {
