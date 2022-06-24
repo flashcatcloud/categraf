@@ -278,6 +278,11 @@ func (r *Redis) gatherInfoAll(slist *list.SafeList, ins *Instance, tags map[stri
 			continue
 		}
 
+		if name == "role" {
+			tags["replica_role"] = val
+			continue
+		}
+
 		// ignore other string fields
 	}
 
@@ -389,7 +394,7 @@ func gatherReplicationLine(
 	}
 
 	tags["replica_id"] = strings.TrimLeft(name, "slave")
-	tags["replica_role"] = "slave"
+	// tags["replica_role"] = "slave"
 
 	parts := strings.Split(line, ",")
 	for _, part := range parts {
