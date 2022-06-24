@@ -18,15 +18,21 @@ const agentHostnameLabelKey = "agent_hostname"
 
 var metricReplacer = strings.NewReplacer("-", "_", ".", "_")
 
-type Reader struct {
-	Instance inputs.Input
-	QuitChan chan struct{}
-	Queue    chan *types.Sample
+type InputReader struct {
+	instance inputs.Input
+	quitChan chan struct{}
+	queue    chan *types.Sample
 }
 
-var InputReaders = map[string]*Reader{}
+func NewInputReader(ins inputs.Input) *InputReader {
+	return &InputReader{
+		instance: ins,
+		quitChan: make(chan struct{}, 1),
+		queue:    make(chan *types.Sample, config.Config.WriterOpt.ChanSize),
+	}
+}
 
-func (r *Reader) Start() {
+func (r *InputReader) Start() {
 	// start consumer goroutines
 	go r.read()
 
@@ -34,15 +40,21 @@ func (r *Reader) Start() {
 	go r.startInstance()
 }
 
-func (r *Reader) startInstance() {
+func (r *InputReader) Stop() {
+	r.quitChan <- struct{}{}
+	close(r.queue)
+	r.instance.Drop()
+}
+
+func (r *InputReader) startInstance() {
 	interval := config.GetInterval()
-	if r.Instance.GetInterval() > 0 {
-		interval = time.Duration(r.Instance.GetInterval())
+	if r.instance.GetInterval() > 0 {
+		interval = time.Duration(r.instance.GetInterval())
 	}
 	for {
 		select {
-		case <-r.QuitChan:
-			close(r.QuitChan)
+		case <-r.quitChan:
+			close(r.quitChan)
 			return
 		default:
 			time.Sleep(interval)
@@ -51,7 +63,7 @@ func (r *Reader) startInstance() {
 	}
 }
 
-func (r *Reader) gatherOnce() {
+func (r *InputReader) gatherOnce() {
 	defer func() {
 		if r := recover(); r != nil {
 			if strings.Contains(fmt.Sprint(r), "closed channel") {
@@ -64,7 +76,7 @@ func (r *Reader) gatherOnce() {
 
 	// gather
 	slist := list.NewSafeList()
-	r.Instance.Gather(slist)
+	r.instance.Gather(slist)
 
 	// handle result
 	samples := slist.PopBackAll()
@@ -85,8 +97,8 @@ func (r *Reader) gatherOnce() {
 			s.Timestamp = now
 		}
 
-		if len(r.Instance.Prefix()) > 0 {
-			s.Metric = r.Instance.Prefix() + "_" + metricReplacer.Replace(s.Metric)
+		if len(r.instance.Prefix()) > 0 {
+			s.Metric = r.instance.Prefix() + "_" + metricReplacer.Replace(s.Metric)
 		} else {
 			s.Metric = metricReplacer.Replace(s.Metric)
 		}
@@ -110,14 +122,14 @@ func (r *Reader) gatherOnce() {
 		}
 
 		// write to remote write queue
-		r.Queue <- s
+		r.queue <- s
 
 		// write to clickhouse queue
 		house.MetricsHouse.Push(s)
 	}
 }
 
-func (r *Reader) read() {
+func (r *InputReader) read() {
 	batch := config.Config.WriterOpt.Batch
 	if batch <= 0 {
 		batch = 2000
@@ -129,7 +141,7 @@ func (r *Reader) read() {
 
 	for {
 		select {
-		case item, open := <-r.Queue:
+		case item, open := <-r.queue:
 			if !open {
 				// queue closed
 				return

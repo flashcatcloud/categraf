@@ -38,11 +38,13 @@ import (
 
 type Agent struct {
 	InputFilters map[string]struct{}
+	InputReaders map[string]*InputReader
 }
 
 func NewAgent(filters map[string]struct{}) *Agent {
 	return &Agent{
 		InputFilters: filters,
+		InputReaders: make(map[string]*InputReader),
 	}
 }
 

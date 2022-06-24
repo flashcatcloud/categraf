@@ -53,16 +53,11 @@ func (a *Agent) startMetricsAgent() error {
 			continue
 		}
 
-		reader := &Reader{
-			Instance: instance,
-			QuitChan: make(chan struct{}, 1),
-			Queue:    make(chan *types.Sample, config.Config.WriterOpt.ChanSize),
-		}
+		reader := NewInputReader(instance)
+		reader.Start()
+		a.InputReaders[name] = reader
 
 		log.Println("I! input:", name, "started")
-		reader.Start()
-
-		InputReaders[name] = reader
 	}
 
 	return nil
@@ -91,9 +86,7 @@ func (a *Agent) getInputsByDirs() ([]string, error) {
 }
 
 func (a *Agent) stopMetricsAgent() {
-	for name := range InputReaders {
-		InputReaders[name].QuitChan <- struct{}{}
-		close(InputReaders[name].Queue)
-		InputReaders[name].Instance.Drop()
+	for name := range a.InputReaders {
+		a.InputReaders[name].Stop()
 	}
 }
