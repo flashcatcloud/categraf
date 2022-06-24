@@ -183,7 +183,7 @@ func (a *Agent) startLogAgent() {
 	}
 }
 
-func stopLogAgent() {
+func (a *Agent) stopLogAgent() {
 	if logAgent != nil {
 		logAgent.Stop()
 	}
