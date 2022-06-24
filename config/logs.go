@@ -1,6 +1,8 @@
 package config
 
 import (
+	"github.com/Shopify/sarama"
+
 	logsconfig "flashcat.cloud/categraf/config/logs"
 )
 
@@ -26,6 +28,12 @@ type (
 		CollectContainerAll   bool                         `json:"collect_container_all" toml:"collect_container_all"`
 		GlobalProcessingRules []*logsconfig.ProcessingRule `json:"processing_rules" toml:"processing_rules"`
 		Items                 []*logsconfig.LogsConfig     `json:"items" toml:"items"`
+		KafkaConfig
+	}
+	KafkaConfig struct {
+		Topic   string   `json:"topic" toml:"topic"`
+		Brokers []string `json:"brokers" toml:"brokers"`
+		*sarama.Config
 	}
 )
 

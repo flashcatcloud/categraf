@@ -3,10 +3,11 @@
 api_key = "ef4ahfbwzwwtlwfpbertgq1i6mq0ab1q"
 ## 是否开启日志采集
 enable = false
-## 接受日志的server地址
+## 接受日志的server地址, http/tcp/kafka, 只有kafka支持多个地址（broker）用逗号分割
 send_to = "127.0.0.1:17878"
-## 发送日志的协议 http/tcp
+## 发送日志的协议 http/tcp/kafka
 send_type = "http"
+topic = "flashcatcloud"
 ## 是否压缩发送
 use_compress = false
 ## 是否采用ssl

@@ -29,9 +29,11 @@ const (
 	EPIntakeVersion2
 )
 
-// Endpoint holds all the organization and network parameters to send logs to Datadog.
+// Endpoint holds all the organization and network parameters to send logs
 type Endpoint struct {
 	APIKey                  string `mapstructure:"api_key" json:"api_key"`
+	Addr                    string
+	Topic                   string
 	Host                    string
 	Port                    int
 	UseSSL                  bool
@@ -57,7 +59,7 @@ type Endpoints struct {
 	Main                   Endpoint
 	Additionals            []Endpoint
 	UseProto               bool
-	UseHTTP                bool
+	Type                   string
 	BatchWait              time.Duration
 	BatchMaxConcurrentSend int
 	BatchMaxSize           int
