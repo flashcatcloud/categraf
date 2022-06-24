@@ -156,7 +156,7 @@ func (a *Agent) startLogAgent() {
 	endpoints, err := BuildEndpoints(intakeTrackType, AgentJSONIntakeProtocol, logsconfig.DefaultIntakeOrigin)
 	if err != nil {
 		message := fmt.Sprintf("Invalid endpoints: %v", err)
-		status.AddGlobalError(invalidProcessingRules, message)
+		status.AddGlobalError("invalid endpoints", message)
 		log.Println("E!", errors.New(message))
 		return
 	}
