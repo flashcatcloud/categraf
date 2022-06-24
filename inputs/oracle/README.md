@@ -59,3 +59,7 @@ nohup ./categraf &> stdout.log &
 ## 监控大盘
 
 本 README 文件的同级目录下，提供了 dashboard.json 就是 Oracle 的监控大盘，可以导入夜莺使用。
+
+## 更新 2022-06-24
+
+从 v0.1.8 版本开始，每个 instances 实例下面也可以配置 SQL 了，这些 SQL 只生效到对应的实例，相当于：所有Oracle都要采集的 SQL 配置到全局的 metrics.toml，某个实例特殊的配置则配置在 instances 下面，配置文件中给了一个例子，`[[instances.metrics]]` 配置段。
