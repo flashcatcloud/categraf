@@ -3,12 +3,13 @@ package kafka
 import (
 	"context"
 	"errors"
-	coreconfig "flashcat.cloud/categraf/config"
-	"github.com/Shopify/sarama"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/Shopify/sarama"
+
+	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/pkg/backoff"
