@@ -1,5 +1,5 @@
-//go:build enterpise
-// +build enterpise
+//go:build enterprise
+// +build enterprise
 
 package oracle
 

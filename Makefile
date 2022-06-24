@@ -19,6 +19,9 @@ build:
 	echo "Building version $(GIT_VERSION)"
 	go build -ldflags $(LDFLAGS) -o $(APP)
 
+build-enterprise:
+	echo "Building version $(GIT_VERSION)"
+	go build --tags "enterprise" -ldflags $(LDFLAGS) -o $(APP)
 
 build-linux:
 	echo "Building version $(GIT_VERSION) for linux"
