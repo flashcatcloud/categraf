@@ -11,7 +11,19 @@ changelog:
   skip: true
 
 builds:
-  - id: build-docker
+  - id: linux-arm64
+    main: ./
+    binary: categraf
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - arm64
+    ldflags:
+      - -s -w
+      - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
+  - id: linux-amd64
     main: ./
     binary: categraf
     env:
@@ -20,11 +32,10 @@ builds:
       - linux
     goarch:
       - amd64
-      - arm64
     ldflags:
       - -s -w
       - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
-  - id: build-linux-amd64
+  - id: linux-amd64-cgo
     main: ./
     binary: categraf
     env:
@@ -38,20 +49,16 @@ builds:
     ldflags:
       - -s -w
       - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
-  - id: build-other
+  - id: windows
     main: ./
     binary: categraf
     env:
       - CGO_ENABLED=0
     goos:
-      - linux
       - windows
     goarch:
       - amd64
       - arm64
-    ignore:
-      - goos: linux
-        goarch: amd64
     ldflags:
       - -s -w
       - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
@@ -59,8 +66,9 @@ builds:
 archives:
   - id: categraf
     builds:
-      - build-linux-amd64
-      - build-other
+      - linux-amd64-cgo
+      - linux-arm64
+      - windows
     format: tar.gz
     format_overrides:
       - goos: windows
@@ -82,7 +90,7 @@ dockers:
     goos: linux
     goarch: amd64
     ids:
-      - build-docker
+      - linux-amd64
     dockerfile: docker/Dockerfile.goreleaser
     extra_files:
       - docker/entrypoint.sh
@@ -110,7 +118,7 @@ dockers:
     goos: linux
     goarch: arm64
     ids:
-      - build-docker
+      - linux-arm64
     dockerfile: docker/Dockerfile.goreleaser
     extra_files:
       - docker/entrypoint.sh
