@@ -37,7 +37,7 @@ func (r *InputReader) Start() {
 	go r.read()
 
 	// start collector instance
-	go r.startInstance()
+	go r.startInput()
 }
 
 func (r *InputReader) Stop() {
@@ -46,7 +46,7 @@ func (r *InputReader) Stop() {
 	r.input.Drop()
 }
 
-func (r *InputReader) startInstance() {
+func (r *InputReader) startInput() {
 	interval := config.GetInterval()
 	if r.input.GetInterval() > 0 {
 		interval = time.Duration(r.input.GetInterval())
