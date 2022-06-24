@@ -13,6 +13,15 @@
 # interval_times = 1
 # labels = { region="cloud" }
 
+# [[instances.metrics]]
+# mesurement = "sessions"
+# label_fields = [ "status", "type" ]
+# metric_fields = [ "value" ]
+# timeout = "3s"
+# request = '''
+# SELECT status, type, COUNT(*) as value FROM v$session GROUP BY status, type
+# '''
+
 # [[instances]]
 # address = "192.168.10.10:1521/orcl"
 # username = "monitor"

@@ -24,7 +24,7 @@ import (
 
 const inputName = "oracle"
 
-type OrclInstance struct {
+type Instance struct {
 	Address               string            `toml:"address"`
 	Username              string            `toml:"username"`
 	Password              string            `toml:"password"`
@@ -34,6 +34,7 @@ type OrclInstance struct {
 	MaxOpenConnections    int               `toml:"max_open_connections"`
 	Labels                map[string]string `toml:"labels"`
 	IntervalTimes         int64             `toml:"interval_times"`
+	Metrics               []MetricConfig    `toml:"metrics"`
 }
 
 type MetricConfig struct {
@@ -48,7 +49,7 @@ type MetricConfig struct {
 
 type Oracle struct {
 	config.Interval
-	Instances []OrclInstance `toml:"instances"`
+	Instances []Instance     `toml:"instances"`
 	Metrics   []MetricConfig `toml:"metrics"`
 
 	dbconnpool map[string]*sqlx.DB // key: instance
@@ -110,7 +111,7 @@ func (o *Oracle) Gather(slist *list.SafeList) {
 	o.wg.Wait()
 }
 
-func (o *Oracle) gatherOnce(slist *list.SafeList, ins OrclInstance) {
+func (o *Oracle) gatherOnce(slist *list.SafeList, ins Instance) {
 	defer o.wg.Done()
 
 	if ins.IntervalTimes > 0 {
@@ -144,13 +145,19 @@ func (o *Oracle) gatherOnce(slist *list.SafeList, ins OrclInstance) {
 	for i := 0; i < len(o.Metrics); i++ {
 		m := o.Metrics[i]
 		waitMetrics.Add(1)
-		go o.scrapeMetric(waitMetrics, slist, db, m, tags)
+		go ins.scrapeMetric(waitMetrics, slist, db, m, tags)
+	}
+
+	for i := 0; i < len(ins.Metrics); i++ {
+		m := ins.Metrics[i]
+		waitMetrics.Add(1)
+		go ins.scrapeMetric(waitMetrics, slist, db, m, tags)
 	}
 
 	waitMetrics.Wait()
 }
 
-func (o *Oracle) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList, db *sqlx.DB, metricConf MetricConfig, tags map[string]string) {
+func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList, db *sqlx.DB, metricConf MetricConfig, tags map[string]string) {
 	defer waitMetrics.Done()
 
 	timeout := time.Duration(metricConf.Timeout)
@@ -203,7 +210,7 @@ func (o *Oracle) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList,
 		}
 
 		count := 0
-		if err = o.parseRow(m, metricConf, slist, tags); err != nil {
+		if err = ins.parseRow(m, metricConf, slist, tags); err != nil {
 			log.Println("E! failed to parse row:", err)
 			continue
 		} else {
@@ -216,7 +223,7 @@ func (o *Oracle) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList,
 	}
 }
 
-func (o *Oracle) parseRow(row map[string]string, metricConf MetricConfig, slist *list.SafeList, tags map[string]string) error {
+func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, slist *list.SafeList, tags map[string]string) error {
 	labels := make(map[string]string)
 	for k, v := range tags {
 		labels[k] = v
@@ -259,7 +266,7 @@ func cleanName(s string) string {
 	return s
 }
 
-func getConnectionString(args OrclInstance) string {
+func getConnectionString(args Instance) string {
 	return godror.ConnectionParams{
 		StandaloneConnection: args.DisableConnectionPool,
 		CommonParams: dsn.CommonParams{
