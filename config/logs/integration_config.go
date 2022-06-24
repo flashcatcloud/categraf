@@ -7,6 +7,7 @@ package logs
 
 import (
 	"fmt"
+	"github.com/Shopify/sarama"
 	"strings"
 )
 
@@ -29,45 +30,54 @@ const (
 
 // LogsConfig represents a log source config, which can be for instance
 // a file to tail or a port to listen to.
-type LogsConfig struct {
-	Type string
+type (
+	LogsConfig struct {
+		Type string
 
-	Port        int    // Network
-	IdleTimeout string `mapstructure:"idle_timeout" json:"idle_timeout"` // Network
-	Path        string // File, Journald
+		Port        int    // Network
+		IdleTimeout string `mapstructure:"idle_timeout" json:"idle_timeout"` // Network
+		Path        string // File, Journald
 
-	Encoding     string   `mapstructure:"encoding" json:"encoding"`             // File
-	ExcludePaths []string `mapstructure:"exclude_paths" json:"exclude_paths"`   // File
-	TailingMode  string   `mapstructure:"start_position" json:"start_position"` // File
+		Encoding     string   `mapstructure:"encoding" json:"encoding"`             // File
+		ExcludePaths []string `mapstructure:"exclude_paths" json:"exclude_paths"`   // File
+		TailingMode  string   `mapstructure:"start_position" json:"start_position"` // File
 
-	IncludeUnits  []string `mapstructure:"include_units" json:"include_units"`   // Journald
-	ExcludeUnits  []string `mapstructure:"exclude_units" json:"exclude_units"`   // Journald
-	ContainerMode bool     `mapstructure:"container_mode" json:"container_mode"` // Journald
+		IncludeUnits  []string `mapstructure:"include_units" json:"include_units"`   // Journald
+		ExcludeUnits  []string `mapstructure:"exclude_units" json:"exclude_units"`   // Journald
+		ContainerMode bool     `mapstructure:"container_mode" json:"container_mode"` // Journald
 
-	Image string // Docker
-	Label string // Docker
-	// Name contains the container name
-	Name string // Docker
-	// Identifier contains the container ID
-	Identifier string // Docker
+		Image string // Docker
+		Label string // Docker
+		// Name contains the container name
+		Name string // Docker
+		// Identifier contains the container ID
+		Identifier string // Docker
 
-	ChannelPath string `mapstructure:"channel_path" json:"channel_path"` // Windows Event
-	Query       string // Windows Event
+		ChannelPath string `mapstructure:"channel_path" json:"channel_path"` // Windows Event
+		Query       string // Windows Event
 
-	// used as input only by the Channel tailer.
-	// could have been unidirectional but the tailer could not close it in this case.
-	Channel chan *ChannelMessage `json:"-"`
+		// used as input only by the Channel tailer.
+		// could have been unidirectional but the tailer could not close it in this case.
+		Channel chan *ChannelMessage `json:"-"`
 
-	Service         string
-	Source          string
-	SourceCategory  string
-	Tags            []string
-	ProcessingRules []*ProcessingRule `mapstructure:"log_processing_rules" json:"log_processing_rules"`
+		Service         string
+		Source          string
+		SourceCategory  string
+		Tags            []string
+		ProcessingRules []*ProcessingRule `mapstructure:"log_processing_rules" json:"log_processing_rules"`
 
-	AutoMultiLine               bool    `mapstructure:"auto_multi_line_detection" json:"auto_multi_line_detection"`
-	AutoMultiLineSampleSize     int     `mapstructure:"auto_multi_line_sample_size" json:"auto_multi_line_sample_size"`
-	AutoMultiLineMatchThreshold float64 `mapstructure:"auto_multi_line_match_threshold" json:"auto_multi_line_match_threshold"`
-}
+		AutoMultiLine               bool    `mapstructure:"auto_multi_line_detection" json:"auto_multi_line_detection"`
+		AutoMultiLineSampleSize     int     `mapstructure:"auto_multi_line_sample_size" json:"auto_multi_line_sample_size"`
+		AutoMultiLineMatchThreshold float64 `mapstructure:"auto_multi_line_match_threshold" json:"auto_multi_line_match_threshold"`
+
+		Kafka KafkaConfig `json:"kafka" toml:"kafka"`
+	}
+	KafkaConfig struct {
+		Brokers []string `json:"brokers" toml:"brokers"`
+		Topic   string   `json:"topic" toml:"brokers"`
+		*sarama.Config
+	}
+)
 
 // TailingMode type
 type TailingMode uint8

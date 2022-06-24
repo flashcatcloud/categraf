@@ -46,7 +46,7 @@ func (b *Builder) BuildStatus() Status {
 		StatusMetrics: b.getMetricsStatus(),
 		Warnings:      b.getWarnings(),
 		Errors:        b.getErrors(),
-		UseHTTP:       b.getUseHTTP(),
+		Type:          b.getType(),
 	}
 }
 
@@ -57,8 +57,8 @@ func (b *Builder) getIsRunning() bool {
 	return atomic.LoadInt32(b.isRunning) != 0
 }
 
-func (b *Builder) getUseHTTP() bool {
-	return b.endpoints.UseHTTP
+func (b *Builder) getType() string {
+	return b.endpoints.Type
 }
 
 func (b *Builder) getEndpoints() []string {
@@ -80,7 +80,8 @@ func (b *Builder) formatEndpoint(endpoint logsconfig.Endpoint, prefix string) st
 	port := endpoint.Port
 
 	var protocol string
-	if b.endpoints.UseHTTP {
+	switch b.endpoints.Type {
+	case "http":
 		if endpoint.UseSSL {
 			protocol = "HTTPS"
 			if port == 0 {
@@ -95,7 +96,13 @@ func (b *Builder) formatEndpoint(endpoint logsconfig.Endpoint, prefix string) st
 				port = 80 // use default port
 			}
 		}
-	} else {
+	case "kafka":
+		if endpoint.UseSSL {
+			protocol = " SSL Encrypted TCP (to Kafka)"
+		} else {
+			protocol = "TCP (to Kafka)"
+		}
+	case "tcp":
 		if endpoint.UseSSL {
 			protocol = "SSL encrypted TCP"
 		} else {

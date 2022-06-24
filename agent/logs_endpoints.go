@@ -23,18 +23,68 @@ const (
 )
 
 // BuildEndpoints returns the endpoints to send logs.
-func BuildEndpoints(httpConnectivity logsconfig.HTTPConnectivity, intakeTrackType logsconfig.IntakeTrackType, intakeProtocol logsconfig.IntakeProtocol, intakeOrigin logsconfig.IntakeOrigin) (*logsconfig.Endpoints, error) {
-	return BuildEndpointsWithConfig(httpEndpointPrefix, httpConnectivity, intakeTrackType, intakeProtocol, intakeOrigin)
+func BuildEndpoints(intakeTrackType logsconfig.IntakeTrackType, intakeProtocol logsconfig.IntakeProtocol, intakeOrigin logsconfig.IntakeOrigin) (*logsconfig.Endpoints, error) {
+	return BuildEndpointsWithConfig(httpEndpointPrefix, intakeTrackType, intakeProtocol, intakeOrigin)
 }
 
 // BuildEndpointsWithConfig returns the endpoints to send logs.
-func BuildEndpointsWithConfig(endpointPrefix string, httpConnectivity logsconfig.HTTPConnectivity, intakeTrackType logsconfig.IntakeTrackType, intakeProtocol logsconfig.IntakeProtocol, intakeOrigin logsconfig.IntakeOrigin) (*logsconfig.Endpoints, error) {
+func BuildEndpointsWithConfig(endpointPrefix string, intakeTrackType logsconfig.IntakeTrackType, intakeProtocol logsconfig.IntakeProtocol, intakeOrigin logsconfig.IntakeOrigin) (*logsconfig.Endpoints, error) {
 	logsConfig := coreconfig.Config.Logs
 
-	if logsConfig.SendType == "http" || (bool(httpConnectivity) && !(logsConfig.SendType == "tcp")) {
+	switch logsConfig.SendType {
+	case "http":
 		return BuildHTTPEndpointsWithConfig(endpointPrefix, intakeTrackType, intakeProtocol, intakeOrigin)
+	case "tcp":
+		return buildTCPEndpoints(logsConfig)
+	case "kafka":
+		return buildKafkaEndpoints(logsConfig)
+
 	}
 	return buildTCPEndpoints(logsConfig)
+}
+
+func buildKafkaEndpoints(logsConfig coreconfig.Logs) (*logsconfig.Endpoints, error) {
+	// return nil, nil
+	// Provide default values for legacy settings when the configuration key does not exist
+	defaultTLS := coreconfig.Config.Logs.SendWithTLS
+
+	main := logsconfig.Endpoint{
+		APIKey:                  strings.TrimSpace(logsConfig.APIKey),
+		UseCompression:          logsConfig.UseCompression,
+		CompressionLevel:        logsConfig.CompressionLevel,
+		ConnectionResetInterval: 0,
+		BackoffBase:             1.0,
+		BackoffMax:              120.0,
+		BackoffFactor:           2.0,
+		RecoveryInterval:        2,
+		RecoveryReset:           false,
+		Addr:                    logsConfig.SendTo,
+		Topic:                   logsConfig.Topic,
+	}
+
+	if intakeTrackType != "" {
+		main.Version = logsconfig.EPIntakeVersion2
+		main.TrackType = intakeTrackType
+	} else {
+		main.Version = logsconfig.EPIntakeVersion1
+	}
+
+	if len(logsConfig.SendTo) != 0 {
+		brokers := strings.Split(logsConfig.SendTo, ",")
+		if len(brokers) == 0 {
+			return nil, fmt.Errorf("wrong send_to content %s", logsConfig.SendTo)
+		}
+		host, port, err := parseAddress(brokers[0])
+		if err != nil {
+			return nil, fmt.Errorf("could not parse %s: %v", logsConfig.SendTo, err)
+		}
+		main.Host = host
+		main.Port = port
+		main.UseSSL = defaultTLS
+	} else {
+		return nil, fmt.Errorf("empty send_to is not allowed when send_type is kafka")
+	}
+	return NewEndpoints(main, false, "kafka"), nil
 }
 
 func buildTCPEndpoints(logsConfig coreconfig.Logs) (*logsconfig.Endpoints, error) {
@@ -58,7 +108,7 @@ func buildTCPEndpoints(logsConfig coreconfig.Logs) (*logsconfig.Endpoints, error
 		main.UseSSL = logsConfig.SendWithTLS
 	}
 
-	return NewEndpoints(main, false, false), nil
+	return NewEndpoints(main, false, "tcp"), nil
 }
 
 // BuildHTTPEndpoints returns the HTTP endpoints to send logs to.
@@ -112,7 +162,7 @@ func BuildHTTPEndpointsWithConfig(endpointPrefix string, intakeTrackType logscon
 	batchMaxSize := 100
 	batchMaxContentSize := 1000000
 
-	return NewEndpointsWithBatchSettings(main, false, true, batchWait, batchMaxConcurrentSend, batchMaxSize, batchMaxContentSize), nil
+	return NewEndpointsWithBatchSettings(main, false, "http", batchWait, batchMaxConcurrentSend, batchMaxSize, batchMaxContentSize), nil
 }
 
 // parseAddress returns the host and the port of the address.
@@ -129,13 +179,13 @@ func parseAddress(address string) (string, int, error) {
 }
 
 // NewEndpoints returns a new endpoints composite with default batching settings
-func NewEndpoints(main logsconfig.Endpoint, useProto bool, useHTTP bool) *logsconfig.Endpoints {
+func NewEndpoints(main logsconfig.Endpoint, useProto bool, typ string) *logsconfig.Endpoints {
 	logsConfig := coreconfig.Config.Logs
 	return &logsconfig.Endpoints{
 		Main:        main,
 		Additionals: nil,
 		UseProto:    useProto,
-		UseHTTP:     useHTTP,
+		Type:        typ,
 		BatchWait:   time.Duration(logsConfig.BatchWait) * time.Second,
 		// TODO support custom param
 		BatchMaxConcurrentSend: 0,
@@ -145,12 +195,12 @@ func NewEndpoints(main logsconfig.Endpoint, useProto bool, useHTTP bool) *logsco
 }
 
 // NewEndpointsWithBatchSettings returns a new endpoints composite with non-default batching settings specified
-func NewEndpointsWithBatchSettings(main logsconfig.Endpoint, useProto bool, useHTTP bool, batchWait time.Duration, batchMaxConcurrentSend int, batchMaxSize int, batchMaxContentSize int) *logsconfig.Endpoints {
+func NewEndpointsWithBatchSettings(main logsconfig.Endpoint, useProto bool, typ string, batchWait time.Duration, batchMaxConcurrentSend int, batchMaxSize int, batchMaxContentSize int) *logsconfig.Endpoints {
 	return &logsconfig.Endpoints{
 		Main:                   main,
 		Additionals:            nil,
 		UseProto:               useProto,
-		UseHTTP:                useHTTP,
+		Type:                   typ,
 		BatchWait:              batchWait,
 		BatchMaxConcurrentSend: batchMaxConcurrentSend,
 		BatchMaxSize:           batchMaxSize,

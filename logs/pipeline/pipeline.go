@@ -11,6 +11,7 @@ import (
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/logs/client/http"
+	"flashcat.cloud/categraf/logs/client/kafka"
 	"flashcat.cloud/categraf/logs/client/tcp"
 	"flashcat.cloud/categraf/logs/diagnostic"
 	"flashcat.cloud/categraf/logs/message"
@@ -27,42 +28,46 @@ type Pipeline struct {
 
 // NewPipeline returns a new Pipeline
 func NewPipeline(outputChan chan *message.Message, processingRules []*logsconfig.ProcessingRule, endpoints *logsconfig.Endpoints, destinationsContext *client.DestinationsContext, diagnosticMessageReceiver diagnostic.MessageReceiver, serverless bool) *Pipeline {
-	var destinations *client.Destinations
-	if endpoints.UseHTTP {
+	var (
+		destinations *client.Destinations
+		strategy     sender.Strategy
+		encoder      processor.Encoder
+	)
+	switch endpoints.Type {
+	case "http":
 		main := http.NewDestination(endpoints.Main, http.JSONContentType, destinationsContext, endpoints.BatchMaxConcurrentSend)
 		additionals := []client.Destination{}
 		for _, endpoint := range endpoints.Additionals {
 			additionals = append(additionals, http.NewDestination(endpoint, http.JSONContentType, destinationsContext, endpoints.BatchMaxConcurrentSend))
 		}
 		destinations = client.NewDestinations(main, additionals)
-	} else {
+		strategy = sender.NewBatchStrategy(sender.ArraySerializer, endpoints.BatchWait, endpoints.BatchMaxConcurrentSend, endpoints.BatchMaxSize, endpoints.BatchMaxContentSize, "logs")
+		encoder = processor.JSONEncoder
+	case "kafka":
+		main := kafka.NewDestination(endpoints.Main, http.JSONContentType, destinationsContext, endpoints.BatchMaxConcurrentSend)
+		additionals := []client.Destination{}
+		for _, endpoint := range endpoints.Additionals {
+			additionals = append(additionals, kafka.NewDestination(endpoint, http.JSONContentType, destinationsContext, endpoints.BatchMaxConcurrentSend))
+		}
+		destinations = client.NewDestinations(main, additionals)
+		strategy = sender.StreamStrategy
+		encoder = processor.JSONEncoder
+	case "tcp":
 		main := tcp.NewDestination(endpoints.Main, endpoints.UseProto, destinationsContext)
 		additionals := []client.Destination{}
 		for _, endpoint := range endpoints.Additionals {
 			additionals = append(additionals, tcp.NewDestination(endpoint, endpoints.UseProto, destinationsContext))
 		}
 		destinations = client.NewDestinations(main, additionals)
+		strategy = sender.StreamStrategy
+		encoder = processor.RawEncoder
 	}
 
 	senderChan := make(chan *message.Message, logsconfig.ChanSize)
-
-	var strategy sender.Strategy
-	if endpoints.UseHTTP || serverless {
-		strategy = sender.NewBatchStrategy(sender.ArraySerializer, endpoints.BatchWait, endpoints.BatchMaxConcurrentSend, endpoints.BatchMaxSize, endpoints.BatchMaxContentSize, "logs")
-	} else {
-		strategy = sender.StreamStrategy
-	}
 	sender := sender.NewSender(senderChan, outputChan, destinations, strategy)
 
-	var encoder processor.Encoder
-	if serverless {
-		encoder = processor.JSONServerlessEncoder
-	} else if endpoints.UseHTTP {
-		encoder = processor.JSONEncoder
-	} else if endpoints.UseProto {
+	if endpoints.UseProto {
 		encoder = processor.ProtoEncoder
-	} else {
-		encoder = processor.RawEncoder
 	}
 
 	inputChan := make(chan *message.Message, logsconfig.ChanSize)

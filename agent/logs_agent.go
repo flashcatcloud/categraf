@@ -17,7 +17,6 @@ import (
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/auditor"
 	"flashcat.cloud/categraf/logs/client"
-	"flashcat.cloud/categraf/logs/client/http"
 	"flashcat.cloud/categraf/logs/diagnostic"
 	"flashcat.cloud/categraf/logs/input/file"
 	"flashcat.cloud/categraf/logs/input/journald"
@@ -154,11 +153,7 @@ func (a *Agent) startLogAgent() {
 		return
 	}
 
-	httpConnectivity := logsconfig.HTTPConnectivityFailure
-	if endpoints, err := BuildHTTPEndpoints(intakeTrackType, AgentJSONIntakeProtocol, logsconfig.DefaultIntakeOrigin); err == nil {
-		httpConnectivity = http.CheckConnectivity(endpoints.Main)
-	}
-	endpoints, err := BuildEndpoints(httpConnectivity, intakeTrackType, AgentJSONIntakeProtocol, logsconfig.DefaultIntakeOrigin)
+	endpoints, err := BuildEndpoints(intakeTrackType, AgentJSONIntakeProtocol, logsconfig.DefaultIntakeOrigin)
 	processingRules, err := GlobalProcessingRules()
 	if err != nil {
 		message := fmt.Sprintf("Invalid processing rules: %v", err)
