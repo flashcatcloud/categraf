@@ -117,3 +117,7 @@ Click on the links to see the README of each plugin.
 ## Thanks
 
 Categraf is developed on the basis of Telegraf and Exporters. Thanks to the great open source community.
+
+## Community
+
+![](doc/laqun.jpeg)
