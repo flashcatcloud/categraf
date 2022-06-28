@@ -57,6 +57,11 @@ func (ins *Instance) Init() error {
 	} else if len(ins.URLs) == 0 {
 		return types.ErrInstancesEmpty
 	}
+	for i, u := range ins.URLs {
+		ins.URLs[i] = strings.Replace(u, "$hostname", config.Config.GetHostname(), -1)
+		ins.URLs[i] = strings.Replace(u, "$ip", config.Config.Global.IP, -1)
+		ins.URLs[i] = os.Expand(u, config.GetEnv)
+	}
 
 	if ins.Timeout <= 0 {
 		ins.Timeout = config.Duration(time.Second * 3)
