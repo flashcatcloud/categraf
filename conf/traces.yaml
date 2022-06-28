@@ -1,0 +1,41 @@
+# This is an example:
+#     receive spans from jaeger, send to jaeger and zipkin, with three extensions enabled.
+# See factories we already supported:
+#     ./config/traces/components.go
+# For more details, see the OpenTelemetry official docs:
+#     https://opentelemetry.io/docs/collector/configuration/
+traces:
+  enable: true
+  extensions:
+    health_check:
+    pprof:
+      endpoint: 0.0.0.0:1777
+    zpages:
+      endpoint: 0.0.0.0:55679
+  
+  receivers:
+    jaeger:
+      protocols:
+        thrift_http:
+          endpoint: 0.0.0.0:14268
+  
+  processors:
+    batch:
+  
+  exporters:  
+    jaeger:
+      endpoint: "127.0.0.1:14250"
+      tls:
+        insecure: true
+  
+    zipkin:
+      endpoint: "http://127.0.0.1:9411/api/v2/spans"
+  
+  service:
+    pipelines:
+      traces:
+        receivers: [jaeger]
+        processors: [batch]
+        exporters: [jaeger,zipkin]
+  
+    extensions: [health_check, pprof, zpages]

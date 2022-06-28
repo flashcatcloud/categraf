@@ -5,3 +5,4 @@
 /vendor
 docker/conf
 docker/categraf
+/build
