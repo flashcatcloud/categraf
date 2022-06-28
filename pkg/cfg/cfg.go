@@ -27,7 +27,7 @@ func LoadConfigs(configDir string, configPtr interface{}) error {
 		if strings.HasSuffix(fpath, "json") {
 			loaders = append(loaders, &multiconfig.JSONLoader{Path: path.Join(configDir, fpath)})
 		}
-		if strings.HasSuffix(fpath, "yaml") {
+		if strings.HasSuffix(fpath, "yaml") || strings.HasSuffix(fpath, "yml") {
 			loaders = append(loaders, &multiconfig.YAMLLoader{Path: path.Join(configDir, fpath)})
 		}
 	}
