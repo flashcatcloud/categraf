@@ -2,6 +2,7 @@ package elasticsearch
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -111,7 +112,9 @@ func (r *Elasticsearch) Init() error {
 
 	for i := 0; i < len(r.Instances); i++ {
 		if err := r.Instances[i].Init(); err != nil {
-			return err
+			if !errors.Is(err, types.ErrInstancesEmpty) {
+				return err
+			}
 		}
 	}
 
@@ -229,6 +232,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 
 				// Gather node ID
 				if info.nodeID, err = ins.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
+					slist.PushFront(inputs.NewSample("up", 0, ins.Labels))
 					log.Println("E! failed to gather node id:", err)
 					return
 				}
@@ -236,10 +240,12 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 				// get cat/master information here so NodeStats can determine
 				// whether this node is the Master
 				if info.masterID, err = ins.getCatMaster(s + "/_cat/master"); err != nil {
+					slist.PushFront(inputs.NewSample("up", 0, ins.Labels))
 					log.Println("E! failed to get cat master:", err)
 					return
 				}
 
+				slist.PushFront(inputs.NewSample("up", 1, ins.Labels))
 				ins.serverInfoMutex.Lock()
 				ins.serverInfo[s] = info
 				ins.serverInfoMutex.Unlock()

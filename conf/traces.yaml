@@ -5,7 +5,7 @@
 # For more details, see the OpenTelemetry official docs:
 #     https://opentelemetry.io/docs/collector/configuration/
 traces:
-  enable: true
+  enable: false
   extensions:
     health_check:
     pprof:
