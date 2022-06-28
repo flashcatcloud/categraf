@@ -178,6 +178,14 @@ func (i serverInfo) isMaster() bool {
 }
 
 func (ins *Instance) Init() error {
+	if ins.HTTPTimeout <= 0 {
+		ins.HTTPTimeout = config.Duration(time.Second * 5)
+	}
+
+	if ins.ClusterHealthLevel == "" {
+		ins.ClusterHealthLevel = "indices"
+	}
+
 	// Compile the configured indexes to match for sorting.
 	indexMatchers, err := ins.compileIndexMatchers()
 	if err != nil {
