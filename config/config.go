@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"flashcat.cloud/categraf/config/traces"
 	"flashcat.cloud/categraf/pkg/cfg"
 	"github.com/toolkits/pkg/file"
 )
@@ -55,6 +56,7 @@ type ConfigType struct {
 	Writers      []WriterOption `toml:"writers"`
 	Logs         Logs           `toml:"logs"`
 	MetricsHouse MetricsHouse   `toml:"metricshouse"`
+	Traces       *traces.Config `toml:"traces"`
 }
 
 var Config *ConfigType
@@ -80,6 +82,10 @@ func InitConfig(configDir string, debugMode bool, testMode bool) error {
 	}
 
 	if err := InitHostname(); err != nil {
+		return err
+	}
+
+	if err := traces.Parse(Config.Traces); err != nil {
 		return err
 	}
 
