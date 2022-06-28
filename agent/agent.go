@@ -9,6 +9,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/disk"
 	_ "flashcat.cloud/categraf/inputs/diskio"
 	_ "flashcat.cloud/categraf/inputs/docker"
+	_ "flashcat.cloud/categraf/inputs/elasticsearch"
 	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/http_response"
 	_ "flashcat.cloud/categraf/inputs/kernel"
