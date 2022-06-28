@@ -2,7 +2,6 @@ package elasticsearch
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -111,10 +110,13 @@ func (r *Elasticsearch) Init() error {
 	}
 
 	for i := 0; i < len(r.Instances); i++ {
+		if len(r.Instances[i].Servers) == 0 {
+			log.Println("W! servers empty")
+			continue
+		}
+
 		if err := r.Instances[i].Init(); err != nil {
-			if !errors.Is(err, types.ErrInstancesEmpty) {
-				return err
-			}
+			return err
 		}
 	}
 
