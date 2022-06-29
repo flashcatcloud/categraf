@@ -1,5 +1,5 @@
 # # collect interval
-interval = 5
+# interval = 15
 
 ############################################################################
 # !!! uncomment [[instances]] to enable this plugin
@@ -12,7 +12,7 @@ interval = 5
 
 ## specify a list of one or more Elasticsearch servers
 # servers = ["http://localhost:9200"]
-servers = ["http://10.206.16.3:9200"]
+servers = []
 
 ## Timeout for HTTP requests to the elastic search server(s)
 http_timeout = "5s"
@@ -49,7 +49,7 @@ indices_level = "shards"
 
 ## HTTP Basic Authentication username and password.
 username = "elastic"
-password = "MhxzKhl@FC"
+password = "password"
 
 ## Optional TLS Config
 # use_tls = false
