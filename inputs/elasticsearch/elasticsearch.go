@@ -561,17 +561,17 @@ func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
 	}
 
 	for id, n := range nodeStats.Nodes {
-		sort.Strings(n.Roles)
+		// sort.Strings(n.Roles)
 		tags := map[string]string{
 			"node_id":      id,
 			"node_host":    n.Host,
 			"node_name":    n.Name,
 			"cluster_name": nodeStats.ClusterName,
-			"node_roles":   strings.Join(n.Roles, ","),
+			// "node_roles":   strings.Join(n.Roles, ","),
 		}
 
 		for k, v := range n.Attributes {
-			tags["node_attribute_"+k] = v
+			slist.PushFront(inputs.NewSample("node_attribute_"+k, v, tags, ins.Labels))
 		}
 
 		stats := map[string]interface{}{
