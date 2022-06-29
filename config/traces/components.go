@@ -5,10 +5,12 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/jaegerexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension"
-	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/oauth2clientauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/pprofextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourceprocessor"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/spanprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jaegerreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver"
@@ -16,20 +18,15 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/exporter/otlpexporter"
 	"go.opentelemetry.io/collector/exporter/otlphttpexporter"
-	"go.opentelemetry.io/collector/extension/ballastextension"
-	"go.opentelemetry.io/collector/extension/zpagesextension"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
-	"go.opentelemetry.io/collector/processor/memorylimiterprocessor"
 	"go.opentelemetry.io/collector/receiver/otlpreceiver"
 )
 
 // Add more factories here if you need
 func components() (component.Factories, error) {
 	extensions, err := component.MakeExtensionFactoryMap(
-		oauth2clientauthextension.NewFactory(),
+		basicauthextension.NewFactory(),
 		healthcheckextension.NewFactory(),
-		ballastextension.NewFactory(),
-		zpagesextension.NewFactory(),
 		pprofextension.NewFactory(),
 	)
 	if err != nil {
@@ -60,9 +57,10 @@ func components() (component.Factories, error) {
 
 	processors, err := component.MakeProcessorFactoryMap(
 		batchprocessor.NewFactory(),
-		memorylimiterprocessor.NewFactory(),
 		attributesprocessor.NewFactory(),
 		tailsamplingprocessor.NewFactory(),
+		resourceprocessor.NewFactory(),
+		spanprocessor.NewFactory(),
 	)
 	if err != nil {
 		return component.Factories{}, err
