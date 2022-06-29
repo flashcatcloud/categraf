@@ -23,20 +23,20 @@ http_timeout = "5s"
 local = true
 
 ## Set cluster_health to true when you want to obtain cluster health stats
-cluster_health = false
+cluster_health = true
 
 ## Adjust cluster_health_level when you want to obtain detailed health stats
 ## The options are
 ##  - indices (default)
 ##  - cluster
-# cluster_health_level = "indices"
+cluster_health_level = "cluster"
 
 ## Set cluster_stats to true when you want to obtain cluster stats.
-cluster_stats = false
+cluster_stats = true
 
 ## Indices to collect; can be one or more indices names or _all
 ## Use of wildcards is allowed. Use a wildcard at the end to retrieve index names that end with a changing value, like a date.
-indices_include = ["_all"]
+indices_include = []
 
 ## One of "shards", "cluster", "indices"
 ## Currently only "shards" is implemented
@@ -45,7 +45,7 @@ indices_level = "shards"
 ## node_stats is a list of sub-stats that you want to have gathered. Valid options
 ## are "indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http",
 ## "breaker". Per default, all stats are gathered.
-# node_stats = ["jvm", "http"]
+node_stats = ["jvm"]
 
 ## HTTP Basic Authentication username and password.
 username = "elastic"
@@ -63,4 +63,4 @@ password = "password"
 ## Each 'indices_include' entry ending with a wildcard (*) or glob matching pattern will group together all indices that match it, and 
 ## sort them by the date or number after the wildcard. Metrics then are gathered for only the 'num_most_recent_indices' amount of most 
 ## recent indices.
-# num_most_recent_indices = 0
+num_most_recent_indices = 1
