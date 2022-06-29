@@ -36,11 +36,10 @@ cluster_stats = true
 
 ## Indices to collect; can be one or more indices names or _all
 ## Use of wildcards is allowed. Use a wildcard at the end to retrieve index names that end with a changing value, like a date.
-indices_include = []
+# indices_include = ["zipkin*"]
 
-## One of "shards", "cluster", "indices"
-## Currently only "shards" is implemented
-indices_level = "shards"
+## use "shards" or blank string for indices level
+indices_level = ""
 
 ## node_stats is a list of sub-stats that you want to have gathered. Valid options
 ## are "indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http",

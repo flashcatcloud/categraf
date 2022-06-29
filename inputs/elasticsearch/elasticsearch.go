@@ -298,12 +298,12 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 
 			if len(ins.IndicesInclude) > 0 && (ins.serverInfo[s].isMaster() || !ins.Local) {
 				if ins.IndicesLevel != "shards" {
-					if err := ins.gatherIndicesStats(s+"/"+strings.Join(ins.IndicesInclude, ",")+"/_stats", slist); err != nil {
+					if err := ins.gatherIndicesStats(s+"/"+strings.Join(ins.IndicesInclude, ",")+"/_stats", s, slist); err != nil {
 						log.Println("E! failed to gather indices stats:", err)
 						return
 					}
 				} else {
-					if err := ins.gatherIndicesStats(s+"/"+strings.Join(ins.IndicesInclude, ",")+"/_stats?level=shards", slist); err != nil {
+					if err := ins.gatherIndicesStats(s+"/"+strings.Join(ins.IndicesInclude, ",")+"/_stats?level=shards", s, slist); err != nil {
 						log.Println("E! failed to gather indices stats:", err)
 						return
 					}
@@ -315,7 +315,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gatherIndicesStats(url string, slist *list.SafeList) error {
+func (ins *Instance) gatherIndicesStats(url string, address string, slist *list.SafeList) error {
 	indicesStats := &struct {
 		Shards  map[string]interface{} `json:"_shards"`
 		All     map[string]interface{} `json:"_all"`
@@ -326,9 +326,11 @@ func (ins *Instance) gatherIndicesStats(url string, slist *list.SafeList) error 
 		return err
 	}
 
+	addrTag := map[string]string{"address": address}
+
 	// Total Shards Stats
 	for k, v := range indicesStats.Shards {
-		slist.PushFront(inputs.NewSample("indices_stats_shards_total_"+k, v, ins.Labels))
+		slist.PushFront(inputs.NewSample("indices_stats_shards_total_"+k, v, addrTag, ins.Labels))
 	}
 
 	// All Stats
@@ -340,16 +342,16 @@ func (ins *Instance) gatherIndicesStats(url string, slist *list.SafeList) error 
 			return err
 		}
 		for key, val := range jsonParser.Fields {
-			slist.PushFront(inputs.NewSample("indices_stats_"+m+"_"+key, val, map[string]string{"index_name": "_all"}, ins.Labels))
+			slist.PushFront(inputs.NewSample("indices_stats_"+m+"_"+key, val, map[string]string{"index_name": "_all"}, addrTag, ins.Labels))
 		}
 	}
 
 	// Gather stats for each index.
-	return ins.gatherIndividualIndicesStats(indicesStats.Indices, slist)
+	return ins.gatherIndividualIndicesStats(indicesStats.Indices, addrTag, slist)
 }
 
 // gatherSortedIndicesStats gathers stats for all indices in no particular order.
-func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, slist *list.SafeList) error {
+func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, addrTag map[string]string, slist *list.SafeList) error {
 	// Sort indices into buckets based on their configured prefix, if any matches.
 	categorizedIndexNames := ins.categorizeIndices(indices)
 	for _, matchingIndices := range categorizedIndexNames {
@@ -369,7 +371,7 @@ func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, 
 		for i := indicesCount - 1; i >= indicesCount-indicesToTrackCount; i-- {
 			indexName := matchingIndices[i]
 
-			err := ins.gatherSingleIndexStats(indexName, indices[indexName], slist)
+			err := ins.gatherSingleIndexStats(indexName, indices[indexName], addrTag, slist)
 			if err != nil {
 				return err
 			}
@@ -379,7 +381,7 @@ func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, 
 	return nil
 }
 
-func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, slist *list.SafeList) error {
+func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, addrTag map[string]string, slist *list.SafeList) error {
 	indexTag := map[string]string{"index_name": name}
 	stats := map[string]interface{}{
 		"primaries": index.Primaries,
@@ -393,7 +395,7 @@ func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, slist 
 			return err
 		}
 		for key, val := range f.Fields {
-			slist.PushFront(inputs.NewSample("indices_stats_"+m+"_"+key, val, indexTag, ins.Labels))
+			slist.PushFront(inputs.NewSample("indices_stats_"+m+"_"+key, val, indexTag, addrTag, ins.Labels))
 		}
 	}
 
@@ -436,7 +438,7 @@ func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, slist 
 				}
 
 				for key, val := range flattened.Fields {
-					slist.PushFront(inputs.NewSample("indices_stats_shards_"+key, val, shardTags, ins.Labels))
+					slist.PushFront(inputs.NewSample("indices_stats_shards_"+key, val, shardTags, addrTag, ins.Labels))
 				}
 			}
 		}
