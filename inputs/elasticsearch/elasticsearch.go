@@ -242,7 +242,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 
 				// Gather node ID
 				if info.nodeID, err = ins.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
-					slist.PushFront(inputs.NewSample("up", 0, ins.Labels))
+					slist.PushFront(inputs.NewSample("up", 0, map[string]string{"address": s}, ins.Labels))
 					log.Println("E! failed to gather node id:", err)
 					return
 				}
@@ -250,12 +250,12 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 				// get cat/master information here so NodeStats can determine
 				// whether this node is the Master
 				if info.masterID, err = ins.getCatMaster(s + "/_cat/master"); err != nil {
-					slist.PushFront(inputs.NewSample("up", 0, ins.Labels))
+					slist.PushFront(inputs.NewSample("up", 0, map[string]string{"address": s}, ins.Labels))
 					log.Println("E! failed to get cat master:", err)
 					return
 				}
 
-				slist.PushFront(inputs.NewSample("up", 1, ins.Labels))
+				slist.PushFront(inputs.NewSample("up", 1, map[string]string{"address": s}, ins.Labels))
 				ins.serverInfoMutex.Lock()
 				ins.serverInfo[s] = info
 				ins.serverInfoMutex.Unlock()
@@ -273,7 +273,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 			url := ins.nodeStatsURL(s)
 
 			// Always gather node stats
-			if err := ins.gatherNodeStats(url, slist); err != nil {
+			if err := ins.gatherNodeStats(url, s, slist); err != nil {
 				log.Println("E! failed to gather node stats:", err)
 				return
 			}
@@ -283,14 +283,14 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 				if ins.ClusterHealthLevel != "" {
 					url = url + "?level=" + ins.ClusterHealthLevel
 				}
-				if err := ins.gatherClusterHealth(url, slist); err != nil {
+				if err := ins.gatherClusterHealth(url, s, slist); err != nil {
 					log.Println("E! failed to gather cluster health:", err)
 					return
 				}
 			}
 
 			if ins.ClusterStats && (ins.serverInfo[s].isMaster() || !ins.Local) {
-				if err := ins.gatherClusterStats(s+"/_cluster/stats", slist); err != nil {
+				if err := ins.gatherClusterStats(s+"/_cluster/stats", s, slist); err != nil {
 					log.Println("E! failed to gather cluster stats:", err)
 					return
 				}
@@ -475,16 +475,17 @@ func (ins *Instance) categorizeIndices(indices map[string]indexStat) map[string]
 	return categorizedIndexNames
 }
 
-func (ins *Instance) gatherClusterStats(url string, slist *list.SafeList) error {
+func (ins *Instance) gatherClusterStats(url string, address string, slist *list.SafeList) error {
 	clusterStats := &clusterStats{}
 	if err := ins.gatherJSONData(url, clusterStats); err != nil {
 		return err
 	}
 
 	tags := map[string]string{
-		"node_name":    clusterStats.NodeName,
-		"cluster_name": clusterStats.ClusterName,
+		// "node_name":    clusterStats.NodeName,
 		// "status":       clusterStats.Status,
+		"cluster_name": clusterStats.ClusterName,
+		"address":      address,
 	}
 
 	stats := map[string]interface{}{
@@ -508,11 +509,13 @@ func (ins *Instance) gatherClusterStats(url string, slist *list.SafeList) error 
 	return nil
 }
 
-func (ins *Instance) gatherClusterHealth(url string, slist *list.SafeList) error {
+func (ins *Instance) gatherClusterHealth(url string, address string, slist *list.SafeList) error {
 	healthStats := &clusterHealth{}
 	if err := ins.gatherJSONData(url, healthStats); err != nil {
 		return err
 	}
+
+	addrTag := map[string]string{"address": address}
 
 	clusterFields := map[string]interface{}{
 		"cluster_health_active_primary_shards":            healthStats.ActivePrimaryShards,
@@ -531,7 +534,7 @@ func (ins *Instance) gatherClusterHealth(url string, slist *list.SafeList) error
 		"cluster_health_unassigned_shards":                healthStats.UnassignedShards,
 	}
 
-	inputs.PushSamples(slist, clusterFields, map[string]string{"name": healthStats.ClusterName}, ins.Labels)
+	inputs.PushSamples(slist, clusterFields, map[string]string{"cluster_name": healthStats.ClusterName}, addrTag, ins.Labels)
 
 	for name, health := range healthStats.Indices {
 		indexFields := map[string]interface{}{
@@ -544,13 +547,13 @@ func (ins *Instance) gatherClusterHealth(url string, slist *list.SafeList) error
 			"cluster_health_indices_status_code":           mapHealthStatusToCode(health.Status),
 			"cluster_health_indices_unassigned_shards":     health.UnassignedShards,
 		}
-		inputs.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, ins.Labels)
+		inputs.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, addrTag, ins.Labels)
 	}
 
 	return nil
 }
 
-func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
+func (ins *Instance) gatherNodeStats(url string, address string, slist *list.SafeList) error {
 	nodeStats := &struct {
 		ClusterName string               `json:"cluster_name"`
 		Nodes       map[string]*nodeStat `json:"nodes"`
@@ -559,6 +562,8 @@ func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
 	if err := ins.gatherJSONData(url, nodeStats); err != nil {
 		return err
 	}
+
+	addrTag := map[string]string{"address": address}
 
 	for id, n := range nodeStats.Nodes {
 		// sort.Strings(n.Roles)
@@ -571,7 +576,7 @@ func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
 		}
 
 		for k, v := range n.Attributes {
-			slist.PushFront(inputs.NewSample("node_attribute_"+k, v, tags, ins.Labels))
+			slist.PushFront(inputs.NewSample("node_attribute_"+k, v, tags, addrTag, ins.Labels))
 		}
 
 		stats := map[string]interface{}{
@@ -600,7 +605,7 @@ func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
 			}
 
 			for key, val := range f.Fields {
-				slist.PushFront(inputs.NewSample(p+"_"+key, val, tags, ins.Labels))
+				slist.PushFront(inputs.NewSample(p+"_"+key, val, tags, addrTag, ins.Labels))
 			}
 		}
 	}
