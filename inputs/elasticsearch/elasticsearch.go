@@ -110,8 +110,8 @@ func (r *Elasticsearch) Init() error {
 	}
 
 	for i := 0; i < len(r.Instances); i++ {
-		if len(r.Instances[i].Servers) == 0 {
-			log.Println("W! servers empty")
+		if r.Instances[i].TargetsEmpty() {
+			log.Println("W! targets empty")
 			continue
 		}
 
@@ -130,6 +130,10 @@ func (r *Elasticsearch) Gather(slist *list.SafeList) {
 
 	for i := range r.Instances {
 		ins := r.Instances[i]
+
+		if ins.TargetsEmpty() {
+			continue
+		}
 
 		r.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {
@@ -180,6 +184,10 @@ type serverInfo struct {
 
 func (i serverInfo) isMaster() bool {
 	return i.nodeID == i.masterID
+}
+
+func (ins *Instance) TargetsEmpty() bool {
+	return len(ins.Servers) == 0
 }
 
 func (ins *Instance) Init() error {
