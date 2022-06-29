@@ -3,7 +3,7 @@
 
 ############################################################################
 # !!! uncomment [[instances]] to enable this plugin
-# [[instances]]
+[[instances]]
 # # interval = global.interval * interval_times
 # interval_times = 1
 
@@ -11,9 +11,8 @@
 # labels = { cluster="cloud-n9e-es" }
 
 ## specify a list of one or more Elasticsearch servers
-## you can add username and password to your url to use basic authentication:
-## servers = ["http://user:pass@localhost:9200"]
-servers = ["http://localhost:9200"]
+# servers = ["http://localhost:9200"]
+servers = []
 
 ## Timeout for HTTP requests to the elastic search server(s)
 http_timeout = "5s"
@@ -35,9 +34,6 @@ cluster_health = false
 ## Set cluster_stats to true when you want to obtain cluster stats.
 cluster_stats = false
 
-## Only gather cluster_stats from the master node. To work this require local = true
-cluster_stats_only_from_master = true
-
 ## Indices to collect; can be one or more indices names or _all
 ## Use of wildcards is allowed. Use a wildcard at the end to retrieve index names that end with a changing value, like a date.
 indices_include = ["_all"]
@@ -52,8 +48,8 @@ indices_level = "shards"
 # node_stats = ["jvm", "http"]
 
 ## HTTP Basic Authentication username and password.
-# username = ""
-# password = ""
+username = "elastic"
+password = "password"
 
 ## Optional TLS Config
 # use_tls = false

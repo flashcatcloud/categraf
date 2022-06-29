@@ -16,7 +16,7 @@ import (
 
 const agentHostnameLabelKey = "agent_hostname"
 
-var metricReplacer = strings.NewReplacer("-", "_", ".", "_")
+var metricReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "'", "_", "\"", "_")
 
 type InputReader struct {
 	input    inputs.Input

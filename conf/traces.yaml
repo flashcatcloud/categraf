@@ -6,7 +6,7 @@
 #     https://opentelemetry.io/docs/collector/configuration/
 traces:
   # set enable to true to start tracing
-  enable: true
+  enable: false
 
   # Extensions: 
   #   provide capabilities that can be added to the Collector, but which do not require direct access to telemetry data 
