@@ -64,10 +64,6 @@ func NewSamples(fields map[string]interface{}, labels ...map[string]string) []*t
 
 func PushSamples(slist *list.SafeList, fields map[string]interface{}, labels ...map[string]string) {
 	for metric, value := range fields {
-		floatValue, err := conv.ToFloat64(value)
-		if err != nil {
-			continue
-		}
-		slist.PushFront(NewSample(metric, floatValue, labels...))
+		slist.PushFront(NewSample(metric, value, labels...))
 	}
 }
