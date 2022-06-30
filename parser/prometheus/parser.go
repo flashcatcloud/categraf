@@ -83,7 +83,7 @@ func (p *Parser) Parse(buf []byte, slist *list.SafeList) error {
 			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
 				p.handleHistogram(m, tags, metricName, slist)
 			} else {
-				p.handleSample(m, tags, metricName, slist)
+				p.handleGaugeCounter(m, tags, metricName, slist)
 			}
 		}
 	}
@@ -112,7 +112,7 @@ func (p *Parser) handleHistogram(m *dto.Metric, tags map[string]string, metricNa
 	}
 }
 
-func (p *Parser) handleSample(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
+func (p *Parser) handleGaugeCounter(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
 	fields := getNameAndValue(m, metricName)
 	for metric, value := range fields {
 		slist.PushFront(inputs.NewSample(prom.BuildMetric(p.NamePrefix, metric, ""), value, tags))
