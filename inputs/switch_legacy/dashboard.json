@@ -5,8 +5,12 @@
         "var": [
             {
                 "name": "IP",
-                "definition": "label_values(switch_legacy_cpu_util,ip)",
+                "definition": "label_values(switch_legacy_if_in,ip)",
                 "multi": false
+            },
+            {
+                "definition": "label_values(switch_legacy_if_in,ifname)",
+                "name": "Interface"
             }
         ],
         "panels": [
@@ -114,9 +118,7 @@
                     "legend": {
                         "displayMode": "hidden"
                     },
-                    "standardOptions": {
-                        "util": "bitsIEC"
-                    },
+                    "standardOptions": {},
                     "thresholds": {}
                 },
                 "custom": {
@@ -132,10 +134,10 @@
                     "w": 22,
                     "x": 1,
                     "y": 4,
-                    "i": "3d0263b1-e79e-45bd-9bea-380892fca44f",
+                    "i": "eec57d38-9a9f-4530-a0b5-e524d867759d",
                     "isResizable": true
                 },
-                "id": "3d0263b1-e79e-45bd-9bea-380892fca44f"
+                "id": "eec57d38-9a9f-4530-a0b5-e524d867759d"
             }
         ],
         "version": "2.0.0"
