@@ -300,6 +300,26 @@ data:
 ---
 kind: ConfigMap
 metadata:
+  name: input-kubelete-metrics
+apiVersion: v1
+data:
+  prometheus.toml: |
+    # # collect interval
+    # interval = 15
+
+    [[instances]]
+    # kubelete metrics & cadvisor
+    urls = ["https://127.0.0.1:10250/metrics", "https://127.0.0.1:10250/metrics/cadvisor"]
+    bearer_token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+    use_tls = true
+    insecure_skip_verify = true
+    url_label_key = "instance"
+    url_label_value = "{{.Host}}"
+    # if you use dashboards, do not delete this label
+    labels = {job="categraf"}
+---
+kind: ConfigMap
+metadata:
   name: input-kernel
 apiVersion: v1
 data:
@@ -583,6 +603,8 @@ spec:
           name: input-docker
         - mountPath: /etc/categraf/conf/input.kubernetes
           name: input-kubernetes
+        - mountPath: /etc/categraf/conf/input.prometheus
+          name: input-kubelet-metrics
         - mountPath: /etc/categraf/conf/input.kernel
           name: input-kernel
         - mountPath: /etc/categraf/conf/input.kernel_vmstat
@@ -646,6 +668,10 @@ spec:
           defaultMode: 420
           name: input-kubernetes
         name: input-kubernetes
+      - configMap:
+          defaultMode: 420
+          name: input-kubelete-metrics
+        name: input-kubelet-mertrics
       - configMap:
           defaultMode: 420
           name: input-kernel
