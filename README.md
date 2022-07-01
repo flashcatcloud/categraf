@@ -102,7 +102,7 @@ Click on the links to see the README of each plugin.
 - [ ] rocketmq
 - [ ] activemq
 - [ ] kafka
-- [ ] elasticsearch
+- [x] [elasticsearch](inputs/elasticsearch)
 - [x] windows
 - [ ] mssql
 - [ ] iis
