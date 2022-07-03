@@ -125,6 +125,7 @@ func (mh *MetricsHouseType) post(conn driver.Conn, series []*types.Sample) error
 			e.Timestamp, //会自动转换时间格式
 			e.Timestamp, //会自动转换时间格式
 			e.Metric,
+			config.Config.GetHostname(),
 			convertTags(e),
 			e.Value,
 		)
@@ -147,6 +148,7 @@ CREATE TABLE IF NOT EXISTS %s (
 	  event_time DateTime
 	, event_date Date
 	, metric LowCardinality(String)
+	, hostname LowCardinality(String)
 	, tags String
 	, value Float64
 ) ENGINE = MergeTree

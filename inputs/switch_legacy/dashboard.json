@@ -1,0 +1,145 @@
+{
+    "name": "通用交换机",
+    "tags": "",
+    "configs": {
+        "var": [
+            {
+                "name": "IP",
+                "definition": "label_values(switch_legacy_if_in,ip)",
+                "multi": false
+            },
+            {
+                "definition": "label_values(switch_legacy_if_in,ifname)",
+                "name": "Interface"
+            }
+        ],
+        "panels": [
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "switch_legacy_cpu_util{ip=\"$IP\"}",
+                        "legend": "cpu_util"
+                    }
+                ],
+                "name": "CPU",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "percent"
+                    },
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 11,
+                    "x": 1,
+                    "y": 0,
+                    "i": "23220dc3-ab9a-40f9-b1d3-135bb3bbb734",
+                    "isResizable": true
+                },
+                "id": "23220dc3-ab9a-40f9-b1d3-135bb3bbb734"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "switch_legacy_mem_util{ip=\"$IP\"}",
+                        "legend": "mem_util"
+                    }
+                ],
+                "name": "内存",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "percent"
+                    },
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 11,
+                    "x": 12,
+                    "y": 0,
+                    "i": "7f36ea1c-fd51-43bf-93ab-2787d630c530",
+                    "isResizable": true
+                },
+                "id": "7f36ea1c-fd51-43bf-93ab-2787d630c530"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "switch_legacy_if_in{ip=\"$IP\"}",
+                        "legend": "入流量"
+                    },
+                    {
+                        "expr": "switch_legacy_if_out{ip=\"$IP\"}",
+                        "refId": "B",
+                        "legend": "出流量"
+                    }
+                ],
+                "name": "端口流量",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {}
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.5,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 4,
+                    "w": 22,
+                    "x": 1,
+                    "y": 4,
+                    "i": "eec57d38-9a9f-4530-a0b5-e524d867759d",
+                    "isResizable": true
+                },
+                "id": "eec57d38-9a9f-4530-a0b5-e524d867759d"
+            }
+        ],
+        "version": "2.0.0"
+    }
+}

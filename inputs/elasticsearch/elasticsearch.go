@@ -242,7 +242,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 
 				// Gather node ID
 				if info.nodeID, err = ins.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
-					slist.PushFront(types.NewSample("up", 0, ins.Labels))
+					slist.PushFront(types.NewSample("up", 0, map[string]string{"address": s}, ins.Labels))
 					log.Println("E! failed to gather node id:", err)
 					return
 				}
@@ -250,12 +250,12 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 				// get cat/master information here so NodeStats can determine
 				// whether this node is the Master
 				if info.masterID, err = ins.getCatMaster(s + "/_cat/master"); err != nil {
-					slist.PushFront(types.NewSample("up", 0, ins.Labels))
+					slist.PushFront(types.NewSample("up", 0, map[string]string{"address": s}, ins.Labels))
 					log.Println("E! failed to get cat master:", err)
 					return
 				}
 
-				slist.PushFront(types.NewSample("up", 1, ins.Labels))
+				slist.PushFront(types.NewSample("up", 1, map[string]string{"address": s}, ins.Labels))
 				ins.serverInfoMutex.Lock()
 				ins.serverInfo[s] = info
 				ins.serverInfoMutex.Unlock()
@@ -273,7 +273,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 			url := ins.nodeStatsURL(s)
 
 			// Always gather node stats
-			if err := ins.gatherNodeStats(url, slist); err != nil {
+			if err := ins.gatherNodeStats(url, s, slist); err != nil {
 				log.Println("E! failed to gather node stats:", err)
 				return
 			}
@@ -283,14 +283,14 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 				if ins.ClusterHealthLevel != "" {
 					url = url + "?level=" + ins.ClusterHealthLevel
 				}
-				if err := ins.gatherClusterHealth(url, slist); err != nil {
+				if err := ins.gatherClusterHealth(url, s, slist); err != nil {
 					log.Println("E! failed to gather cluster health:", err)
 					return
 				}
 			}
 
 			if ins.ClusterStats && (ins.serverInfo[s].isMaster() || !ins.Local) {
-				if err := ins.gatherClusterStats(s+"/_cluster/stats", slist); err != nil {
+				if err := ins.gatherClusterStats(s+"/_cluster/stats", s, slist); err != nil {
 					log.Println("E! failed to gather cluster stats:", err)
 					return
 				}
@@ -298,12 +298,12 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 
 			if len(ins.IndicesInclude) > 0 && (ins.serverInfo[s].isMaster() || !ins.Local) {
 				if ins.IndicesLevel != "shards" {
-					if err := ins.gatherIndicesStats(s+"/"+strings.Join(ins.IndicesInclude, ",")+"/_stats", slist); err != nil {
+					if err := ins.gatherIndicesStats(s+"/"+strings.Join(ins.IndicesInclude, ",")+"/_stats", s, slist); err != nil {
 						log.Println("E! failed to gather indices stats:", err)
 						return
 					}
 				} else {
-					if err := ins.gatherIndicesStats(s+"/"+strings.Join(ins.IndicesInclude, ",")+"/_stats?level=shards", slist); err != nil {
+					if err := ins.gatherIndicesStats(s+"/"+strings.Join(ins.IndicesInclude, ",")+"/_stats?level=shards", s, slist); err != nil {
 						log.Println("E! failed to gather indices stats:", err)
 						return
 					}
@@ -315,7 +315,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gatherIndicesStats(url string, slist *list.SafeList) error {
+func (ins *Instance) gatherIndicesStats(url string, address string, slist *list.SafeList) error {
 	indicesStats := &struct {
 		Shards  map[string]interface{} `json:"_shards"`
 		All     map[string]interface{} `json:"_all"`
@@ -326,9 +326,11 @@ func (ins *Instance) gatherIndicesStats(url string, slist *list.SafeList) error 
 		return err
 	}
 
+	addrTag := map[string]string{"address": address}
+
 	// Total Shards Stats
 	for k, v := range indicesStats.Shards {
-		slist.PushFront(types.NewSample("indices_stats_shards_total_"+k, v, ins.Labels))
+		slist.PushFront(types.NewSample("indices_stats_shards_total_"+k, v, addrTag, ins.Labels))
 	}
 
 	// All Stats
@@ -340,16 +342,16 @@ func (ins *Instance) gatherIndicesStats(url string, slist *list.SafeList) error 
 			return err
 		}
 		for key, val := range jsonParser.Fields {
-			slist.PushFront(types.NewSample("indices_stats_"+m+"_"+key, val, map[string]string{"index_name": "_all"}, ins.Labels))
+			slist.PushFront(types.NewSample("indices_stats_"+m+"_"+key, val, map[string]string{"index_name": "_all"}, addrTag, ins.Labels))
 		}
 	}
 
 	// Gather stats for each index.
-	return ins.gatherIndividualIndicesStats(indicesStats.Indices, slist)
+	return ins.gatherIndividualIndicesStats(indicesStats.Indices, addrTag, slist)
 }
 
 // gatherSortedIndicesStats gathers stats for all indices in no particular order.
-func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, slist *list.SafeList) error {
+func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, addrTag map[string]string, slist *list.SafeList) error {
 	// Sort indices into buckets based on their configured prefix, if any matches.
 	categorizedIndexNames := ins.categorizeIndices(indices)
 	for _, matchingIndices := range categorizedIndexNames {
@@ -369,7 +371,7 @@ func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, 
 		for i := indicesCount - 1; i >= indicesCount-indicesToTrackCount; i-- {
 			indexName := matchingIndices[i]
 
-			err := ins.gatherSingleIndexStats(indexName, indices[indexName], slist)
+			err := ins.gatherSingleIndexStats(indexName, indices[indexName], addrTag, slist)
 			if err != nil {
 				return err
 			}
@@ -379,7 +381,7 @@ func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, 
 	return nil
 }
 
-func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, slist *list.SafeList) error {
+func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, addrTag map[string]string, slist *list.SafeList) error {
 	indexTag := map[string]string{"index_name": name}
 	stats := map[string]interface{}{
 		"primaries": index.Primaries,
@@ -393,7 +395,7 @@ func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, slist 
 			return err
 		}
 		for key, val := range f.Fields {
-			slist.PushFront(types.NewSample("indices_stats_"+m+"_"+key, val, indexTag, ins.Labels))
+			slist.PushFront(types.NewSample("indices_stats_"+m+"_"+key, val, indexTag, addrTag, ins.Labels))
 		}
 	}
 
@@ -436,7 +438,7 @@ func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, slist 
 				}
 
 				for key, val := range flattened.Fields {
-					slist.PushFront(types.NewSample("indices_stats_shards_"+key, val, shardTags, ins.Labels))
+					slist.PushFront(types.NewSample("indices_stats_shards_"+key, val, shardTags, addrTag, ins.Labels))
 				}
 			}
 		}
@@ -475,16 +477,17 @@ func (ins *Instance) categorizeIndices(indices map[string]indexStat) map[string]
 	return categorizedIndexNames
 }
 
-func (ins *Instance) gatherClusterStats(url string, slist *list.SafeList) error {
+func (ins *Instance) gatherClusterStats(url string, address string, slist *list.SafeList) error {
 	clusterStats := &clusterStats{}
 	if err := ins.gatherJSONData(url, clusterStats); err != nil {
 		return err
 	}
 
 	tags := map[string]string{
-		"node_name":    clusterStats.NodeName,
-		"cluster_name": clusterStats.ClusterName,
+		// "node_name":    clusterStats.NodeName,
 		// "status":       clusterStats.Status,
+		"cluster_name": clusterStats.ClusterName,
+		"address":      address,
 	}
 
 	stats := map[string]interface{}{
@@ -508,11 +511,13 @@ func (ins *Instance) gatherClusterStats(url string, slist *list.SafeList) error 
 	return nil
 }
 
-func (ins *Instance) gatherClusterHealth(url string, slist *list.SafeList) error {
+func (ins *Instance) gatherClusterHealth(url string, address string, slist *list.SafeList) error {
 	healthStats := &clusterHealth{}
 	if err := ins.gatherJSONData(url, healthStats); err != nil {
 		return err
 	}
+
+	addrTag := map[string]string{"address": address}
 
 	clusterFields := map[string]interface{}{
 		"cluster_health_active_primary_shards":            healthStats.ActivePrimaryShards,
@@ -531,7 +536,7 @@ func (ins *Instance) gatherClusterHealth(url string, slist *list.SafeList) error
 		"cluster_health_unassigned_shards":                healthStats.UnassignedShards,
 	}
 
-	types.PushSamples(slist, clusterFields, map[string]string{"name": healthStats.ClusterName}, ins.Labels)
+	types.PushSamples(slist, clusterFields, map[string]string{"cluster_name": healthStats.ClusterName}, addrTag, ins.Labels)
 
 	for name, health := range healthStats.Indices {
 		indexFields := map[string]interface{}{
@@ -544,13 +549,13 @@ func (ins *Instance) gatherClusterHealth(url string, slist *list.SafeList) error
 			"cluster_health_indices_status_code":           mapHealthStatusToCode(health.Status),
 			"cluster_health_indices_unassigned_shards":     health.UnassignedShards,
 		}
-		types.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, ins.Labels)
+		types.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, addrTag, ins.Labels)
 	}
 
 	return nil
 }
 
-func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
+func (ins *Instance) gatherNodeStats(url string, address string, slist *list.SafeList) error {
 	nodeStats := &struct {
 		ClusterName string               `json:"cluster_name"`
 		Nodes       map[string]*nodeStat `json:"nodes"`
@@ -559,6 +564,8 @@ func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
 	if err := ins.gatherJSONData(url, nodeStats); err != nil {
 		return err
 	}
+
+	addrTag := map[string]string{"address": address}
 
 	for id, n := range nodeStats.Nodes {
 		// sort.Strings(n.Roles)
@@ -571,7 +578,7 @@ func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
 		}
 
 		for k, v := range n.Attributes {
-			slist.PushFront(types.NewSample("node_attribute_"+k, v, tags, ins.Labels))
+			slist.PushFront(types.NewSample("node_attribute_"+k, v, tags, addrTag, ins.Labels))
 		}
 
 		stats := map[string]interface{}{
@@ -600,7 +607,7 @@ func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
 			}
 
 			for key, val := range f.Fields {
-				slist.PushFront(types.NewSample(p+"_"+key, val, tags, ins.Labels))
+				slist.PushFront(types.NewSample(p+"_"+key, val, tags, addrTag, ins.Labels))
 			}
 		}
 	}

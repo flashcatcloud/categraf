@@ -1,8 +1,6 @@
 package types
 
 import (
-	"log"
-	"reflect"
 	"time"
 
 	"flashcat.cloud/categraf/pkg/conv"
@@ -19,7 +17,6 @@ type Sample struct {
 func NewSample(metric string, value interface{}, labels ...map[string]string) *Sample {
 	floatValue, err := conv.ToFloat64(value)
 	if err != nil {
-		log.Printf("E! can not convert value type %v to float: %v\n", reflect.TypeOf(value), err)
 		return nil
 	}
 
@@ -58,10 +55,6 @@ func NewSamples(fields map[string]interface{}, labels ...map[string]string) []*S
 
 func PushSamples(slist *list.SafeList, fields map[string]interface{}, labels ...map[string]string) {
 	for metric, value := range fields {
-		floatValue, err := conv.ToFloat64(value)
-		if err != nil {
-			continue
-		}
-		slist.PushFront(NewSample(metric, floatValue, labels...))
+		slist.PushFront(NewSample(metric, value, labels...))
 	}
 }

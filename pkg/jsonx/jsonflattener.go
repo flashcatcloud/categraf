@@ -2,7 +2,6 @@ package jsonx
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type JSONFlattener struct {
@@ -45,16 +44,17 @@ func (f *JSONFlattener) FullFlattenJSON(
 			}
 		}
 	case []interface{}:
-		for i, v := range t {
-			fieldkey := strconv.Itoa(i)
-			if fieldname != "" {
-				fieldkey = fieldname + "_" + fieldkey
-			}
-			err := f.FullFlattenJSON(fieldkey, v, convertString, convertBool)
-			if err != nil {
-				return err
-			}
-		}
+		// for i, v := range t {
+		// 	fieldkey := strconv.Itoa(i)
+		// 	if fieldname != "" {
+		// 		fieldkey = fieldname + "_" + fieldkey
+		// 	}
+		// 	err := f.FullFlattenJSON(fieldkey, v, convertString, convertBool)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// }
+		return nil
 	case float64:
 		f.Fields[fieldname] = t
 	case string:
