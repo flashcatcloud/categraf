@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"log"
 
-	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tagx"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -42,7 +42,7 @@ func (m *MySQL) gatherTableSize(slist *list.SafeList, ins *Instance, db *sql.DB,
 			return
 		}
 
-		slist.PushFront(inputs.NewSample("table_size_index_bytes", indexSize, labels, map[string]string{"schema": schema, "table": table}))
-		slist.PushFront(inputs.NewSample("table_size_data_bytes", dataSize, labels, map[string]string{"schema": schema, "table": table}))
+		slist.PushFront(types.NewSample("table_size_index_bytes", indexSize, labels, map[string]string{"schema": schema, "table": table}))
+		slist.PushFront(types.NewSample("table_size_data_bytes", dataSize, labels, map[string]string{"schema": schema, "table": table}))
 	}
 }

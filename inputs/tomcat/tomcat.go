@@ -196,19 +196,19 @@ func (t *Tomcat) gatherOnce(slist *list.SafeList, ins *Instance) {
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(inputs.NewSample("scrape_use_seconds", use, tags))
+		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags))
 	}(begun)
 
 	// url cannot connect? up = 0
 	resp, err := ins.client.Do(ins.request)
 	if err != nil {
-		slist.PushFront(inputs.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample("up", 0, tags))
 		log.Println("E! failed to query tomcat url:", err)
 		return
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		slist.PushFront(inputs.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample("up", 0, tags))
 		log.Println("E! received HTTP status code:", resp.StatusCode, "expected: 200")
 		return
 	}
@@ -217,16 +217,16 @@ func (t *Tomcat) gatherOnce(slist *list.SafeList, ins *Instance) {
 
 	var status TomcatStatus
 	if err := xml.NewDecoder(resp.Body).Decode(&status); err != nil {
-		slist.PushFront(inputs.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample("up", 0, tags))
 		log.Println("E! failed to decode response body:", err)
 		return
 	}
 
-	slist.PushFront(inputs.NewSample("up", 1, tags))
+	slist.PushFront(types.NewSample("up", 1, tags))
 
-	slist.PushFront(inputs.NewSample("jvm_memory_free", status.TomcatJvm.JvmMemory.Free, tags))
-	slist.PushFront(inputs.NewSample("jvm_memory_total", status.TomcatJvm.JvmMemory.Total, tags))
-	slist.PushFront(inputs.NewSample("jvm_memory_max", status.TomcatJvm.JvmMemory.Max, tags))
+	slist.PushFront(types.NewSample("jvm_memory_free", status.TomcatJvm.JvmMemory.Free, tags))
+	slist.PushFront(types.NewSample("jvm_memory_total", status.TomcatJvm.JvmMemory.Total, tags))
+	slist.PushFront(types.NewSample("jvm_memory_max", status.TomcatJvm.JvmMemory.Max, tags))
 
 	// add tomcat_jvm_memorypool measurements
 	for _, mp := range status.TomcatJvm.JvmMemoryPools {
@@ -242,7 +242,7 @@ func (t *Tomcat) gatherOnce(slist *list.SafeList, ins *Instance) {
 			"jvm_memorypool_used":      mp.UsageUsed,
 		}
 
-		inputs.PushSamples(slist, tcmpFields, tags, tcmpTags)
+		types.PushSamples(slist, tcmpFields, tags, tcmpTags)
 	}
 
 	// add tomcat_connector measurements
@@ -268,6 +268,6 @@ func (t *Tomcat) gatherOnce(slist *list.SafeList, ins *Instance) {
 			"connector_bytes_sent":           c.RequestInfo.BytesSent,
 		}
 
-		inputs.PushSamples(slist, tccFields, tags, tccTags)
+		types.PushSamples(slist, tccFields, tags, tccTags)
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/house"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/runtimex"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
 	"github.com/toolkits/pkg/container/list"
@@ -69,7 +70,7 @@ func (r *InputReader) gatherOnce() {
 			if strings.Contains(fmt.Sprint(r), "closed channel") {
 				return
 			} else {
-				log.Println("E! gather metrics panic:", r)
+				log.Println("E! gather metrics panic:", r, string(runtimex.Stack(3)))
 			}
 		}
 	}()
@@ -92,6 +93,9 @@ func (r *InputReader) gatherOnce() {
 		}
 
 		s := samples[i].(*types.Sample)
+		if s == nil {
+			continue
+		}
 
 		if s.Timestamp.IsZero() {
 			s.Timestamp = now

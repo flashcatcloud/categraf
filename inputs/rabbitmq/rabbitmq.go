@@ -390,7 +390,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(inputs.NewSample("scrape_use_seconds", use, tags, ins.Labels))
+		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags, ins.Labels))
 	}(begun)
 
 	var wg sync.WaitGroup
@@ -509,7 +509,7 @@ func gatherOverview(ins *Instance, slist *list.SafeList) {
 		"overview_return_unroutable_rate":    overview.MessageStats.ReturnUnroutableDetails.Rate,
 	}
 
-	inputs.PushSamples(slist, fields, tags)
+	types.PushSamples(slist, fields, tags)
 }
 
 func gatherExchanges(ins *Instance, slist *list.SafeList) {
@@ -546,7 +546,7 @@ func gatherExchanges(ins *Instance, slist *list.SafeList) {
 			"exchange_messages_publish_out_rate": exchange.MessageStats.PublishOutDetails.Rate,
 		}
 
-		inputs.PushSamples(slist, fields, tags)
+		types.PushSamples(slist, fields, tags)
 	}
 }
 
@@ -604,7 +604,7 @@ func gatherFederationLinks(ins *Instance, slist *list.SafeList) {
 			"federation_messages_return_unroutable": link.LocalChannel.MessageStats.ReturnUnroutable,
 		}
 
-		inputs.PushSamples(slist, fields, tags, ins.Labels)
+		types.PushSamples(slist, fields, tags, ins.Labels)
 	}
 }
 
@@ -734,7 +734,7 @@ func gatherNodes(ins *Instance, slist *list.SafeList) {
 				}
 			}
 
-			inputs.PushSamples(slist, fields, tags, ins.Labels)
+			types.PushSamples(slist, fields, tags, ins.Labels)
 		}(node)
 	}
 
@@ -818,6 +818,6 @@ func gatherQueues(ins *Instance, slist *list.SafeList) {
 			"queue_messages_redeliver_rate":   queue.MessageStats.RedeliverDetails.Rate,
 		}
 
-		inputs.PushSamples(slist, fields, tags, ins.Labels)
+		types.PushSamples(slist, fields, tags, ins.Labels)
 	}
 }

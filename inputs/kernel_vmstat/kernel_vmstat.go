@@ -73,7 +73,7 @@ func (s *KernelVmstat) Gather(slist *list.SafeList) {
 		}
 	}
 
-	inputs.PushSamples(slist, fields)
+	types.PushSamples(slist, fields)
 }
 
 func (s *KernelVmstat) getProcVmstat() ([]byte, error) {

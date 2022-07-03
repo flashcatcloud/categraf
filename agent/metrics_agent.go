@@ -42,18 +42,18 @@ func (a *Agent) startMetricsAgent() error {
 		}
 
 		// construct input instance
-		instance := creator()
+		inp := creator()
 		// set configurations for input instance
-		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, inputFilePrefix+name), instance)
+		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, inputFilePrefix+name), inp)
 
-		if err = instance.Init(); err != nil {
+		if err = inp.Init(); err != nil {
 			if !errors.Is(err, types.ErrInstancesEmpty) {
 				log.Println("E! failed to init input:", name, "error:", err)
 			}
 			continue
 		}
 
-		reader := NewInputReader(instance)
+		reader := NewInputReader(inp)
 		reader.Start()
 		a.InputReaders[name] = reader
 

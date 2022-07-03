@@ -67,7 +67,7 @@ func (s *SysctlFS) Gather(slist *list.SafeList) {
 		log.Println("E! failed to gather file-nr:", err)
 	}
 
-	inputs.PushSamples(slist, fields)
+	types.PushSamples(slist, fields)
 }
 
 func (s *SysctlFS) gatherOne(name string, fields map[string]interface{}) error {

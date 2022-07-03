@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -88,7 +88,7 @@ func (m *MySQL) gatherSlaveStatus(slist *list.SafeList, ins *Instance, db *sql.D
 			}
 
 			if value, ok := parseStatus(*scanArgs[i].(*sql.RawBytes)); ok {
-				slist.PushFront(inputs.NewSample("slave_status_"+key, value, globalTags, map[string]string{
+				slist.PushFront(types.NewSample("slave_status_"+key, value, globalTags, map[string]string{
 					"master_host":  masterHost,
 					"master_uuid":  masterUUID,
 					"channel_name": channelName,

@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tagx"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -131,7 +131,7 @@ func (m *MySQL) gatherProcesslistByState(slist *list.SafeList, ins *Instance, db
 	}
 
 	for s, c := range stateCounts {
-		slist.PushFront(inputs.NewSample("processlist_processes_by_state", c, labels, map[string]string{"state": s}))
+		slist.PushFront(types.NewSample("processlist_processes_by_state", c, labels, map[string]string{"state": s}))
 	}
 }
 

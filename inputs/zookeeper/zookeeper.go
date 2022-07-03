@@ -140,13 +140,13 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *list.SafeList, zkH
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(inputs.NewSample("zk_scrape_use_seconds", use, tags))
+		slist.PushFront(types.NewSample("zk_scrape_use_seconds", use, tags))
 	}(begun)
 
 	// zk_up
 	mntrConn, err := ins.ZkConnect(zkHost)
 	if err != nil {
-		slist.PushFront(inputs.NewSample("zk_up", 0, tags))
+		slist.PushFront(types.NewSample("zk_up", 0, tags))
 		log.Println("E! failed to connect zookeeper:", zkHost, "error:", err)
 		return
 	}
@@ -157,7 +157,7 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *list.SafeList, zkH
 	// zk_ruok
 	ruokConn, err := ins.ZkConnect(zkHost)
 	if err != nil {
-		slist.PushFront(inputs.NewSample("zk_ruok", 0, tags))
+		slist.PushFront(types.NewSample("zk_ruok", 0, tags))
 		log.Println("E! failed to connect zookeeper:", zkHost, "error:", err)
 		return
 	}
@@ -174,16 +174,16 @@ func (ins *Instance) gatherMntrResult(conn net.Conn, slist *list.SafeList, globa
 
 	// 'mntr' command isn't allowed in zk config, log as warning
 	if strings.Contains(lines[0], cmdNotExecutedSffx) {
-		slist.PushFront(inputs.NewSample("zk_up", 0, globalTags))
+		slist.PushFront(types.NewSample("zk_up", 0, globalTags))
 		log.Printf(commandNotAllowedTmpl, "mntr", conn.RemoteAddr().String())
 		return
 	}
 
-	slist.PushFront(inputs.NewSample("zk_up", 1, globalTags))
+	slist.PushFront(types.NewSample("zk_up", 1, globalTags))
 
 	// skip instance if it in a leader only state and doesnt serving client requests
 	if lines[0] == instanceNotServingMessage {
-		slist.PushFront(inputs.NewSample("zk_server_leader", 1, globalTags))
+		slist.PushFront(types.NewSample("zk_server_leader", 1, globalTags))
 		return
 	}
 
@@ -204,17 +204,17 @@ func (ins *Instance) gatherMntrResult(conn net.Conn, slist *list.SafeList, globa
 		switch key {
 		case "zk_server_state":
 			if value == "leader" {
-				slist.PushFront(inputs.NewSample("zk_server_leader", 1, globalTags))
+				slist.PushFront(types.NewSample("zk_server_leader", 1, globalTags))
 			} else {
-				slist.PushFront(inputs.NewSample("zk_server_leader", 0, globalTags))
+				slist.PushFront(types.NewSample("zk_server_leader", 0, globalTags))
 			}
 
 		case "zk_version":
 			version := versionRE.ReplaceAllString(value, "$1")
-			slist.PushFront(inputs.NewSample("zk_version", 1, globalTags, map[string]string{"version": version}))
+			slist.PushFront(types.NewSample("zk_version", 1, globalTags, map[string]string{"version": version}))
 
 		case "zk_peer_state":
-			slist.PushFront(inputs.NewSample("zk_peer_state", 1, globalTags, map[string]string{"state": value}))
+			slist.PushFront(types.NewSample("zk_peer_state", 1, globalTags, map[string]string{"state": value}))
 
 		default:
 			var k string
@@ -226,9 +226,9 @@ func (ins *Instance) gatherMntrResult(conn net.Conn, slist *list.SafeList, globa
 			k = metricNameReplacer.Replace(key)
 			if strings.Contains(k, "{") {
 				labels := parseLabels(k)
-				slist.PushFront(inputs.NewSample(k, value, globalTags, labels))
+				slist.PushFront(types.NewSample(k, value, globalTags, labels))
 			} else {
-				slist.PushFront(inputs.NewSample(k, value, globalTags))
+				slist.PushFront(types.NewSample(k, value, globalTags))
 			}
 		}
 	}
@@ -237,12 +237,12 @@ func (ins *Instance) gatherMntrResult(conn net.Conn, slist *list.SafeList, globa
 func (ins *Instance) gatherRuokResult(conn net.Conn, slist *list.SafeList, globalTags map[string]string) {
 	res := sendZookeeperCmd(conn, "ruok")
 	if res == "imok" {
-		slist.PushFront(inputs.NewSample("zk_ruok", 1, globalTags))
+		slist.PushFront(types.NewSample("zk_ruok", 1, globalTags))
 	} else {
 		if strings.Contains(res, cmdNotExecutedSffx) {
 			log.Printf(commandNotAllowedTmpl, "ruok", conn.RemoteAddr().String())
 		}
-		slist.PushFront(inputs.NewSample("zk_ruok", 0, globalTags))
+		slist.PushFront(types.NewSample("zk_ruok", 0, globalTags))
 	}
 }
 

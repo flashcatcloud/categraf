@@ -12,9 +12,6 @@ import (
 	"log"
 	"time"
 
-	coreconfig "flashcat.cloud/categraf/config"
-
-	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/auditor"
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/logs/diagnostic"
@@ -23,9 +20,11 @@ import (
 	"flashcat.cloud/categraf/logs/input/listener"
 	"flashcat.cloud/categraf/logs/pipeline"
 	"flashcat.cloud/categraf/logs/restart"
-	"flashcat.cloud/categraf/logs/service"
-	logService "flashcat.cloud/categraf/logs/service"
 	"flashcat.cloud/categraf/logs/status"
+
+	coreconfig "flashcat.cloud/categraf/config"
+	logsconfig "flashcat.cloud/categraf/config/logs"
+	logService "flashcat.cloud/categraf/logs/service"
 )
 
 // LogAgent represents the data pipeline that collects, decodes,
@@ -44,7 +43,7 @@ type LogAgent struct {
 }
 
 // NewAgent returns a new Logs LogAgent
-func NewLogAgent(sources *logsconfig.LogSources, services *service.Services, processingRules []*logsconfig.ProcessingRule, endpoints *logsconfig.Endpoints) *LogAgent {
+func NewLogAgent(sources *logsconfig.LogSources, services *logService.Services, processingRules []*logsconfig.ProcessingRule, endpoints *logsconfig.Endpoints) *LogAgent {
 	// setup the auditor
 	// We pass the health handle to the auditor because it's the end of the pipeline and the most
 	// critical part. Arguably it could also be plugged to the destination.

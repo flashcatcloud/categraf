@@ -133,18 +133,18 @@ func (r *Redis) gatherOnce(slist *list.SafeList, ins *Instance) {
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(inputs.NewSample("scrape_use_seconds", use, tags))
+		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags))
 	}(begun)
 
 	// ping
 	err := ins.client.Ping(context.Background()).Err()
-	slist.PushFront(inputs.NewSample("ping_use_seconds", time.Since(begun).Seconds(), tags))
+	slist.PushFront(types.NewSample("ping_use_seconds", time.Since(begun).Seconds(), tags))
 	if err != nil {
-		slist.PushFront(inputs.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample("up", 0, tags))
 		log.Println("E! failed to ping redis:", ins.Address, "error:", err)
 		return
 	} else {
-		slist.PushFront(inputs.NewSample("up", 1, tags))
+		slist.PushFront(types.NewSample("up", 1, tags))
 	}
 
 	r.gatherInfoAll(slist, ins, tags)
@@ -170,7 +170,7 @@ func (r *Redis) gatherCommandValues(slist *list.SafeList, ins *Instance, tags ma
 	}
 
 	for k, v := range fields {
-		slist.PushFront(inputs.NewSample("exec_result_"+k, v, tags))
+		slist.PushFront(types.NewSample("exec_result_"+k, v, tags))
 	}
 }
 
@@ -293,7 +293,7 @@ func (r *Redis) gatherInfoAll(slist *list.SafeList, ins *Instance, tags map[stri
 	fields["keyspace_hitrate"] = keyspaceHitrate
 
 	for k, v := range fields {
-		slist.PushFront(inputs.NewSample(k, v, tags))
+		slist.PushFront(types.NewSample(k, v, tags))
 	}
 }
 
@@ -324,7 +324,7 @@ func gatherKeyspaceLine(
 		}
 
 		for k, v := range fields {
-			slist.PushFront(inputs.NewSample("keyspace_"+k, v, tags))
+			slist.PushFront(types.NewSample("keyspace_"+k, v, tags))
 		}
 	}
 }
@@ -373,7 +373,7 @@ func gatherCommandstateLine(
 	}
 
 	for k, v := range fields {
-		slist.PushFront(inputs.NewSample("cmdstat_"+k, v, tags))
+		slist.PushFront(types.NewSample("cmdstat_"+k, v, tags))
 	}
 }
 
@@ -419,6 +419,6 @@ func gatherReplicationLine(
 	}
 
 	for k, v := range fields {
-		slist.PushFront(inputs.NewSample("replication_"+k, v, tags))
+		slist.PushFront(types.NewSample("replication_"+k, v, tags))
 	}
 }

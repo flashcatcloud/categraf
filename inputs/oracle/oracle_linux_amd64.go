@@ -128,16 +128,16 @@ func (o *Oracle) gatherOnce(slist *list.SafeList, ins Instance) {
 
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(inputs.NewSample("scrape_use_seconds", use, tags))
+		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags))
 	}(time.Now())
 
 	db := o.dbconnpool[ins.Address]
 
 	if err := db.Ping(); err != nil {
-		slist.PushFront(inputs.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample("up", 0, tags))
 		log.Println("E! failed to ping oracle:", ins.Address, "error:", err)
 	} else {
-		slist.PushFront(inputs.NewSample("up", 1, tags))
+		slist.PushFront(types.NewSample("up", 1, tags))
 	}
 
 	waitMetrics := new(sync.WaitGroup)
@@ -244,10 +244,10 @@ func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, sl
 		}
 
 		if metricConf.FieldToAppend == "" {
-			slist.PushFront(inputs.NewSample(metricConf.Mesurement+"_"+column, value, labels))
+			slist.PushFront(types.NewSample(metricConf.Mesurement+"_"+column, value, labels))
 		} else {
 			suffix := cleanName(row[metricConf.FieldToAppend])
-			slist.PushFront(inputs.NewSample(metricConf.Mesurement+"_"+suffix+"_"+column, value, labels))
+			slist.PushFront(types.NewSample(metricConf.Mesurement+"_"+suffix+"_"+column, value, labels))
 		}
 	}
 

@@ -3,8 +3,8 @@ package mysql
 import (
 	"database/sql"
 
-	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tagx"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -22,14 +22,14 @@ func (m *MySQL) gatherEngineInnodbStatusCompute(slist *list.SafeList, ins *Insta
 		pageUtil = pageUsed / cache["innodb_buffer_pool_pages_total"] * 100
 	}
 
-	slist.PushFront(inputs.NewSample("global_status_buffer_pool_bytes", byteUsed, tags, map[string]string{"state": "used"}))
-	slist.PushFront(inputs.NewSample("global_status_buffer_pool_bytes", byteData, tags, map[string]string{"state": "data"}))
-	slist.PushFront(inputs.NewSample("global_status_buffer_pool_bytes", byteFree, tags, map[string]string{"state": "free"}))
-	slist.PushFront(inputs.NewSample("global_status_buffer_pool_bytes", byteTotal, tags, map[string]string{"state": "total"}))
-	slist.PushFront(inputs.NewSample("global_status_buffer_pool_bytes", byteDirty, tags, map[string]string{"state": "dirty"}))
-	slist.PushFront(inputs.NewSample("global_status_buffer_pool_pages_utilization", pageUtil, tags))
+	slist.PushFront(types.NewSample("global_status_buffer_pool_bytes", byteUsed, tags, map[string]string{"state": "used"}))
+	slist.PushFront(types.NewSample("global_status_buffer_pool_bytes", byteData, tags, map[string]string{"state": "data"}))
+	slist.PushFront(types.NewSample("global_status_buffer_pool_bytes", byteFree, tags, map[string]string{"state": "free"}))
+	slist.PushFront(types.NewSample("global_status_buffer_pool_bytes", byteTotal, tags, map[string]string{"state": "total"}))
+	slist.PushFront(types.NewSample("global_status_buffer_pool_bytes", byteDirty, tags, map[string]string{"state": "dirty"}))
+	slist.PushFront(types.NewSample("global_status_buffer_pool_pages_utilization", pageUtil, tags))
 
 	if ins.ExtraInnodbMetrics {
-		slist.PushFront(inputs.NewSample("global_status_buffer_pool_pages", pageUsed, tags, map[string]string{"state": "used"}))
+		slist.PushFront(types.NewSample("global_status_buffer_pool_pages", pageUsed, tags, map[string]string{"state": "used"}))
 	}
 }

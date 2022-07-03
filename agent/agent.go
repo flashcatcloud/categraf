@@ -3,6 +3,8 @@ package agent
 import (
 	"log"
 
+	"flashcat.cloud/categraf/traces"
+
 	// auto registry
 	_ "flashcat.cloud/categraf/inputs/conntrack"
 	_ "flashcat.cloud/categraf/inputs/cpu"
@@ -12,6 +14,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/elasticsearch"
 	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/http_response"
+	_ "flashcat.cloud/categraf/inputs/kafka"
 	_ "flashcat.cloud/categraf/inputs/kernel"
 	_ "flashcat.cloud/categraf/inputs/kernel_vmstat"
 	_ "flashcat.cloud/categraf/inputs/kubernetes"
@@ -35,7 +38,6 @@ import (
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
-	"flashcat.cloud/categraf/traces"
 )
 
 type Agent struct {

@@ -117,7 +117,7 @@ func (s *KernelStats) Gather(slist *list.SafeList) {
 		}
 	}
 
-	inputs.PushSamples(slist, fields)
+	types.PushSamples(slist, fields)
 }
 
 func (s *KernelStats) getProcStat() ([]byte, error) {

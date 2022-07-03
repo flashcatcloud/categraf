@@ -100,5 +100,5 @@ func (c *Conntrack) Gather(slist *list.SafeList) {
 		log.Println("E! Conntrack input failed to collect metrics. Is the conntrack kernel module loaded?")
 	}
 
-	inputs.PushSamples(slist, fields)
+	types.PushSamples(slist, fields)
 }

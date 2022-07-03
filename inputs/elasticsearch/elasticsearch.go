@@ -242,7 +242,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 
 				// Gather node ID
 				if info.nodeID, err = ins.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
-					slist.PushFront(inputs.NewSample("up", 0, ins.Labels))
+					slist.PushFront(types.NewSample("up", 0, ins.Labels))
 					log.Println("E! failed to gather node id:", err)
 					return
 				}
@@ -250,12 +250,12 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 				// get cat/master information here so NodeStats can determine
 				// whether this node is the Master
 				if info.masterID, err = ins.getCatMaster(s + "/_cat/master"); err != nil {
-					slist.PushFront(inputs.NewSample("up", 0, ins.Labels))
+					slist.PushFront(types.NewSample("up", 0, ins.Labels))
 					log.Println("E! failed to get cat master:", err)
 					return
 				}
 
-				slist.PushFront(inputs.NewSample("up", 1, ins.Labels))
+				slist.PushFront(types.NewSample("up", 1, ins.Labels))
 				ins.serverInfoMutex.Lock()
 				ins.serverInfo[s] = info
 				ins.serverInfoMutex.Unlock()
@@ -328,7 +328,7 @@ func (ins *Instance) gatherIndicesStats(url string, slist *list.SafeList) error 
 
 	// Total Shards Stats
 	for k, v := range indicesStats.Shards {
-		slist.PushFront(inputs.NewSample("indices_stats_shards_total_"+k, v, ins.Labels))
+		slist.PushFront(types.NewSample("indices_stats_shards_total_"+k, v, ins.Labels))
 	}
 
 	// All Stats
@@ -340,7 +340,7 @@ func (ins *Instance) gatherIndicesStats(url string, slist *list.SafeList) error 
 			return err
 		}
 		for key, val := range jsonParser.Fields {
-			slist.PushFront(inputs.NewSample("indices_stats_"+m+"_"+key, val, map[string]string{"index_name": "_all"}, ins.Labels))
+			slist.PushFront(types.NewSample("indices_stats_"+m+"_"+key, val, map[string]string{"index_name": "_all"}, ins.Labels))
 		}
 	}
 
@@ -393,7 +393,7 @@ func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, slist 
 			return err
 		}
 		for key, val := range f.Fields {
-			slist.PushFront(inputs.NewSample("indices_stats_"+m+"_"+key, val, indexTag, ins.Labels))
+			slist.PushFront(types.NewSample("indices_stats_"+m+"_"+key, val, indexTag, ins.Labels))
 		}
 	}
 
@@ -436,7 +436,7 @@ func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, slist 
 				}
 
 				for key, val := range flattened.Fields {
-					slist.PushFront(inputs.NewSample("indices_stats_shards_"+key, val, shardTags, ins.Labels))
+					slist.PushFront(types.NewSample("indices_stats_shards_"+key, val, shardTags, ins.Labels))
 				}
 			}
 		}
@@ -501,7 +501,7 @@ func (ins *Instance) gatherClusterStats(url string, slist *list.SafeList) error 
 		}
 
 		for key, val := range f.Fields {
-			slist.PushFront(inputs.NewSample("clusterstats_"+p+"_"+key, val, tags, ins.Labels))
+			slist.PushFront(types.NewSample("clusterstats_"+p+"_"+key, val, tags, ins.Labels))
 		}
 	}
 
@@ -531,7 +531,7 @@ func (ins *Instance) gatherClusterHealth(url string, slist *list.SafeList) error
 		"cluster_health_unassigned_shards":                healthStats.UnassignedShards,
 	}
 
-	inputs.PushSamples(slist, clusterFields, map[string]string{"name": healthStats.ClusterName}, ins.Labels)
+	types.PushSamples(slist, clusterFields, map[string]string{"name": healthStats.ClusterName}, ins.Labels)
 
 	for name, health := range healthStats.Indices {
 		indexFields := map[string]interface{}{
@@ -544,7 +544,7 @@ func (ins *Instance) gatherClusterHealth(url string, slist *list.SafeList) error
 			"cluster_health_indices_status_code":           mapHealthStatusToCode(health.Status),
 			"cluster_health_indices_unassigned_shards":     health.UnassignedShards,
 		}
-		inputs.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, ins.Labels)
+		types.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, ins.Labels)
 	}
 
 	return nil
@@ -571,7 +571,7 @@ func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
 		}
 
 		for k, v := range n.Attributes {
-			slist.PushFront(inputs.NewSample("node_attribute_"+k, v, tags, ins.Labels))
+			slist.PushFront(types.NewSample("node_attribute_"+k, v, tags, ins.Labels))
 		}
 
 		stats := map[string]interface{}{
@@ -600,7 +600,7 @@ func (ins *Instance) gatherNodeStats(url string, slist *list.SafeList) error {
 			}
 
 			for key, val := range f.Fields {
-				slist.PushFront(inputs.NewSample(p+"_"+key, val, tags, ins.Labels))
+				slist.PushFront(types.NewSample(p+"_"+key, val, tags, ins.Labels))
 			}
 		}
 	}
