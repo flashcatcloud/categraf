@@ -17,10 +17,6 @@ rules:
   - nodes/proxy
   verbs:
   - get
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
 ---
 apiVersion: v1
 kind: ServiceAccount
