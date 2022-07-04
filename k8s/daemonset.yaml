@@ -296,7 +296,7 @@ data:
 ---
 kind: ConfigMap
 metadata:
-  name: input-kubelete-metrics
+  name: input-kubelet-metrics
 apiVersion: v1
 data:
   prometheus.toml: |
@@ -666,7 +666,7 @@ spec:
         name: input-kubernetes
       - configMap:
           defaultMode: 420
-          name: input-kubelete-metrics
+          name: input-kubelet-metrics
         name: input-kubelet-mertrics
       - configMap:
           defaultMode: 420
