@@ -4,8 +4,8 @@
     "configs": {
         "var": [
             {
-                "name": "instance",
-                "definition": "label_values(kafka_brokers,  instance)",
+                "name": "cluster",
+                "definition": "label_values(kafka_brokers,  cluster)",
                 "type": "query"
             }
         ],
@@ -29,7 +29,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "kafka_brokers{instance=\"$instance\"}"
+                        "expr": "kafka_brokers{cluster=\"$cluster\"}"
                     }
                 ],
                 "name": "brokers",
@@ -61,7 +61,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "count(count by (topic) (kafka_topic_partitions{instance=\"$instance\"}))"
+                        "expr": "count(count by (topic) (kafka_topic_partitions{cluster=\"$cluster\"}))"
                     }
                 ],
                 "name": "topics",
@@ -93,7 +93,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(kafka_topic_partitions{instance=\"$instance\"})",
+                        "expr": "sum(kafka_topic_partitions{cluster=\"$cluster\"})",
                         "legend": ""
                     }
                 ],
@@ -126,7 +126,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(kafka_topic_partition_replicas{instance=~\"$instance\"})"
+                        "expr": "sum(kafka_topic_partition_replicas{cluster=~\"$cluster\"})"
                     }
                 ],
                 "name": "Replicas",
@@ -168,7 +168,7 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(rate(kafka_topic_partition_current_offset{instance=\"$instance\"}[1m])) by (topic)"
+                        "expr": "sum(rate(kafka_topic_partition_current_offset{cluster=\"$cluster\"}[1m])) by (topic)"
                     }
                 ],
                 "name": "Messages produced per second",
@@ -204,7 +204,7 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(rate(kafka_consumergroup_current_offset{instance=\"$instance\"}[1m])) by (topic)"
+                        "expr": "sum(rate(kafka_consumergroup_current_offset{cluster=\"$cluster\"}[1m])) by (topic)"
                     }
                 ],
                 "name": "Messages consumed per second",
@@ -240,7 +240,7 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(kafka_consumer_lag_millis{instance=\"$instance\"}) by (consumergroup, topic) ",
+                        "expr": "sum(kafka_consumer_lag_millis{cluster=\"$cluster\"}) by (consumergroup, topic) ",
                         "legend": "{{consumergroup}} (topic: {{topic}})"
                     }
                 ],
@@ -293,7 +293,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "kafka_topic_partitions{instance=\"$instance\"}",
+                        "expr": "kafka_topic_partitions{cluster=\"$cluster\"}",
                         "legend": "{{topic}}"
                     }
                 ],

@@ -8,8 +8,8 @@
 # interval_times = 1
 
 # append some labels to metrics
-# instance is a preferred tag with the cluster name. If none is provided, the first of kafka_uris will be used
-labels = { instance="kafka-cluster-01" }
+# cluster is a preferred tag with the cluster name. If none is provided, the first of kafka_uris will be used
+labels = { cluster="kafka-cluster-01" }
 
 # log level only for kafka exporter
 log_level = "error"

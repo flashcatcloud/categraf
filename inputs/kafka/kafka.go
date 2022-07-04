@@ -1,4 +1,4 @@
-package tpl
+package kafka
 
 import (
 	"fmt"
@@ -201,9 +201,9 @@ func (ins *Instance) Init() error {
 	if ins.Labels == nil {
 		ins.Labels = make(map[string]string)
 	}
-	_, ok := ins.Labels["instance"]
+	_, ok := ins.Labels["cluster"]
 	if !ok {
-		ins.Labels["instance"] = ins.KafkaURIs[0]
+		ins.Labels["cluster"] = ins.KafkaURIs[0]
 	}
 
 	options := exporter.Options{
