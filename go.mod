@@ -9,7 +9,7 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/docker/docker v20.10.16+incompatible
 	github.com/gaochao1/sw v1.0.0
-	github.com/go-kit/kit v0.11.0
+	github.com/go-kit/log v0.2.0
 	github.com/go-ping/ping v0.0.0-20211130115550-779d1e919534
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
@@ -93,7 +93,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/freedomkk-qfeng/go-fastping v0.0.0-20160109021039-d7bb493dee3e // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/go-kit/log v0.2.0 // indirect
+	github.com/go-kit/kit v0.11.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -204,6 +204,6 @@ require (
 )
 
 replace (
+	github.com/prometheus/client_golang => github.com/flashcatcloud/client_golang v1.12.2-0.20220704074148-3b31f0c90903
 	go.opentelemetry.io/collector => github.com/flashcatcloud/opentelemetry-collector v0.54.1-0.20220628041301-3b8dabd1bcd0
-	github.com/prometheus/client_golang => ../../flashcatcloud/client_golang
 )
