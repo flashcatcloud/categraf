@@ -101,7 +101,7 @@ Click on the links to see the README of each plugin.
 - [ ] mongodb
 - [ ] rocketmq
 - [ ] activemq
-- [ ] kafka
+- [x] [kafka](inputs/kafka)
 - [x] [elasticsearch](inputs/elasticsearch)
 - [x] windows
 - [ ] mssql
@@ -117,12 +117,12 @@ Click on the links to see the README of each plugin.
 - [ ] ipmi
 - [ ] smartctl
 - [ ] logging
-- [ ] trace
+- [x] [traces](traces)
 
 
 ## Thanks
 
-Categraf is developed on the basis of Telegraf and Exporters. Thanks to the great open source community.
+Categraf is developed on the basis of Telegraf, Exporters and the OpenTelemetry. Thanks to the great open source community.
 
 ## Community
 

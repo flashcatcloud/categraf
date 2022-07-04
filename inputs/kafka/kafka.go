@@ -180,10 +180,10 @@ func (ins *Instance) Init() error {
 		ins.KafkaVersion = sarama.V2_0_0_0.String()
 	}
 	if len(ins.MetadataRefreshInterval) == 0 {
-		ins.MetadataRefreshInterval = "1s"
+		ins.MetadataRefreshInterval = "1m"
 	}
 	if ins.AllowConcurrent == nil {
-		flag := true
+		flag := false
 		ins.AllowConcurrent = &flag
 	}
 	if ins.MaxOffsets <= 0 {
@@ -197,6 +197,13 @@ func (ins *Instance) Init() error {
 	}
 	if len(ins.GroupFilter) == 0 {
 		ins.GroupFilter = ".*"
+	}
+	if ins.Labels == nil {
+		ins.Labels = make(map[string]string)
+	}
+	_, ok := ins.Labels["instance"]
+	if !ok {
+		ins.Labels["instance"] = ins.KafkaURIs[0]
 	}
 
 	options := exporter.Options{
@@ -224,6 +231,7 @@ func (ins *Instance) Init() error {
 	for k, v := range ins.Labels {
 		encLabels = append(encLabels, fmt.Sprintf("%s=%s", k, v))
 	}
+
 	options.Labels = strings.Join(encLabels, ",")
 
 	ins.l = level.NewFilter(klog.NewLogfmtLogger(klog.NewSyncWriter(os.Stderr)), levelFilter(ins.LogLevel))

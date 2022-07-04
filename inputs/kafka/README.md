@@ -1,18 +1,11 @@
 # kafka
 
-kafka 监控采集插件，封装kafka-exporter（https://github.com/davidmparrott/kafka_exporter）而来
+kafka 监控采集插件，由kafka-exporter（https://github.com/davidmparrott/kafka_exporter）封装而来。
 
 ## Configuration
 
-```toml
-# # collect interval
-# interval = 15
-
-# 要监控 MySQL，首先要给出要监控的MySQL的连接地址、用户名、密码
-[[instances]]
-
-```
+请参考配置[示例](../../conf/input.kafka/kafka.toml)
 
 ## 监控大盘和告警规则
 
-本 README 的同级目录，大家可以看到 dashboard.json 就是监控大盘，导入夜莺就可以使用，alerts.json 是告警规则，也是导入夜莺就可以使用。
+同级目录下的 dashboard.json、alerts.json 可以直接导入夜莺使用。
