@@ -9,6 +9,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/filter"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -113,6 +114,6 @@ func (s *NetIOStats) Gather(slist *list.SafeList) {
 			"drop_out":     io.Dropout,
 		}
 
-		inputs.PushSamples(slist, fields, tags)
+		types.PushSamples(slist, fields, tags)
 	}
 }

@@ -139,11 +139,11 @@ func (s *Procstat) gatherOnce(slist *list.SafeList, ins *Instance) {
 
 	if err != nil {
 		log.Println("E! procstat: failed to lookup pids, search string:", ins.searchString, "error:", err)
-		slist.PushFront(inputs.NewSample("lookup_count", 0, tags))
+		slist.PushFront(types.NewSample("lookup_count", 0, tags))
 		return
 	}
 
-	slist.PushFront(inputs.NewSample("lookup_count", len(pids), tags))
+	slist.PushFront(types.NewSample("lookup_count", len(pids), tags))
 	if len(pids) == 0 {
 		return
 	}
@@ -210,13 +210,13 @@ func (ins *Instance) gatherThreads(slist *list.SafeList, procs map[PID]Process, 
 		if err == nil {
 			val += v
 			if ins.GatherPerPid {
-				slist.PushFront(inputs.NewSample("num_threads", val, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("num_threads", val, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
 		}
 	}
 
 	if ins.GatherTotal {
-		slist.PushFront(inputs.NewSample("num_threads_total", val, tags))
+		slist.PushFront(types.NewSample("num_threads_total", val, tags))
 	}
 }
 
@@ -227,13 +227,13 @@ func (ins *Instance) gatherFD(slist *list.SafeList, procs map[PID]Process, tags 
 		if err == nil {
 			val += v
 			if ins.GatherPerPid {
-				slist.PushFront(inputs.NewSample("num_fds", val, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("num_fds", val, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
 		}
 	}
 
 	if ins.GatherTotal {
-		slist.PushFront(inputs.NewSample("num_fds_total", val, tags))
+		slist.PushFront(types.NewSample("num_fds_total", val, tags))
 	}
 }
 
@@ -253,19 +253,19 @@ func (ins *Instance) gatherIO(slist *list.SafeList, procs map[PID]Process, tags 
 			readBytes += io.ReadBytes
 			writeBytes += io.WriteBytes
 			if ins.GatherPerPid {
-				slist.PushFront(inputs.NewSample("read_count", readCount, map[string]string{"pid": fmt.Sprint(pid)}, tags))
-				slist.PushFront(inputs.NewSample("write_count", writeCount, map[string]string{"pid": fmt.Sprint(pid)}, tags))
-				slist.PushFront(inputs.NewSample("read_bytes", readBytes, map[string]string{"pid": fmt.Sprint(pid)}, tags))
-				slist.PushFront(inputs.NewSample("write_bytes", writeBytes, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("read_count", readCount, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("write_count", writeCount, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("read_bytes", readBytes, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("write_bytes", writeBytes, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
 		}
 	}
 
 	if ins.GatherTotal {
-		slist.PushFront(inputs.NewSample("read_count_total", readCount, tags))
-		slist.PushFront(inputs.NewSample("write_count_total", writeCount, tags))
-		slist.PushFront(inputs.NewSample("read_bytes_total", readBytes, tags))
-		slist.PushFront(inputs.NewSample("write_bytes_total", writeBytes, tags))
+		slist.PushFront(types.NewSample("read_count_total", readCount, tags))
+		slist.PushFront(types.NewSample("write_count_total", writeCount, tags))
+		slist.PushFront(types.NewSample("read_bytes_total", readBytes, tags))
+		slist.PushFront(types.NewSample("write_bytes_total", writeBytes, tags))
 	}
 }
 
@@ -276,7 +276,7 @@ func (ins *Instance) gatherUptime(slist *list.SafeList, procs map[PID]Process, t
 		v, err := procs[pid].CreateTime() // returns epoch in ms
 		if err == nil {
 			if ins.GatherPerPid {
-				slist.PushFront(inputs.NewSample("uptime", value, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("uptime", value, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
 			if value == -1 {
 				value = v
@@ -290,7 +290,7 @@ func (ins *Instance) gatherUptime(slist *list.SafeList, procs map[PID]Process, t
 	}
 
 	if ins.GatherTotal {
-		slist.PushFront(inputs.NewSample("uptime_minimum", value, tags))
+		slist.PushFront(types.NewSample("uptime_minimum", value, tags))
 	}
 }
 
@@ -301,16 +301,16 @@ func (ins *Instance) gatherCPU(slist *list.SafeList, procs map[PID]Process, tags
 		if err == nil {
 			if solarisMode {
 				value += v / float64(runtime.NumCPU())
-				slist.PushFront(inputs.NewSample("cpu_usage", v/float64(runtime.NumCPU()), map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("cpu_usage", v/float64(runtime.NumCPU()), map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			} else {
 				value += v
-				slist.PushFront(inputs.NewSample("cpu_usage", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("cpu_usage", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
 		}
 	}
 
 	if ins.GatherTotal {
-		slist.PushFront(inputs.NewSample("cpu_usage_total", value, tags))
+		slist.PushFront(types.NewSample("cpu_usage_total", value, tags))
 	}
 }
 
@@ -321,13 +321,13 @@ func (ins *Instance) gatherMem(slist *list.SafeList, procs map[PID]Process, tags
 		if err == nil {
 			value += v
 			if ins.GatherPerPid {
-				slist.PushFront(inputs.NewSample("mem_usage", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("mem_usage", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
 		}
 	}
 
 	if ins.GatherTotal {
-		slist.PushFront(inputs.NewSample("mem_usage_total", value, tags))
+		slist.PushFront(types.NewSample("mem_usage_total", value, tags))
 	}
 }
 
@@ -339,8 +339,8 @@ func (ins *Instance) gatherLimit(slist *list.SafeList, procs map[PID]Process, ta
 			for _, rlim := range rlims {
 				if rlim.Resource == process.RLIMIT_NOFILE {
 					if ins.GatherPerPid {
-						slist.PushFront(inputs.NewSample("rlimit_num_fds_soft", rlim.Soft, map[string]string{"pid": fmt.Sprint(pid)}, tags))
-						slist.PushFront(inputs.NewSample("rlimit_num_fds_hard", rlim.Hard, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+						slist.PushFront(types.NewSample("rlimit_num_fds_soft", rlim.Soft, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+						slist.PushFront(types.NewSample("rlimit_num_fds_hard", rlim.Hard, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 					}
 
 					if softMin == 0 {
@@ -362,8 +362,8 @@ func (ins *Instance) gatherLimit(slist *list.SafeList, procs map[PID]Process, ta
 	}
 
 	if ins.GatherTotal {
-		slist.PushFront(inputs.NewSample("rlimit_num_fds_soft_minimum", softMin, tags))
-		slist.PushFront(inputs.NewSample("rlimit_num_fds_hard_minimum", hardMin, tags))
+		slist.PushFront(types.NewSample("rlimit_num_fds_soft_minimum", softMin, tags))
+		slist.PushFront(types.NewSample("rlimit_num_fds_hard_minimum", hardMin, tags))
 	}
 }
 

@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"log"
 
-	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tagx"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -34,6 +34,6 @@ func (m *MySQL) gatherProcesslistByUser(slist *list.SafeList, ins *Instance, db 
 			return
 		}
 
-		slist.PushFront(inputs.NewSample("processlist_processes_by_user", connections, labels, map[string]string{"user": user}))
+		slist.PushFront(types.NewSample("processlist_processes_by_user", connections, labels, map[string]string{"user": user}))
 	}
 }

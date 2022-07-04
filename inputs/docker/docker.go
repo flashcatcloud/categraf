@@ -17,12 +17,13 @@ import (
 	"flashcat.cloud/categraf/pkg/choice"
 	"flashcat.cloud/categraf/pkg/dock"
 	"flashcat.cloud/categraf/pkg/filter"
-	tlsx "flashcat.cloud/categraf/pkg/tls"
-	itypes "flashcat.cloud/categraf/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/toolkits/pkg/container/list"
+
+	tlsx "flashcat.cloud/categraf/pkg/tls"
+	itypes "flashcat.cloud/categraf/types"
 )
 
 const inputName = "docker"
@@ -167,7 +168,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 	if ins.client == nil {
 		c, err := ins.getNewClient()
 		if err != nil {
-			slist.PushFront(inputs.NewSample("docker_up", 0, ins.Labels))
+			slist.PushFront(itypes.NewSample("docker_up", 0, ins.Labels))
 			log.Println("E! failed to new docker client:", err)
 			return
 		}
@@ -177,12 +178,12 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 	defer ins.client.Close()
 
 	if err := ins.gatherInfo(slist); err != nil {
-		slist.PushFront(inputs.NewSample("docker_up", 0, ins.Labels))
+		slist.PushFront(itypes.NewSample("docker_up", 0, ins.Labels))
 		log.Println("E! failed to gather docker info:", err)
 		return
 	}
 
-	slist.PushFront(inputs.NewSample("docker_up", 1, ins.Labels))
+	slist.PushFront(itypes.NewSample("docker_up", 1, ins.Labels))
 
 	if ins.GatherServices {
 		ins.gatherSwarmInfo(slist)
@@ -346,10 +347,10 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *li
 		statefields["docker_container_status_uptime"] = uptime.Seconds()
 	}
 
-	inputs.PushSamples(slist, statefields, tags, ins.Labels)
+	itypes.PushSamples(slist, statefields, tags, ins.Labels)
 
 	if info.State.Health != nil {
-		slist.PushFront(inputs.NewSample("docker_container_health_failing_streak", info.ContainerJSONBase.State.Health.FailingStreak, tags, ins.Labels))
+		slist.PushFront(itypes.NewSample("docker_container_health_failing_streak", info.ContainerJSONBase.State.Health.FailingStreak, tags, ins.Labels))
 	}
 
 	ins.parseContainerStats(v, slist, tags, daemonOSType)
@@ -429,7 +430,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 		memfields["docker_container_mem_private_working_set"] = stat.MemoryStats.PrivateWorkingSet
 	}
 
-	inputs.PushSamples(slist, memfields, tags, ins.Labels)
+	itypes.PushSamples(slist, memfields, tags, ins.Labels)
 
 	// cpu
 
@@ -454,7 +455,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 			cpufields["docker_container_cpu_usage_percent"] = cpuPercent
 		}
 
-		inputs.PushSamples(slist, cpufields, map[string]string{"cpu": "cpu-total"}, tags, ins.Labels)
+		itypes.PushSamples(slist, cpufields, map[string]string{"cpu": "cpu-total"}, tags, ins.Labels)
 	}
 
 	if choice.Contains("cpu", ins.PerDeviceInclude) && len(stat.CPUStats.CPUUsage.PercpuUsage) > 0 {
@@ -466,7 +467,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 		}
 
 		for i, percpu := range percpuusage {
-			slist.PushFront(inputs.NewSample(
+			slist.PushFront(itypes.NewSample(
 				"docker_container_cpu_usage_total",
 				percpu,
 				map[string]string{"cpu": fmt.Sprintf("cpu%d", i)},
@@ -492,7 +493,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 		}
 
 		if choice.Contains("network", ins.PerDeviceInclude) {
-			inputs.PushSamples(slist, netfields, map[string]string{"network": network}, tags, ins.Labels)
+			itypes.PushSamples(slist, netfields, map[string]string{"network": network}, tags, ins.Labels)
 		}
 
 		if choice.Contains("network", ins.TotalInclude) {
@@ -519,7 +520,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 
 	// totalNetworkStatMap could be empty if container is running with --net=host.
 	if choice.Contains("network", ins.TotalInclude) && len(totalNetworkStatMap) != 0 {
-		inputs.PushSamples(slist, totalNetworkStatMap, map[string]string{"network": "total"}, tags, ins.Labels)
+		itypes.PushSamples(slist, totalNetworkStatMap, map[string]string{"network": "total"}, tags, ins.Labels)
 	}
 
 	ins.gatherBlockIOMetrics(slist, stat, tags)
@@ -535,7 +536,7 @@ func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.Stat
 	totalStatMap := make(map[string]interface{})
 	for device, fields := range deviceStatMap {
 		if perDeviceBlkio {
-			inputs.PushSamples(slist, fields, map[string]string{"device": device}, tags, ins.Labels)
+			itypes.PushSamples(slist, fields, map[string]string{"device": device}, tags, ins.Labels)
 		}
 		if totalBlkio {
 			for field, value := range fields {
@@ -560,7 +561,7 @@ func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.Stat
 	}
 
 	if totalBlkio {
-		inputs.PushSamples(slist, totalStatMap, map[string]string{"device": "total"}, tags, ins.Labels)
+		itypes.PushSamples(slist, totalStatMap, map[string]string{"device": "total"}, tags, ins.Labels)
 	}
 }
 
@@ -691,7 +692,7 @@ func (ins *Instance) gatherSwarmInfo(slist *list.SafeList) {
 			log.Println("E! Unknown replica mode")
 		}
 
-		inputs.PushSamples(slist, fields, tags, ins.Labels)
+		itypes.PushSamples(slist, fields, tags, ins.Labels)
 	}
 }
 
@@ -719,7 +720,7 @@ func (ins *Instance) gatherInfo(slist *list.SafeList) error {
 		"docker_memory_total":            info.MemTotal,
 	}
 
-	inputs.PushSamples(slist, fields, ins.Labels)
+	itypes.PushSamples(slist, fields, ins.Labels)
 	return nil
 }
 

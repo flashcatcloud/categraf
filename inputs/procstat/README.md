@@ -35,16 +35,16 @@ func (ins *Instance) gatherCPU(slist *list.SafeList, procs map[PID]Process, tags
 		if err == nil {
 			if solarisMode {
 				value += v / float64(runtime.NumCPU())
-				slist.PushFront(inputs.NewSample("cpu_usage", v/float64(runtime.NumCPU()), map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("cpu_usage", v/float64(runtime.NumCPU()), map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			} else {
 				value += v
-				slist.PushFront(inputs.NewSample("cpu_usage", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample("cpu_usage", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
 		}
 	}
 
 	if ins.GatherTotal {
-		slist.PushFront(inputs.NewSample("cpu_usage_total", value, tags))
+		slist.PushFront(types.NewSample("cpu_usage_total", value, tags))
 	}
 }
 ```

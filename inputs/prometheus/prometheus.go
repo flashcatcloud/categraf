@@ -237,13 +237,13 @@ func (p *Prometheus) gatherUrl(urlwg *sync.WaitGroup, slist *list.SafeList, ins 
 
 	res, err := ins.client.Do(req)
 	if err != nil {
-		slist.PushFront(inputs.NewSample("up", 0, labels))
+		slist.PushFront(types.NewSample("up", 0, labels))
 		log.Println("E! failed to query url:", u.String(), "error:", err)
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		slist.PushFront(inputs.NewSample("up", 0, labels))
+		slist.PushFront(types.NewSample("up", 0, labels))
 		log.Println("E! failed to query url:", u.String(), "status code:", res.StatusCode)
 		return
 	}
@@ -252,12 +252,12 @@ func (p *Prometheus) gatherUrl(urlwg *sync.WaitGroup, slist *list.SafeList, ins 
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		slist.PushFront(inputs.NewSample("up", 0, labels))
+		slist.PushFront(types.NewSample("up", 0, labels))
 		log.Println("E! failed to read response body, error:", err)
 		return
 	}
 
-	slist.PushFront(inputs.NewSample("up", 1, labels))
+	slist.PushFront(types.NewSample("up", 1, labels))
 
 	parser := prometheus.NewParser(ins.NamePrefix, labels, res.Header, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
 	if err = parser.Parse(body, slist); err != nil {

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tagx"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -66,11 +66,11 @@ func (m *MySQL) gatherBinlog(slist *list.SafeList, ins *Instance, db *sql.DB, gl
 	}
 
 	tags := tagx.Copy(globalTags)
-	slist.PushFront(inputs.NewSample("binlog_size_bytes", size, tags))
-	slist.PushFront(inputs.NewSample("binlog_file_count", count, tags))
+	slist.PushFront(types.NewSample("binlog_size_bytes", size, tags))
+	slist.PushFront(types.NewSample("binlog_file_count", count, tags))
 
 	value, err := strconv.ParseFloat(strings.Split(filename, ".")[1], 64)
 	if err == nil {
-		slist.PushFront(inputs.NewSample("binlog_file_number", value, tags))
+		slist.PushFront(types.NewSample("binlog_file_number", value, tags))
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/conv"
+	"flashcat.cloud/categraf/pkg/runtimex"
 	"flashcat.cloud/categraf/types"
 	"github.com/gaochao1/sw"
 	"github.com/toolkits/pkg/concurrent/semaphore"
@@ -201,7 +202,7 @@ func (ins *Instance) custstat(wg *sync.WaitGroup, ip string, slist *list.SafeLis
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("E! recovered in custstat, ip:", ip, "oid:", cust.OID, "error:", r)
+			log.Println("E! recovered in custstat, ip:", ip, "oid:", cust.OID, "error:", r, "stack:", runtimex.Stack(3))
 		}
 	}()
 
@@ -213,7 +214,7 @@ func (ins *Instance) custstat(wg *sync.WaitGroup, ip string, slist *list.SafeLis
 		if len(snmpPDUs) > 0 && err == nil {
 			value, err = conv.ToFloat64(snmpPDUs[0].Value)
 			if err == nil {
-				slist.PushFront(inputs.NewSample(cust.Metric, value, cust.Tags, ins.Labels))
+				slist.PushFront(types.NewSample(cust.Metric, value, cust.Tags, ins.Labels))
 			} else {
 				log.Println("E! failed to convert to float64, ip:", ip, "oid:", cust.OID, "value:", snmpPDUs[0].Value)
 			}
@@ -243,7 +244,7 @@ func (ins *Instance) gatherMemMetrics(ips []string, slist *list.SafeList) {
 		if utilPercent == -1 {
 			continue
 		}
-		slist.PushFront(inputs.NewSample("mem_util", utilPercent, map[string]string{ins.parent.SwitchIdLabel: ip}, ins.Labels))
+		slist.PushFront(types.NewSample("mem_util", utilPercent, map[string]string{ins.parent.SwitchIdLabel: ip}, ins.Labels))
 	}
 }
 
@@ -282,7 +283,7 @@ func (ins *Instance) gatherCpuMetrics(ips []string, slist *list.SafeList) {
 		if utilPercent == -1 {
 			continue
 		}
-		slist.PushFront(inputs.NewSample("cpu_util", utilPercent, map[string]string{ins.parent.SwitchIdLabel: ip}, ins.Labels))
+		slist.PushFront(types.NewSample("cpu_util", utilPercent, map[string]string{ins.parent.SwitchIdLabel: ip}, ins.Labels))
 	}
 }
 
@@ -354,10 +355,10 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 			}
 
 			if ins.GatherOperStatus {
-				slist.PushFront(inputs.NewSample("if_oper_status", ifStat.IfOperStatus, tags))
+				slist.PushFront(types.NewSample("if_oper_status", ifStat.IfOperStatus, tags))
 			}
 
-			slist.PushFront(inputs.NewSample("if_speed", ifStat.IfSpeed, tags))
+			slist.PushFront(types.NewSample("if_speed", ifStat.IfSpeed, tags))
 
 			if lastIfStatList := ins.lastifmap.Get(ip); lastIfStatList != nil {
 				for _, lastifStat := range lastIfStatList {
@@ -373,18 +374,18 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 						IfHCOutOctets := 8 * (float64(ifStat.IfHCOutOctets) - float64(lastifStat.IfHCOutOctets)) / float64(interval)
 
 						if limitCheck(IfHCInOctets, speedlimit) {
-							slist.PushFront(inputs.NewSample("if_in", IfHCInOctets, tags))
+							slist.PushFront(types.NewSample("if_in", IfHCInOctets, tags))
 							if ifStat.IfSpeed > 0 {
-								slist.PushFront(inputs.NewSample("if_in_speed_percent", 100*IfHCInOctets/float64(ifStat.IfSpeed), tags))
+								slist.PushFront(types.NewSample("if_in_speed_percent", 100*IfHCInOctets/float64(ifStat.IfSpeed), tags))
 							}
 						} else {
 							log.Println("W! if_in out of range, current:", ifStat.IfHCInOctets, "lasttime:", lastifStat.IfHCInOctets, "tags:", tags)
 						}
 
 						if limitCheck(IfHCOutOctets, speedlimit) {
-							slist.PushFront(inputs.NewSample("if_out", IfHCOutOctets, tags))
+							slist.PushFront(types.NewSample("if_out", IfHCOutOctets, tags))
 							if ifStat.IfSpeed > 0 {
-								slist.PushFront(inputs.NewSample("if_out_speed_percent", 100*IfHCOutOctets/float64(ifStat.IfSpeed), tags))
+								slist.PushFront(types.NewSample("if_out_speed_percent", 100*IfHCOutOctets/float64(ifStat.IfSpeed), tags))
 							}
 						} else {
 							log.Println("W! if_out out of range, current:", ifStat.IfHCOutOctets, "lasttime:", lastifStat.IfHCOutOctets, "tags:", tags)
@@ -403,13 +404,13 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 							IfHCOutBroadcastPkts := (float64(ifStat.IfHCOutBroadcastPkts) - float64(lastifStat.IfHCOutBroadcastPkts)) / float64(interval)
 
 							if limitCheck(IfHCInBroadcastPkts, ins.BroadcastPktLimit) {
-								slist.PushFront(inputs.NewSample("if_in_broadcast_pkt", IfHCInBroadcastPkts, tags))
+								slist.PushFront(types.NewSample("if_in_broadcast_pkt", IfHCInBroadcastPkts, tags))
 							} else {
 								log.Println("W! if_in_broadcast_pkt out of range, current:", ifStat.IfHCInBroadcastPkts, "lasttime:", lastifStat.IfHCInBroadcastPkts, "tags:", tags)
 							}
 
 							if limitCheck(IfHCOutBroadcastPkts, ins.BroadcastPktLimit) {
-								slist.PushFront(inputs.NewSample("if_out_broadcast_pkt", IfHCOutBroadcastPkts, tags))
+								slist.PushFront(types.NewSample("if_out_broadcast_pkt", IfHCOutBroadcastPkts, tags))
 							} else {
 								log.Println("W! if_out_broadcast_pkt out of range, current:", ifStat.IfHCOutBroadcastPkts, "lasttime:", lastifStat.IfHCOutBroadcastPkts, "tags:", tags)
 							}
@@ -428,13 +429,13 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 							IfHCOutMulticastPkts := (float64(ifStat.IfHCOutMulticastPkts) - float64(lastifStat.IfHCOutMulticastPkts)) / float64(interval)
 
 							if limitCheck(IfHCInMulticastPkts, ins.MulticastPktLimit) {
-								slist.PushFront(inputs.NewSample("if_in_multicast_pkt", IfHCInMulticastPkts, tags))
+								slist.PushFront(types.NewSample("if_in_multicast_pkt", IfHCInMulticastPkts, tags))
 							} else {
 								log.Println("W! if_in_multicast_pkt out of range, current:", ifStat.IfHCInMulticastPkts, "lasttime:", lastifStat.IfHCInMulticastPkts, "tags:", tags)
 							}
 
 							if limitCheck(IfHCOutMulticastPkts, ins.MulticastPktLimit) {
-								slist.PushFront(inputs.NewSample("if_out_multicast_pkt", IfHCOutMulticastPkts, tags))
+								slist.PushFront(types.NewSample("if_out_multicast_pkt", IfHCOutMulticastPkts, tags))
 							} else {
 								log.Println("W! if_out_multicast_pkt out of range, current:", ifStat.IfHCOutMulticastPkts, "lasttime:", lastifStat.IfHCOutMulticastPkts, "tags:", tags)
 							}
@@ -453,13 +454,13 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 							IfOutDiscards := (float64(ifStat.IfOutDiscards) - float64(lastifStat.IfOutDiscards)) / float64(interval)
 
 							if limitCheck(IfInDiscards, ins.DiscardsPktLimit) {
-								slist.PushFront(inputs.NewSample("if_in_discards", IfInDiscards, tags))
+								slist.PushFront(types.NewSample("if_in_discards", IfInDiscards, tags))
 							} else {
 								log.Println("W! if_in_discards out of range, current:", ifStat.IfInDiscards, "lasttime:", lastifStat.IfInDiscards, "tags:", tags)
 							}
 
 							if limitCheck(IfOutDiscards, ins.DiscardsPktLimit) {
-								slist.PushFront(inputs.NewSample("if_out_discards", IfOutDiscards, tags))
+								slist.PushFront(types.NewSample("if_out_discards", IfOutDiscards, tags))
 							} else {
 								log.Println("W! if_out_discards out of range, current:", ifStat.IfOutDiscards, "lasttime:", lastifStat.IfOutDiscards, "tags:", tags)
 							}
@@ -478,13 +479,13 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 							IfOutErrors := (float64(ifStat.IfOutErrors) - float64(lastifStat.IfOutErrors)) / float64(interval)
 
 							if limitCheck(IfInErrors, ins.ErrorsPktLimit) {
-								slist.PushFront(inputs.NewSample("if_in_errors", IfInErrors, tags))
+								slist.PushFront(types.NewSample("if_in_errors", IfInErrors, tags))
 							} else {
 								log.Println("W! if_in_errors out of range, current:", ifStat.IfInErrors, "lasttime:", lastifStat.IfInErrors, "tags:", tags)
 							}
 
 							if limitCheck(IfOutErrors, ins.ErrorsPktLimit) {
-								slist.PushFront(inputs.NewSample("if_out_errors", IfOutErrors, tags))
+								slist.PushFront(types.NewSample("if_out_errors", IfOutErrors, tags))
 							} else {
 								log.Println("W! if_out_errors out of range, current:", ifStat.IfOutErrors, "lasttime:", lastifStat.IfOutErrors, "tags:", tags)
 							}
@@ -500,7 +501,7 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 							interval := ifStat.TS - lastifStat.TS
 							IfInUnknownProtos := (float64(ifStat.IfInUnknownProtos) - float64(lastifStat.IfInUnknownProtos)) / float64(interval)
 							if limitCheck(IfInUnknownProtos, ins.UnknownProtosPktLimit) {
-								slist.PushFront(inputs.NewSample("if_in_unknown_protos", IfInUnknownProtos, tags))
+								slist.PushFront(types.NewSample("if_in_unknown_protos", IfInUnknownProtos, tags))
 							} else {
 								log.Println("W! if_in_unknown_protos out of range, current:", ifStat.IfInUnknownProtos, "lasttime:", lastifStat.IfInUnknownProtos, "tags:", tags)
 							}
@@ -516,7 +517,7 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 							interval := ifStat.TS - lastifStat.TS
 							IfOutQLen := (float64(ifStat.IfOutQLen) - float64(lastifStat.IfOutQLen)) / float64(interval)
 							if limitCheck(IfOutQLen, ins.OutQlenPktLimit) {
-								slist.PushFront(inputs.NewSample("if_out_qlen", IfOutQLen, tags))
+								slist.PushFront(types.NewSample("if_out_qlen", IfOutQLen, tags))
 							} else {
 								log.Println("W! if_out_qlen out of range, current:", ifStat.IfOutQLen, "lasttime:", lastifStat.IfOutQLen, "tags:", tags)
 							}
@@ -535,13 +536,13 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 							IfHCOutUcastPkts := (float64(ifStat.IfHCOutUcastPkts) - float64(lastifStat.IfHCOutUcastPkts)) / float64(interval)
 
 							if limitCheck(IfHCInUcastPkts, ins.PktLimit) {
-								slist.PushFront(inputs.NewSample("if_in_pkts", IfHCInUcastPkts, tags))
+								slist.PushFront(types.NewSample("if_in_pkts", IfHCInUcastPkts, tags))
 							} else {
 								log.Println("W! if_in_pkts out of range, current:", ifStat.IfHCInUcastPkts, "lasttime:", lastifStat.IfHCInUcastPkts, "tags:", tags)
 							}
 
 							if limitCheck(IfHCOutUcastPkts, ins.PktLimit) {
-								slist.PushFront(inputs.NewSample("if_out_pkts", IfHCOutUcastPkts, tags))
+								slist.PushFront(types.NewSample("if_out_pkts", IfHCOutUcastPkts, tags))
 							} else {
 								log.Println("W! if_out_pkts out of range, current:", ifStat.IfHCOutUcastPkts, "lasttime:", lastifStat.IfHCOutUcastPkts, "tags:", tags)
 							}
@@ -619,7 +620,7 @@ func (ins *Instance) gatherPing(ips []string, slist *list.SafeList) []string {
 		}
 
 		if ins.GatherPingMetrics {
-			slist.PushFront(inputs.NewSample("ping_up", val, map[string]string{ins.parent.SwitchIdLabel: ip}, ins.Labels))
+			slist.PushFront(types.NewSample("ping_up", val, map[string]string{ins.parent.SwitchIdLabel: ip}, ins.Labels))
 		}
 	}
 

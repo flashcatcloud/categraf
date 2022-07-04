@@ -146,11 +146,11 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 	err := ins.LoadJSON(urlpath, summaryMetrics)
 	if err != nil {
 		log.Println("E! failed to load", urlpath, "error:", err)
-		slist.PushFront(inputs.NewSample("kubelet_up", 0, ins.Labels))
+		slist.PushFront(types.NewSample("kubelet_up", 0, ins.Labels))
 		return
 	}
 
-	slist.PushFront(inputs.NewSample("kubelet_up", 1, ins.Labels))
+	slist.PushFront(types.NewSample("kubelet_up", 1, ins.Labels))
 
 	podInfos, err := ins.gatherPodInfo(ins.URL)
 	if err != nil {
@@ -207,7 +207,7 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 				fields["pod_container_logsfs_available_bytes"] = container.LogsFS.AvailableBytes
 				fields["pod_container_logsfs_capacity_bytes"] = container.LogsFS.CapacityBytes
 				fields["pod_container_logsfs_used_bytes"] = container.LogsFS.UsedBytes
-				inputs.PushSamples(slist, fields, tags, ins.Labels)
+				types.PushSamples(slist, fields, tags, ins.Labels)
 			}
 		}
 
@@ -226,7 +226,7 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 				fields["pod_volume_available_bytes"] = volume.AvailableBytes
 				fields["pod_volume_capacity_bytes"] = volume.CapacityBytes
 				fields["pod_volume_used_bytes"] = volume.UsedBytes
-				inputs.PushSamples(slist, fields, tags, ins.Labels)
+				types.PushSamples(slist, fields, tags, ins.Labels)
 			}
 		}
 
@@ -244,7 +244,7 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 			fields["pod_network_rx_errors"] = pod.Network.RXErrors
 			fields["pod_network_tx_bytes"] = pod.Network.TXBytes
 			fields["pod_network_tx_errors"] = pod.Network.TXErrors
-			inputs.PushSamples(slist, fields, tags, ins.Labels)
+			types.PushSamples(slist, fields, tags, ins.Labels)
 		}
 	}
 }
@@ -269,7 +269,7 @@ func (ins *Instance) buildSystemContainerMetrics(summaryMetrics *SummaryMetrics,
 		fields["system_container_logsfs_available_bytes"] = container.LogsFS.AvailableBytes
 		fields["system_container_logsfs_capacity_bytes"] = container.LogsFS.CapacityBytes
 
-		inputs.PushSamples(slist, fields, tags, ins.Labels)
+		types.PushSamples(slist, fields, tags, ins.Labels)
 	}
 }
 
@@ -297,7 +297,7 @@ func (ins *Instance) buildNodeMetrics(summaryMetrics *SummaryMetrics, slist *lis
 	fields["node_runtime_image_fs_capacity_bytes"] = summaryMetrics.Node.Runtime.ImageFileSystem.CapacityBytes
 	fields["node_runtime_image_fs_used_bytes"] = summaryMetrics.Node.Runtime.ImageFileSystem.UsedBytes
 
-	inputs.PushSamples(slist, fields, tags, ins.Labels)
+	types.PushSamples(slist, fields, tags, ins.Labels)
 }
 
 func (ins *Instance) gatherPodInfo(baseURL string) ([]Metadata, error) {

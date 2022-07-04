@@ -9,6 +9,7 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
 	github.com/docker/docker v20.10.16+incompatible
 	github.com/gaochao1/sw v1.0.0
+	github.com/go-kit/log v0.2.0
 	github.com/go-ping/ping v0.0.0-20211130115550-779d1e919534
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
@@ -22,6 +23,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
+	github.com/krallistic/kazoo-go v0.0.0-20170526135507-a15279744f4e
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alibabacloudlogserviceexporter v0.54.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/jaegerexporter v0.54.0
@@ -46,6 +48,7 @@ require (
 	github.com/stretchr/testify v1.7.4
 	github.com/toolkits/pkg v1.3.0
 	github.com/ulricqin/gosnmp v0.0.1
+	github.com/xdg/scram v1.0.5
 	go.opentelemetry.io/collector v0.54.0
 	go.opentelemetry.io/otel/metric v0.30.0
 	go.opentelemetry.io/otel/trace v1.7.0
@@ -91,7 +94,6 @@ require (
 	github.com/freedomkk-qfeng/go-fastping v0.0.0-20160109021039-d7bb493dee3e // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-kit/kit v0.11.0 // indirect
-	github.com/go-kit/log v0.2.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -158,6 +160,7 @@ require (
 	github.com/prometheus/statsd_exporter v0.21.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/rs/cors v1.8.2 // indirect
+	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
@@ -176,6 +179,7 @@ require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
 	github.com/xdg-go/stringprep v1.0.3 // indirect
+	github.com/xdg/stringprep v1.0.3 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/collector/pdata v0.54.0 // indirect
@@ -199,4 +203,7 @@ require (
 	gotest.tools/v3 v3.2.0 // indirect
 )
 
-replace go.opentelemetry.io/collector => github.com/flashcatcloud/opentelemetry-collector v0.54.1-0.20220628041301-3b8dabd1bcd0
+replace (
+	github.com/prometheus/client_golang => github.com/flashcatcloud/client_golang v1.12.2-0.20220704074148-3b31f0c90903
+	go.opentelemetry.io/collector => github.com/flashcatcloud/opentelemetry-collector v0.54.1-0.20220628041301-3b8dabd1bcd0
+)

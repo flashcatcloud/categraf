@@ -168,7 +168,7 @@ func (ins *Instance) gather(slist *list.SafeList, target string) {
 
 	defer func() {
 		for field, value := range fields {
-			slist.PushFront(inputs.NewSample(field, value, labels))
+			slist.PushFront(types.NewSample(field, value, labels))
 		}
 	}()
 

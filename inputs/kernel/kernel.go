@@ -13,6 +13,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -117,7 +118,7 @@ func (s *KernelStats) Gather(slist *list.SafeList) {
 		}
 	}
 
-	inputs.PushSamples(slist, fields)
+	types.PushSamples(slist, fields)
 }
 
 func (s *KernelStats) getProcStat() ([]byte, error) {

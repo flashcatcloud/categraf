@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tagx"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -43,19 +43,19 @@ func (m *MySQL) gatherEngineInnodbStatus(slist *list.SafeList, ins *Instance, db
 			if err != nil {
 				continue
 			}
-			slist.PushFront(inputs.NewSample("engine_innodb_queries_inside_innodb", value, tags))
+			slist.PushFront(types.NewSample("engine_innodb_queries_inside_innodb", value, tags))
 
 			value, err = strconv.ParseFloat(data[2], 64)
 			if err != nil {
 				continue
 			}
-			slist.PushFront(inputs.NewSample("engine_innodb_queries_in_queue", value, tags))
+			slist.PushFront(types.NewSample("engine_innodb_queries_in_queue", value, tags))
 		} else if data := rViews.FindStringSubmatch(line); data != nil {
 			value, err := strconv.ParseFloat(data[1], 64)
 			if err != nil {
 				continue
 			}
-			slist.PushFront(inputs.NewSample("engine_innodb_read_views_open_inside_innodb", value, tags))
+			slist.PushFront(types.NewSample("engine_innodb_read_views_open_inside_innodb", value, tags))
 		}
 	}
 }

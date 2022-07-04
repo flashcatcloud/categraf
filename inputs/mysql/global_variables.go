@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tagx"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -59,12 +59,12 @@ func (m *MySQL) gatherGlobalVariables(slist *list.SafeList, ins *Instance, db *s
 				continue
 			}
 
-			slist.PushFront(inputs.NewSample("global_variables_"+key, floatVal, tags))
+			slist.PushFront(types.NewSample("global_variables_"+key, floatVal, tags))
 			continue
 		}
 	}
 
-	slist.PushFront(inputs.NewSample("version_info", 1, tags, map[string]string{
+	slist.PushFront(types.NewSample("version_info", 1, tags, map[string]string{
 		"version":         textItems["version"],
 		"innodb_version":  textItems["innodb_version"],
 		"version_comment": textItems["version_comment"],
@@ -73,14 +73,14 @@ func (m *MySQL) gatherGlobalVariables(slist *list.SafeList, ins *Instance, db *s
 	// mysql_galera_variables_info metric.
 	// PXC/Galera variables information.
 	if textItems["wsrep_cluster_name"] != "" {
-		slist.PushFront(inputs.NewSample("galera_variables_info", 1, tags, map[string]string{
+		slist.PushFront(types.NewSample("galera_variables_info", 1, tags, map[string]string{
 			"wsrep_cluster_name": textItems["wsrep_cluster_name"],
 		}))
 	}
 
 	// mysql_galera_gcache_size_bytes metric.
 	if textItems["wsrep_provider_options"] != "" {
-		slist.PushFront(inputs.NewSample("galera_gcache_size_bytes", parseWsrepProviderOptions(textItems["wsrep_provider_options"]), tags))
+		slist.PushFront(types.NewSample("galera_gcache_size_bytes", parseWsrepProviderOptions(textItems["wsrep_provider_options"]), tags))
 	}
 
 	if textItems["transaction_isolation"] != "" || textItems["tx_isolation"] != "" {
@@ -89,7 +89,7 @@ func (m *MySQL) gatherGlobalVariables(slist *list.SafeList, ins *Instance, db *s
 			level = textItems["tx_isolation"]
 		}
 
-		slist.PushFront(inputs.NewSample("transaction_isolation", 1, tags, map[string]string{"level": level}))
+		slist.PushFront(types.NewSample("transaction_isolation", 1, tags, map[string]string{"level": level}))
 	}
 }
 

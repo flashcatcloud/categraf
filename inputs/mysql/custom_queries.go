@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/pkg/tagx"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -93,10 +93,10 @@ func (m *MySQL) parseRow(row map[string]string, query QueryConfig, slist *list.S
 		}
 
 		if query.FieldToAppend == "" {
-			slist.PushFront(inputs.NewSample(query.Mesurement+"_"+column, value, labels))
+			slist.PushFront(types.NewSample(query.Mesurement+"_"+column, value, labels))
 		} else {
 			suffix := cleanName(row[query.FieldToAppend])
-			slist.PushFront(inputs.NewSample(query.Mesurement+"_"+suffix+"_"+column, value, labels))
+			slist.PushFront(types.NewSample(query.Mesurement+"_"+suffix+"_"+column, value, labels))
 		}
 	}
 

@@ -9,6 +9,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -63,16 +64,16 @@ func (s *GPUStats) Gather(slist *list.SafeList) {
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(inputs.NewSample("scrape_use_seconds", use))
+		slist.PushFront(types.NewSample("scrape_use_seconds", use))
 	}(begun)
 
 	currentTable, err := scrape(s.qFields, s.NvidiaSmiCommand)
 	if err != nil {
-		slist.PushFront(inputs.NewSample("scraper_up", 0))
+		slist.PushFront(types.NewSample("scraper_up", 0))
 		return
 	}
 
-	slist.PushFront(inputs.NewSample("scraper_up", 1))
+	slist.PushFront(types.NewSample("scraper_up", 1))
 
 	for _, currentRow := range currentTable.rows {
 		uuid := strings.TrimPrefix(strings.ToLower(currentRow.qFieldToCells[uuidQField].rawValue), "gpu-")
@@ -82,7 +83,7 @@ func (s *GPUStats) Gather(slist *list.SafeList) {
 		vBiosVersion := currentRow.qFieldToCells[vBiosVersionQField].rawValue
 		driverVersion := currentRow.qFieldToCells[driverVersionQField].rawValue
 
-		slist.PushFront(inputs.NewSample("gpu_info", 1, map[string]string{
+		slist.PushFront(types.NewSample("gpu_info", 1, map[string]string{
 			"uuid":                 uuid,
 			"name":                 name,
 			"driver_model_current": driverModelCurrent,
@@ -102,7 +103,7 @@ func (s *GPUStats) Gather(slist *list.SafeList) {
 				continue
 			}
 
-			slist.PushFront(inputs.NewSample(metricInfo.metricName, num, map[string]string{"uuid": uuid}))
+			slist.PushFront(types.NewSample(metricInfo.metricName, num, map[string]string{"uuid": uuid}))
 		}
 	}
 }

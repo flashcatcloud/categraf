@@ -247,7 +247,7 @@ func (ins *Instance) gather(slist *list.SafeList, target string) {
 			"fall":        server.Fall,
 		}
 
-		inputs.PushSamples(slist, fields, tags, labels)
+		types.PushSamples(slist, fields, tags, labels)
 	}
 }
 

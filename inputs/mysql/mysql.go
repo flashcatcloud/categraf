@@ -215,12 +215,12 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(inputs.NewSample("scrape_use_seconds", use, tags))
+		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags))
 	}(begun)
 
 	db, err := sql.Open("mysql", ins.dsn)
 	if err != nil {
-		slist.PushFront(inputs.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample("up", 0, tags))
 		log.Println("E! failed to open mysql:", err)
 		return
 	}
@@ -232,12 +232,12 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 	db.SetConnMaxLifetime(time.Minute)
 
 	if err = db.Ping(); err != nil {
-		slist.PushFront(inputs.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample("up", 0, tags))
 		log.Println("E! failed to ping mysql:", err)
 		return
 	}
 
-	slist.PushFront(inputs.NewSample("up", 1, tags))
+	slist.PushFront(types.NewSample("up", 1, tags))
 
 	cache := make(map[string]float64)
 
