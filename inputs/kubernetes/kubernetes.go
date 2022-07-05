@@ -187,8 +187,8 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 				tags := map[string]string{
 					"node_name":      summaryMetrics.Node.NodeName,
 					"namespace":      pod.PodRef.Namespace,
-					"container_name": container.Name,
-					"pod_name":       pod.PodRef.Name,
+					"container":      container.Name,
+					"pod":            pod.PodRef.Name,
 				}
 				for k, v := range podLabels {
 					tags[k] = v
@@ -215,7 +215,7 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 			for _, volume := range pod.Volumes {
 				tags := map[string]string{
 					"node_name":   summaryMetrics.Node.NodeName,
-					"pod_name":    pod.PodRef.Name,
+					"pod":         pod.PodRef.Name,
 					"namespace":   pod.PodRef.Namespace,
 					"volume_name": volume.Name,
 				}
@@ -233,7 +233,7 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 		if ins.GatherPodNetworkMetrics {
 			tags := map[string]string{
 				"node_name": summaryMetrics.Node.NodeName,
-				"pod_name":  pod.PodRef.Name,
+				"pod":       pod.PodRef.Name,
 				"namespace": pod.PodRef.Namespace,
 			}
 			for k, v := range podLabels {
@@ -253,7 +253,7 @@ func (ins *Instance) buildSystemContainerMetrics(summaryMetrics *SummaryMetrics,
 	for _, container := range summaryMetrics.Node.SystemContainers {
 		tags := map[string]string{
 			"node_name":      summaryMetrics.Node.NodeName,
-			"container_name": container.Name,
+			"container":      container.Name,
 		}
 
 		fields := make(map[string]interface{})
