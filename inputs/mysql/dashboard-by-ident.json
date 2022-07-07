@@ -28,16 +28,20 @@
             {
                 "targets": [
                     {
-                        "expr": "mysql_global_status_uptime{ident=~\"$ident\"}/3600/24"
+                        "expr": "mysql_global_status_uptime{ident=~\"$ident\"}/3600/24",
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
                 "name": "MySQL Uptime Days",
                 "custom": {
-                    "textMode": "value",
+                    "textMode": "valueAndName",
                     "colorMode": "value",
                     "calc": "lastNotNull",
                     "colSpan": 1,
-                    "textSize": {}
+                    "textSize": {
+                        "title": 12,
+                        "value": 24
+                    }
                 },
                 "options": {
                     "valueMappings": [
@@ -69,7 +73,7 @@
                 "type": "stat",
                 "layout": {
                     "h": 3,
-                    "w": 4,
+                    "w": 12,
                     "x": 0,
                     "y": 1,
                     "i": "74a5cd8c-f870-442d-bda6-48b5ce4e87ea",
@@ -80,17 +84,21 @@
             {
                 "targets": [
                     {
-                        "expr": "rate(mysql_global_status_queries{ident=~\"$ident\"}[5m])"
+                        "expr": "rate(mysql_global_status_queries{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
                 "name": "Current QPS",
                 "description": "mysql_global_status_queries",
                 "custom": {
-                    "textMode": "value",
+                    "textMode": "valueAndName",
                     "colorMode": "value",
                     "calc": "lastNotNull",
                     "colSpan": 1,
-                    "textSize": {}
+                    "textSize": {
+                        "title": 12,
+                        "value": 24
+                    }
                 },
                 "options": {
                     "valueMappings": [
@@ -121,8 +129,8 @@
                 "type": "stat",
                 "layout": {
                     "h": 3,
-                    "w": 4,
-                    "x": 4,
+                    "w": 12,
+                    "x": 12,
                     "y": 1,
                     "i": "1763bcc6-d058-4a2b-a099-3d590debd01a",
                     "isResizable": true
@@ -132,17 +140,21 @@
             {
                 "targets": [
                     {
-                        "expr": "mysql_global_variables_innodb_buffer_pool_size{ident=~\"$ident\"}"
+                        "expr": "mysql_global_variables_innodb_buffer_pool_size{ident=~\"$ident\"}",
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
                 "name": "InnoDB Buffer Pool",
                 "description": "**InnoDB Buffer Pool Size**\n\nInnoDB maintains a storage area called the buffer pool for caching data and indexes in memory.  Knowing how the InnoDB buffer pool works, and taking advantage of it to keep frequently accessed data in memory, is one of the most important aspects of MySQL tuning. The goal is to keep the working set in memory. In most cases, this should be between 60%-90% of available memory on a dedicated database host, but depends on many factors.",
                 "custom": {
-                    "textMode": "value",
+                    "textMode": "valueAndName",
                     "colorMode": "value",
                     "calc": "lastNotNull",
                     "colSpan": 1,
-                    "textSize": {}
+                    "textSize": {
+                        "title": 12,
+                        "value": 24
+                    }
                 },
                 "options": {
                     "standardOptions": {
@@ -153,9 +165,9 @@
                 "type": "stat",
                 "layout": {
                     "h": 3,
-                    "w": 4,
-                    "x": 8,
-                    "y": 1,
+                    "w": 12,
+                    "x": 0,
+                    "y": 4,
                     "i": "28d16171-9e36-4f5d-87be-95bcb2aeb643",
                     "isResizable": true
                 },
@@ -164,17 +176,21 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(increase(mysql_global_status_table_locks_waited{ident=~\"$ident\"}[5m]))"
+                        "expr": "increase(mysql_global_status_table_locks_waited{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
                 "name": "Table Locks Waited(5min)",
                 "description": "**Table Locks**\n\nMySQL takes a number of different locks for varying reasons. In this graph we see how many Table level locks MySQL has requested from the storage engine. In the case of InnoDB, many times the locks could actually be row locks as it only takes table level locks in a few specific cases.\n\nIt is most useful to compare Locks Immediate and Locks Waited. If Locks waited is rising, it means you have lock contention. Otherwise, Locks Immediate rising and falling is normal activity.",
                 "custom": {
-                    "textMode": "value",
+                    "textMode": "valueAndName",
                     "colorMode": "value",
                     "calc": "lastNotNull",
                     "colSpan": 1,
-                    "textSize": {}
+                    "textSize": {
+                        "title": 12,
+                        "value": 24
+                    }
                 },
                 "options": {
                     "valueMappings": [
@@ -203,9 +219,9 @@
                 "type": "stat",
                 "layout": {
                     "h": 3,
-                    "w": 4,
+                    "w": 6,
                     "x": 12,
-                    "y": 1,
+                    "y": 4,
                     "i": "5fe39015-bf33-4f02-b79e-a8977e56d7ca",
                     "isResizable": true
                 },
@@ -215,7 +231,8 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mysql_slave_status_seconds_behind_master{ident=~\"$ident\"} - mysql_slave_status_sql_delay{ident=~\"$ident\"}"
+                        "expr": "mysql_slave_status_seconds_behind_master{ident=~\"$ident\"} - mysql_slave_status_sql_delay{ident=~\"$ident\"}",
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
                 "name": "Slave Replication Lag",
@@ -240,9 +257,9 @@
                 "type": "timeseries",
                 "layout": {
                     "h": 3,
-                    "w": 8,
-                    "x": 16,
-                    "y": 1,
+                    "w": 6,
+                    "x": 18,
+                    "y": 4,
                     "i": "70ee692b-24d9-4807-81b4-81582b5526c2",
                     "isResizable": true
                 },
@@ -256,7 +273,7 @@
                     "h": 1,
                     "w": 24,
                     "x": 0,
-                    "y": 4,
+                    "y": 7,
                     "i": "c6da1a55-04d2-4e3e-a22f-e5790182da4a",
                     "isResizable": false
                 },
@@ -267,7 +284,7 @@
                 "targets": [
                     {
                         "expr": "mysql_global_status_threads_connected{ident=~\"$ident\"}",
-                        "legend": "{{address}} Connections"
+                        "legend": "{{ident}} {{address}} Connections"
                     }
                 ],
                 "name": "MySQL Connections",
@@ -295,7 +312,7 @@
                     "h": 5,
                     "w": 6,
                     "x": 0,
-                    "y": 5,
+                    "y": 8,
                     "i": "458753cc-a6d0-4afc-bf5e-54585dc5990c",
                     "isResizable": true
                 },
@@ -305,7 +322,7 @@
                 "targets": [
                     {
                         "expr": "mysql_global_status_threads_connected{ident=~\"$ident\"}/mysql_global_variables_max_connections{ident=~\"$ident\"}",
-                        "legend": "{{address}}"
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
                 "name": "MySQL Connections Used Percent",
@@ -333,7 +350,7 @@
                     "h": 5,
                     "w": 6,
                     "x": 6,
-                    "y": 5,
+                    "y": 8,
                     "i": "13bf0230-db47-4338-9b32-8e15af8915e4",
                     "isResizable": true
                 },
@@ -343,7 +360,7 @@
                 "targets": [
                     {
                         "expr": "mysql_global_status_threads_running{ident=~\"$ident\"}",
-                        "legend": "{{address}} Threads Running"
+                        "legend": "{{ident}} {{address}} Threads Running"
                     }
                 ],
                 "name": "MySQL Client Thread Running",
@@ -371,7 +388,7 @@
                     "h": 5,
                     "w": 6,
                     "x": 12,
-                    "y": 5,
+                    "y": 8,
                     "i": "f18e13bf-5495-492f-95c5-4a590e38c58e",
                     "isResizable": true
                 },
@@ -381,11 +398,11 @@
                 "targets": [
                     {
                         "expr": "mysql_global_status_max_used_connections{ident=~\"$ident\"}",
-                        "legend": "{{address}} Max Used Connections"
+                        "legend": "{{ident}} {{address}} Max Used Connections"
                     },
                     {
                         "expr": "rate(mysql_global_status_aborted_connects{ident=~\"$ident\"}[5m])",
-                        "legend": "{{address}} Aborted Connections"
+                        "legend": "{{ident}} {{address}} Aborted Connections"
                     }
                 ],
                 "name": "Max Used and Aborted Connections",
@@ -413,7 +430,7 @@
                     "h": 5,
                     "w": 6,
                     "x": 18,
-                    "y": 5,
+                    "y": 8,
                     "i": "34bd296e-bea3-4638-9a35-f97121e804b2",
                     "isResizable": true
                 },
@@ -427,7 +444,7 @@
                     "h": 1,
                     "w": 24,
                     "x": 0,
-                    "y": 10,
+                    "y": 13,
                     "i": "462559f7-06d3-4585-9ad3-a0906e7c362d",
                     "isResizable": false
                 },
@@ -437,16 +454,16 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(rate(mysql_global_status_created_tmp_tables{ident=~\"$ident\"}[5m]))",
-                        "legend": "Created Tmp Tables"
+                        "expr": "rate(mysql_global_status_created_tmp_tables{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Created Tmp Tables"
                     },
                     {
-                        "expr": "sum(rate(mysql_global_status_created_tmp_disk_tables{ident=~\"$ident\"}[5m]))",
-                        "legend": "Created Tmp Disk Tables"
+                        "expr": "rate(mysql_global_status_created_tmp_disk_tables{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Created Tmp Disk Tables"
                     },
                     {
-                        "expr": "sum(rate(mysql_global_status_created_tmp_files{ident=~\"$ident\"}[5m]))",
-                        "legend": "Created Tmp Files"
+                        "expr": "rate(mysql_global_status_created_tmp_files{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Created Tmp Files"
                     }
                 ],
                 "name": "MySQL Temporary Objects",
@@ -473,7 +490,7 @@
                     "h": 4,
                     "w": 12,
                     "x": 0,
-                    "y": 11,
+                    "y": 14,
                     "i": "0428fde5-3fbf-45dd-b1a9-1a498d6c2de4",
                     "isResizable": true
                 },
@@ -482,24 +499,24 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(rate(mysql_global_status_select_full_join{ ident=~\"$ident\"}[5m]))",
-                        "legend": "Select Full Join"
+                        "expr": "rate(mysql_global_status_select_full_join{ ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Select Full Join"
                     },
                     {
-                        "expr": "sum(rate(mysql_global_status_select_full_range_join{ ident=~\"$ident\"}[5m]))",
-                        "legend": "Select Full Range Join"
+                        "expr": "rate(mysql_global_status_select_full_range_join{ ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Select Full Range Join"
                     },
                     {
-                        "expr": "sum(rate(mysql_global_status_select_range{ ident=~\"$ident\"}[5m]))",
-                        "legend": "Select Range"
+                        "expr": "rate(mysql_global_status_select_range{ ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Select Range"
                     },
                     {
-                        "expr": "sum(rate(mysql_global_status_select_range_check{ ident=~\"$ident\"}[5m]))",
-                        "legend": "Select Range Check"
+                        "expr": "rate(mysql_global_status_select_range_check{ ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Select Range Check"
                     },
                     {
-                        "expr": "sum(rate(mysql_global_status_select_scan{ ident=~\"$ident\"}[5m]))",
-                        "legend": "Select Scan"
+                        "expr": "rate(mysql_global_status_select_scan{ ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Select Scan"
                     }
                 ],
                 "name": "MySQL Select Types",
@@ -517,9 +534,9 @@
                 },
                 "custom": {
                     "drawStyle": "lines",
-                    "stack": "off",
                     "lineInterpolation": "smooth",
-                    "fillOpacity": 0.41
+                    "fillOpacity": 0.41,
+                    "stack": "off"
                 },
                 "version": "2.0.0",
                 "type": "timeseries",
@@ -527,7 +544,7 @@
                     "h": 4,
                     "w": 12,
                     "x": 12,
-                    "y": 11,
+                    "y": 14,
                     "i": "7333267f-e76e-495a-b3d8-08b100ab1330",
                     "isResizable": true
                 },
@@ -536,20 +553,20 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(rate(mysql_global_status_sort_rows{ident=~\"$ident\"}[5m]))",
-                        "legend": "Sort Rows"
+                        "expr": "rate(mysql_global_status_sort_rows{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Sort Rows"
                     },
                     {
-                        "expr": "sum(rate(mysql_global_status_sort_range{ident=~\"$ident\"}[5m]))",
-                        "legend": "Sort Range"
+                        "expr": "rate(mysql_global_status_sort_range{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Sort Range"
                     },
                     {
-                        "expr": "sum(rate(mysql_global_status_sort_merge_passes{ident=~\"$ident\"}[5m]))",
-                        "legend": "Sort Merge Passes"
+                        "expr": "rate(mysql_global_status_sort_merge_passes{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Sort Merge Passes"
                     },
                     {
-                        "expr": "sum(rate(mysql_global_status_sort_scan{ident=~\"$ident\"}[5m]))",
-                        "legend": "Sort Scan"
+                        "expr": "rate(mysql_global_status_sort_scan{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Sort Scan"
                     }
                 ],
                 "name": "MySQL Sorts",
@@ -577,7 +594,7 @@
                     "h": 4,
                     "w": 12,
                     "x": 0,
-                    "y": 15,
+                    "y": 18,
                     "i": "033652d8-8918-4eee-80bd-625cb0cf8d05",
                     "isResizable": true
                 },
@@ -586,8 +603,8 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(rate(mysql_global_status_slow_queries{ident=~\"$ident\"}[5m]))",
-                        "legend": "Slow Queries"
+                        "expr": "rate(mysql_global_status_slow_queries{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Slow Queries"
                     }
                 ],
                 "name": "MySQL Slow Queries",
@@ -605,8 +622,8 @@
                 },
                 "custom": {
                     "drawStyle": "bars",
-                    "stack": "off",
-                    "fillOpacity": 0.81
+                    "fillOpacity": 0.81,
+                    "stack": "off"
                 },
                 "version": "2.0.0",
                 "type": "timeseries",
@@ -614,7 +631,7 @@
                     "h": 4,
                     "w": 12,
                     "x": 12,
-                    "y": 15,
+                    "y": 18,
                     "i": "08c7c660-5dbb-4fce-9037-3680b9e807d6",
                     "isResizable": true
                 },
@@ -628,7 +645,7 @@
                     "h": 1,
                     "w": 24,
                     "x": 0,
-                    "y": 19,
+                    "y": 22,
                     "i": "6f36134c-8dd7-4cfb-8a55-7b18ecce2cd6",
                     "isResizable": false
                 },
@@ -638,12 +655,12 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(rate(mysql_global_status_bytes_received{ident=~\"$ident\"}[5m]))",
-                        "legend": "Inbound"
+                        "expr": "rate(mysql_global_status_bytes_received{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Inbound"
                     },
                     {
-                        "expr": "sum(rate(mysql_global_status_bytes_sent{ident=~\"$ident\"}[5m]))",
-                        "legend": "Outbound"
+                        "expr": "rate(mysql_global_status_bytes_sent{ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}} {{address}} Outbound"
                     }
                 ],
                 "name": "MySQL Network Traffic",
@@ -657,8 +674,8 @@
                         "displayMode": "hidden"
                     },
                     "standardOptions": {
-                        "util": "bytesSI",
-                        "decimals": 2
+                        "util": "bytesIEC",
+                        "decimals": 1
                     },
                     "thresholds": {}
                 },
@@ -674,7 +691,7 @@
                     "h": 4,
                     "w": 24,
                     "x": 0,
-                    "y": 20,
+                    "y": 23,
                     "i": "6d50c653-a256-461d-80f1-69e3db613dbc",
                     "isResizable": true
                 },
@@ -688,7 +705,7 @@
                     "h": 1,
                     "w": 24,
                     "x": 0,
-                    "y": 24,
+                    "y": 27,
                     "i": "73cbe32a-36cd-488e-a818-23bb1857d6e7",
                     "isResizable": false
                 },
@@ -699,7 +716,7 @@
                 "targets": [
                     {
                         "expr": "topk(10, rate(mysql_global_status_commands_total{ident=~\"$ident\"}[5m])>0)",
-                        "legend": "{{command}}"
+                        "legend": "{{ident}} {{address}} {{command}}"
                     }
                 ],
                 "name": "Top Command Counters",
@@ -729,7 +746,7 @@
                     "h": 4,
                     "w": 6,
                     "x": 0,
-                    "y": 25,
+                    "y": 28,
                     "i": "ffa708e1-2132-4dca-9cda-2dd73fad16da",
                     "isResizable": true
                 },
@@ -739,7 +756,7 @@
                 "targets": [
                     {
                         "expr": "rate(mysql_global_status_commands_total{ident=~\"$ident\", command=\"select\"}[1m])",
-                        "legend": "{{address}}"
+                        "legend": "{{ident}} {{address}} "
                     }
                 ],
                 "name": "Select per second",
@@ -769,7 +786,7 @@
                     "h": 4,
                     "w": 6,
                     "x": 6,
-                    "y": 25,
+                    "y": 28,
                     "i": "ad5d900a-3e60-436a-b8a6-eccc9ba117d4",
                     "isResizable": true
                 },
@@ -778,8 +795,8 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(rate(mysql_global_status_commands_total{ident=~\"$ident\", command=~\"insert|update|delete\"}[1m])) by (address)",
-                        "legend": "{{address}}"
+                        "expr": "rate(mysql_global_status_commands_total{ident=~\"$ident\", command=~\"insert|update|delete\"}[1m])",
+                        "legend": "{{ident}} {{address}} {{command}}"
                     }
                 ],
                 "name": "Write(insert|update|delete) per second",
@@ -801,7 +818,7 @@
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
                     "fillOpacity": 0.2,
-                    "stack": "off"
+                    "stack": "noraml"
                 },
                 "version": "2.0.0",
                 "type": "timeseries",
@@ -809,7 +826,7 @@
                     "h": 4,
                     "w": 6,
                     "x": 12,
-                    "y": 25,
+                    "y": 28,
                     "i": "10a3834f-5074-4a0a-9013-03c42a78e2c5",
                     "isResizable": true
                 },
@@ -818,8 +835,8 @@
             {
                 "targets": [
                     {
-                        "expr": "sum(rate(mysql_global_status_commands_total{ident=~\"$ident\", command=~\"commit|rollback\"}[1d])) by (address)",
-                        "legend": "{{address}}"
+                        "expr": "rate(mysql_global_status_commands_total{ident=~\"$ident\", command=~\"commit|rollback\"}[1d])",
+                        "legend": "{{ident}} {{address}} {{command}}"
                     }
                 ],
                 "name": "TPS(commit|rollback)",
@@ -841,7 +858,7 @@
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
                     "fillOpacity": 0.2,
-                    "stack": "off"
+                    "stack": "noraml"
                 },
                 "version": "2.0.0",
                 "type": "timeseries",
@@ -849,7 +866,7 @@
                     "h": 4,
                     "w": 6,
                     "x": 18,
-                    "y": 25,
+                    "y": 28,
                     "i": "64603263-1433-4041-9078-65ca95e09932",
                     "isResizable": true
                 },
@@ -859,7 +876,7 @@
                 "targets": [
                     {
                         "expr": "rate(mysql_global_status_handlers_total{ident=~\"$ident\", handler!~\"commit|rollback|savepoint.*|prepare\"}[5m])",
-                        "legend": "{{handler}}"
+                        "legend": "{{ident}} {{address}} {{handler}}"
                     }
                 ],
                 "name": "MySQL Handlers",
@@ -889,7 +906,7 @@
                     "h": 4,
                     "w": 12,
                     "x": 0,
-                    "y": 29,
+                    "y": 32,
                     "i": "d9623f6a-64f4-4520-b7b5-01abfc76144d",
                     "isResizable": true
                 },
@@ -899,7 +916,7 @@
                 "targets": [
                     {
                         "expr": "rate(mysql_global_status_handlers_total{ident=~\"$ident\", handler=~\"commit|rollback|savepoint.*|prepare\"}[5m])",
-                        "legend": "{{handler}}"
+                        "legend": "{{ident}} {{address}} {{handler}}"
                     }
                 ],
                 "name": "MySQL Transaction Handlers",
@@ -926,7 +943,7 @@
                     "h": 4,
                     "w": 12,
                     "x": 12,
-                    "y": 29,
+                    "y": 32,
                     "i": "3a5ad3a4-5877-46e6-bb3d-bd71174c693e",
                     "isResizable": true
                 },
@@ -940,7 +957,7 @@
                     "h": 1,
                     "w": 24,
                     "x": 0,
-                    "y": 33,
+                    "y": 36,
                     "i": "4595a676-3d0e-4746-a881-260505002f64",
                     "isResizable": false
                 },
@@ -951,11 +968,11 @@
                 "targets": [
                     {
                         "expr": "mysql_global_variables_open_files_limit{ident=~\"$ident\"}",
-                        "legend": "Open Files Limit"
+                        "legend": "{{ident}} {{address}} Open Files Limit"
                     },
                     {
                         "expr": "mysql_global_status_open_files{ident=~\"$ident\"}",
-                        "legend": "Open Files"
+                        "legend": "{{ident}} {{address}} Open Files"
                     }
                 ],
                 "name": "MySQL Open Files",
@@ -982,7 +999,7 @@
                     "h": 4,
                     "w": 24,
                     "x": 0,
-                    "y": 34,
+                    "y": 37,
                     "i": "ac66ac2b-e48b-4ba7-95e5-4846d616449a",
                     "isResizable": true
                 },
@@ -996,7 +1013,7 @@
                     "h": 1,
                     "w": 24,
                     "x": 0,
-                    "y": 38,
+                    "y": 41,
                     "i": "ddf0e641-3ef6-4be2-a90c-d013eb8a6c30",
                     "isResizable": false
                 },
@@ -1007,7 +1024,7 @@
                 "targets": [
                     {
                         "expr": "rate(mysql_global_status_table_open_cache_hits{ident=~\"$ident\"}[5m])\n/\n(\nrate(mysql_global_status_table_open_cache_hits{ident=~\"$ident\"}[5m])\n+\nrate(mysql_global_status_table_open_cache_misses{ident=~\"$ident\"}[5m])\n)",
-                        "legend": "Table Open Cache Hit Ratio"
+                        "legend": "{{ident}} {{address}} Table Open Cache Hit Ratio"
                     }
                 ],
                 "name": "Table Open Cache Hit Ratio  Mysql 5.6.6+",
@@ -1037,7 +1054,7 @@
                     "h": 4,
                     "w": 12,
                     "x": 0,
-                    "y": 39,
+                    "y": 42,
                     "i": "c215348c-ecdf-4480-8371-bc6a8d72da10",
                     "isResizable": true
                 },
@@ -1047,11 +1064,11 @@
                 "targets": [
                     {
                         "expr": "mysql_global_status_open_tables{ident=~\"$ident\"}",
-                        "legend": "Open Tables"
+                        "legend": "{{ident}} {{address}} Open Tables"
                     },
                     {
                         "expr": "mysql_global_variables_table_open_cache{ident=~\"$ident\"}",
-                        "legend": "Table Open Cache"
+                        "legend": "{{ident}} {{address}} Table Open Cache"
                     }
                 ],
                 "name": "MySQL Open Tables",
@@ -1079,7 +1096,7 @@
                     "h": 4,
                     "w": 12,
                     "x": 12,
-                    "y": 39,
+                    "y": 42,
                     "i": "a8fde020-a904-4eaf-84e3-7dbc9f4febf5",
                     "isResizable": true
                 },
@@ -1094,7 +1111,7 @@
                     "h": 1,
                     "w": 24,
                     "x": 0,
-                    "y": 43,
+                    "y": 46,
                     "i": "d70df2e3-bd10-4072-a027-0cc83235e972",
                     "isResizable": false
                 },
@@ -1105,10 +1122,10 @@
                     {
                         "refId": "A",
                         "expr": "rate(mysql_global_status_innodb_buffer_pool_read_requests{ident=~\"$ident\"}[1m])",
-                        "legend": "{{address}}"
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
-                "name": "Read requests per second",
+                "name": "Read requests / second",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -1132,7 +1149,7 @@
                     "h": 4,
                     "w": 6,
                     "x": 0,
-                    "y": 44,
+                    "y": 47,
                     "i": "2bce3a5c-1ec3-4789-9ce5-897a3e40de30",
                     "isResizable": true
                 },
@@ -1143,10 +1160,10 @@
                     {
                         "refId": "A",
                         "expr": "rate(mysql_global_status_innodb_buffer_pool_reads{ident=~\"$ident\"}[1m])",
-                        "legend": "{{address}}"
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
-                "name": "Reads from disk per second",
+                "name": "Reads from disk / second",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -1170,7 +1187,7 @@
                     "h": 4,
                     "w": 6,
                     "x": 6,
-                    "y": 44,
+                    "y": 47,
                     "i": "ab9b8335-2e25-40f6-9402-cd673dc7ae4e",
                     "isResizable": true
                 },
@@ -1181,7 +1198,7 @@
                     {
                         "refId": "A",
                         "expr": "100 - increase(mysql_global_status_innodb_buffer_pool_reads{ident=~\"$ident\"}[5m])/increase(mysql_global_status_innodb_buffer_pool_read_requests{ident=~\"$ident\"}[5m]) * 100",
-                        "legend": "{{address}}"
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
                 "name": "Reads from memory percent",
@@ -1208,7 +1225,7 @@
                     "h": 4,
                     "w": 12,
                     "x": 12,
-                    "y": 44,
+                    "y": 47,
                     "i": "763c8183-4315-474c-991e-f3ec78699b4e",
                     "isResizable": true
                 },
@@ -1219,10 +1236,10 @@
                     {
                         "refId": "A",
                         "expr": "rate(mysql_global_status_innodb_row_lock_waits{ident=~\"$ident\"}[1m])",
-                        "legend": "{{address}}"
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
-                "name": "Row lock waits",
+                "name": "Row lock waits / second",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -1246,7 +1263,7 @@
                     "h": 4,
                     "w": 6,
                     "x": 0,
-                    "y": 48,
+                    "y": 51,
                     "i": "25e1fc62-9e94-4a39-9fc3-2a174777f93b",
                     "isResizable": true
                 },
@@ -1257,7 +1274,7 @@
                     {
                         "refId": "A",
                         "expr": "rate(mysql_global_status_innodb_row_lock_time{ident=~\"$ident\"}[1m])",
-                        "legend": "{{address}}"
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
                 "name": "Row lock time / second",
@@ -1284,7 +1301,7 @@
                     "h": 4,
                     "w": 6,
                     "x": 6,
-                    "y": 48,
+                    "y": 51,
                     "i": "37679c80-588d-45e3-b2ac-3e0dad4be32a",
                     "isResizable": true
                 },
@@ -1295,7 +1312,7 @@
                     {
                         "refId": "A",
                         "expr": "rate(mysql_global_status_innodb_os_log_fsyncs{ident=~\"$ident\"}[1m])",
-                        "legend": "{{address}}"
+                        "legend": "{{ident}} {{address}}"
                     }
                 ],
                 "name": "Log fsyncs / second",
@@ -1322,7 +1339,7 @@
                     "h": 4,
                     "w": 12,
                     "x": 12,
-                    "y": 48,
+                    "y": 51,
                     "i": "33c8d0e1-03a3-4a3f-8b20-7b5b6373bdb0",
                     "isResizable": true
                 },
