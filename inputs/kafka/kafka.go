@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -67,7 +66,7 @@ func (r *Kafka) Drop() {
 
 func (r *Kafka) Gather(slist *list.SafeList) {
 	for i := range r.Instances {
-		counter := atomic.AddUint64(&r.counters[i], 1)
+		r.counters[i] += 1
 		ins := r.Instances[i]
 
 		r.waitgrp.Add(1)
@@ -81,7 +80,7 @@ func (r *Kafka) Gather(slist *list.SafeList) {
 			}
 
 			ins.gatherOnce(slist)
-		}(slist, ins, counter)
+		}(slist, ins, r.counters[i])
 	}
 
 	r.waitgrp.Wait()
