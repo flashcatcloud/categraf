@@ -52,6 +52,12 @@ func (r *InputReader) startInput() {
 	if r.input.GetInterval() > 0 {
 		interval = time.Duration(r.input.GetInterval())
 	}
+
+	// get output quickly
+	if config.Config.TestMode {
+		interval = time.Second * 3
+	}
+
 	for {
 		select {
 		case <-r.quitChan:
