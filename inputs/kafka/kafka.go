@@ -23,8 +23,9 @@ const inputName = "kafka"
 
 type Kafka struct {
 	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
+	waitgrp sync.WaitGroup
+
+	counters  []uint64
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -42,7 +43,7 @@ func (r *Kafka) Init() error {
 	if len(r.Instances) == 0 {
 		return types.ErrInstancesEmpty
 	}
-
+	r.counters = make([]uint64, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {
 		if err := r.Instances[i].Init(); err != nil {
 			return err
@@ -65,24 +66,22 @@ func (r *Kafka) Drop() {
 }
 
 func (r *Kafka) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&r.counter, 1)
-
 	for i := range r.Instances {
+		counter := atomic.AddUint64(&r.counters[i], 1)
 		ins := r.Instances[i]
 
 		r.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
+		go func(slist *list.SafeList, ins *Instance, counter uint64) {
 			defer r.waitgrp.Done()
 
 			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&r.counter)
 				if counter%uint64(ins.IntervalTimes) != 0 {
 					return
 				}
 			}
 
 			ins.gatherOnce(slist)
-		}(slist, ins)
+		}(slist, ins, counter)
 	}
 
 	r.waitgrp.Wait()
@@ -211,7 +210,7 @@ func (ins *Instance) Init() error {
 		UseSASL:                  ins.UseSASL,
 		UseSASLHandshake:         *ins.UseSASLHandshake,
 		SaslUsername:             ins.SASLUsername,
-		SaslPassword:             string(ins.SASLPassword),
+		SaslPassword:             ins.SASLPassword,
 		SaslMechanism:            ins.SASLMechanism,
 		UseTLS:                   ins.UseTLS,
 		TlsCAFile:                ins.CAFile,
