@@ -74,7 +74,7 @@ func (r *InputReader) gatherOnce() {
 	defer func() {
 		if r := recover(); r != nil {
 			if strings.Contains(fmt.Sprint(r), "closed channel") {
-				return
+				log.Println("E! gather metrics panic:", r)
 			} else {
 				log.Println("E! gather metrics panic:", r, string(runtimex.Stack(3)))
 			}
