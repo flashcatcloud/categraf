@@ -2,7 +2,6 @@ package writer
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"sort"
@@ -73,8 +72,6 @@ func PostSeries(samples []*types.Sample) {
 }
 
 func printTestMetrics(samples []*types.Sample) {
-	log.Println(">> count:", len(samples))
-
 	for i := 0; i < len(samples); i++ {
 		var sb strings.Builder
 
