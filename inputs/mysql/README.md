@@ -30,7 +30,7 @@ gather_processlist_processes_by_state = false
 gather_processlist_processes_by_user = false
 
 # 监控各个数据库的磁盘占用大小
-gather_schema_size = true
+gather_schema_size = false
 
 # 监控所有的table的磁盘占用大小
 gather_table_size = false
