@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -33,21 +32,20 @@ func NewInputReader(in inputs.Input) *InputReader {
 	}
 }
 
-func (r *InputReader) Start() {
+func (r *InputReader) Start(inputName string) {
 	// start consumer goroutines
-	go r.read()
+	go r.read(inputName)
 
 	// start collector instance
-	go r.startInput()
+	go r.startInput(inputName)
 }
 
 func (r *InputReader) Stop() {
 	r.quitChan <- struct{}{}
-	close(r.queue)
 	r.input.Drop()
 }
 
-func (r *InputReader) startInput() {
+func (r *InputReader) startInput(inputName string) {
 	interval := config.GetInterval()
 	if r.input.GetInterval() > 0 {
 		interval = time.Duration(r.input.GetInterval())
@@ -62,22 +60,30 @@ func (r *InputReader) startInput() {
 		select {
 		case <-r.quitChan:
 			close(r.quitChan)
+			close(r.queue)
 			return
 		default:
 			time.Sleep(interval)
-			r.gatherOnce()
+			var start time.Time
+			if config.Config.DebugMode {
+				start = time.Now()
+				log.Println("D!", inputName, ": before gather once")
+			}
+
+			r.gatherOnce(inputName)
+
+			if config.Config.DebugMode {
+				ms := time.Since(start).Milliseconds()
+				log.Println("D!", inputName, ": after gather once,", "duration:", ms, "ms")
+			}
 		}
 	}
 }
 
-func (r *InputReader) gatherOnce() {
+func (r *InputReader) gatherOnce(inputName string) {
 	defer func() {
 		if r := recover(); r != nil {
-			if strings.Contains(fmt.Sprint(r), "closed channel") {
-				return
-			} else {
-				log.Println("E! gather metrics panic:", r, string(runtimex.Stack(3)))
-			}
+			log.Println("E!", inputName, ": gather metrics panic:", r, string(runtimex.Stack(3)))
 		}
 	}()
 
@@ -88,12 +94,17 @@ func (r *InputReader) gatherOnce() {
 	// handle result
 	samples := slist.PopBackAll()
 
-	if len(samples) == 0 {
+	size := len(samples)
+	if size == 0 {
 		return
 	}
 
+	if config.Config.DebugMode {
+		log.Println("D!", inputName, ": gathered samples size:", size)
+	}
+
 	now := time.Now()
-	for i := 0; i < len(samples); i++ {
+	for i := 0; i < size; i++ {
 		if samples[i] == nil {
 			continue
 		}
@@ -139,7 +150,7 @@ func (r *InputReader) gatherOnce() {
 	}
 }
 
-func (r *InputReader) read() {
+func (r *InputReader) read(inputName string) {
 	batch := config.Config.WriterOpt.Batch
 	if batch <= 0 {
 		batch = 2000
