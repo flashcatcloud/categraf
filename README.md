@@ -59,8 +59,8 @@ nohup ./categraf &> stdout.log &
 edit k8s/daemonset.yaml, replace NSERVER_SERVICE_WITH_PORT with service ip:port of nserver in your cluster, replace CATEGRAF_NAMESPACE with namespace value, then run:
 
 ```shell
-kubectl apply -n monitoring -f ks8/daemonset.yaml
-kubectl apply -n monitoring -f ks8/sidecar.yaml
+kubectl apply -n monitoring -f k8s/daemonset.yaml
+kubectl apply -n monitoring -f k8s/sidecar.yaml
 ```
 Notice: k8s/sidecar.yaml is a demo, replace mock with your own image.
 
