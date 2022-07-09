@@ -1,0 +1,26 @@
+[global]
+# context is enabled if you configure `input_provider = "TemplateInputProvider"`
+#input_provider = "TemplateInputProvider"
+input_provider = "DirConfigInputProvider"
+
+[context]
+
+# mysql context
+[context.mysql]
+enable = true
+
+[[context.mysql.instances]]
+address = "172.0.0.1:3306"
+username = "user"
+password = "password"
+
+# redis context
+[context.redis]
+enable = true
+
+[[context.redis.instances]]
+name = "n9e-redis"
+address = "127.0.0.1:6379"
+username = ""
+password = "n9e"
+pool_size = 2

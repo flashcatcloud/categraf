@@ -3,7 +3,9 @@ module flashcat.cloud/categraf
 go 1.18
 
 require (
+	github.com/BurntSushi/toml v1.1.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.0.15
+	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/Shopify/sarama v1.34.1
 	github.com/chai2010/winsvc v0.0.0-20200705094454-db7ec320025c
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
@@ -58,14 +60,16 @@ require (
 	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d
 	golang.org/x/text v0.3.7
 	gopkg.in/yaml.v3 v3.0.1
+	sigs.k8s.io/yaml v1.2.0
 )
 
 require (
 	cloud.google.com/go/compute v1.6.1 // indirect
 	contrib.go.opencensus.io/exporter/prometheus v0.4.1 // indirect
-	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/GehirnInc/crypt v0.0.0-20200316065508-bb7000b8a962 // indirect
 	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/aliyun/aliyun-log-go-sdk v0.1.36 // indirect
@@ -116,6 +120,8 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/serf v0.9.7 // indirect
+	github.com/huandu/xstrings v1.3.1 // indirect
+	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jaegertracing/jaeger v1.35.2 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect

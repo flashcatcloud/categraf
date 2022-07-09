@@ -2,22 +2,23 @@ package agent
 
 import (
 	"errors"
-	"fmt"
 	"log"
-	"path"
-	"strings"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/file"
 )
 
-const inputFilePrefix = "input."
-
 func (a *Agent) startMetricsAgent() error {
-	names, err := a.getInputsByDirs()
+	var ip inputs.InputProvider
+	if config.Config.Global.InputProvider == "TemplateInputProvider" {
+		log.Println("I! use TemplateInputProvider config plugins, please make sure template and context are set appropriately")
+		ip = &inputs.TemplateInputProvider{ConfigDir: config.Config.ConfigDir, ContextMap: config.Config.Context}
+	} else {
+		ip = &inputs.DirConfigInputProvider{ConfigDir: config.Config.ConfigDir}
+	}
+
+	names, err := ip.ListInputNames()
 	if err != nil {
 		return err
 	}
@@ -41,11 +42,7 @@ func (a *Agent) startMetricsAgent() error {
 			continue
 		}
 
-		// construct input instance
-		inp := creator()
-		// set configurations for input instance
-		cfg.LoadConfigs(path.Join(config.Config.ConfigDir, inputFilePrefix+name), inp)
-
+		inp := ip.GetInput(creator, name)
 		if err = inp.Init(); err != nil {
 			if !errors.Is(err, types.ErrInstancesEmpty) {
 				log.Println("E! failed to init input:", name, "error:", err)
@@ -61,28 +58,6 @@ func (a *Agent) startMetricsAgent() error {
 	}
 
 	return nil
-}
-
-// input dir should has prefix input.
-func (a *Agent) getInputsByDirs() ([]string, error) {
-	dirs, err := file.DirsUnder(config.Config.ConfigDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get dirs under %s : %v", config.Config.ConfigDir, err)
-	}
-
-	count := len(dirs)
-	if count == 0 {
-		return dirs, nil
-	}
-
-	names := make([]string, 0, count)
-	for i := 0; i < count; i++ {
-		if strings.HasPrefix(dirs[i], inputFilePrefix) {
-			names = append(names, dirs[i][len(inputFilePrefix):])
-		}
-	}
-
-	return names, nil
 }
 
 func (a *Agent) stopMetricsAgent() {

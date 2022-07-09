@@ -6,3 +6,6 @@
 docker/conf
 docker/categraf
 /build
+
+# ignore local test conf dir
+conf.local/

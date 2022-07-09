@@ -20,13 +20,14 @@ var envVarEscaper = strings.NewReplacer(
 )
 
 type Global struct {
-	PrintConfigs bool              `toml:"print_configs"`
-	Hostname     string            `toml:"hostname"`
-	IP           string            `toml:"-"`
-	OmitHostname bool              `toml:"omit_hostname"`
-	Labels       map[string]string `toml:"labels"`
-	Precision    string            `toml:"precision"`
-	Interval     Duration          `toml:"interval"`
+	PrintConfigs  bool              `toml:"print_configs"`
+	Hostname      string            `toml:"hostname"`
+	IP            string            `toml:"-"`
+	OmitHostname  bool              `toml:"omit_hostname"`
+	Labels        map[string]string `toml:"labels"`
+	Precision     string            `toml:"precision"`
+	Interval      Duration          `toml:"interval"`
+	InputProvider string            `toml:"input_provider"`
 }
 
 type WriterOpt struct {
@@ -57,6 +58,9 @@ type ConfigType struct {
 	Logs         Logs           `toml:"logs"`
 	MetricsHouse MetricsHouse   `toml:"metricshouse"`
 	Traces       *traces.Config `toml:"traces"`
+
+	// from context.toml
+	Context map[string]map[string]interface{}
 }
 
 var Config *ConfigType
