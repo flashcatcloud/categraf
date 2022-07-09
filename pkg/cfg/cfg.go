@@ -54,7 +54,6 @@ func renderConfig(content string, ctx map[string]interface{}) (io.Reader, error)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(buf.String())
 	return buf, nil
 }
 
@@ -68,17 +67,18 @@ func LoadTemplates(configDir string, ctx map[string]interface{}, configPtr inter
 	if err != nil {
 		return fmt.Errorf("failed to list files under: %s : %v", configDir, err)
 	}
-	hasTpl := false
 
+	hasTpl := false
 	for _, fpath := range files {
 		if !tplRe.MatchString(fpath) {
 			continue
 		}
+
+		hasTpl = true
 		bs, err := ioutil.ReadFile(path.Join(configDir, fpath))
 		if err != nil {
 			continue
 		}
-		hasTpl = true
 		cr, err := renderConfig(string(bs), ctx)
 		if err != nil {
 			continue
@@ -95,7 +95,7 @@ func LoadTemplates(configDir string, ctx map[string]interface{}, configPtr inter
 		}
 	}
 
-	// if no tpl provided, use context as full config
+	// if no tpl file provided, use context as full config
 	if !hasTpl {
 		loaders = append(loaders, &multiconfig.TOMLLoader{Reader: strings.NewReader("{{ . | toToml }}")})
 	}

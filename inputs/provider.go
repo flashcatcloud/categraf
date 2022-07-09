@@ -51,7 +51,7 @@ func (p *DirConfigInputProvider) GetInput(creator Creator, inputName string) Inp
 	return inp
 }
 
-// TemplateInputProvider render plugin config with template + context, which will simplify the cost of configure plugins
+// TemplateInputProvider render plugin config with template + context, which will reduce the cost of configure plugins
 type TemplateInputProvider struct {
 	ConfigDir  string
 	ContextMap map[string]map[string]interface{}
