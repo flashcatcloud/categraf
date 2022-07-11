@@ -76,7 +76,7 @@ func (o *Oracle) Init() error {
 	for i := 0; i < len(o.Instances); i++ {
 		dbConf := o.Instances[i]
 		if dbConf.Address == "" {
-			return fmt.Errorf("some oracle address is blank")
+			continue
 		}
 		connString := getConnectionString(dbConf)
 		db, err := sqlx.Open("godror", connString)
@@ -105,6 +105,9 @@ func (o *Oracle) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&o.Counter, 1)
 	for i := range o.Instances {
 		ins := o.Instances[i]
+		if ins.Address == "" {
+			continue
+		}
 		o.wg.Add(1)
 		go o.gatherOnce(slist, ins)
 	}

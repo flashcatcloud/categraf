@@ -94,6 +94,10 @@ func (z *Zookeeper) Gather(slist *list.SafeList) {
 	for i := range z.Instances {
 		ins := z.Instances[i]
 
+		if len(ins.Addresses) == 0 {
+			continue
+		}
+
 		z.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {
 			defer z.waitgrp.Done()

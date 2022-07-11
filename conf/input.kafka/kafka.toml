@@ -15,7 +15,8 @@ labels = { cluster="kafka-cluster-01" }
 log_level = "error"
 
 # Address (host:port) of Kafka server.
-kafka_uris = ["127.0.0.1:9092","127.0.0.1:9092","127.0.0.1:9092"]
+# kafka_uris = ["127.0.0.1:9092","127.0.0.1:9092","127.0.0.1:9092"]
+kafka_uris = []
 
 # Connect using SASL/PLAIN
 # Default is false

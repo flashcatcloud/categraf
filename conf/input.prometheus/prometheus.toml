@@ -2,25 +2,25 @@
 # interval = 15
 
 [[instances]]
-# urls = [
+urls = [
 #     "http://localhost:9104/metrics"
-# ]
+]
 
 url_label_key = "instance"
 url_label_value = "{{.Host}}"
 
 ## Scrape Services available in Consul Catalog
-[instances.consul]
-  enabled = false
-  agent = "http://localhost:8500"
-  query_interval = "5m"
+# [instances.consul]
+#   enabled = false
+#   agent = "http://localhost:8500"
+#   query_interval = "5m"
 
-  [[instances.consul.query]]
-    name = "a service name"
-    tag = "a service tag"
-    url = 'http://{{if ne .ServiceAddress ""}}{{.ServiceAddress}}{{else}}{{.Address}}{{end}}:{{.ServicePort}}/{{with .ServiceMeta.metrics_path}}{{.}}{{else}}metrics{{end}}'
-    [instances.consul.query.tags]
-      host = "{{.Node}}"
+#   [[instances.consul.query]]
+#     name = "a service name"
+#     tag = "a service tag"
+#     url = 'http://{{if ne .ServiceAddress ""}}{{.ServiceAddress}}{{else}}{{.Address}}{{end}}:{{.ServicePort}}/{{with .ServiceMeta.metrics_path}}{{.}}{{else}}metrics{{end}}'
+#     [instances.consul.query.tags]
+#       host = "{{.Node}}"
 
 # bearer_token_string = ""
 

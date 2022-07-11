@@ -44,6 +44,10 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
+	if ins.Address == "" {
+		return nil
+	}
+
 	redisOptions := &redis.Options{
 		Addr:     ins.Address,
 		Username: ins.Username,
@@ -107,6 +111,9 @@ func (r *Redis) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&r.Counter, 1)
 	for i := range r.Instances {
 		ins := r.Instances[i]
+		if ins.Address == "" {
+			continue
+		}
 		r.wg.Add(1)
 		go r.gatherOnce(slist, ins)
 	}

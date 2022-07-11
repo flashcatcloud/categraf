@@ -1,14 +1,14 @@
 # # collect interval
 # interval = 15
 
-# [[instances]]
+[[instances]]
 # send ping packets to
-# targets = [
+targets = [
 #     "www.baidu.com",
 #     "127.0.0.1",
 #     "10.4.5.6",
 #     "10.4.5.7"
-# ]
+]
 
 # # append some labels for series
 # labels = { region="cloud", product="n9e" }

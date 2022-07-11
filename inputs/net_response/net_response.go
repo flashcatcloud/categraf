@@ -41,7 +41,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.Targets) == 0 {
-		return errors.New("targets empty")
+		return nil
 	}
 
 	if ins.Protocol == "" {
@@ -121,6 +121,9 @@ func (n *NetResponse) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&n.Counter, 1)
 	for i := range n.Instances {
 		ins := n.Instances[i]
+		if len(ins.Targets) == 0 {
+			continue
+		}
 		n.wg.Add(1)
 		go n.gatherOnce(slist, ins)
 	}

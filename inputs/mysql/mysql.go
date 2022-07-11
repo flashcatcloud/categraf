@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -55,7 +54,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.Address == "" {
-		return errors.New("address is blank")
+		return nil
 	}
 
 	if ins.UseTLS {
@@ -189,6 +188,9 @@ func (m *MySQL) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&m.Counter, 1)
 	for i := range m.Instances {
 		ins := m.Instances[i]
+		if len(ins.Address) == 0 {
+			continue
+		}
 		m.wg.Add(1)
 		go m.gatherOnce(slist, ins)
 	}
