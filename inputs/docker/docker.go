@@ -65,10 +65,19 @@ func (d *Docker) Init() error {
 		return itypes.ErrInstancesEmpty
 	}
 
+	insEmpty := true
+
 	for i := 0; i < len(d.Instances); i++ {
+		if len(d.Instances[i].Endpoint) > 0 {
+			insEmpty = false
+		}
 		if err := d.Instances[i].Init(); err != nil {
 			return err
 		}
+	}
+
+	if insEmpty {
+		return itypes.ErrInstancesEmpty
 	}
 
 	return nil
@@ -81,6 +90,10 @@ func (d *Docker) Gather(slist *list.SafeList) {
 
 	for i := range d.Instances {
 		ins := d.Instances[i]
+
+		if len(ins.Endpoint) == 0 {
+			continue
+		}
 
 		d.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {

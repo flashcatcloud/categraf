@@ -109,15 +109,20 @@ func (r *Elasticsearch) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
+	insEmpty := true
+
 	for i := 0; i < len(r.Instances); i++ {
-		if r.Instances[i].TargetsEmpty() {
-			log.Println("W! targets empty")
-			continue
+		if len(r.Instances[i].Servers) > 0 {
+			insEmpty = false
 		}
 
 		if err := r.Instances[i].Init(); err != nil {
 			return err
 		}
+	}
+
+	if insEmpty {
+		return types.ErrInstancesEmpty
 	}
 
 	return nil
@@ -131,7 +136,7 @@ func (r *Elasticsearch) Gather(slist *list.SafeList) {
 	for i := range r.Instances {
 		ins := r.Instances[i]
 
-		if ins.TargetsEmpty() {
+		if len(ins.Servers) == 0 {
 			continue
 		}
 
@@ -184,10 +189,6 @@ type serverInfo struct {
 
 func (i serverInfo) isMaster() bool {
 	return i.nodeID == i.masterID
-}
-
-func (ins *Instance) TargetsEmpty() bool {
-	return len(ins.Servers) == 0
 }
 
 func (ins *Instance) Init() error {
