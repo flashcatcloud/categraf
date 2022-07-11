@@ -11,6 +11,8 @@ var STATUS_VARS = map[string]struct{}{
 	"com_update":              {},
 	"com_delete":              {},
 	"com_replace":             {},
+	"com_commit":              {},
+	"com_rollback":            {},
 	"com_load":                {},
 	"com_insert_select":       {},
 	"com_update_multi":        {},
