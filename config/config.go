@@ -61,7 +61,7 @@ type ConfigType struct {
 
 var Config *ConfigType
 
-func InitConfig(configDir string, debugMode bool, testMode bool) error {
+func InitConfig(configDir string, debugMode, testMode bool, interval int64) error {
 	configFile := path.Join(configDir, "config.toml")
 	if !file.IsExist(configFile) {
 		return fmt.Errorf("configuration file(%s) not found", configFile)
@@ -75,6 +75,10 @@ func InitConfig(configDir string, debugMode bool, testMode bool) error {
 
 	if err := cfg.LoadConfigs(configDir, Config); err != nil {
 		return fmt.Errorf("failed to load configs of dir: %s", configDir)
+	}
+
+	if interval > 0 {
+		Config.Global.Interval = Duration(time.Duration(interval) * time.Second)
 	}
 
 	if err := Config.fillIP(); err != nil {
