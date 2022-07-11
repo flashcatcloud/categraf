@@ -65,19 +65,10 @@ func (d *Docker) Init() error {
 		return itypes.ErrInstancesEmpty
 	}
 
-	insEmpty := true
-
 	for i := 0; i < len(d.Instances); i++ {
-		if len(d.Instances[i].Endpoint) > 0 {
-			insEmpty = false
-		}
 		if err := d.Instances[i].Init(); err != nil {
 			return err
 		}
-	}
-
-	if insEmpty {
-		return itypes.ErrInstancesEmpty
 	}
 
 	return nil
@@ -142,6 +133,10 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
+	if len(ins.Endpoint) == 0 {
+		return nil
+	}
+
 	c, err := ins.getNewClient()
 	if err != nil {
 		return err

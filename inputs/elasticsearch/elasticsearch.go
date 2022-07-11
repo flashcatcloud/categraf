@@ -109,20 +109,10 @@ func (r *Elasticsearch) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
-	insEmpty := true
-
 	for i := 0; i < len(r.Instances); i++ {
-		if len(r.Instances[i].Servers) > 0 {
-			insEmpty = false
-		}
-
 		if err := r.Instances[i].Init(); err != nil {
 			return err
 		}
-	}
-
-	if insEmpty {
-		return types.ErrInstancesEmpty
 	}
 
 	return nil
@@ -192,6 +182,10 @@ func (i serverInfo) isMaster() bool {
 }
 
 func (ins *Instance) Init() error {
+	if len(ins.Servers) == 0 {
+		return nil
+	}
+
 	if ins.HTTPTimeout <= 0 {
 		ins.HTTPTimeout = config.Duration(time.Second * 5)
 	}
