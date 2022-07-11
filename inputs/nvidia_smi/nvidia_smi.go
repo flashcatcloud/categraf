@@ -39,8 +39,7 @@ func (s *GPUStats) Drop() {}
 
 func (s *GPUStats) Init() error {
 	if s.NvidiaSmiCommand == "" {
-		// do nothing
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	qFieldsOrdered, qFieldToRFieldMap, err := buildQFieldToRFieldMap(s.QueryFieldNames, s.NvidiaSmiCommand)

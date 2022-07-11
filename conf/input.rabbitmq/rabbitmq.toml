@@ -11,7 +11,7 @@
 # # collect interval
 # interval = 15
 
-# [[instances]]
+[[instances]]
 # # Management Plugin url
 # url = "http://localhost:15672"
 # username = "guest"

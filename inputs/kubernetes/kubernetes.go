@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -64,6 +63,10 @@ func (k *Kubernetes) Gather(slist *list.SafeList) {
 	for i := range k.Instances {
 		ins := k.Instances[i]
 
+		if ins.URL == "" {
+			continue
+		}
+
 		k.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {
 			defer k.waitgrp.Done()
@@ -113,7 +116,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.URL == "" {
-		return errors.New("url is blank")
+		return nil
 	}
 
 	ins.URL = os.Expand(ins.URL, config.GetEnv)
@@ -185,10 +188,10 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 		if ins.GatherPodContainerMetrics {
 			for _, container := range pod.Containers {
 				tags := map[string]string{
-					"node":           summaryMetrics.Node.NodeName,
-					"namespace":      pod.PodRef.Namespace,
-					"container":      container.Name,
-					"pod":            pod.PodRef.Name,
+					"node":      summaryMetrics.Node.NodeName,
+					"namespace": pod.PodRef.Namespace,
+					"container": container.Name,
+					"pod":       pod.PodRef.Name,
 				}
 				for k, v := range podLabels {
 					tags[k] = v
@@ -214,10 +217,10 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 		if ins.GatherPodVolumeMetrics {
 			for _, volume := range pod.Volumes {
 				tags := map[string]string{
-					"node":        summaryMetrics.Node.NodeName,
-					"pod":         pod.PodRef.Name,
-					"namespace":   pod.PodRef.Namespace,
-					"volume":      volume.Name,
+					"node":      summaryMetrics.Node.NodeName,
+					"pod":       pod.PodRef.Name,
+					"namespace": pod.PodRef.Namespace,
+					"volume":    volume.Name,
 				}
 				for k, v := range podLabels {
 					tags[k] = v
@@ -252,8 +255,8 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 func (ins *Instance) buildSystemContainerMetrics(summaryMetrics *SummaryMetrics, slist *list.SafeList) {
 	for _, container := range summaryMetrics.Node.SystemContainers {
 		tags := map[string]string{
-			"node":           summaryMetrics.Node.NodeName,
-			"container":      container.Name,
+			"node":      summaryMetrics.Node.NodeName,
+			"container": container.Name,
 		}
 
 		fields := make(map[string]interface{})
@@ -275,7 +278,7 @@ func (ins *Instance) buildSystemContainerMetrics(summaryMetrics *SummaryMetrics,
 
 func (ins *Instance) buildNodeMetrics(summaryMetrics *SummaryMetrics, slist *list.SafeList) {
 	tags := map[string]string{
-		"node":      summaryMetrics.Node.NodeName,
+		"node": summaryMetrics.Node.NodeName,
 	}
 	fields := make(map[string]interface{})
 	fields["node_cpu_usage_nanocores"] = summaryMetrics.Node.CPU.UsageNanoCores

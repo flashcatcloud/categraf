@@ -1,11 +1,11 @@
 # # collect interval
 # interval = 15
 
-# [[instances]]
-# targets = [
+[[instances]]
+targets = [
 #     "http://localhost",
 #     "https://www.baidu.com"
-# ]
+]
 
 # # append some labels for series
 # labels = { region="cloud", product="n9e" }

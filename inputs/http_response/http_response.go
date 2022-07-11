@@ -1,7 +1,6 @@
 package http_response
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -59,16 +58,16 @@ type httpClient interface {
 }
 
 func (ins *Instance) Init() error {
+	if len(ins.Targets) == 0 {
+		return nil
+	}
+
 	if ins.ResponseTimeout < config.Duration(time.Second) {
 		ins.ResponseTimeout = config.Duration(time.Second * 3)
 	}
 
 	if ins.Method == "" {
 		ins.Method = "GET"
-	}
-
-	if len(ins.Targets) == 0 {
-		return errors.New("http_response targets empty")
 	}
 
 	client, err := ins.createHTTPClient()
@@ -174,6 +173,9 @@ func (h *HTTPResponse) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&h.Counter, 1)
 	for i := range h.Instances {
 		ins := h.Instances[i]
+		if len(ins.Targets) == 0 {
+			continue
+		}
 		h.wg.Add(1)
 		go h.gatherOnce(slist, ins)
 	}

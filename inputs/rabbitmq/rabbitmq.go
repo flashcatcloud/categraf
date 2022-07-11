@@ -2,7 +2,6 @@ package rabbitmq
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -60,6 +59,10 @@ func (r *RabbitMQ) Gather(slist *list.SafeList) {
 	for i := range r.Instances {
 		ins := r.Instances[i]
 
+		if ins.URL == "" {
+			continue
+		}
+
 		r.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {
 			defer r.waitgrp.Done()
@@ -111,7 +114,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.URL == "" {
-		return errors.New("url is blank")
+		return nil
 	}
 
 	var err error

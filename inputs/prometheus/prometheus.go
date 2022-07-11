@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -46,17 +47,29 @@ type Instance struct {
 	client *http.Client
 }
 
+func (ins *Instance) Empty() bool {
+	if len(ins.URLs) > 0 {
+		return false
+	}
+
+	if ins.ConsulConfig.Enabled && len(ins.ConsulConfig.Queries) > 0 {
+		return false
+	}
+
+	return true
+}
+
 func (ins *Instance) Init() error {
-	if ins.ConsulConfig.Enabled {
-		if len(ins.ConsulConfig.Queries) == 0 {
-			return types.ErrInstancesEmpty
-		}
+	if ins.Empty() {
+		return nil
+	}
+
+	if ins.ConsulConfig.Enabled && len(ins.ConsulConfig.Queries) > 0 {
 		if err := ins.InitConsulClient(); err != nil {
 			return err
 		}
-	} else if len(ins.URLs) == 0 {
-		return types.ErrInstancesEmpty
 	}
+
 	for i, u := range ins.URLs {
 		ins.URLs[i] = strings.Replace(u, "$hostname", config.Config.GetHostname(), -1)
 		ins.URLs[i] = strings.Replace(u, "$ip", config.Config.Global.IP, -1)
@@ -139,7 +152,9 @@ func (p *Prometheus) Init() error {
 
 	for i := 0; i < len(p.Instances); i++ {
 		if err := p.Instances[i].Init(); err != nil {
-			return err
+			if !errors.Is(err, types.ErrInstancesEmpty) {
+				return err
+			}
 		}
 	}
 
@@ -153,6 +168,10 @@ func (p *Prometheus) Gather(slist *list.SafeList) {
 
 	for i := range p.Instances {
 		ins := p.Instances[i]
+
+		if ins.Empty() {
+			continue
+		}
 
 		p.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {

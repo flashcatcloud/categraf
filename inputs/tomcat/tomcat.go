@@ -2,7 +2,6 @@ package tomcat
 
 import (
 	"encoding/xml"
-	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -80,7 +79,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.URL == "" {
-		return errors.New("url is blank")
+		return nil
 	}
 
 	if ins.Timeout <= 0 {
@@ -170,6 +169,9 @@ func (t *Tomcat) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&t.Counter, 1)
 	for i := range t.Instances {
 		ins := t.Instances[i]
+		if ins.URL == "" {
+			continue
+		}
 		t.wg.Add(1)
 		go t.gatherOnce(slist, ins)
 	}

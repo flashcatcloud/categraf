@@ -62,6 +62,10 @@ func (r *NginxUpstreamCheck) Gather(slist *list.SafeList) {
 	for i := range r.Instances {
 		ins := r.Instances[i]
 
+		if len(ins.Targets) == 0 {
+			continue
+		}
+
 		r.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {
 			defer r.waitgrp.Done()
@@ -103,16 +107,16 @@ type httpClient interface {
 }
 
 func (ins *Instance) Init() error {
+	if len(ins.Targets) == 0 {
+		return nil
+	}
+
 	if ins.Timeout < config.Duration(time.Second) {
 		ins.Timeout = config.Duration(time.Second * 5)
 	}
 
 	if ins.Method == "" {
 		ins.Method = "GET"
-	}
-
-	if len(ins.Targets) == 0 {
-		return types.ErrInstancesEmpty
 	}
 
 	client, err := ins.createHTTPClient()

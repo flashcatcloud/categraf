@@ -59,6 +59,9 @@ func (e *Exec) Init() error {
 	}
 
 	for i := 0; i < len(e.Instances); i++ {
+		if len(e.Instances[i].Commands) == 0 {
+			continue
+		}
 		if e.Instances[i].DataFormat == "" || e.Instances[i].DataFormat == "influx" {
 			e.Instances[i].parser = influx.NewParser()
 		} else if e.Instances[i].DataFormat == "falcon" {
@@ -82,6 +85,9 @@ func (e *Exec) Gather(slist *list.SafeList) {
 	wg.Add(len(e.Instances))
 	for i := range e.Instances {
 		ins := e.Instances[i]
+		if len(ins.Commands) == 0 {
+			continue
+		}
 		go e.GatherOnce(&wg, slist, ins)
 	}
 

@@ -64,6 +64,10 @@ func (s *Switch) Gather(slist *list.SafeList) {
 	for i := range s.Instances {
 		ins := s.Instances[i]
 
+		if len(ins.IPs) == 0 {
+			continue
+		}
+
 		s.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {
 			defer s.waitgrp.Done()
@@ -138,6 +142,10 @@ type Custom struct {
 }
 
 func (ins *Instance) Init() error {
+	if len(ins.IPs) == 0 {
+		return nil
+	}
+
 	ips := ins.parseIPs()
 	if len(ips) == 0 {
 		return errors.New("ips empty")
@@ -633,10 +641,9 @@ func (ins *Instance) parseIPs() (lst []string) {
 		item := ins.IPs[i]
 
 		aip := sw.ParseIp(item)
-		for _, ip := range aip {
-			lst = append(lst, ip)
-		}
+		lst = append(lst, aip...)
 	}
+
 	return
 }
 

@@ -70,6 +70,10 @@ func (r *Kafka) Gather(slist *list.SafeList) {
 	for i := range r.Instances {
 		ins := r.Instances[i]
 
+		if len(ins.KafkaURIs) == 0 {
+			continue
+		}
+
 		r.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {
 			defer r.waitgrp.Done()
@@ -159,8 +163,9 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.KafkaURIs) == 0 || ins.KafkaURIs[0] == "" {
-		return fmt.Errorf("kafka_uris must be specified")
+		return nil
 	}
+
 	if ins.UseTLS && (ins.CertFile == "" || ins.KeyFile == "") {
 		return fmt.Errorf("tls is enabled but key pair was not provided")
 	}

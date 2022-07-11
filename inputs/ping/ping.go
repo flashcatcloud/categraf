@@ -39,6 +39,10 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
+	if len(ins.Targets) == 0 {
+		return nil
+	}
+
 	if ins.Count < 1 {
 		ins.Count = 1
 	}
@@ -113,6 +117,9 @@ func (p *Ping) Gather(slist *list.SafeList) {
 	atomic.AddUint64(&p.Counter, 1)
 	for i := range p.Instances {
 		ins := p.Instances[i]
+		if len(ins.Targets) == 0 {
+			continue
+		}
 		p.wg.Add(1)
 		go p.gatherOnce(slist, ins)
 	}
