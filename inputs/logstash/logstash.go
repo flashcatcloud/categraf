@@ -536,7 +536,7 @@ func (ins *Instance) gatherPluginsStats(
 			}
 
 			for key, val := range jsonParser.Fields {
-				slist.PushFront(types.NewSample(key, val, tags, pluginTags, ins.Labels))
+				slist.PushFront(types.NewSample(key, val,  pluginTags, ins.Labels))
 			}
 
 			/*
@@ -561,7 +561,7 @@ func (ins *Instance) gatherPluginsStats(
 				delete(jsonParser.Fields, k)
 			}
 			for key, val := range jsonParser.Fields {
-				slist.PushFront(types.NewSample(key, val, tags, pluginTags, ins.Labels))
+				slist.PushFront(types.NewSample(key, val, pluginTags, ins.Labels))
 			}
 		}
 	}
