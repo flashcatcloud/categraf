@@ -1,0 +1,4 @@
+[prometheus]
+  enable=true
+  scrape_config_file="/path/to/scrape.yaml"
+  web_address="127.0.0.1:9091"

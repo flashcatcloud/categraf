@@ -58,6 +58,7 @@ func (a *Agent) Start() {
 	a.startLogAgent()
 	a.startMetricsAgent()
 	a.startTracesAgent()
+	a.startPrometheusScrape()
 	log.Println("I! agent started")
 }
 
@@ -66,6 +67,7 @@ func (a *Agent) Stop() {
 	a.stopLogAgent()
 	a.stopMetricsAgent()
 	a.stopTracesAgent()
+	a.stopPrometheusScrape()
 	log.Println("I! agent stopped")
 }
 

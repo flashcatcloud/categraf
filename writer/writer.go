@@ -19,7 +19,7 @@ type WriterType struct {
 	Client api.Client
 }
 
-func (w WriterType) Write(items []*prompb.TimeSeries) {
+func (w WriterType) Write(items []prompb.TimeSeries) {
 	if len(items) == 0 {
 		return
 	}
