@@ -244,7 +244,7 @@ func (t *Tomcat) gatherOnce(slist *list.SafeList, ins *Instance) {
 			"jvm_memorypool_used":      mp.UsageUsed,
 		}
 
-		types.PushSamples(slist, tcmpFields, tags, tcmpTags)
+		inputs.PushSamples(slist, tcmpFields, tags, tcmpTags)
 	}
 
 	// add tomcat_connector measurements
@@ -270,6 +270,6 @@ func (t *Tomcat) gatherOnce(slist *list.SafeList, ins *Instance) {
 			"connector_bytes_sent":           c.RequestInfo.BytesSent,
 		}
 
-		types.PushSamples(slist, tccFields, tags, tccTags)
+		inputs.PushSamples(slist, tccFields, tags, tccTags)
 	}
 }

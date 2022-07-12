@@ -8,7 +8,6 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/choice"
-	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -85,7 +84,7 @@ func (s *DiskStats) Gather(slist *list.SafeList) {
 			"inodes_used":  du.InodesUsed,
 		}
 
-		types.PushSamples(slist, fields, tags)
+		inputs.PushSamples(slist, fields, tags)
 	}
 }
 
