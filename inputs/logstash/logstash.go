@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -62,6 +63,10 @@ func (r *Logstash) Gather(slist *list.SafeList) {
 	for i := range r.Instances {
 		ins := r.Instances[i]
 
+		if len(ins.URL) == 0 {
+			continue
+		}
+
 		r.waitgrp.Add(1)
 		go func(slist *list.SafeList, ins *Instance) {
 			defer r.waitgrp.Done()
@@ -83,7 +88,6 @@ func (r *Logstash) Gather(slist *list.SafeList) {
 type Instance struct {
 	Labels        map[string]string `toml:"labels"`
 	IntervalTimes int64             `toml:"interval_times"`
-	LogLevel      string            `toml:"log_level"`
 
 	URL            string            `toml:"url"`
 	SinglePipeline bool              `toml:"single_pipeline"`
@@ -96,6 +100,7 @@ type Instance struct {
 	tls.ClientConfig
 	client *http.Client
 }
+
 type ProcessStats struct {
 	ID      string      `json:"id"`
 	Process interface{} `json:"process"`
@@ -165,6 +170,10 @@ const pipelinesStats = "/_node/stats/pipelines"
 const pipelineStats = "/_node/stats/pipeline"
 
 func (ins *Instance) Init() error {
+	if len(ins.URL) == 0 {
+		return nil
+	}
+
 	client, err := ins.createHTTPClient()
 	if err != nil {
 		return err
@@ -179,13 +188,14 @@ func (ins *Instance) Init() error {
 }
 
 func (ins *Instance) gatherOnce(slist *list.SafeList) {
-
 	if choice.Contains("jvm", ins.Collect) {
 		jvmURL, err := url.Parse(ins.URL + jvmStats)
 		if err != nil {
+			log.Println("E! failed to parse url:", ins.URL+jvmStats)
 			return
 		}
 		if err := ins.gatherJVMStats(jvmURL.String(), slist); err != nil {
+			log.Println("E! failed to gather jvm stats:", err)
 			return
 		}
 	}
@@ -193,9 +203,11 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 	if choice.Contains("process", ins.Collect) {
 		processURL, err := url.Parse(ins.URL + processStats)
 		if err != nil {
+			log.Println("E! failed to parse url:", ins.URL+processStats)
 			return
 		}
 		if err := ins.gatherProcessStats(processURL.String(), slist); err != nil {
+			log.Println("E! failed to gather process stats:", err)
 			return
 		}
 	}
@@ -204,17 +216,21 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 		if ins.SinglePipeline {
 			pipelineURL, err := url.Parse(ins.URL + pipelineStats)
 			if err != nil {
+				log.Println("E! failed to parse url:", ins.URL+pipelineStats)
 				return
 			}
 			if err := ins.gatherPipelineStats(pipelineURL.String(), slist); err != nil {
+				log.Println("E! failed to gather pipeline stats:", err)
 				return
 			}
 		} else {
 			pipelinesURL, err := url.Parse(ins.URL + pipelinesStats)
 			if err != nil {
+				log.Println("E! failed to parse url:", ins.URL+pipelinesStats)
 				return
 			}
 			if err := ins.gatherPipelinesStats(pipelinesURL.String(), slist); err != nil {
+				log.Println("E! failed to gather pipelines stats:", err)
 				return
 			}
 		}
@@ -300,7 +316,7 @@ func (ins *Instance) gatherJVMStats(address string, slist *list.SafeList) error 
 		return err
 	}
 	for key, val := range jsonParser.Fields {
-		slist.PushFront(types.NewSample(key, val, tags, ins.Labels))
+		slist.PushFront(types.NewSample("jvm_"+key, val, tags, ins.Labels))
 	}
 
 	return nil
@@ -328,7 +344,7 @@ func (ins *Instance) gatherProcessStats(address string, slist *list.SafeList) er
 	}
 
 	for key, val := range jsonParser.Fields {
-		slist.PushFront(types.NewSample(key, val, tags, ins.Labels))
+		slist.PushFront(types.NewSample("process_"+key, val, tags, ins.Labels))
 	}
 	return nil
 }
@@ -355,7 +371,7 @@ func (ins *Instance) gatherPipelineStats(address string, slist *list.SafeList) e
 		return err
 	}
 	for key, val := range jsonParser.Fields {
-		slist.PushFront(types.NewSample(key, val, tags, ins.Labels))
+		slist.PushFront(types.NewSample("events_"+key, val, tags, ins.Labels))
 	}
 
 	err = ins.gatherPluginsStats(pipelineStats.Pipeline.Plugins.Inputs, "input", tags, slist)
@@ -424,7 +440,7 @@ func (ins *Instance) gatherQueueStats(
 
 	}
 	for key, val := range queueFields {
-		slist.PushFront(types.NewSample(key, val, queueTags, ins.Labels))
+		slist.PushFront(types.NewSample("queue_"+key, val, queueTags, ins.Labels))
 	}
 	return nil
 }
@@ -454,7 +470,7 @@ func (ins *Instance) gatherPipelinesStats(address string, slist *list.SafeList) 
 		}
 
 		for key, val := range jsonParser.Fields {
-			slist.PushFront(types.NewSample(key, val, tags, ins.Labels))
+			slist.PushFront(types.NewSample("events_"+key, val, tags, ins.Labels))
 		}
 
 		err = ins.gatherPluginsStats(pipeline.Plugins.Inputs, "input", tags, slist)
@@ -501,7 +517,7 @@ func (ins *Instance) gatherPluginsStats(
 			return err
 		}
 		for key, val := range jsonParser.Fields {
-			slist.PushFront(types.NewSample(key, val, pluginTags, ins.Labels))
+			slist.PushFront(types.NewSample("plugins_"+key, val, pluginTags, ins.Labels))
 		}
 		/*
 			The elasticsearch/opensearch output produces additional stats around
@@ -536,7 +552,7 @@ func (ins *Instance) gatherPluginsStats(
 			}
 
 			for key, val := range jsonParser.Fields {
-				slist.PushFront(types.NewSample(key, val,  pluginTags, ins.Labels))
+				slist.PushFront(types.NewSample("plugins_"+key, val, pluginTags, ins.Labels))
 			}
 
 			/*
@@ -561,7 +577,7 @@ func (ins *Instance) gatherPluginsStats(
 				delete(jsonParser.Fields, k)
 			}
 			for key, val := range jsonParser.Fields {
-				slist.PushFront(types.NewSample(key, val, pluginTags, ins.Labels))
+				slist.PushFront(types.NewSample("plugins_"+key, val, pluginTags, ins.Labels))
 			}
 		}
 	}

@@ -19,6 +19,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/kernel_vmstat"
 	_ "flashcat.cloud/categraf/inputs/kubernetes"
 	_ "flashcat.cloud/categraf/inputs/linux_sysctl_fs"
+	_ "flashcat.cloud/categraf/inputs/logstash"
 	_ "flashcat.cloud/categraf/inputs/mem"
 	_ "flashcat.cloud/categraf/inputs/mysql"
 	_ "flashcat.cloud/categraf/inputs/net"
@@ -38,7 +39,6 @@ import (
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
-	_ "flashcat.cloud/categraf/inputs/logstash"
 )
 
 type Agent struct {

@@ -1,32 +1,42 @@
+# # collect interval
+# interval = 15
+
 # Read metrics exposed by Logstash
- [[instances]]
-  ## The URL of the exposed Logstash API endpoint.
-  url = "http://127.0.0.1:9600"
+[[instances]]
+# # interval = global.interval * interval_times
+# interval_times = 1
 
-  ## Use Logstash 5 single pipeline API, set to true when monitoring
-  ## Logstash 5.
-  # single_pipeline = false
+# append labels
+# labels = { instance="x" }
 
-  ## Enable optional collection components.  Can contain
-  ## "pipelines", "process", and "jvm".
-  # collect = ["pipelines", "process", "jvm"]
+## The URL of the exposed Logstash API endpoint.
+# url = "http://127.0.0.1:9600"
+url = ""
 
-  ## Timeout for HTTP requests.
-  # timeout = "5s"
+## Use Logstash 5 single pipeline API, set to true when monitoring
+## Logstash 5.
+# single_pipeline = false
 
-  ## Optional HTTP Basic Auth credentials.
-  # username = "username"
-  # password = "pa$$word"
+## Enable optional collection components.  Can contain
+## "pipelines", "process", and "jvm".
+# collect = ["pipelines", "process", "jvm"]
 
-  ## Optional TLS Config.
-  # tls_ca = "/etc/telegraf/ca.pem"
-  # tls_cert = "/etc/telegraf/cert.pem"
-  # tls_key = "/etc/telegraf/key.pem"
+## Timeout for HTTP requests.
+# timeout = "5s"
 
-  ## Use TLS but skip chain & host verification.
-  # insecure_skip_verify = false
+## Optional HTTP Basic Auth credentials.
+# username = "username"
+# password = "pa$$word"
 
-  ## Optional HTTP headers.
-  # [inputs.logstash.headers]
-  #   "X-Special-Header" = "Special-Value"
+## Optional HTTP headers.
+# [inputs.logstash.headers]
+#   "X-Special-Header" = "Special-Value"
 
+## Optional TLS Config
+# use_tls = false
+# tls_min_version = "1.2"
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = true
