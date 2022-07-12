@@ -13,7 +13,7 @@
                 "type": "row",
                 "id": "e0051262-b8e3-4f80-ae56-e5885c8660b0",
                 "name": "集群监控",
-                "collapsed": true,
+                "collapsed": false,
                 "layout": {
                     "h": 1,
                     "w": 24,
@@ -22,345 +22,346 @@
                     "i": "e0051262-b8e3-4f80-ae56-e5885c8660b0",
                     "isResizable": false
                 },
-                "panels": []
-            },
-            {
-                "targets": [
+                "panels": [
                     {
-                        "refId": "A",
-                        "expr": "(1-sum(kubernetes_pod_container_memory_usage_bytes)/ on(pod) sum(kube_pod_container_resource_requests_memory_bytes and on(pod) kubernetes_pod_container_memory_usage_bytes))*100",
-                        "legend": ""
-                    }
-                ],
-                "name": "集群内存空闲率(%)",
-                "links": [],
-                "custom": {
-                    "textMode": "value",
-                    "colorMode": "value",
-                    "calc": "lastNotNull",
-                    "colSpan": 1,
-                    "textSize": {}
-                },
-                "options": {
-                    "valueMappings": [
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 0,
-                                "to": 30
-                            },
-                            "result": {
-                                "color": "#50e3c2"
+                        "targets": [
+                            {
+                                "refId": "A",
+                                "expr": "(1-sum(kubernetes_pod_container_memory_usage_bytes)/ on(pod) sum(kube_pod_container_resource_requests_memory_bytes and on(pod) kubernetes_pod_container_memory_usage_bytes))*100",
+                                "legend": ""
+                            }
+                        ],
+                        "name": "集群内存空闲率(%)",
+                        "links": [],
+                        "custom": {
+                            "textMode": "value",
+                            "colorMode": "value",
+                            "calc": "lastNotNull",
+                            "colSpan": 1,
+                            "textSize": {}
+                        },
+                        "options": {
+                            "valueMappings": [
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 0,
+                                        "to": 30
+                                    },
+                                    "result": {
+                                        "color": "#50e3c2"
+                                    }
+                                },
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 30,
+                                        "to": 50
+                                    },
+                                    "result": {
+                                        "color": "#f8e71c"
+                                    }
+                                },
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 50,
+                                        "to": 100
+                                    },
+                                    "result": {
+                                        "color": "#d0021b"
+                                    }
+                                }
+                            ],
+                            "standardOptions": {
+                                "util": "percent",
+                                "min": 0,
+                                "max": 100,
+                                "decimals": 2
                             }
                         },
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 30,
-                                "to": 50
-                            },
-                            "result": {
-                                "color": "#f8e71c"
-                            }
+                        "version": "2.0.0",
+                        "type": "stat",
+                        "layout": {
+                            "h": 4,
+                            "w": 6,
+                            "x": 0,
+                            "y": 1,
+                            "i": "9a1fb68b-2299-4f89-b481-f5410c670107",
+                            "isResizable": true
                         },
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 50,
-                                "to": 100
-                            },
-                            "result": {
-                                "color": "#d0021b"
-                            }
-                        }
-                    ],
-                    "standardOptions": {
-                        "util": "percent",
-                        "min": 0,
-                        "max": 100,
-                        "decimals": 2
-                    }
-                },
-                "version": "2.0.0",
-                "type": "stat",
-                "layout": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 0,
-                    "y": 1,
-                    "i": "9a1fb68b-2299-4f89-b481-f5410c670107",
-                    "isResizable": true
-                },
-                "id": "775d7be0-58bf-42f1-b741-3fe03e0a2d3b"
-            },
-            {
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "sum(kube_pod_container_resource_requests_memory_bytes   and on(pod)  kubernetes_pod_container_memory_usage_bytes) - on(pod) \nsum( kubernetes_pod_container_memory_usage_bytes)",
-                        "legend": ""
-                    }
-                ],
-                "name": "集群内存空闲量",
-                "links": [],
-                "custom": {
-                    "textMode": "value",
-                    "colorMode": "value",
-                    "calc": "lastNotNull",
-                    "colSpan": 1,
-                    "textSize": {}
-                },
-                "options": {
-                    "valueMappings": [
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 0,
-                                "to": 10000000000
-                            },
-                            "result": {
-                                "color": "#50e3c2"
-                            }
-                        },
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 10000000000,
-                                "to": 100000000000000
-                            },
-                            "result": {
-                                "color": "#d0021b"
-                            }
-                        }
-                    ],
-                    "standardOptions": {
-                        "util": "bytesSI",
-                        "min": 0,
-                        "max": 100,
-                        "decimals": 2
-                    }
-                },
-                "version": "2.0.0",
-                "type": "stat",
-                "layout": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 6,
-                    "y": 1,
-                    "i": "58e5b999-bcac-4685-8b39-95035a320582",
-                    "isResizable": true
-                },
-                "id": "8ba8c933-6d6a-4aa4-9146-7d5b3a4879a2"
-            },
-            {
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "(1-sum(kubernetes_pod_container_cpu_usage_nanocores/1000000000)/ on(pod) sum(kube_pod_container_resource_requests_cpu_cores and on(pod) kubernetes_pod_container_cpu_usage_nanocores ))*100",
-                        "legend": ""
-                    }
-                ],
-                "name": "集群cpu空闲率(%)",
-                "links": [],
-                "custom": {
-                    "textMode": "valueAndName",
-                    "colorMode": "value",
-                    "calc": "lastNotNull",
-                    "colSpan": 1,
-                    "textSize": {}
-                },
-                "options": {
-                    "valueMappings": [
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 0,
-                                "to": 50
-                            },
-                            "result": {
-                                "color": "#50e3c2"
-                            }
-                        },
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 50,
-                                "to": 70
-                            },
-                            "result": {
-                                "color": "#f8e71c"
-                            }
-                        },
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 70,
-                                "to": 100
-                            },
-                            "result": {
-                                "color": "#d0021b"
-                            }
-                        }
-                    ],
-                    "standardOptions": {
-                        "util": "percent",
-                        "decimals": 2
-                    }
-                },
-                "version": "2.0.0",
-                "type": "stat",
-                "layout": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 12,
-                    "y": 1,
-                    "i": "51773d27-3eb4-4f00-92c8-1e6d9f4bb15d",
-                    "isResizable": true
-                },
-                "id": "ec9e6849-b287-4bdb-8d53-67dca865ff15"
-            },
-            {
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "sum(kube_pod_container_resource_requests_cpu_cores  and on(pod) kubernetes_pod_container_cpu_usage_nanocores  )- on(pod) \n sum(kubernetes_pod_container_cpu_usage_nanocores /1000000000)",
-                        "legend": ""
-                    }
-                ],
-                "name": "集群cpu空闲量",
-                "links": [],
-                "custom": {
-                    "textMode": "valueAndName",
-                    "colorMode": "value",
-                    "calc": "lastNotNull",
-                    "colSpan": 1,
-                    "textSize": {}
-                },
-                "options": {
-                    "valueMappings": [
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 0,
-                                "to": 50
-                            },
-                            "result": {
-                                "color": "#50e3c2"
-                            }
-                        },
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 50,
-                                "to": 70
-                            },
-                            "result": {
-                                "color": "#f8e71c"
-                            }
-                        },
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 70,
-                                "to": 100
-                            },
-                            "result": {
-                                "color": "#d0021b"
-                            }
-                        }
-                    ],
-                    "standardOptions": {
-                        "util": "none",
-                        "decimals": 2
-                    }
-                },
-                "version": "2.0.0",
-                "type": "stat",
-                "layout": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 18,
-                    "y": 1,
-                    "i": "0689d61d-2727-45e4-ae58-8b7a17999cfb",
-                    "isResizable": true
-                },
-                "id": "a16865f6-b029-4462-96a8-2ca08d221262"
-            },
-            {
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "topk(10,sum (kube_pod_container_resource_requests_memory_bytes and on (pod,namespace) kubernetes_pod_container_memory_usage_bytes) by (namespace)   -  on(pod,namespace) sum(kubernetes_pod_container_memory_usage_bytes  ) by (namespace))",
-                        "legend": "{{namespace}}"
-                    }
-                ],
-                "name": "top 10 项目内存空闲情况",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
+                        "id": "775d7be0-58bf-42f1-b741-3fe03e0a2d3b"
                     },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {},
-                    "thresholds": {}
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 6,
-                    "w": 12,
-                    "x": 0,
-                    "y": 5,
-                    "i": "1b120d90-53b4-47b7-b6ae-8023644ef1e2",
-                    "isResizable": true
-                },
-                "id": "785ac9e8-39bf-4fdd-a97c-e01ee1f9f3b9"
-            },
-            {
-                "targets": [
                     {
-                        "refId": "A",
-                        "expr": "topk(10,sum (kube_pod_container_resource_requests_cpu_cores and on (pod,namespace) kubernetes_pod_container_cpu_usage_nanocores) by (namespace)   -  on(pod,namespace) sum(kubernetes_pod_container_cpu_usage_nanocores/1000000000  ) by (namespace))",
-                        "legend": "{{namespace}}"
+                        "targets": [
+                            {
+                                "refId": "A",
+                                "expr": "sum(kube_pod_container_resource_requests_memory_bytes   and on(pod)  kubernetes_pod_container_memory_usage_bytes) - on(pod) \nsum( kubernetes_pod_container_memory_usage_bytes)",
+                                "legend": ""
+                            }
+                        ],
+                        "name": "集群内存空闲量",
+                        "links": [],
+                        "custom": {
+                            "textMode": "value",
+                            "colorMode": "value",
+                            "calc": "lastNotNull",
+                            "colSpan": 1,
+                            "textSize": {}
+                        },
+                        "options": {
+                            "valueMappings": [
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 0,
+                                        "to": 10000000000
+                                    },
+                                    "result": {
+                                        "color": "#50e3c2"
+                                    }
+                                },
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 10000000000,
+                                        "to": 100000000000000
+                                    },
+                                    "result": {
+                                        "color": "#d0021b"
+                                    }
+                                }
+                            ],
+                            "standardOptions": {
+                                "util": "bytesSI",
+                                "min": 0,
+                                "max": 100,
+                                "decimals": 2
+                            }
+                        },
+                        "version": "2.0.0",
+                        "type": "stat",
+                        "layout": {
+                            "h": 4,
+                            "w": 6,
+                            "x": 6,
+                            "y": 1,
+                            "i": "58e5b999-bcac-4685-8b39-95035a320582",
+                            "isResizable": true
+                        },
+                        "id": "8ba8c933-6d6a-4aa4-9146-7d5b3a4879a2"
+                    },
+                    {
+                        "targets": [
+                            {
+                                "refId": "A",
+                                "expr": "(1-sum(kubernetes_pod_container_cpu_usage_nanocores/1000000000)/ on(pod) sum(kube_pod_container_resource_requests_cpu_cores and on(pod) kubernetes_pod_container_cpu_usage_nanocores ))*100",
+                                "legend": ""
+                            }
+                        ],
+                        "name": "集群cpu空闲率(%)",
+                        "links": [],
+                        "custom": {
+                            "textMode": "valueAndName",
+                            "colorMode": "value",
+                            "calc": "lastNotNull",
+                            "colSpan": 1,
+                            "textSize": {}
+                        },
+                        "options": {
+                            "valueMappings": [
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 0,
+                                        "to": 50
+                                    },
+                                    "result": {
+                                        "color": "#50e3c2"
+                                    }
+                                },
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 50,
+                                        "to": 70
+                                    },
+                                    "result": {
+                                        "color": "#f8e71c"
+                                    }
+                                },
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 70,
+                                        "to": 100
+                                    },
+                                    "result": {
+                                        "color": "#d0021b"
+                                    }
+                                }
+                            ],
+                            "standardOptions": {
+                                "util": "percent",
+                                "decimals": 2
+                            }
+                        },
+                        "version": "2.0.0",
+                        "type": "stat",
+                        "layout": {
+                            "h": 4,
+                            "w": 6,
+                            "x": 12,
+                            "y": 1,
+                            "i": "51773d27-3eb4-4f00-92c8-1e6d9f4bb15d",
+                            "isResizable": true
+                        },
+                        "id": "ec9e6849-b287-4bdb-8d53-67dca865ff15"
+                    },
+                    {
+                        "targets": [
+                            {
+                                "refId": "A",
+                                "expr": "sum(kube_pod_container_resource_requests_cpu_cores  and on(pod) kubernetes_pod_container_cpu_usage_nanocores  )- on(pod) \n sum(kubernetes_pod_container_cpu_usage_nanocores /1000000000)",
+                                "legend": ""
+                            }
+                        ],
+                        "name": "集群cpu空闲量",
+                        "links": [],
+                        "custom": {
+                            "textMode": "valueAndName",
+                            "colorMode": "value",
+                            "calc": "lastNotNull",
+                            "colSpan": 1,
+                            "textSize": {}
+                        },
+                        "options": {
+                            "valueMappings": [
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 0,
+                                        "to": 50
+                                    },
+                                    "result": {
+                                        "color": "#50e3c2"
+                                    }
+                                },
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 50,
+                                        "to": 70
+                                    },
+                                    "result": {
+                                        "color": "#f8e71c"
+                                    }
+                                },
+                                {
+                                    "type": "range",
+                                    "match": {
+                                        "from": 70,
+                                        "to": 100
+                                    },
+                                    "result": {
+                                        "color": "#d0021b"
+                                    }
+                                }
+                            ],
+                            "standardOptions": {
+                                "util": "none",
+                                "decimals": 2
+                            }
+                        },
+                        "version": "2.0.0",
+                        "type": "stat",
+                        "layout": {
+                            "h": 4,
+                            "w": 6,
+                            "x": 18,
+                            "y": 1,
+                            "i": "0689d61d-2727-45e4-ae58-8b7a17999cfb",
+                            "isResizable": true
+                        },
+                        "id": "a16865f6-b029-4462-96a8-2ca08d221262"
+                    },
+                    {
+                        "targets": [
+                            {
+                                "refId": "A",
+                                "expr": "topk(10,sum (kube_pod_container_resource_requests_memory_bytes and on (pod,namespace) kubernetes_pod_container_memory_usage_bytes) by (namespace)   -  on(pod,namespace) sum(kubernetes_pod_container_memory_usage_bytes  ) by (namespace))",
+                                "legend": "{{namespace}}"
+                            }
+                        ],
+                        "name": "top 10 项目内存空闲情况",
+                        "options": {
+                            "tooltip": {
+                                "mode": "all",
+                                "sort": "none"
+                            },
+                            "legend": {
+                                "displayMode": "hidden"
+                            },
+                            "standardOptions": {},
+                            "thresholds": {}
+                        },
+                        "custom": {
+                            "drawStyle": "lines",
+                            "lineInterpolation": "smooth",
+                            "fillOpacity": 0.5,
+                            "stack": "off"
+                        },
+                        "version": "2.0.0",
+                        "type": "timeseries",
+                        "layout": {
+                            "h": 6,
+                            "w": 12,
+                            "x": 0,
+                            "y": 5,
+                            "i": "1b120d90-53b4-47b7-b6ae-8023644ef1e2",
+                            "isResizable": true
+                        },
+                        "id": "785ac9e8-39bf-4fdd-a97c-e01ee1f9f3b9"
+                    },
+                    {
+                        "targets": [
+                            {
+                                "refId": "A",
+                                "expr": "topk(10,sum (kube_pod_container_resource_requests_cpu_cores and on (pod,namespace) kubernetes_pod_container_cpu_usage_nanocores) by (namespace)   -  on(pod,namespace) sum(kubernetes_pod_container_cpu_usage_nanocores/1000000000  ) by (namespace))",
+                                "legend": "{{namespace}}"
+                            }
+                        ],
+                        "name": "top 10 项目cpu空闲情况",
+                        "options": {
+                            "tooltip": {
+                                "mode": "all",
+                                "sort": "none"
+                            },
+                            "legend": {
+                                "displayMode": "hidden"
+                            },
+                            "standardOptions": {},
+                            "thresholds": {}
+                        },
+                        "custom": {
+                            "drawStyle": "lines",
+                            "lineInterpolation": "smooth",
+                            "fillOpacity": 0.5,
+                            "stack": "off"
+                        },
+                        "version": "2.0.0",
+                        "type": "timeseries",
+                        "layout": {
+                            "h": 6,
+                            "w": 12,
+                            "x": 12,
+                            "y": 5,
+                            "i": "55ed6324-8bf9-4e9e-a246-377d281ffb8d",
+                            "isResizable": true
+                        },
+                        "id": "9286749a-adfc-4d36-8922-b51f2176cb14"
                     }
-                ],
-                "name": "top 10 项目cpu空闲情况",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {},
-                    "thresholds": {}
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 6,
-                    "w": 12,
-                    "x": 12,
-                    "y": 5,
-                    "i": "55ed6324-8bf9-4e9e-a246-377d281ffb8d",
-                    "isResizable": true
-                },
-                "id": "9286749a-adfc-4d36-8922-b51f2176cb14"
+                ]
             },
             {
                 "type": "row",
@@ -834,7 +835,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "topk(10,kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\"} and on (pod) kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}    -  on(pod) kubernetes_pod_container_memory_usage_bytes  )",
+                        "expr": "topk(10,(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\"} and on (pod,container) kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"} )   -  on(pod,container) kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}  )",
                         "legend": "{{pod}}"
                     }
                 ],
@@ -872,7 +873,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "topk(10, kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\"} and on (pod) kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"}    -  on(pod) kubernetes_pod_container_cpu_usage_nanocores/1000000000  )",
+                        "expr": "topk(10, (kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\"} and on (pod,container) kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"} )   -  on(pod,container) kubernetes_pod_container_cpu_usage_nanocores/1000000000  )",
                         "legend": "{{pod}}"
                     }
                 ],
