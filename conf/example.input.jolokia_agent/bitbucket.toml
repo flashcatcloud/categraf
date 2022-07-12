@@ -1,39 +1,39 @@
-[[inputs.jolokia2_agent]]
+[[instances]]
   urls = ["http://localhost:8778/jolokia"]
-  name_prefix = "bitbucket."
+  name_prefix = "bitbucket_"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "jvm_operatingsystem"
     mbean = "java.lang:type=OperatingSystem"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "jvm_runtime"
     mbean = "java.lang:type=Runtime"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "jvm_thread"
     mbean = "java.lang:type=Threading"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "jvm_memory"
     mbean = "java.lang:type=Memory"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "jvm_class_loading"
     mbean = "java.lang:type=ClassLoading"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "jvm_memory_pool"
     mbean = "java.lang:type=MemoryPool,name=*"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "webhooks"
     mbean = "com.atlassian.webhooks:name=*"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "atlassian"
     mbean = "com.atlassian.bitbucket:name=*"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "thread_pools"
     mbean = "com.atlassian.bitbucket.thread-pools:name=*"

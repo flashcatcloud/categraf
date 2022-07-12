@@ -1,35 +1,35 @@
 ## Jolokia is bundled with ActiveMQ
 
-[[inputs.jolokia2_agent]]
+[[instances]]
   urls = ["http://localhost:8161/api/jolokia"]
-  name_prefix = "activemq."
+  name_prefix = "activemq_"
   username = "admin"
   password = "admin"
 
   ### JVM Generic
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "OperatingSystem"
     mbean = "java.lang:type=OperatingSystem"
     paths = ["ProcessCpuLoad","SystemLoadAverage","SystemCpuLoad"]
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "jvm_runtime"
     mbean = "java.lang:type=Runtime"
     paths = ["Uptime"]
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "jvm_memory"
     mbean = "java.lang:type=Memory"
     paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name     = "jvm_garbage_collector"
     mbean    = "java.lang:name=*,type=GarbageCollector"
     paths    = ["CollectionTime", "CollectionCount"]
     tag_keys = ["name"]
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name       = "jvm_memory_pool"
     mbean      = "java.lang:name=*,type=MemoryPool"
     paths      = ["Usage", "PeakUsage", "CollectionUsage"]
@@ -38,19 +38,19 @@
 
   ### ACTIVEMQ
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name     = "queue"
     mbean    = "org.apache.activemq:brokerName=*,destinationName=*,destinationType=Queue,type=Broker"
     paths    = ["QueueSize","EnqueueCount","ConsumerCount","DispatchCount","DequeueCount","ProducerCount","InFlightCount"]
     tag_keys = ["brokerName","destinationName"]
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name     = "topic"
     mbean    = "org.apache.activemq:brokerName=*,destinationName=*,destinationType=Topic,type=Broker"
     paths    = ["ProducerCount","DequeueCount","ConsumerCount","QueueSize","EnqueueCount"]
     tag_keys = ["brokerName","destinationName"]
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name     = "broker"
     mbean    = "org.apache.activemq:brokerName=*,type=Broker"
     paths    = ["TotalConsumerCount","TotalMessageCount","TotalEnqueueCount","TotalDequeueCount","MemoryLimit","MemoryPercentUsage","StoreLimit","StorePercentUsage","TempPercentUsage","TempLimit"]

@@ -1,31 +1,31 @@
-[[inputs.jolokia2_agent]]
+[[instances]]
   urls = ["http://localhost:8080/jolokia"]
-  name_prefix = "weblogic."
+  name_prefix = "weblogic_"
 
   ### JVM Generic
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "OperatingSystem"
     mbean = "java.lang:type=OperatingSystem"
     paths = ["ProcessCpuLoad","SystemLoadAverage","SystemCpuLoad"]
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "jvm_runtime"
     mbean = "java.lang:type=Runtime"
     paths = ["Uptime"]
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name  = "jvm_memory"
     mbean = "java.lang:type=Memory"
     paths = ["HeapMemoryUsage", "NonHeapMemoryUsage", "ObjectPendingFinalizationCount"]
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name     = "jvm_garbage_collector"
     mbean    = "java.lang:name=*,type=GarbageCollector"
     paths    = ["CollectionTime", "CollectionCount"]
     tag_keys = ["name"]
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name       = "jvm_memory_pool"
     mbean      = "java.lang:name=*,type=MemoryPool"
     paths      = ["Usage", "PeakUsage", "CollectionUsage"]
@@ -34,21 +34,21 @@
 
   ### WLS
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name       = "JTARuntime"
     mbean      = "com.bea:Name=JTARuntime,ServerRuntime=*,Type=JTARuntime"
     paths      = ["SecondsActiveTotalCount","TransactionRolledBackTotalCount","TransactionRolledBackSystemTotalCount","TransactionRolledBackAppTotalCount","TransactionRolledBackResourceTotalCount","TransactionHeuristicsTotalCount","TransactionAbandonedTotalCount","TransactionTotalCount","TransactionRolledBackTimeoutTotalCount","ActiveTransactionsTotalCount","TransactionCommittedTotalCount"]
     tag_keys   = ["ServerRuntime"]
     tag_prefix = "wls_"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name       = "ThreadPoolRuntime"
     mbean      = "com.bea:Name=ThreadPoolRuntime,ServerRuntime=*,Type=ThreadPoolRuntime"
     paths      = ["StuckThreadCount","CompletedRequestCount","ExecuteThreadTotalCount","ExecuteThreadIdleCount","StandbyThreadCount","Throughput","HoggingThreadCount","PendingUserRequestCount"]
     tag_keys   = ["ServerRuntime"]
     tag_prefix = "wls_"
 
-  [[inputs.jolokia2_agent.metric]]
+  [[instances.metric]]
     name       = "JMSRuntime"
     mbean      = "com.bea:Name=*.jms,ServerRuntime=*,Type=JMSRuntime"
     paths      = ["ConnectionsCurrentCount","ConnectionsHighCount","ConnectionsTotalCount","JMSServersCurrentCount","JMSServersHighCount","JMSServersTotalCount"]
