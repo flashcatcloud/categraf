@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"flashcat.cloud/categraf/inputs"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -64,12 +65,11 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 		series[metric.Name] = points
 	}
 
-	// for measurement, points := range series {
-	// 	for _, point := range compactPoints(points) {
-	// 		// acc.AddFields(measurement,
-	// 		// 	point.Fields, mergeTags(point.Tags, tags))
-	// 	}
-	// }
+	for measurement, points := range series {
+		for _, point := range compactPoints(points) {
+			inputs.PushMeasurements(slist, measurement, point.Fields, mergeTags(point.Tags, tags))
+		}
+	}
 }
 
 // generatePoints creates points for the supplied metric from the ReadResponse
