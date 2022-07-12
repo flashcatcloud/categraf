@@ -9,7 +9,6 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
-	"flashcat.cloud/categraf/types"
 )
 
 const inputName = "cpu"
@@ -96,7 +95,7 @@ func (c *CPUStats) Gather(slist *list.SafeList) {
 			"usage_active":     100 * (active - lastActive) / totalDelta,
 		}
 
-		types.PushSamples(slist, fields, tags)
+		inputs.PushSamples(slist, fields, tags)
 	}
 
 	c.lastStats = make(map[string]cpuUtil.TimesStat)

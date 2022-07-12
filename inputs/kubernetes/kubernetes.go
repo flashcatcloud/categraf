@@ -210,7 +210,7 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 				fields["pod_container_logsfs_available_bytes"] = container.LogsFS.AvailableBytes
 				fields["pod_container_logsfs_capacity_bytes"] = container.LogsFS.CapacityBytes
 				fields["pod_container_logsfs_used_bytes"] = container.LogsFS.UsedBytes
-				types.PushSamples(slist, fields, tags, ins.Labels)
+				inputs.PushSamples(slist, fields, tags, ins.Labels)
 			}
 		}
 
@@ -229,7 +229,7 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 				fields["pod_volume_available_bytes"] = volume.AvailableBytes
 				fields["pod_volume_capacity_bytes"] = volume.CapacityBytes
 				fields["pod_volume_used_bytes"] = volume.UsedBytes
-				types.PushSamples(slist, fields, tags, ins.Labels)
+				inputs.PushSamples(slist, fields, tags, ins.Labels)
 			}
 		}
 
@@ -247,7 +247,7 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 			fields["pod_network_rx_errors"] = pod.Network.RXErrors
 			fields["pod_network_tx_bytes"] = pod.Network.TXBytes
 			fields["pod_network_tx_errors"] = pod.Network.TXErrors
-			types.PushSamples(slist, fields, tags, ins.Labels)
+			inputs.PushSamples(slist, fields, tags, ins.Labels)
 		}
 	}
 }
@@ -272,7 +272,7 @@ func (ins *Instance) buildSystemContainerMetrics(summaryMetrics *SummaryMetrics,
 		fields["system_container_logsfs_available_bytes"] = container.LogsFS.AvailableBytes
 		fields["system_container_logsfs_capacity_bytes"] = container.LogsFS.CapacityBytes
 
-		types.PushSamples(slist, fields, tags, ins.Labels)
+		inputs.PushSamples(slist, fields, tags, ins.Labels)
 	}
 }
 
@@ -300,7 +300,7 @@ func (ins *Instance) buildNodeMetrics(summaryMetrics *SummaryMetrics, slist *lis
 	fields["node_runtime_image_fs_capacity_bytes"] = summaryMetrics.Node.Runtime.ImageFileSystem.CapacityBytes
 	fields["node_runtime_image_fs_used_bytes"] = summaryMetrics.Node.Runtime.ImageFileSystem.UsedBytes
 
-	types.PushSamples(slist, fields, tags, ins.Labels)
+	inputs.PushSamples(slist, fields, tags, ins.Labels)
 }
 
 func (ins *Instance) gatherPodInfo(baseURL string) ([]Metadata, error) {

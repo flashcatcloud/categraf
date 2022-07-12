@@ -8,7 +8,6 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/filter"
-	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -82,6 +81,6 @@ func (d *DiskIO) Gather(slist *list.SafeList) {
 			"merged_writes":    io.MergedWriteCount,
 		}
 
-		types.PushSamples(slist, fields, map[string]string{"name": io.Name})
+		inputs.PushSamples(slist, fields, map[string]string{"name": io.Name})
 	}
 }

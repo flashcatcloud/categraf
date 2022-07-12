@@ -7,7 +7,6 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
-	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -77,5 +76,5 @@ func (s *NetStats) Gather(slist *list.SafeList) {
 		"udp_socket":      counts["UDP"],
 	}
 
-	types.PushSamples(slist, fields, tags)
+	inputs.PushSamples(slist, fields, tags)
 }

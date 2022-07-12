@@ -7,7 +7,6 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/types"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
@@ -78,5 +77,5 @@ func (s *SystemStats) Gather(slist *list.SafeList) {
 		}
 	}
 
-	types.PushSamples(slist, fields)
+	inputs.PushSamples(slist, fields)
 }
