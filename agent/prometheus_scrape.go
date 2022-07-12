@@ -1,8 +1,9 @@
 package agent
 
 import (
-	coreconfig "flashcat.cloud/categraf/config"
+	"log"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/prometheus"
 )
 
@@ -11,6 +12,7 @@ func (a *Agent) startPrometheusScrape() {
 		!coreconfig.Config.Prometheus.Enable {
 		return
 	}
+	log.Println("I! prometheus scraping started!")
 	go prometheus.Start()
 }
 
@@ -20,4 +22,5 @@ func (a *Agent) stopPrometheusScrape() {
 		return
 	}
 	prometheus.Stop()
+	log.Println("I! prometheus scraping stopped!")
 }

@@ -486,6 +486,10 @@ func Start() {
 	if coreconfig.Config.DebugMode || coreconfig.Config.TestMode {
 		cfg.promlogConfig.Level.Set("debug")
 	} else {
+		cfg.promlogConfig.Level.Set(coreconfig.Config.Prometheus.LogLevel)
+	}
+
+	if cfg.promlogConfig.Level.String() == "" {
 		cfg.promlogConfig.Level.Set("info")
 	}
 
