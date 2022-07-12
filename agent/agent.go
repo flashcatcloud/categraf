@@ -38,6 +38,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
+	_ "flashcat.cloud/categraf/inputs/logstash"
 )
 
 type Agent struct {
