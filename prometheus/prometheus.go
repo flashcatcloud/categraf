@@ -495,15 +495,19 @@ func Start() {
 	discoveryManagerScrape := discovery.NewManager(ctxScrape, log.With(logger, "component", "discovery manager scrape"), discovery.Name("scrape"))
 	discoveryManagerNotify := discovery.NewManager(ctxNotify, log.With(logger, "component", "discovery manager notify"), discovery.Name("notify"))
 
-	// TODO scrapeopts configurable
 	if cfg.scrape.ExtraMetrics {
+		// Experimental additional scrape metrics
+		// TODO scrapeopts configurable
 	}
 
 	localStorage := &readyStorage{stats: tsdb.NewDBStats()}
 
-	// TODO agentStoragePath configurable
+	cfg.agentStoragePath = coreconfig.Config.Prometheus.StoragePath
 	if len(cfg.agentStoragePath) == 0 {
 		cfg.agentStoragePath = "./data-agent"
+	}
+	if cfg.tsdb.MinBlockDuration == model.Duration(0) {
+		cfg.tsdb.MinBlockDuration = model.Duration(2 * time.Hour)
 	}
 	if cfg.webTimeout == model.Duration(0) {
 		cfg.webTimeout = model.Duration(time.Minute * 5)
@@ -530,7 +534,6 @@ func Start() {
 
 	scraper := &readyScrapeManager{}
 
-	// TODO configurable
 	remoteFlushDeadline := time.Duration(1 * time.Minute)
 	localStoragePath := cfg.agentStoragePath
 	remoteStorage := remote.NewStorage(log.With(logger, "component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, time.Duration(remoteFlushDeadline), scraper)
@@ -634,15 +637,18 @@ func Start() {
 	{
 		// Termination handler.
 		term := make(chan os.Signal, 1)
-		signal.Notify(term, syscall.SIGINT, syscall.SIGTERM)
+		signal.Notify(term, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGPIPE)
 		cancel := make(chan struct{})
 		g.Add(
 			func() error {
 				// Don't forget to release the reloadReady channel so that waiting blocks can exit normally.
 				select {
-				case <-term:
-					level.Warn(logger).Log("msg", "Received SIGTERM, exiting gracefully...")
-					reloadReady.Close()
+				case sig := <-term:
+					level.Warn(logger).Log("msg", "Received ", sig.String())
+					if sig != syscall.SIGPIPE {
+						level.Warn(logger).Log("msg", "exiting gracefully...")
+						reloadReady.Close()
+					}
 				case <-webHandler.Quit():
 					level.Warn(logger).Log("msg", "Received termination request via web service, exiting gracefully...")
 				case <-cancel:
