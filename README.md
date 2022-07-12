@@ -103,6 +103,7 @@ Click on the links to see the README of each plugin.
 - [ ] activemq
 - [x] [kafka](inputs/kafka)
 - [x] [elasticsearch](inputs/elasticsearch)
+- [x] [logstash](inputs/logstash)
 - [x] windows
 - [ ] mssql
 - [ ] iis
