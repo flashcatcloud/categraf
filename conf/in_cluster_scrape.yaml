@@ -1,8 +1,8 @@
 global:
   scrape_interval: 15s
-  external_labels:
-    cluster: test
-    replica: 0
+  #external_labels:
+  #  cluster: test
+  #  replica: 0
 
 scrape_configs:
   - job_name: "categraf-scrape-metrics"

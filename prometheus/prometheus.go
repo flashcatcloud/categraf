@@ -478,7 +478,15 @@ func Start() {
 			Registerer: prometheus.DefaultRegisterer,
 			Gatherer:   prometheus.DefaultGatherer,
 		},
-		promlogConfig: promlog.Config{},
+		promlogConfig: promlog.Config{
+			Level: &promlog.AllowedLevel{},
+		},
+	}
+
+	if coreconfig.Config.DebugMode || coreconfig.Config.TestMode {
+		cfg.promlogConfig.Level.Set("debug")
+	} else {
+		cfg.promlogConfig.Level.Set("info")
 	}
 
 	logger := promlog.New(&cfg.promlogConfig)
@@ -544,7 +552,7 @@ func Start() {
 
 	cfg.web.ListenAddress = coreconfig.Config.Prometheus.WebAddress
 	if len(cfg.web.ListenAddress) == 0 {
-		cfg.web.ListenAddress = "127.0.0.1:9091"
+		cfg.web.ListenAddress = "127.0.0.1:0"
 	}
 
 	cfg.web.ExternalURL, err = computeExternalURL(cfg.prometheusURL, cfg.web.ListenAddress)
@@ -644,7 +652,7 @@ func Start() {
 				// Don't forget to release the reloadReady channel so that waiting blocks can exit normally.
 				select {
 				case sig := <-term:
-					level.Warn(logger).Log("msg", "Received ", sig.String())
+					level.Warn(logger).Log("msg", "Received "+sig.String())
 					if sig != syscall.SIGPIPE {
 						level.Warn(logger).Log("msg", "exiting gracefully...")
 						reloadReady.Close()

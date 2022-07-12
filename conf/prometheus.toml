@@ -1,7 +1,6 @@
 [prometheus]
   enable=true
-  scrape_config_file="/path/to/scrape.yaml"
-  web_address="127.0.0.1:9091"
+  scrape_config_file="/path/to/in_cluster_scrape.yaml"
   ##wal file storage path ,default ./data-agent
   # wal_storage_path="/path/to/storage"
   ##wal reserve time duration, default value is 2 hour
