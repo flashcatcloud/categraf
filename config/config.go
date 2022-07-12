@@ -57,6 +57,7 @@ type ConfigType struct {
 	Logs         Logs           `toml:"logs"`
 	MetricsHouse MetricsHouse   `toml:"metricshouse"`
 	Traces       *traces.Config `toml:"traces"`
+	Prometheus   *Prometheus    `toml:"prometheus"`
 }
 
 var Config *ConfigType
