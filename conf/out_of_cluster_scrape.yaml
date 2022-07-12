@@ -5,19 +5,19 @@ global:
   #  replica: 0
 
 scrape_configs:
-  - job_name: "categraf-scrape-metrics"
+  - job_name: "categraf-out"
     static_configs:
-      - targets: ["172.16.3.186:8080"]
-
-  - job_name: "categraf-kubernetes-apiservers"
+      - targets: ["172.16.6.171:8080"]
+  - job_name: "categraf-out-apiserver"
     metrics_path: "/metrics"
     kubernetes_sd_configs:
       - role: endpoints
+        kubeconfig_file: /path/to/.kube/config
     scheme: https
     tls_config:
       insecure_skip_verify: true
     authorization:
-      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      credentials_file: /path/to/token
     relabel_configs:
       - source_labels:
           [
@@ -27,10 +27,11 @@ scrape_configs:
           ]
         action: keep
         regex: default;kubernetes;https
-  - job_name: "categraf-core-dns"
+  - job_name: "categraf-out-coredns"
     metrics_path: "/metrics"
     kubernetes_sd_configs:
       - role: endpoints
+        kubeconfig_file: /path/to/.kube/config
     scheme: http
     relabel_configs:
       - source_labels:

@@ -1,36 +1,36 @@
 [logs]
-## key 占位符
+## just a placholder
 api_key = "ef4ahfbwzwwtlwfpbertgq1i6mq0ab1q"
-## 是否开启日志采集
+## enable log collect or not
 enable = false
-## 接受日志的server地址, http/tcp/kafka, 只有kafka支持多个地址（broker）用逗号分割
+## the server receive logs, http/tcp/kafka, only kafka brokers can be multiple ip:ports with concatenation character ","
 send_to = "127.0.0.1:17878"
-## 发送日志的协议 http/tcp/kafka
+## send logs with protocol: http/tcp/kafka
 send_type = "http"
 topic = "flashcatcloud"
-## 是否压缩发送
+## send logs with compression or not 
 use_compress = false
-## 是否采用ssl
+## use ssl or not
 send_with_tls = false
-##
+## send logs in batchs
 batch_wait = 5
-## 日志offset信息保存目录
+## save offset in this path 
 run_path = "/opt/categraf/run"
-## 最多同时采集多少个日志文件
+## max files can be open 
 open_files_limit = 100
-## 定期扫描目录下是否有新增日志
+## scan config file in 10 seconds
 scan_period = 10
-## udp 读buffer的大小
+## read buffer of udp 
 frame_size = 9000
 ##
 collect_container_all = true
-  ## 全局的处理规则
+  ## glog processing rules
   [[logs.Processing_rules]]
-  ## 单个日志采集配置
+  ## single log configure
   [[logs.items]]
   ## file/journald/tcp/udp
   type = "file"
-  ## type=file时 path必填，type=journald/tcp/udp时 port必填
+  ## type=file, path is required; type=journald/tcp/udp, port is required
   path = "/opt/tomcat/logs/*.txt"
   source = "tomcat"
   service = "my_service"

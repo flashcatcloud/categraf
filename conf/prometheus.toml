@@ -1,5 +1,5 @@
 [prometheus]
-  enable=true
+  enable=false
   scrape_config_file="/path/to/in_cluster_scrape.yaml"
   ## log level, debug warn info error
   log_level="info"
