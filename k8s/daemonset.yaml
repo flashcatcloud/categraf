@@ -667,7 +667,7 @@ spec:
       - configMap:
           defaultMode: 420
           name: input-kubelet-metrics
-        name: input-kubelet-mertrics
+        name: input-kubelet-metrics
       - configMap:
           defaultMode: 420
           name: input-kernel
