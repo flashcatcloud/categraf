@@ -6,7 +6,8 @@ log_level = "info"
 labels = { instance="mongo-cluster-01" }
 
 # mongodb dsn, see https://www.mongodb.com/docs/manual/reference/connection-string/
-mongodb_uri = "mongodb://127.0.0.1:27017"
+# mongodb_uri = "mongodb://127.0.0.1:27017"
+mongodb_uri = ""
 # if you don't specify the username or password in the mongodb_uri, you can set here. 
 # This will overwrite the dsn, it would be helpful when special characters existing in the username or password and you don't want to encode them.
 # NOTICE! this user must be granted enough rights to query needed stats, see ../inputs/mongodb/README.md
