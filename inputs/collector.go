@@ -16,7 +16,7 @@ const capMetricChan = 1000
 
 var parser = new(pp.Parser)
 
-func Collect(e prometheus.Collector, slist *list.SafeList) error {
+func Collect(e prometheus.Collector, slist *list.SafeList, constLabels ...map[string]string) error {
 	if e == nil {
 		return errors.New("exporter must not be nil")
 	}
@@ -52,6 +52,12 @@ func Collect(e prometheus.Collector, slist *list.SafeList) error {
 
 		for _, kv := range dtoMetric.Label {
 			labels[*kv.Name] = *kv.Value
+		}
+
+		for _, kvs := range constLabels {
+			for k, v := range kvs {
+				labels[k] = v
+			}
 		}
 
 		switch {

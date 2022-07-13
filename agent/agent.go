@@ -20,6 +20,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/kubernetes"
 	_ "flashcat.cloud/categraf/inputs/linux_sysctl_fs"
 	_ "flashcat.cloud/categraf/inputs/mem"
+	_ "flashcat.cloud/categraf/inputs/mongodb"
 	_ "flashcat.cloud/categraf/inputs/mysql"
 	_ "flashcat.cloud/categraf/inputs/net"
 	_ "flashcat.cloud/categraf/inputs/net_response"
