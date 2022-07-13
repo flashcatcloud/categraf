@@ -2,12 +2,14 @@
 # log level, enum: panic, fatal, error, warn, warning, info, debug, trace, defaults to info.
 log_level = "info"
 # append some const labels to metrics
+# NOTICE! the instance label is required for dashboards
 labels = { instance="mongo-cluster-01" }
 
 # mongodb dsn, see https://www.mongodb.com/docs/manual/reference/connection-string/
 mongodb_uri = "mongodb://127.0.0.1:27017"
 # if you don't specify the username or password in the mongodb_uri, you can set here. 
 # This will overwrite the dsn, it would be helpful when special characters existing in the username or password and you don't want to encode them.
+# NOTICE! this user must be granted enough rights to query needed stats, see ../inputs/mongodb/README.md
 username = "username@Bj"
 password = "password@Bj"
 # if set to true, use the direct connection way

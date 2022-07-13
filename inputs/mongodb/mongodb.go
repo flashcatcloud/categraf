@@ -1,6 +1,7 @@
 package mongodb
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -118,12 +119,21 @@ func (ins *Instance) Init() error {
 	if len(ins.MongodbURI) == 0 {
 		return nil
 	}
+
 	if len(ins.LogLevel) == 0 {
 		ins.LogLevel = "info"
 	}
 	level, err := logrus.ParseLevel(ins.LogLevel)
 	if err != nil {
 		return err
+	}
+
+	if ins.Labels == nil {
+		ins.Labels = make(map[string]string)
+	}
+	_, ok := ins.Labels["instance"]
+	if !ok {
+		return errors.New("instance must be specified in labels")
 	}
 
 	l := logrus.New()
