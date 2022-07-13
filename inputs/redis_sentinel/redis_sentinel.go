@@ -40,7 +40,7 @@ func init() {
 }
 
 func (r *RedisSentinel) Prefix() string {
-	return inputName
+	return ""
 }
 
 func (r *RedisSentinel) Init() error {
