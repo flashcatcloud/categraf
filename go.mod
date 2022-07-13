@@ -42,6 +42,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jaegerreceiver v0.54.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver v0.54.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver v0.54.0
+	github.com/orcaman/concurrent-map v1.0.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/percona/percona-toolkit v0.0.0-20211210121818-b2860eee3152
 	github.com/pkg/errors v0.9.1

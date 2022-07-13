@@ -14,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/pkg/runtimex"
 	"flashcat.cloud/categraf/types"
 	"github.com/gaochao1/sw"
+	cmap "github.com/orcaman/concurrent-map"
 	"github.com/toolkits/pkg/concurrent/semaphore"
 	"github.com/toolkits/pkg/container/list"
 	go_snmp "github.com/ulricqin/gosnmp"
@@ -602,11 +603,10 @@ func (ins *Instance) ifstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip st
 }
 
 func (ins *Instance) gatherPing(ips []string, slist *list.SafeList) []string {
-	// init ping result
-	pingResult := make(map[string]bool)
+	pingResult := cmap.New()
 	for i := 0; i < len(ips); i++ {
 		// init ping result
-		pingResult[ips[i]] = false
+		pingResult.Set(ips[i], false)
 	}
 
 	wg := new(sync.WaitGroup)
@@ -620,9 +620,10 @@ func (ins *Instance) gatherPing(ips []string, slist *list.SafeList) []string {
 	wg.Wait()
 
 	ips = make([]string, 0, len(ips))
-	for ip, succ := range pingResult {
+
+	for ip, succ := range pingResult.Items() {
 		val := 0
-		if succ {
+		if succ.(bool) {
 			val = 1
 			ips = append(ips, ip)
 		}
@@ -647,7 +648,7 @@ func (ins *Instance) parseIPs() (lst []string) {
 	return
 }
 
-func (ins *Instance) ping(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip string, result map[string]bool) {
+func (ins *Instance) ping(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip string, result cmap.ConcurrentMap) {
 	defer func() {
 		sema.Release()
 		wg.Done()
@@ -656,7 +657,7 @@ func (ins *Instance) ping(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip stri
 	for i := 0; i < ins.PingRetries; i++ {
 		succ := sw.Ping(ip, int(ins.PingTimeoutMs), ins.PingModeFastping)
 		if succ {
-			result[ip] = succ
+			result.Set(ip, succ)
 			break
 		}
 	}
