@@ -1,0 +1,10 @@
+[prometheus]
+  enable=false
+  scrape_config_file="/path/to/in_cluster_scrape.yaml"
+  ## log level, debug warn info error
+  log_level="info"
+  ## wal file storage path ,default ./data-agent
+  # wal_storage_path="/path/to/storage"
+  ## wal reserve time duration, default value is 2 hour
+  # wal_min_duration=2
+

@@ -28,7 +28,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "(1-sum(kubernetes_pod_container_memory_usage_bytes)/ on(pod) sum(kube_pod_container_resource_requests_memory_bytes and on(pod) kubernetes_pod_container_memory_usage_bytes))*100",
+                        "expr": "(1-sum(kubernetes_pod_container_memory_usage_bytes)/ on(pod,container) sum(kube_pod_container_resource_requests_memory_bytes and on(pod,container) kubernetes_pod_container_memory_usage_bytes))*100",
                         "legend": ""
                     }
                 ],
@@ -97,7 +97,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(kube_pod_container_resource_requests_memory_bytes   and on(pod)  kubernetes_pod_container_memory_usage_bytes) - on(pod) \nsum( kubernetes_pod_container_memory_usage_bytes)",
+                        "expr": "sum(kube_pod_container_resource_requests_memory_bytes   and on(pod,container)  kubernetes_pod_container_memory_usage_bytes) - on(pod,container) \nsum( kubernetes_pod_container_memory_usage_bytes)",
                         "legend": ""
                     }
                 ],
@@ -156,7 +156,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "(1-sum(kubernetes_pod_container_cpu_usage_nanocores/1000000000)/ on(pod) sum(kube_pod_container_resource_requests_cpu_cores and on(pod) kubernetes_pod_container_cpu_usage_nanocores ))*100",
+                        "expr": "(1-sum(kubernetes_pod_container_cpu_usage_nanocores/1000000000)/ on(pod,container) sum(kube_pod_container_resource_requests_cpu_cores and on(pod,container) kubernetes_pod_container_cpu_usage_nanocores ))*100",
                         "legend": ""
                     }
                 ],
@@ -223,7 +223,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(kube_pod_container_resource_requests_cpu_cores  and on(pod) kubernetes_pod_container_cpu_usage_nanocores  )- on(pod) \n sum(kubernetes_pod_container_cpu_usage_nanocores /1000000000)",
+                        "expr": "sum(kube_pod_container_resource_requests_cpu_cores  and on(pod,container) kubernetes_pod_container_cpu_usage_nanocores  )- on(pod,container) \n sum(kubernetes_pod_container_cpu_usage_nanocores /1000000000)",
                         "legend": ""
                     }
                 ],
@@ -290,7 +290,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "topk(10,sum (kube_pod_container_resource_requests_memory_bytes and on (pod,namespace) kubernetes_pod_container_memory_usage_bytes) by (namespace)   -  on(pod,namespace) sum(kubernetes_pod_container_memory_usage_bytes  ) by (namespace))",
+                        "expr": "topk(10,sum (kube_pod_container_resource_requests_memory_bytes and on (pod,container,namespace) kubernetes_pod_container_memory_usage_bytes) by (namespace)   -  on(pod,container,namespace) sum(kubernetes_pod_container_memory_usage_bytes  ) by (namespace))",
                         "legend": "{{namespace}}"
                     }
                 ],
@@ -328,7 +328,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "topk(10,sum (kube_pod_container_resource_requests_cpu_cores and on (pod,namespace) kubernetes_pod_container_cpu_usage_nanocores) by (namespace)   -  on(pod,namespace) sum(kubernetes_pod_container_cpu_usage_nanocores/1000000000  ) by (namespace))",
+                        "expr": "topk(10,sum (kube_pod_container_resource_requests_cpu_cores and on (pod,container,namespace) kubernetes_pod_container_cpu_usage_nanocores) by (namespace)   -  on(pod,container,namespace) sum(kubernetes_pod_container_cpu_usage_nanocores/1000000000  ) by (namespace))",
                         "legend": "{{namespace}}"
                     }
                 ],
@@ -381,7 +381,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "(1-sum(kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"})/ on(pod) sum(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\"} and on(pod) kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}))*100",
+                        "expr": "(1-sum(kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"})/ on(pod,container) sum(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\"} and on(pod,container) kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}))*100",
                         "legend": ""
                     }
                 ],
@@ -450,7 +450,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\"}   and on(pod)  kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}) - on(pod) \nsum( kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"})",
+                        "expr": "sum(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\"}   and on(pod,container)  kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}) - on(pod,container) \nsum( kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"})",
                         "legend": ""
                     }
                 ],
@@ -547,7 +547,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "(1-sum(kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"}/1000000000)/ on(pod) sum(kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\"} and on(pod) kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"} ))*100",
+                        "expr": "(1-sum(kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"}/1000000000)/ on(pod,container) sum(kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\"} and on(pod,container) kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"} ))*100",
                         "legend": ""
                     }
                 ],
@@ -614,7 +614,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\"} and on(pod) kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"} )- on(pod) \n sum(kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"}/1000000000)",
+                        "expr": "sum(kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\"} and on(pod,container) kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"} )- on(pod,container) \n sum(kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"}/1000000000)",
                         "legend": ""
                     }
                 ],
@@ -748,7 +748,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "(1-sum(kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"})/ on(pod) sum(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\"} and on(pod) kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}))*100",
+                        "expr": "(1-sum(kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"})/ on(pod,container) sum(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\"} and on(pod,container) kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}))*100",
                         "legend": ""
                     }
                 ],
@@ -793,7 +793,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "(1-sum(kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"}/1000000000)/ on(pod) sum(kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\"} and on(pod) kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"} ))*100",
+                        "expr": "(1-sum(kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"}/1000000000)/ on(pod,container) sum(kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\"} and on(pod,container) kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"} ))*100",
                         "legend": ""
                     }
                 ],
@@ -834,7 +834,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "topk(10,kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\"} and on (pod) kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}    -  on(pod) kubernetes_pod_container_memory_usage_bytes  )",
+                        "expr": "topk(10,(kube_pod_container_resource_requests_memory_bytes{namespace=\"$namespace\"} and on (pod,container) kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"} )   -  on(pod,container) kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}  )",
                         "legend": "{{pod}}"
                     }
                 ],
@@ -872,7 +872,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "topk(10, kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\"} and on (pod) kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"}    -  on(pod) kubernetes_pod_container_cpu_usage_nanocores/1000000000  )",
+                        "expr": "topk(10, (kube_pod_container_resource_requests_cpu_cores{namespace=\"$namespace\"} and on (pod,container) kubernetes_pod_container_cpu_usage_nanocores{namespace=\"$namespace\"} )   -  on(pod,container) kubernetes_pod_container_cpu_usage_nanocores/1000000000  )",
                         "legend": "{{pod}}"
                     }
                 ],

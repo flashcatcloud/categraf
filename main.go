@@ -25,6 +25,7 @@ var (
 	configDir    = flag.String("configs", osx.GetEnv("CATEGRAF_CONFIGS", "conf"), "Specify configuration directory.(env:CATEGRAF_CONFIGS)")
 	debugMode    = flag.Bool("debug", false, "Is debug mode?")
 	testMode     = flag.Bool("test", false, "Is test mode? print metrics to stdout")
+	interval     = flag.Int64("interval", 0, "Global interval(unit:Second)")
 	showVersion  = flag.Bool("version", false, "Show version.")
 	inputFilters = flag.String("inputs", "", "e.g. cpu:mem:system")
 
@@ -59,7 +60,7 @@ func main() {
 	printEnv()
 
 	// init configs
-	if err := config.InitConfig(*configDir, *debugMode, *testMode); err != nil {
+	if err := config.InitConfig(*configDir, *debugMode, *testMode, *interval); err != nil {
 		log.Fatalln("F! failed to init config:", err)
 	}
 

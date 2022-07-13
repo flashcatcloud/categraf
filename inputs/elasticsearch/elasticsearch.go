@@ -531,7 +531,7 @@ func (ins *Instance) gatherClusterHealth(url string, address string, slist *list
 		"cluster_health_unassigned_shards":                healthStats.UnassignedShards,
 	}
 
-	types.PushSamples(slist, clusterFields, map[string]string{"cluster_name": healthStats.ClusterName}, addrTag, ins.Labels)
+	inputs.PushSamples(slist, clusterFields, map[string]string{"cluster_name": healthStats.ClusterName}, addrTag, ins.Labels)
 
 	for name, health := range healthStats.Indices {
 		indexFields := map[string]interface{}{
@@ -544,7 +544,7 @@ func (ins *Instance) gatherClusterHealth(url string, address string, slist *list
 			"cluster_health_indices_status_code":           mapHealthStatusToCode(health.Status),
 			"cluster_health_indices_unassigned_shards":     health.UnassignedShards,
 		}
-		types.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, addrTag, ins.Labels)
+		inputs.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, addrTag, ins.Labels)
 	}
 
 	return nil

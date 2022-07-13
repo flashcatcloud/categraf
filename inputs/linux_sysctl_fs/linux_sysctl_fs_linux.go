@@ -14,7 +14,6 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/osx"
-	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -68,7 +67,7 @@ func (s *SysctlFS) Gather(slist *list.SafeList) {
 		log.Println("E! failed to gather file-nr:", err)
 	}
 
-	types.PushSamples(slist, fields)
+	inputs.PushSamples(slist, fields)
 }
 
 func (s *SysctlFS) gatherOne(name string, fields map[string]interface{}) error {

@@ -12,7 +12,6 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
@@ -101,5 +100,5 @@ func (c *Conntrack) Gather(slist *list.SafeList) {
 		log.Println("E! Conntrack input failed to collect metrics. Is the conntrack kernel module loaded?")
 	}
 
-	types.PushSamples(slist, fields)
+	inputs.PushSamples(slist, fields)
 }

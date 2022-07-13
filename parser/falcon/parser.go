@@ -60,7 +60,7 @@ func (p *Parser) Parse(input []byte, slist *list.SafeList) error {
 	now := time.Now()
 
 	for i := 0; i < len(samples); i++ {
-		fv, err := conv.ToFloat64(samples[i])
+		fv, err := conv.ToFloat64(samples[i].Value)
 		if err != nil {
 			continue
 		}

@@ -1,5 +1,5 @@
 # Categraf
-![Release](https://github.com/flashcatcloud/categraf/workflows/Release/badge.svg)
+[![Release](https://github.com/flashcatcloud/categraf/workflows/Release/badge.svg)](https://github.com/flashcatcloud/categraf/actions?query=workflow%3ARelease)
 [![Powered By Flashcat](https://img.shields.io/badge/Powered%20By-Flashcat-red)](https://flashcat.cloud/)
 
 Categraf is a monitoring agent for nightingale / prometheus / m3db / victoriametrics / thanos / influxdb / tdengine.
@@ -103,6 +103,7 @@ Click on the links to see the README of each plugin.
 - [ ] activemq
 - [x] [kafka](inputs/kafka)
 - [x] [elasticsearch](inputs/elasticsearch)
+- [x] [logstash](inputs/logstash)
 - [x] windows
 - [ ] mssql
 - [ ] iis

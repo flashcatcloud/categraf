@@ -55,7 +55,7 @@ func PostSeries(samples []*types.Sample) {
 	}
 
 	count := len(samples)
-	series := make([]*prompb.TimeSeries, count)
+	series := make([]prompb.TimeSeries, count)
 	for i := 0; i < count; i++ {
 		series[i] = convert(samples[i])
 	}
