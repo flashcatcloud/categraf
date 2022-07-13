@@ -9,6 +9,7 @@ import (
 
 func (a *Agent) startPrometheusScrape() {
 	if coreconfig.Config == nil ||
+		coreconfig.Config.Prometheus == nil ||
 		!coreconfig.Config.Prometheus.Enable {
 		return
 	}
@@ -18,6 +19,7 @@ func (a *Agent) startPrometheusScrape() {
 
 func (a *Agent) stopPrometheusScrape() {
 	if coreconfig.Config == nil ||
+		coreconfig.Config.Prometheus == nil ||
 		!coreconfig.Config.Prometheus.Enable {
 		return
 	}
