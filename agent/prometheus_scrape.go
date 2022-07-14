@@ -11,10 +11,11 @@ func (a *Agent) startPrometheusScrape() {
 	if coreconfig.Config == nil ||
 		coreconfig.Config.Prometheus == nil ||
 		!coreconfig.Config.Prometheus.Enable {
+		log.Println("I! prometheus scraping disabled!")
 		return
 	}
-	log.Println("I! prometheus scraping started!")
 	go prometheus.Start()
+	log.Println("I! prometheus scraping started!")
 }
 
 func (a *Agent) stopPrometheusScrape() {
