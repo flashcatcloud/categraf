@@ -54,7 +54,7 @@ nohup ./categraf &> stdout.log &
 ```
 
 
-## Deploy categraf as daemonset
+## Deploy categraf as daemonset, deployment or sidecar
 
 edit k8s/daemonset.yaml, replace NSERVER_SERVICE_WITH_PORT with service ip:port of nserver in your cluster, replace CATEGRAF_NAMESPACE with namespace value, then run:
 
@@ -65,6 +65,8 @@ kubectl apply -n monitoring -f k8s/deployment.yaml #collect apiserver coredns et
 ```
 Notice: k8s/sidecar.yaml is a demo, replace mock with your own image of service.
 
+## Scrape like prometheus
+see detail [here](https://github.com/flashcatcloud/categraf/blob/main/prometheus/README.md)
 
 ## Plugin
 
