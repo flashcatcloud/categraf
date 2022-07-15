@@ -70,11 +70,13 @@ subjects:
 ---
 ```
 2. get token
-Scraping in cluster, token will be auto mount into pod with path ```/var/run/secrets/kubernetes.io/serviceaccount/token```, you do not need to care about it.
-
-Scraping out of cluster, you can get token with this way and save it to file, then fill `bearer_token_file` in file `k8s/scrape_with_token.yaml`
+Recommended Strongly: Scraping in cluster, token will be auto mount into pod with path ```/var/run/secrets/kubernetes.io/serviceaccount/token```, you do not need to care about it. Replace all Vars with your own in file `k8s/in_cluster_scrape.yaml`.
+ 
+Scraping out of cluster, you can get token with this way and save it to file, then fill `bearer_token_file` in file `k8s/scrape_with_token.yaml` 
 ``` 
    secrets=$(kubectl get serviceaccount categraf-serviceaccount -o jsonpath={.secrets[].name})
    kubectl get secrets ${secrets} -o jsonpath={.data.token} | base64 -d
 ``` 
+`k8s/scrape_with_cafile.yaml` and `k8s/scrape_with_kubecofnig.yaml` is recommended only if you are proficient in 
+X509 client certs.
 
