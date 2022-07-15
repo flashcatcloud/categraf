@@ -1,0 +1,53 @@
+global:
+  scrape_interval: 15s
+  external_labels:
+    cluster: test
+    replica: 0
+scrape_configs:
+  - job_name: "categraf-out"
+    static_configs:
+      - targets: ["172.16.6.171:8080"]
+  - job_name: "apiserver"
+    metrics_path: "/metrics"
+    kubernetes_sd_configs:
+      - role: endpoints
+        # apiserver lvs address or service ip:port eg, https://172.31.0.1:443
+        api_server: "https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT_HTTPS}"
+        bearer_token_file: /path/to/token
+        tls_config: 
+          insecure_skip_verify: true
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    bearer_token_file: /path/to/token
+    relabel_configs:
+      - source_labels:
+          [
+            __meta_kubernetes_namespace,
+            __meta_kubernetes_service_name,
+            __meta_kubernetes_endpoint_port_name,
+          ]
+        action: keep
+        regex: default;kubernetes;https
+  - job_name: "coredns"
+    metrics_path: "/metrics"
+    kubernetes_sd_configs:
+      - role: endpoints
+        # apiserver lvs address or service ip:port eg, https://172.31.0.1:443
+        api_server: "https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT_HTTPS}"
+        tls_config: 
+          bearer_token_file: /path/to/token
+          insecure_skip_verify: true
+    scheme: http
+    relabel_configs:
+      - source_labels:
+          [
+            __meta_kubernetes_namespace,
+            __meta_kubernetes_service_name,
+            __meta_kubernetes_endpoint_port_name,
+          ]
+        action: keep
+        regex: kube-system;kube-dns;metrics
+
+remote_write:
+  - url: 'http://172.31.62.213/prometheus/v1/write'
