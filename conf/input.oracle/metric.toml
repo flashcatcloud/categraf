@@ -8,6 +8,27 @@ SELECT status, type, COUNT(*) as value FROM v$session GROUP BY status, type
 '''
 
 [[metrics]]
+mesurement = "lock"
+metric_fields = [ "cnt" ]
+timeout = "3s"
+request = '''
+SELECT COUNT(*) AS cnt
+  FROM ALL_OBJECTS A, V$LOCKED_OBJECT B, SYS.GV_$SESSION C
+ WHERE A.OBJECT_ID = B.OBJECT_ID
+   AND B.PROCESS = C.PROCESS
+'''
+
+[[metrics]]
+mesurement = "slow_queries"
+metric_fields = [ "p95_time_usecs" , "p99_time_usecs"]
+timeout = "3s"
+request = '''
+select  percentile_disc(0.95)  within group (order by elapsed_time) as p95_time_usecs, 
+  percentile_disc(0.99)  within group (order by elapsed_time) as p99_time_usecs 
+from v$sql where last_active_time >= sysdate - 5/(24*60)
+'''
+
+[[metrics]]
 mesurement = "resource"
 label_fields = [ "resource_name" ]
 metric_fields = [ "current_utilization", "limit_value" ]
