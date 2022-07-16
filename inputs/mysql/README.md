@@ -47,8 +47,7 @@ gather_slave_status = true
 # # interval = global.interval * interval_times
 # interval_times = 1
 
-# 如果要复用Grafana的大盘，Grafana的大盘一般使用instance标识的，
-# 建议为mysql实例附一个instance的标签
+# 为mysql实例附一个instance的标签，因为通过address=127.0.0.1:3306不好区分
 # important! use global unique string to specify instance
 # labels = { instance="n9e-10.2.3.4:3306" }
 
@@ -93,4 +92,4 @@ labels = { instance="zbx-10.2.6.9:3306" }
 
 ## 监控大盘和告警规则
 
-本 README 的同级目录，大家可以看到 dashboard.json 就是监控大盘（注意！监控大盘使用instance大盘变量，所以，上面的配置文件中要配置一个instance的标签，就是 `labels = { instance="n9e-10.2.3.4:3306" }` 部分），导入夜莺就可以使用，alerts.json 是告警规则，也是导入夜莺就可以使用。
+本 README 的同级目录，大家可以看到alerts.json 是告警规则，导入夜莺就可以使用， dashboard-by-instance.json 就是监控大盘（注意！监控大盘使用instance大盘变量，所以，上面的配置文件中要配置一个instance的标签，就是 `labels = { instance="n9e-10.2.3.4:3306" }` 部分），也是导入夜莺就可以使用。dashboard-by-ident是使用ident作为大盘变量，适用于先找到宿主机器，再找机器上面的mysql实例的场景
