@@ -11,7 +11,7 @@ scrape_configs:
     metrics_path: "/metrics"
     kubernetes_sd_configs:
       - role: endpoints
-        # apiserver lvs address or service ip:port eg, https://172.31.0.1:443
+        # apiserver lvs address or service ip:port eg. https://172.31.0.1:443
         api_server: "https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT_HTTPS}"
         bearer_token_file: /path/to/token
         tls_config: 
@@ -33,10 +33,10 @@ scrape_configs:
     metrics_path: "/metrics"
     kubernetes_sd_configs:
       - role: endpoints
-        # apiserver lvs address or service ip:port eg, https://172.31.0.1:443
+        # apiserver lvs address or service ip:port eg. https://172.31.0.1:443
         api_server: "https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT_HTTPS}"
+        bearer_token_file: /path/to/token
         tls_config: 
-          bearer_token_file: /path/to/token
           insecure_skip_verify: true
     scheme: http
     relabel_configs:
