@@ -84,17 +84,17 @@ func (r *Haproxy) Gather(slist *list.SafeList) {
 }
 
 type Instance struct {
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
-
-	Servers         []string
-	KeepFieldNames  bool
-	Username        string
-	Password        string
-	IgnoreMetrics   []string `toml:"ignore_metrics"`
-	IgnoreLabelKeys []string `toml:"ignore_label_keys"`
-	NamePrefix      string   `toml:"name_prefix"`
-
+	Labels          map[string]string `toml:"labels"`
+	IntervalTimes   int64             `toml:"interval_times"`
+	Servers         []string          `toml:"servers"`
+	Headers         []string          `toml:"headers"`
+	Username        string            `toml:"username"`
+	Password        string            `toml:"password"`
+	IgnoreMetrics   []string          `toml:"ignore_metrics"`
+	IgnoreLabelKeys []string          `toml:"ignore_label_keys"`
+	NamePrefix      string            `toml:"name_prefix"`
+	Timeout         config.Duration   `toml:"timeout"`
+	KeepFieldNames  bool              `toml:"keep_fieldnames"`
 	ignoreMetricsFilter   filter.Filter
 	ignoreLabelKeysFilter filter.Filter
 
@@ -125,7 +125,7 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) {
 		matches, err := filepath.Glob(socketPath)
 
 		if err != nil {
-			log.Println("can't glob socket path %s",err)
+			log.Println("can't glob socket path %s", err)
 			return
 		}
 
@@ -177,7 +177,7 @@ func (ins *Instance) gatherServer(addr string, slist *list.SafeList) error {
 		tlsCfg, err := ins.ClientConfig.TLSConfig()
 		if err != nil {
 			log.Println("can't init TLSConfig :%s", err)
-			return err;
+			return err
 		}
 		tr := &http.Transport{
 			ResponseHeaderTimeout: 3 * time.Second,
