@@ -234,9 +234,9 @@ func (ins *Instance) custstat(wg *sync.WaitGroup, ip string, slist *list.SafeLis
 }
 
 func (ins *Instance) gatherMemMetrics(ips []string, slist *list.SafeList) {
-	result := make(map[string]float64)
+	result := cmap.New()
 	for i := 0; i < len(ips); i++ {
-		result[ips[i]] = -1
+		result.Set(ips[i], -1.0)
 	}
 
 	wg := new(sync.WaitGroup)
@@ -249,15 +249,20 @@ func (ins *Instance) gatherMemMetrics(ips []string, slist *list.SafeList) {
 	}
 	wg.Wait()
 
-	for ip, utilPercent := range result {
-		if utilPercent == -1 {
+	for ip, utilPercentInterface := range result.Items() {
+		utilPercent, ok := utilPercentInterface.(float64)
+		if !ok {
+			continue
+		}
+
+		if utilPercent < 0 {
 			continue
 		}
 		slist.PushFront(types.NewSample("mem_util", utilPercent, map[string]string{ins.parent.SwitchIdLabel: ip}, ins.Labels))
 	}
 }
 
-func (ins *Instance) memstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip string, result map[string]float64) {
+func (ins *Instance) memstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip string, result cmap.ConcurrentMap) {
 	defer func() {
 		sema.Release()
 		wg.Done()
@@ -269,13 +274,13 @@ func (ins *Instance) memstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip s
 		return
 	}
 
-	result[ip] = float64(utilPercent)
+	result.Set(ip, float64(utilPercent))
 }
 
 func (ins *Instance) gatherCpuMetrics(ips []string, slist *list.SafeList) {
-	result := make(map[string]float64)
+	result := cmap.New()
 	for i := 0; i < len(ips); i++ {
-		result[ips[i]] = -1
+		result.Set(ips[i], -1.0)
 	}
 
 	wg := new(sync.WaitGroup)
@@ -288,15 +293,21 @@ func (ins *Instance) gatherCpuMetrics(ips []string, slist *list.SafeList) {
 	}
 	wg.Wait()
 
-	for ip, utilPercent := range result {
-		if utilPercent == -1 {
+	for ip, utilPercentInterface := range result.Items() {
+		utilPercent, ok := utilPercentInterface.(float64)
+		if !ok {
 			continue
 		}
+
+		if utilPercent < 0 {
+			continue
+		}
+
 		slist.PushFront(types.NewSample("cpu_util", utilPercent, map[string]string{ins.parent.SwitchIdLabel: ip}, ins.Labels))
 	}
 }
 
-func (ins *Instance) cpustat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip string, result map[string]float64) {
+func (ins *Instance) cpustat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip string, result cmap.ConcurrentMap) {
 	defer func() {
 		sema.Release()
 		wg.Done()
@@ -308,7 +319,7 @@ func (ins *Instance) cpustat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip s
 		return
 	}
 
-	result[ip] = float64(utilPercent)
+	result.Set(ip, float64(utilPercent))
 }
 
 type ChIfStat struct {
@@ -318,9 +329,9 @@ type ChIfStat struct {
 }
 
 func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
-	result := make(map[string]*ChIfStat)
+	result := cmap.New()
 	for i := 0; i < len(ips); i++ {
-		result[ips[i]] = nil
+		result.Set(ips[i], nil)
 	}
 
 	wg := new(sync.WaitGroup)
@@ -333,16 +344,25 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 	}
 	wg.Wait()
 
-	for ip := range result {
-		if result[ip] == nil {
+	for ip, chifstatInterface := range result.Items() {
+		if chifstatInterface == nil {
 			continue
 		}
 
-		if result[ip].IP == "" {
+		chifstat, ok := chifstatInterface.(*ChIfStat)
+		if !ok {
 			continue
 		}
 
-		stats := result[ip].IfStatsList
+		if chifstat == nil {
+			continue
+		}
+
+		if chifstat.IP == "" {
+			continue
+		}
+
+		stats := chifstat.IfStatsList
 		for i := 0; i < len(stats); i++ {
 			ifStat := stats[i]
 
@@ -567,7 +587,7 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 
 }
 
-func (ins *Instance) ifstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip string, result map[string]*ChIfStat) {
+func (ins *Instance) ifstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip string, result cmap.ConcurrentMap) {
 	defer func() {
 		sema.Release()
 		wg.Done()
@@ -595,10 +615,10 @@ func (ins *Instance) ifstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip st
 	}
 
 	if len(ifList) > 0 {
-		result[ip] = &ChIfStat{
+		result.Set(ip, &ChIfStat{
 			IP:          ip,
 			IfStatsList: ifList,
-		}
+		})
 	}
 }
 
