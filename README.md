@@ -1,9 +1,9 @@
 # Categraf
 [![Powered By Flashcat](https://img.shields.io/badge/Powered%20By-Flashcat-red)](https://flashcat.cloud/)
-[![Release](https://img.shields.io/github/v/release/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/actions?query=workflow%3ARelease)
+[![Release](https://img.shields.io/github/v/release/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/releases/latest)
 [![Docker pulls](https://img.shields.io/docker/pulls/flashcatcloud/categraf)](https://hub.docker.com/r/flashcatcloud/categraf/)
-[![Starts](https://img.shields.io/github/stars/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf)
-[![Forks](https://img.shields.io/github/forks/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf)
+[![Starts](https://img.shields.io/github/stars/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/stargazers)
+[![Forks](https://img.shields.io/github/forks/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/fork)
 [![Contributors](https://img.shields.io/github/contributors-anon/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/graphs/contributors)
 [!["License"](https://img.shields.io/badge/license-MIT-red)](https://github.com/flashcatcloud/categraf/blob/main/LICENSE)
 
