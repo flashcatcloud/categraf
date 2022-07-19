@@ -84,17 +84,17 @@ func (r *Haproxy) Gather(slist *list.SafeList) {
 }
 
 type Instance struct {
-	Labels          map[string]string `toml:"labels"`
-	IntervalTimes   int64             `toml:"interval_times"`
-	Servers         []string          `toml:"servers"`
-	Headers         []string          `toml:"headers"`
-	Username        string            `toml:"username"`
-	Password        string            `toml:"password"`
-	IgnoreMetrics   []string          `toml:"ignore_metrics"`
-	IgnoreLabelKeys []string          `toml:"ignore_label_keys"`
-	NamePrefix      string            `toml:"name_prefix"`
-	Timeout         config.Duration   `toml:"timeout"`
-	KeepFieldNames  bool              `toml:"keep_fieldnames"`
+	Labels                map[string]string `toml:"labels"`
+	IntervalTimes         int64             `toml:"interval_times"`
+	Servers               []string          `toml:"servers"`
+	Headers               []string          `toml:"headers"`
+	Username              string            `toml:"username"`
+	Password              string            `toml:"password"`
+	IgnoreMetrics         []string          `toml:"ignore_metrics"`
+	IgnoreLabelKeys       []string          `toml:"ignore_label_keys"`
+	NamePrefix            string            `toml:"name_prefix"`
+	Timeout               config.Duration   `toml:"timeout"`
+	KeepFieldNames        bool              `toml:"keep_fieldnames"`
 	ignoreMetricsFilter   filter.Filter
 	ignoreLabelKeysFilter filter.Filter
 
@@ -103,6 +103,42 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
+
+	if ins.Timeout <= 0 {
+		ins.Timeout = config.Duration(time.Second * 5)
+	}
+	if ins.client == nil {
+		tlsCfg, err := ins.ClientConfig.TLSConfig()
+		if err != nil {
+			log.Println("can't init TLSConfig :%s", err)
+			return err
+		}
+		tr := &http.Transport{
+			ResponseHeaderTimeout: time.Duration(ins.Timeout),
+			TLSClientConfig:       tlsCfg,
+		}
+		client := &http.Client{
+			Transport: tr,
+			Timeout:   time.Duration(ins.Timeout),
+		}
+		ins.client = client
+	}
+
+	if len(ins.IgnoreMetrics) > 0 {
+		ignoreMetricsFilter, err := filter.Compile(ins.IgnoreMetrics)
+		if err != nil {
+			return err
+		}
+		ins.ignoreMetricsFilter = ignoreMetricsFilter
+	}
+
+	if len(ins.IgnoreLabelKeys) > 0 {
+		ignoreLabelKeysFilter, err := filter.Compile(ins.IgnoreLabelKeys)
+		if err != nil {
+			return err
+		}
+		ins.ignoreLabelKeysFilter = ignoreLabelKeysFilter
+	}
 	return nil
 }
 
@@ -173,23 +209,6 @@ func (ins *Instance) gatherServer(addr string, slist *list.SafeList) error {
 		return ins.gatherServerSocket(addr, slist)
 	}
 
-	if ins.client == nil {
-		tlsCfg, err := ins.ClientConfig.TLSConfig()
-		if err != nil {
-			log.Println("can't init TLSConfig :%s", err)
-			return err
-		}
-		tr := &http.Transport{
-			ResponseHeaderTimeout: 3 * time.Second,
-			TLSClientConfig:       tlsCfg,
-		}
-		client := &http.Client{
-			Transport: tr,
-			Timeout:   4 * time.Second,
-		}
-		ins.client = client
-	}
-
 	if !strings.HasSuffix(addr, "metrics") {
 		addr += "/metrics"
 	}
@@ -242,8 +261,8 @@ func (ins *Instance) gatherServer(addr string, slist *list.SafeList) error {
 	}
 
 	slist.PushFront(types.NewSample("up", 1, labels))
-
-	parser := prometheus.NewParser(ins.NamePrefix, labels, res.Header, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
+	//ins.NamePrefix
+	parser := prometheus.NewParser("", labels, res.Header, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
 	if err = parser.Parse(body, slist); err != nil {
 		log.Println("E! failed to parse response body, url:", u.String(), "error:", err)
 		return err
