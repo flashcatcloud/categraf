@@ -21,9 +21,8 @@ var metricReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "'", "_",
 type InputReader struct {
 	inputName string
 	input     inputs.Input
-	quitChan  chan struct {
-	}
-	queue chan *types.Sample
+	quitChan  chan struct{}
+	queue     chan *types.Sample
 }
 
 func NewInputReader(inputName string, in inputs.Input) *InputReader {
