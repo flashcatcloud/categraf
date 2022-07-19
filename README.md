@@ -1,10 +1,14 @@
 # Categraf
-[![Release](https://github.com/flashcatcloud/categraf/workflows/Release/badge.svg)](https://github.com/flashcatcloud/categraf/actions?query=workflow%3ARelease)
 [![Powered By Flashcat](https://img.shields.io/badge/Powered%20By-Flashcat-red)](https://flashcat.cloud/)
+[![Release](https://img.shields.io/github/v/release/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/actions?query=workflow%3ARelease)
+[![Docker pulls](https://img.shields.io/docker/pulls/flashcatcloud/categraf)](https://hub.docker.com/r/flashcatcloud/categraf/)
+[![Starts](https://img.shields.io/github/stars/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf)
+[![Forks](https://img.shields.io/github/forks/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf)
+[![Contributors](https://img.shields.io/github/contributors-anon/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/graphs/contributors)
+[!["License"](https://img.shields.io/badge/license-MIT-red)](https://github.com/flashcatcloud/categraf/blob/main/LICENSE)
 
 Categraf is a monitoring agent for nightingale / prometheus / m3db / victoriametrics / thanos / influxdb / tdengine.
 
-[![dockeri.co](https://dockeri.co/image/flashcatcloud/categraf)](https://hub.docker.com/r/flashcatcloud/categraf/)
 
 ## Links
 
