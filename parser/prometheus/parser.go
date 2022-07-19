@@ -8,6 +8,7 @@ import (
 	"math"
 	"mime"
 	"net/http"
+	"strings"
 
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/prom"
@@ -93,30 +94,43 @@ func (p *Parser) Parse(buf []byte, slist *list.SafeList) error {
 }
 
 func (p *Parser) HandleSummary(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
-	slist.PushFront(types.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags))
-	slist.PushFront(types.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags))
+	namePrefix := ""
+	if !strings.HasPrefix(metricName, p.NamePrefix) {
+		namePrefix = p.NamePrefix
+	}
+	slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags))
+	slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags))
 
 	for _, q := range m.GetSummary().Quantile {
-		slist.PushFront(types.NewSample(prom.BuildMetric(p.NamePrefix, metricName), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
+		slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
 	}
 }
 
 func (p *Parser) HandleHistogram(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
-	slist.PushFront(types.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags))
-	slist.PushFront(types.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags))
-	slist.PushFront(types.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
+	namePrefix := ""
+	if !strings.HasPrefix(metricName, p.NamePrefix) {
+		namePrefix = p.NamePrefix
+	}
+	slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags))
+	slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags))
+	slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
 
 	for _, b := range m.GetHistogram().Bucket {
 		le := fmt.Sprint(b.GetUpperBound())
 		value := float64(b.GetCumulativeCount())
-		slist.PushFront(types.NewSample(prom.BuildMetric(p.NamePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}))
+		slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}))
 	}
 }
 
 func (p *Parser) handleGaugeCounter(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
 	fields := getNameAndValue(m, metricName)
 	for metric, value := range fields {
-		slist.PushFront(types.NewSample(prom.BuildMetric(p.NamePrefix, metric, ""), value, tags))
+		if !strings.HasPrefix(metric, p.NamePrefix) {
+			slist.PushFront(types.NewSample(prom.BuildMetric(p.NamePrefix, metric, ""), value, tags))
+		} else {
+			slist.PushFront(types.NewSample(prom.BuildMetric("", metric, ""), value, tags))
+		}
+
 	}
 }
 
