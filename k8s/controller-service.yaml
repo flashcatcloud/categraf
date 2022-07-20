@@ -8,6 +8,8 @@ metadata:
 spec:
   selector:
     component: kube-controller-manager
+  type: ClusterIP
+  clusterIP: None
   ports:
   - name: https
     port: 10257
