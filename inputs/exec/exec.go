@@ -67,7 +67,7 @@ func (e *Exec) Init() error {
 			e.Instances[i].parser = influx.NewParser()
 		} else if e.Instances[i].DataFormat == "falcon" {
 			e.Instances[i].parser = falcon.NewParser()
-		} else if e.Instances[i].DataFormat == "prometheus" {
+		} else if strings.HasPrefix(e.Instances[i].DataFormat, "prom") {
 			e.Instances[i].parser = prometheus.NewParser("", map[string]string{}, nil, nil, nil)
 		} else {
 			return fmt.Errorf("data_format(%s) not supported", e.Instances[i].DataFormat)
