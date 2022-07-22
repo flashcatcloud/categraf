@@ -579,12 +579,9 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *list.SafeList) {
 					}
 				}
 			}
-
-			// update lastifmap
-			ins.lastifmap.Set(ip, stats)
 		}
+		ins.lastifmap.Set(ip, stats)
 	}
-
 }
 
 func (ins *Instance) ifstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip string, result cmap.ConcurrentMap) {
