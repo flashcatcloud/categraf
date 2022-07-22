@@ -18,6 +18,7 @@ import (
 	"flashcat.cloud/categraf/parser"
 	"flashcat.cloud/categraf/parser/falcon"
 	"flashcat.cloud/categraf/parser/influx"
+	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/pkg/cmdx"
 	"flashcat.cloud/categraf/types"
 	"github.com/kballard/go-shellquote"
@@ -66,6 +67,8 @@ func (e *Exec) Init() error {
 			e.Instances[i].parser = influx.NewParser()
 		} else if e.Instances[i].DataFormat == "falcon" {
 			e.Instances[i].parser = falcon.NewParser()
+		} else if e.Instances[i].DataFormat == "prometheus" {
+			e.Instances[i].parser = prometheus.NewParser("", map[string]string{}, nil, nil, nil)
 		} else {
 			return fmt.Errorf("data_format(%s) not supported", e.Instances[i].DataFormat)
 		}
