@@ -6,3 +6,4 @@
 docker/conf
 docker/categraf
 /build
+/nohup.out
