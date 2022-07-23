@@ -1,7 +1,6 @@
 package prometheus
 
 import (
-	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -9,7 +8,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -25,19 +23,19 @@ const inputName = "prometheus"
 const acceptHeader = `application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily;encoding=delimited;q=0.7,text/plain;version=0.0.4;q=0.3,*/*;q=0.1`
 
 type Instance struct {
-	URLs              []string          `toml:"urls"`
-	ConsulConfig      ConsulConfig      `toml:"consul"`
-	NamePrefix        string            `toml:"name_prefix"`
-	Labels            map[string]string `toml:"labels"`
-	IntervalTimes     int64             `toml:"interval_times"`
-	BearerTokenString string            `toml:"bearer_token_string"`
-	BearerTokeFile    string            `toml:"bearer_token_file"`
-	Username          string            `toml:"username"`
-	Password          string            `toml:"password"`
-	Timeout           config.Duration   `toml:"timeout"`
-	IgnoreMetrics     []string          `toml:"ignore_metrics"`
-	IgnoreLabelKeys   []string          `toml:"ignore_label_keys"`
-	Headers           []string          `toml:"headers"`
+	config.InstanceConfig
+
+	URLs              []string        `toml:"urls"`
+	ConsulConfig      ConsulConfig    `toml:"consul"`
+	NamePrefix        string          `toml:"name_prefix"`
+	BearerTokenString string          `toml:"bearer_token_string"`
+	BearerTokeFile    string          `toml:"bearer_token_file"`
+	Username          string          `toml:"username"`
+	Password          string          `toml:"password"`
+	Timeout           config.Duration `toml:"timeout"`
+	IgnoreMetrics     []string        `toml:"ignore_metrics"`
+	IgnoreLabelKeys   []string        `toml:"ignore_label_keys"`
+	Headers           []string        `toml:"headers"`
 
 	config.UrlLabel
 
@@ -61,7 +59,7 @@ func (ins *Instance) Empty() bool {
 
 func (ins *Instance) Init() error {
 	if ins.Empty() {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	if ins.ConsulConfig.Enabled && len(ins.ConsulConfig.Queries) > 0 {
@@ -130,9 +128,6 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 type Prometheus struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
-
-	counter uint64
-	waitgrp sync.WaitGroup
 }
 
 func init() {
@@ -141,57 +136,20 @@ func init() {
 	})
 }
 
-func (p *Prometheus) Prefix() string {
-	return ""
-}
+func (p *Prometheus) Prefix() string              { return "" }
+func (p *Prometheus) Init() error                 { return nil }
+func (p *Prometheus) Drop()                       {}
+func (p *Prometheus) Gather(slist *list.SafeList) {}
 
-func (p *Prometheus) Init() error {
-	if len(p.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (p *Prometheus) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(p.Instances))
 	for i := 0; i < len(p.Instances); i++ {
-		if err := p.Instances[i].Init(); err != nil {
-			if !errors.Is(err, types.ErrInstancesEmpty) {
-				return err
-			}
-		}
+		ret[i] = p.Instances[i]
 	}
-
-	return nil
+	return ret
 }
 
-func (p *Prometheus) Drop() {}
-
-func (p *Prometheus) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&p.counter, 1)
-
-	for i := range p.Instances {
-		ins := p.Instances[i]
-
-		if ins.Empty() {
-			continue
-		}
-
-		p.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer p.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&p.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			p.gatherOnce(slist, ins)
-		}(slist, ins)
-	}
-
-	p.waitgrp.Wait()
-}
-
-func (p *Prometheus) gatherOnce(slist *list.SafeList, ins *Instance) {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	urlwg := new(sync.WaitGroup)
 	defer urlwg.Wait()
 
@@ -204,7 +162,7 @@ func (p *Prometheus) gatherOnce(slist *list.SafeList, ins *Instance) {
 
 		urlwg.Add(1)
 
-		go p.gatherUrl(urlwg, slist, ins, ScrapeUrl{URL: u, Tags: map[string]string{}})
+		go ins.gatherUrl(urlwg, slist, ScrapeUrl{URL: u, Tags: map[string]string{}})
 	}
 
 	urls, err := ins.UrlsFromConsul()
@@ -215,11 +173,11 @@ func (p *Prometheus) gatherOnce(slist *list.SafeList, ins *Instance) {
 
 	for i := 0; i < len(urls); i++ {
 		urlwg.Add(1)
-		go p.gatherUrl(urlwg, slist, ins, urls[i])
+		go ins.gatherUrl(urlwg, slist, urls[i])
 	}
 }
 
-func (p *Prometheus) gatherUrl(urlwg *sync.WaitGroup, slist *list.SafeList, ins *Instance, uri ScrapeUrl) {
+func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *list.SafeList, uri ScrapeUrl) {
 	defer urlwg.Done()
 
 	u := uri.URL

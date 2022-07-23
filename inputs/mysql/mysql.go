@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -28,15 +26,15 @@ type QueryConfig struct {
 }
 
 type Instance struct {
+	config.InstanceConfig
+
 	Address        string `toml:"address"`
 	Username       string `toml:"username"`
 	Password       string `toml:"password"`
 	Parameters     string `toml:"parameters"`
 	TimeoutSeconds int64  `toml:"timeout_seconds"`
 
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
-	Queries       []QueryConfig     `toml:"queries"`
+	Queries []QueryConfig `toml:"queries"`
 
 	ExtraStatusMetrics              bool `toml:"extra_status_metrics"`
 	ExtraInnodbMetrics              bool `toml:"extra_innodb_metrics"`
@@ -54,7 +52,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.Address == "" {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	if ins.UseTLS {
@@ -153,9 +151,6 @@ func (ins *Instance) InitValidMetrics() {
 type MySQL struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
-
-	Counter uint64
-	wg      sync.WaitGroup
 }
 
 func init() {
@@ -164,49 +159,20 @@ func init() {
 	})
 }
 
-func (m *MySQL) Prefix() string {
-	return inputName
-}
+func (m *MySQL) Prefix() string              { return inputName }
+func (m *MySQL) Init() error                 { return nil }
+func (m *MySQL) Drop()                       {}
+func (m *MySQL) Gather(slist *list.SafeList) {}
 
-func (m *MySQL) Init() error {
-	if len(m.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (m *MySQL) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(m.Instances))
 	for i := 0; i < len(m.Instances); i++ {
-		if err := m.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = m.Instances[i]
 	}
-
-	return nil
+	return ret
 }
 
-func (m *MySQL) Drop() {}
-
-func (m *MySQL) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&m.Counter, 1)
-	for i := range m.Instances {
-		ins := m.Instances[i]
-		if len(ins.Address) == 0 {
-			continue
-		}
-		m.wg.Add(1)
-		go m.gatherOnce(slist, ins)
-	}
-	m.wg.Wait()
-}
-
-func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
-	defer m.wg.Done()
-
-	if ins.IntervalTimes > 0 {
-		counter := atomic.LoadUint64(&m.Counter)
-		if counter%uint64(ins.IntervalTimes) != 0 {
-			return
-		}
-	}
-
+func (ins *Instance) Gather(slist *list.SafeList) {
 	tags := map[string]string{"address": ins.Address}
 	for k, v := range ins.Labels {
 		tags[k] = v
@@ -243,16 +209,16 @@ func (m *MySQL) gatherOnce(slist *list.SafeList, ins *Instance) {
 
 	cache := make(map[string]float64)
 
-	m.gatherGlobalStatus(slist, ins, db, tags, cache)
-	m.gatherGlobalVariables(slist, ins, db, tags, cache)
-	m.gatherEngineInnodbStatus(slist, ins, db, tags, cache)
-	m.gatherEngineInnodbStatusCompute(slist, ins, db, tags, cache)
-	m.gatherBinlog(slist, ins, db, tags)
-	m.gatherProcesslistByState(slist, ins, db, tags)
-	m.gatherProcesslistByUser(slist, ins, db, tags)
-	m.gatherSchemaSize(slist, ins, db, tags)
-	m.gatherTableSize(slist, ins, db, tags, false)
-	m.gatherTableSize(slist, ins, db, tags, true)
-	m.gatherSlaveStatus(slist, ins, db, tags)
-	m.gatherCustomQueries(slist, ins, db, tags)
+	ins.gatherGlobalStatus(slist, db, tags, cache)
+	ins.gatherGlobalVariables(slist, db, tags, cache)
+	ins.gatherEngineInnodbStatus(slist, db, tags, cache)
+	ins.gatherEngineInnodbStatusCompute(slist, db, tags, cache)
+	ins.gatherBinlog(slist, db, tags)
+	ins.gatherProcesslistByState(slist, db, tags)
+	ins.gatherProcesslistByUser(slist, db, tags)
+	ins.gatherSchemaSize(slist, db, tags)
+	ins.gatherTableSize(slist, db, tags, false)
+	ins.gatherTableSize(slist, db, tags, true)
+	ins.gatherSlaveStatus(slist, db, tags)
+	ins.gatherCustomQueries(slist, db, tags)
 }

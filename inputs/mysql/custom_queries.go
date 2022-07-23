@@ -14,17 +14,17 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-func (m *MySQL) gatherCustomQueries(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherCustomQueries(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
 	wg := new(sync.WaitGroup)
 	defer wg.Wait()
 
 	for i := 0; i < len(ins.Queries); i++ {
 		wg.Add(1)
-		go m.gatherOneQuery(slist, ins, db, globalTags, wg, ins.Queries[i])
+		go ins.gatherOneQuery(slist, db, globalTags, wg, ins.Queries[i])
 	}
 }
 
-func (m *MySQL) gatherOneQuery(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, wg *sync.WaitGroup, query QueryConfig) {
+func (ins *Instance) gatherOneQuery(slist *list.SafeList, db *sql.DB, globalTags map[string]string, wg *sync.WaitGroup, query QueryConfig) {
 	defer wg.Done()
 
 	timeout := time.Duration(query.Timeout)
@@ -69,13 +69,13 @@ func (m *MySQL) gatherOneQuery(slist *list.SafeList, ins *Instance, db *sql.DB, 
 			row[strings.ToLower(colName)] = string(*val)
 		}
 
-		if err = m.parseRow(row, query, slist, globalTags); err != nil {
+		if err = ins.parseRow(row, query, slist, globalTags); err != nil {
 			log.Println("E! failed to parse row:", err, "sql:", query.Request)
 		}
 	}
 }
 
-func (m *MySQL) parseRow(row map[string]string, query QueryConfig, slist *list.SafeList, globalTags map[string]string) error {
+func (ins *Instance) parseRow(row map[string]string, query QueryConfig, slist *list.SafeList, globalTags map[string]string) error {
 	labels := tagx.Copy(globalTags)
 
 	for _, label := range query.LabelFields {

@@ -42,6 +42,11 @@ func init() {
 	})
 }
 
+// just placeholder
+func (c *Conntrack) GetInstances() []inputs.Instance {
+	return nil
+}
+
 func (c *Conntrack) Prefix() string {
 	return inputName
 }

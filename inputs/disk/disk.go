@@ -31,6 +31,11 @@ func init() {
 	})
 }
 
+// just placeholder
+func (s *DiskStats) GetInstances() []inputs.Instance {
+	return nil
+}
+
 func (s *DiskStats) Prefix() string {
 	return inputName
 }

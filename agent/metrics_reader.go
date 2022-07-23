@@ -3,6 +3,8 @@ package agent
 import (
 	"log"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -19,9 +21,11 @@ const agentHostnameLabelKey = "agent_hostname"
 var metricReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "'", "_", "\"", "_")
 
 type InputReader struct {
-	inputName string
-	input     inputs.Input
-	quitChan  chan struct{}
+	inputName  string
+	input      inputs.Input
+	quitChan   chan struct{}
+	runCounter uint64
+	waitGroup  sync.WaitGroup
 }
 
 func (a *Agent) StartInputReader(name string, in inputs.Input) {
@@ -72,6 +76,39 @@ func (r *InputReader) startInput() {
 	}
 }
 
+func (r *InputReader) work(slist *list.SafeList) {
+	instances := r.input.GetInstances()
+	if instances == nil {
+		r.input.Gather(slist)
+		return
+	}
+
+	if len(instances) == 0 {
+		return
+	}
+
+	atomic.AddUint64(&r.runCounter, 1)
+
+	for i := 0; i < len(instances); i++ {
+		r.waitGroup.Add(1)
+		go func(slist *list.SafeList, ins inputs.Instance) {
+			defer r.waitGroup.Done()
+
+			it := ins.GetIntervalTimes()
+			if it > 0 {
+				counter := atomic.LoadUint64(&r.runCounter)
+				if counter%uint64(it) != 0 {
+					return
+				}
+			}
+
+			ins.Gather(slist)
+		}(slist, instances[i])
+	}
+
+	r.waitGroup.Wait()
+}
+
 func (r *InputReader) gatherOnce() {
 	defer func() {
 		if rc := recover(); rc != nil {
@@ -81,7 +118,7 @@ func (r *InputReader) gatherOnce() {
 
 	// gather
 	slist := list.NewSafeList()
-	r.input.Gather(slist)
+	r.work(slist)
 
 	// handle result
 	samples := slist.PopBackAll()

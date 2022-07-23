@@ -33,11 +33,9 @@ func init() {
 	})
 }
 
-func (s *NetIOStats) Prefix() string {
-	return inputName
-}
-
-func (s *NetIOStats) Drop() {}
+func (s *NetIOStats) Prefix() string                  { return inputName }
+func (s *NetIOStats) Drop()                           {}
+func (s *NetIOStats) GetInstances() []inputs.Instance { return nil }
 
 func (s *NetIOStats) Init() error {
 	var err error

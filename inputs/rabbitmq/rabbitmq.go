@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -22,8 +21,6 @@ const inputName = "rabbitmq"
 
 type RabbitMQ struct {
 	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -33,61 +30,25 @@ func init() {
 	})
 }
 
-func (r *RabbitMQ) Prefix() string {
-	return inputName
-}
+func (r *RabbitMQ) Prefix() string              { return inputName }
+func (r *RabbitMQ) Init() error                 { return nil }
+func (r *RabbitMQ) Drop()                       {}
+func (r *RabbitMQ) Gather(slist *list.SafeList) {}
 
-func (r *RabbitMQ) Init() error {
-	if len(r.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (r *RabbitMQ) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {
-		if err := r.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = r.Instances[i]
 	}
-
-	return nil
-}
-
-func (r *RabbitMQ) Drop() {}
-
-func (r *RabbitMQ) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&r.counter, 1)
-
-	for i := range r.Instances {
-		ins := r.Instances[i]
-
-		if ins.URL == "" {
-			continue
-		}
-
-		r.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer r.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&r.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
-	}
-
-	r.waitgrp.Wait()
+	return ret
 }
 
 type Instance struct {
+	config.InstanceConfig
+
 	URL      string `toml:"url"`
 	Username string `toml:"username"`
 	Password string `toml:"password"`
-
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
 
 	HeaderTimeout config.Duration `toml:"header_timeout"`
 	ClientTimeout config.Duration `toml:"client_timeout"`
@@ -114,7 +75,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.URL == "" {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	var err error
@@ -385,7 +346,7 @@ var gatherFunctions = map[string]gatherFunc{
 	"queue":      gatherQueues,
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	tags := map[string]string{"url": ins.URL}
 
 	begun := time.Now()

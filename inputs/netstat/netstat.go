@@ -26,15 +26,10 @@ func init() {
 	})
 }
 
-func (s *NetStats) Prefix() string {
-	return inputName
-}
-
-func (s *NetStats) Drop() {}
-
-func (s *NetStats) Init() error {
-	return nil
-}
+func (s *NetStats) Prefix() string                  { return inputName }
+func (s *NetStats) Init() error                     { return nil }
+func (s *NetStats) Drop()                           {}
+func (s *NetStats) GetInstances() []inputs.Instance { return nil }
 
 func (s *NetStats) Gather(slist *list.SafeList) {
 	netconns, err := s.ps.NetConnections()

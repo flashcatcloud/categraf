@@ -31,7 +31,7 @@ func querySlaveStatus(db *sql.DB) (rows *sql.Rows, err error) {
 	return
 }
 
-func (m *MySQL) gatherSlaveStatus(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherSlaveStatus(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
 	if !ins.GatherSlaveStatus {
 		return
 	}

@@ -8,8 +8,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -31,13 +29,13 @@ type Command struct {
 }
 
 type Instance struct {
-	Address       string            `toml:"address"`
-	Username      string            `toml:"username"`
-	Password      string            `toml:"password"`
-	PoolSize      int               `toml:"pool_size"`
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
-	Commands      []Command         `toml:"commands"`
+	config.InstanceConfig
+
+	Address  string    `toml:"address"`
+	Username string    `toml:"username"`
+	Password string    `toml:"password"`
+	PoolSize int       `toml:"pool_size"`
+	Commands []Command `toml:"commands"`
 
 	tls.ClientConfig
 	client *redis.Client
@@ -45,7 +43,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.Address == "" {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	redisOptions := &redis.Options{
@@ -70,9 +68,6 @@ func (ins *Instance) Init() error {
 type Redis struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
-
-	Counter uint64
-	wg      sync.WaitGroup
 }
 
 func init() {
@@ -81,22 +76,16 @@ func init() {
 	})
 }
 
-func (r *Redis) Prefix() string {
-	return inputName
-}
+func (r *Redis) Prefix() string              { return inputName }
+func (r *Redis) Init() error                 { return nil }
+func (r *Redis) Gather(slist *list.SafeList) {}
 
-func (r *Redis) Init() error {
-	if len(r.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (r *Redis) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {
-		if err := r.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = r.Instances[i]
 	}
-
-	return nil
+	return ret
 }
 
 func (r *Redis) Drop() {
@@ -107,29 +96,7 @@ func (r *Redis) Drop() {
 	}
 }
 
-func (r *Redis) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&r.Counter, 1)
-	for i := range r.Instances {
-		ins := r.Instances[i]
-		if ins.Address == "" {
-			continue
-		}
-		r.wg.Add(1)
-		go r.gatherOnce(slist, ins)
-	}
-	r.wg.Wait()
-}
-
-func (r *Redis) gatherOnce(slist *list.SafeList, ins *Instance) {
-	defer r.wg.Done()
-
-	if ins.IntervalTimes > 0 {
-		counter := atomic.LoadUint64(&r.Counter)
-		if counter%uint64(ins.IntervalTimes) != 0 {
-			return
-		}
-	}
-
+func (ins *Instance) Gather(slist *list.SafeList) {
 	tags := map[string]string{"address": ins.Address}
 	for k, v := range ins.Labels {
 		tags[k] = v
@@ -154,11 +121,11 @@ func (r *Redis) gatherOnce(slist *list.SafeList, ins *Instance) {
 		slist.PushFront(types.NewSample("up", 1, tags))
 	}
 
-	r.gatherInfoAll(slist, ins, tags)
-	r.gatherCommandValues(slist, ins, tags)
+	ins.gatherInfoAll(slist, tags)
+	ins.gatherCommandValues(slist, tags)
 }
 
-func (r *Redis) gatherCommandValues(slist *list.SafeList, ins *Instance, tags map[string]string) {
+func (ins *Instance) gatherCommandValues(slist *list.SafeList, tags map[string]string) {
 	fields := make(map[string]interface{})
 	for _, cmd := range ins.Commands {
 		val, err := ins.client.Do(context.Background(), cmd.Command...).Result()
@@ -181,7 +148,7 @@ func (r *Redis) gatherCommandValues(slist *list.SafeList, ins *Instance, tags ma
 	}
 }
 
-func (r *Redis) gatherInfoAll(slist *list.SafeList, ins *Instance, tags map[string]string) {
+func (ins *Instance) gatherInfoAll(slist *list.SafeList, tags map[string]string) {
 	info, err := ins.client.Info(context.Background(), "ALL").Result()
 	if err != nil {
 		info, err = ins.client.Info(context.Background()).Result()

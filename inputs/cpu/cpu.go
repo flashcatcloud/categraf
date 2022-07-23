@@ -30,17 +30,10 @@ func init() {
 	})
 }
 
-func (s *CPUStats) Prefix() string {
-	return inputName
-}
-
-// overwrite func
-func (c *CPUStats) Init() error {
-	return nil
-}
-
-func (c *CPUStats) Drop() {
-}
+func (c *CPUStats) Prefix() string                  { return inputName }
+func (c *CPUStats) Init() error                     { return nil }
+func (c *CPUStats) Drop()                           {}
+func (c *CPUStats) GetInstances() []inputs.Instance { return nil }
 
 func (c *CPUStats) Gather(slist *list.SafeList) {
 	times, err := c.ps.CPUTimes(c.CollectPerCPU, true)

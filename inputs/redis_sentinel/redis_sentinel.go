@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -28,8 +27,6 @@ const measurementReplicas = "redis_sentinel_replicas"
 
 type RedisSentinel struct {
 	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -39,57 +36,21 @@ func init() {
 	})
 }
 
-func (r *RedisSentinel) Prefix() string {
-	return ""
-}
+func (r *RedisSentinel) Prefix() string              { return "" }
+func (r *RedisSentinel) Init() error                 { return nil }
+func (r *RedisSentinel) Drop()                       {}
+func (r *RedisSentinel) Gather(slist *list.SafeList) {}
 
-func (r *RedisSentinel) Init() error {
-	if len(r.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (r *RedisSentinel) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {
-		if err := r.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = r.Instances[i]
 	}
-
-	return nil
-}
-
-func (r *RedisSentinel) Drop() {}
-
-func (r *RedisSentinel) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&r.counter, 1)
-
-	for i := range r.Instances {
-		ins := r.Instances[i]
-
-		if len(ins.Servers) == 0 {
-			continue
-		}
-
-		r.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer r.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&r.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
-	}
-
-	r.waitgrp.Wait()
+	return ret
 }
 
 type Instance struct {
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
+	config.InstanceConfig
 
 	Servers []string `toml:"servers"`
 	clients []*RedisSentinelClient
@@ -103,7 +64,7 @@ type RedisSentinelClient struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.Servers) == 0 {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	ins.clients = make([]*RedisSentinelClient, len(ins.Servers))
@@ -157,7 +118,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	var wg sync.WaitGroup
 
 	for _, client := range ins.clients {

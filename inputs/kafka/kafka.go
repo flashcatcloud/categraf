@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync"
-	"sync/atomic"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -23,8 +21,6 @@ const inputName = "kafka"
 
 type Kafka struct {
 	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -34,22 +30,16 @@ func init() {
 	})
 }
 
-func (r *Kafka) Prefix() string {
-	return ""
-}
+func (r *Kafka) Prefix() string              { return "" }
+func (r *Kafka) Init() error                 { return nil }
+func (r *Kafka) Gather(slist *list.SafeList) {}
 
-func (r *Kafka) Init() error {
-	if len(r.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (r *Kafka) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {
-		if err := r.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = r.Instances[i]
 	}
-
-	return nil
+	return ret
 }
 
 func (r *Kafka) Drop() {
@@ -64,38 +54,10 @@ func (r *Kafka) Drop() {
 	}
 }
 
-func (r *Kafka) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&r.counter, 1)
-
-	for i := range r.Instances {
-		ins := r.Instances[i]
-
-		if len(ins.KafkaURIs) == 0 {
-			continue
-		}
-
-		r.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer r.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&r.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
-	}
-
-	r.waitgrp.Wait()
-}
-
 type Instance struct {
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
-	LogLevel      string            `toml:"log_level"`
+	config.InstanceConfig
+
+	LogLevel string `toml:"log_level"`
 
 	// Address (host:port) of Kafka server.
 	KafkaURIs []string `toml:"kafka_uris,omitempty"`
@@ -163,7 +125,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.KafkaURIs) == 0 || ins.KafkaURIs[0] == "" {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	if ins.UseTLS && (ins.CertFile == "" || ins.KeyFile == "") {
@@ -250,7 +212,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	err := inputs.Collect(ins.e, slist)
 	if err != nil {
 		log.Println("E! failed to collect metrics:", err)

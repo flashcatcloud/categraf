@@ -43,15 +43,10 @@ func init() {
 	})
 }
 
-func (s *KernelStats) Prefix() string {
-	return inputName
-}
-
-func (s *KernelStats) Init() error {
-	return nil
-}
-
-func (s *KernelStats) Drop() {}
+func (s *KernelStats) Prefix() string                  { return inputName }
+func (s *KernelStats) Init() error                     { return nil }
+func (s *KernelStats) Drop()                           {}
+func (s *KernelStats) GetInstances() []inputs.Instance { return nil }
 
 func (s *KernelStats) Gather(slist *list.SafeList) {
 	data, err := s.getProcStat()

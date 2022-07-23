@@ -58,6 +58,30 @@ func (a *Agent) startMetricsAgent() error {
 			continue
 		}
 
+		if input.GetInstances() != nil {
+			instances := input.GetInstances()
+			if len(instances) == 0 {
+				continue
+			}
+
+			empty := true
+			for i := 0; i < len(instances); i++ {
+				err := instances[i].Init()
+				if err != nil {
+					if !errors.Is(err, types.ErrInstancesEmpty) {
+						log.Println("E! failed to init input:", name, "error:", err)
+					}
+					continue
+				}
+
+				empty = false
+			}
+
+			if empty {
+				continue
+			}
+		}
+
 		a.StartInputReader(name, input)
 		log.Println("I! input:", name, "started")
 	}

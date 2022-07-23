@@ -11,7 +11,7 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-func (m *MySQL) gatherBinlog(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherBinlog(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
 	var logBin uint8
 	err := db.QueryRow(`SELECT @@log_bin`).Scan(&logBin)
 	if err != nil {

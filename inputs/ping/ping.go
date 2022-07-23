@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -23,15 +22,15 @@ const (
 )
 
 type Instance struct {
-	Targets       []string          `toml:"targets"`
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
-	Count         int               `toml:"count"`         // ping -c <COUNT>
-	PingInterval  float64           `toml:"ping_interval"` // ping -i <INTERVAL>
-	Timeout       float64           `toml:"timeout"`       // ping -W <TIMEOUT>
-	Interface     string            `toml:"interface"`     // ping -I/-S <INTERFACE/SRC_ADDR>
-	IPv6          bool              `toml:"ipv6"`          // Whether to resolve addresses using ipv6 or not.
-	Size          *int              `toml:"size"`          // Packet size
+	config.InstanceConfig
+
+	Targets      []string `toml:"targets"`
+	Count        int      `toml:"count"`         // ping -c <COUNT>
+	PingInterval float64  `toml:"ping_interval"` // ping -i <INTERVAL>
+	Timeout      float64  `toml:"timeout"`       // ping -W <TIMEOUT>
+	Interface    string   `toml:"interface"`     // ping -I/-S <INTERFACE/SRC_ADDR>
+	IPv6         bool     `toml:"ipv6"`          // Whether to resolve addresses using ipv6 or not.
+	Size         *int     `toml:"size"`          // Packet size
 
 	calcInterval  time.Duration
 	calcTimeout   time.Duration
@@ -40,7 +39,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.Targets) == 0 {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	if ins.Count < 1 {
@@ -83,8 +82,6 @@ func (ins *Instance) Init() error {
 type Ping struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
-	Counter   uint64
-	wg        sync.WaitGroup
 }
 
 func init() {
@@ -93,53 +90,22 @@ func init() {
 	})
 }
 
-func (p *Ping) Prefix() string {
-	return inputName
-}
+func (p *Ping) Prefix() string              { return inputName }
+func (p *Ping) Init() error                 { return nil }
+func (p *Ping) Drop()                       {}
+func (p *Ping) Gather(slist *list.SafeList) {}
 
-func (p *Ping) Init() error {
-	if len(p.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (p *Ping) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(p.Instances))
 	for i := 0; i < len(p.Instances); i++ {
-		if err := p.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = p.Instances[i]
 	}
-
-	return nil
+	return ret
 }
 
-func (p *Ping) Drop() {}
-
-func (p *Ping) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&p.Counter, 1)
-	for i := range p.Instances {
-		ins := p.Instances[i]
-		if len(ins.Targets) == 0 {
-			continue
-		}
-		p.wg.Add(1)
-		go p.gatherOnce(slist, ins)
-	}
-	p.wg.Wait()
-}
-
-func (p *Ping) gatherOnce(slist *list.SafeList, ins *Instance) {
-	defer p.wg.Done()
-
-	if ins.IntervalTimes > 0 {
-		counter := atomic.LoadUint64(&p.Counter)
-		if counter%uint64(ins.IntervalTimes) != 0 {
-			return
-		}
-	}
-
-	if config.Config.DebugMode {
-		if len(ins.Targets) == 0 {
-			log.Println("D! ping targets empty")
-		}
+func (ins *Instance) Gather(slist *list.SafeList) {
+	if len(ins.Targets) == 0 {
+		return
 	}
 
 	wg := new(sync.WaitGroup)

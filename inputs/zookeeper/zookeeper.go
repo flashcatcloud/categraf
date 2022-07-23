@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -33,11 +32,11 @@ var (
 )
 
 type Instance struct {
-	Addresses     string            `toml:"addresses"`
-	Timeout       int               `toml:"timeout"`
-	ClusterName   string            `toml:"cluster_name"`
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
+	config.InstanceConfig
+
+	Addresses   string `toml:"addresses"`
+	Timeout     int    `toml:"timeout"`
+	ClusterName string `toml:"cluster_name"`
 	tls.ClientConfig
 }
 
@@ -64,8 +63,6 @@ func (ins *Instance) ZkConnect(host string) (net.Conn, error) {
 
 type Zookeeper struct {
 	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -75,51 +72,29 @@ func init() {
 	})
 }
 
-func (z *Zookeeper) Prefix() string {
-	return ""
+func (z *Zookeeper) Prefix() string              { return "" }
+func (z *Zookeeper) Init() error                 { return nil }
+func (z *Zookeeper) Drop()                       {}
+func (z *Zookeeper) Gather(slist *list.SafeList) {}
+
+func (z *Zookeeper) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(z.Instances))
+	for i := 0; i < len(z.Instances); i++ {
+		ret[i] = z.Instances[i]
+	}
+	return ret
 }
 
-func (z *Zookeeper) Init() error {
-	if len(z.Instances) == 0 {
+func (ins *Instance) Init() error {
+	if len(ins.ZkHosts()) == 0 {
 		return types.ErrInstancesEmpty
 	}
 	return nil
 }
 
-func (z *Zookeeper) Drop() {}
-
-func (z *Zookeeper) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&z.counter, 1)
-
-	for i := range z.Instances {
-		ins := z.Instances[i]
-
-		if len(ins.Addresses) == 0 {
-			continue
-		}
-
-		z.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer z.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&z.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
-	}
-
-	z.waitgrp.Wait()
-}
-
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	hosts := ins.ZkHosts()
 	if len(hosts) == 0 {
-		log.Println("E! addresses empty")
 		return
 	}
 

@@ -12,7 +12,7 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-func (m *MySQL) gatherGlobalVariables(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+func (ins *Instance) gatherGlobalVariables(slist *list.SafeList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
 	rows, err := db.Query(SQL_GLOBAL_VARIABLES)
 	if err != nil {
 		log.Println("E! failed to query global variables:", err)

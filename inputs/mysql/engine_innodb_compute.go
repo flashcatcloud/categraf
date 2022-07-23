@@ -8,7 +8,7 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-func (m *MySQL) gatherEngineInnodbStatusCompute(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+func (ins *Instance) gatherEngineInnodbStatusCompute(slist *list.SafeList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
 	tags := tagx.Copy(globalTags)
 
 	pageUsed := cache["innodb_buffer_pool_pages_total"] - cache["innodb_buffer_pool_pages_free"]

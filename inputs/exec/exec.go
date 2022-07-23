@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -28,18 +27,18 @@ import (
 const inputName = "exec"
 const MaxStderrBytes int = 512
 
-type ExecInstance struct {
-	Commands      []string        `toml:"commands"`
-	Timeout       config.Duration `toml:"timeout"`
-	IntervalTimes int64           `toml:"interval_times"`
-	DataFormat    string          `toml:"data_format"`
-	parser        parser.Parser
+type Instance struct {
+	config.InstanceConfig
+
+	Commands   []string        `toml:"commands"`
+	Timeout    config.Duration `toml:"timeout"`
+	DataFormat string          `toml:"data_format"`
+	parser     parser.Parser
 }
 
 type Exec struct {
 	config.Interval
-	Instances []ExecInstance `toml:"instances"`
-	Counter   uint64
+	Instances []*Instance `toml:"instances"`
 }
 
 func init() {
@@ -48,65 +47,42 @@ func init() {
 	})
 }
 
-func (e *Exec) Prefix() string {
-	return ""
+func (e *Exec) Prefix() string              { return "" }
+func (e *Exec) Init() error                 { return nil }
+func (e *Exec) Drop()                       {}
+func (e *Exec) Gather(slist *list.SafeList) {}
+
+func (e *Exec) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(e.Instances))
+	for i := 0; i < len(e.Instances); i++ {
+		ret[i] = e.Instances[i]
+	}
+	return ret
 }
 
-func (e *Exec) Drop() {}
-
-func (e *Exec) Init() error {
-	if len(e.Instances) == 0 {
+func (ins *Instance) Init() error {
+	if len(ins.Commands) == 0 {
 		return types.ErrInstancesEmpty
 	}
 
-	for i := 0; i < len(e.Instances); i++ {
-		if len(e.Instances[i].Commands) == 0 {
-			continue
-		}
-		if e.Instances[i].DataFormat == "" || e.Instances[i].DataFormat == "influx" {
-			e.Instances[i].parser = influx.NewParser()
-		} else if e.Instances[i].DataFormat == "falcon" {
-			e.Instances[i].parser = falcon.NewParser()
-		} else if strings.HasPrefix(e.Instances[i].DataFormat, "prom") {
-			e.Instances[i].parser = prometheus.NewParser("", map[string]string{}, nil, nil, nil)
-		} else {
-			return fmt.Errorf("data_format(%s) not supported", e.Instances[i].DataFormat)
-		}
+	if ins.DataFormat == "" || ins.DataFormat == "influx" {
+		ins.parser = influx.NewParser()
+	} else if ins.DataFormat == "falcon" {
+		ins.parser = falcon.NewParser()
+	} else if strings.HasPrefix(ins.DataFormat, "prom") {
+		ins.parser = prometheus.NewParser("", map[string]string{}, nil, nil, nil)
+	} else {
+		return fmt.Errorf("data_format(%s) not supported", ins.DataFormat)
+	}
 
-		if e.Instances[i].Timeout == 0 {
-			e.Instances[i].Timeout = config.Duration(time.Second * 5)
-		}
+	if ins.Timeout == 0 {
+		ins.Timeout = config.Duration(time.Second * 5)
 	}
 
 	return nil
 }
 
-func (e *Exec) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&e.Counter, 1)
-
-	var wg sync.WaitGroup
-	wg.Add(len(e.Instances))
-	for i := range e.Instances {
-		ins := e.Instances[i]
-		if len(ins.Commands) == 0 {
-			continue
-		}
-		go e.GatherOnce(&wg, slist, ins)
-	}
-
-	wg.Wait()
-}
-
-func (e *Exec) GatherOnce(wg *sync.WaitGroup, slist *list.SafeList, ins ExecInstance) {
-	defer wg.Done()
-
-	if ins.IntervalTimes > 0 {
-		counter := atomic.LoadUint64(&e.Counter)
-		if counter%uint64(ins.IntervalTimes) != 0 {
-			return
-		}
-	}
-
+func (ins *Instance) Gather(slist *list.SafeList) {
 	var commands []string
 	for _, pattern := range ins.Commands {
 		cmdAndArgs := strings.SplitN(pattern, " ", 2)
@@ -146,13 +122,13 @@ func (e *Exec) GatherOnce(wg *sync.WaitGroup, slist *list.SafeList, ins ExecInst
 	var waitCommands sync.WaitGroup
 	waitCommands.Add(len(commands))
 	for _, command := range commands {
-		go e.ProcessCommand(slist, command, ins, &waitCommands)
+		go ins.ProcessCommand(slist, command, &waitCommands)
 	}
 
 	waitCommands.Wait()
 }
 
-func (e *Exec) ProcessCommand(slist *list.SafeList, command string, ins ExecInstance, wg *sync.WaitGroup) {
+func (ins *Instance) ProcessCommand(slist *list.SafeList, command string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	out, errbuf, runErr := commandRun(command, time.Duration(ins.Timeout))

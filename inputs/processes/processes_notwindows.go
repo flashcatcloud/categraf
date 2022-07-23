@@ -34,15 +34,10 @@ func init() {
 	})
 }
 
-func (p *Processes) Prefix() string {
-	return inputName
-}
-
-func (p *Processes) Drop() {}
-
-func (p *Processes) Init() error {
-	return nil
-}
+func (p *Processes) Prefix() string                  { return inputName }
+func (p *Processes) Init() error                     { return nil }
+func (p *Processes) Drop()                           {}
+func (p *Processes) GetInstances() []inputs.Instance { return nil }
 
 func (p *Processes) Gather(slist *list.SafeList) {
 	// Get an empty map of metric fields

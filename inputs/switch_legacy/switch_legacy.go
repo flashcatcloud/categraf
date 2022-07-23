@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -24,8 +23,6 @@ const inputName = "switch_legacy"
 
 type Switch struct {
 	config.Interval
-	counter       uint64
-	waitgrp       sync.WaitGroup
 	Instances     []*Instance       `toml:"instances"`
 	SwitchIdLabel string            `toml:"switch_id_label"`
 	Mappings      map[string]string `toml:"mappings"`
@@ -37,8 +34,16 @@ func init() {
 	})
 }
 
-func (s *Switch) Prefix() string {
-	return inputName
+func (s *Switch) Prefix() string              { return inputName }
+func (s *Switch) Drop()                       {}
+func (s *Switch) Gather(slist *list.SafeList) {}
+
+func (s *Switch) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(s.Instances))
+	for i := 0; i < len(s.Instances); i++ {
+		ret[i] = s.Instances[i]
+	}
+	return ret
 }
 
 func (s *Switch) Init() error {
@@ -47,7 +52,7 @@ func (s *Switch) Init() error {
 	}
 
 	for i := 0; i < len(s.Instances); i++ {
-		if err := s.Instances[i].Init(); err != nil {
+		if err := s.Instances[i].RealInit(); err != nil {
 			return err
 		} else {
 			s.Instances[i].parent = s
@@ -57,39 +62,8 @@ func (s *Switch) Init() error {
 	return nil
 }
 
-func (s *Switch) Drop() {}
-
-func (s *Switch) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&s.counter, 1)
-
-	for i := range s.Instances {
-		ins := s.Instances[i]
-
-		if len(ins.IPs) == 0 {
-			continue
-		}
-
-		s.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer s.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&s.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
-	}
-
-	s.waitgrp.Wait()
-}
-
 type Instance struct {
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
+	config.InstanceConfig
 
 	IPs          []string `toml:"ips"`
 	Community    string   `toml:"community"`
@@ -142,9 +116,11 @@ type Custom struct {
 	OID    string            `toml:"oid"`
 }
 
-func (ins *Instance) Init() error {
+func (ins *Instance) Init() error { return nil }
+
+func (ins *Instance) RealInit() error {
 	if len(ins.IPs) == 0 {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	ips := ins.parseIPs()
@@ -156,10 +132,10 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) error {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	ips := ins.parseIPs()
 	if len(ips) == 0 {
-		return nil
+		return
 	}
 
 	start := time.Now()
@@ -188,8 +164,6 @@ func (ins *Instance) gatherOnce(slist *list.SafeList) error {
 	if len(ins.Customs) > 0 {
 		ins.gatherCustoms(ips, slist)
 	}
-
-	return nil
 }
 
 func (ins *Instance) gatherCustoms(ips []string, slist *list.SafeList) {

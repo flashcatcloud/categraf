@@ -31,11 +31,9 @@ func init() {
 	})
 }
 
-func (s *GPUStats) Prefix() string {
-	return inputName
-}
-
-func (s *GPUStats) Drop() {}
+func (s *GPUStats) Prefix() string                  { return inputName }
+func (s *GPUStats) Drop()                           {}
+func (s *GPUStats) GetInstances() []inputs.Instance { return nil }
 
 func (s *GPUStats) Init() error {
 	if s.NvidiaSmiCommand == "" {

@@ -9,7 +9,7 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-func (m *MySQL) gatherProcesslistByUser(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherProcesslistByUser(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
 	if !ins.GatherProcessListProcessByUser {
 		return
 	}

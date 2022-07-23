@@ -25,11 +25,9 @@ func init() {
 	})
 }
 
-func (n *NTPStat) Prefix() string {
-	return inputName
-}
-
-func (n *NTPStat) Drop() {}
+func (n *NTPStat) Prefix() string                  { return inputName }
+func (n *NTPStat) Drop()                           {}
+func (n *NTPStat) GetInstances() []inputs.Instance { return nil }
 
 func (n *NTPStat) Init() error {
 	if len(n.NTPServers) == 0 {

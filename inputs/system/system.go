@@ -26,15 +26,10 @@ func init() {
 	})
 }
 
-func (s *SystemStats) Prefix() string {
-	return inputName
-}
-
-func (s *SystemStats) Init() error {
-	return nil
-}
-
-func (s *SystemStats) Drop() {}
+func (s *SystemStats) Prefix() string                  { return inputName }
+func (s *SystemStats) Init() error                     { return nil }
+func (s *SystemStats) Drop()                           {}
+func (s *SystemStats) GetInstances() []inputs.Instance { return nil }
 
 func (s *SystemStats) Gather(slist *list.SafeList) {
 	loadavg, err := load.Avg()

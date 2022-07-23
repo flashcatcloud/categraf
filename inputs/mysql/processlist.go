@@ -90,7 +90,7 @@ var (
 	}
 )
 
-func (m *MySQL) gatherProcesslistByState(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherProcesslistByState(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
 	if !ins.GatherProcessListProcessByState {
 		return
 	}

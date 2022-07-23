@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -26,8 +24,6 @@ const inputName = "logstash"
 
 type Logstash struct {
 	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -37,57 +33,21 @@ func init() {
 	})
 }
 
-func (r *Logstash) Prefix() string {
-	return inputName
-}
+func (l *Logstash) Prefix() string              { return inputName }
+func (l *Logstash) Init() error                 { return nil }
+func (l *Logstash) Drop()                       {}
+func (l *Logstash) Gather(slist *list.SafeList) {}
 
-func (r *Logstash) Init() error {
-	if len(r.Instances) == 0 {
-		return types.ErrInstancesEmpty
+func (l *Logstash) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(l.Instances))
+	for i := 0; i < len(l.Instances); i++ {
+		ret[i] = l.Instances[i]
 	}
-
-	for i := 0; i < len(r.Instances); i++ {
-		if err := r.Instances[i].Init(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (r *Logstash) Drop() {}
-
-func (r *Logstash) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&r.counter, 1)
-
-	for i := range r.Instances {
-		ins := r.Instances[i]
-
-		if len(ins.URL) == 0 {
-			continue
-		}
-
-		r.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer r.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&r.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
-	}
-
-	r.waitgrp.Wait()
+	return ret
 }
 
 type Instance struct {
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
+	config.InstanceConfig
 
 	URL            string            `toml:"url"`
 	SinglePipeline bool              `toml:"single_pipeline"`
@@ -171,7 +131,7 @@ const pipelineStats = "/_node/stats/pipeline"
 
 func (ins *Instance) Init() error {
 	if len(ins.URL) == 0 {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	client, err := ins.createHTTPClient()
@@ -187,7 +147,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	if choice.Contains("jvm", ins.Collect) {
 		jvmURL, err := url.Parse(ins.URL + jvmStats)
 		if err != nil {

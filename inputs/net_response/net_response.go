@@ -9,7 +9,6 @@ import (
 	"net/textproto"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -29,19 +28,19 @@ const (
 )
 
 type Instance struct {
-	Targets       []string          `toml:"targets"`
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
-	Protocol      string            `toml:"protocol"`
-	Timeout       config.Duration   `toml:"timeout"`
-	ReadTimeout   config.Duration   `toml:"read_timeout"`
-	Send          string            `toml:"send"`
-	Expect        string            `toml:"expect"`
+	config.InstanceConfig
+
+	Targets     []string        `toml:"targets"`
+	Protocol    string          `toml:"protocol"`
+	Timeout     config.Duration `toml:"timeout"`
+	ReadTimeout config.Duration `toml:"read_timeout"`
+	Send        string          `toml:"send"`
+	Expect      string          `toml:"expect"`
 }
 
 func (ins *Instance) Init() error {
 	if len(ins.Targets) == 0 {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	if ins.Protocol == "" {
@@ -87,8 +86,6 @@ func (ins *Instance) Init() error {
 type NetResponse struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
-	Counter   uint64
-	wg        sync.WaitGroup
 }
 
 func init() {
@@ -97,53 +94,22 @@ func init() {
 	})
 }
 
-func (n *NetResponse) Prefix() string {
-	return inputName
-}
+func (n *NetResponse) Prefix() string              { return inputName }
+func (n *NetResponse) Init() error                 { return nil }
+func (n *NetResponse) Drop()                       {}
+func (n *NetResponse) Gather(slist *list.SafeList) {}
 
-func (n *NetResponse) Init() error {
-	if len(n.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (n *NetResponse) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(n.Instances))
 	for i := 0; i < len(n.Instances); i++ {
-		if err := n.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = n.Instances[i]
 	}
-
-	return nil
+	return ret
 }
 
-func (n *NetResponse) Drop() {}
-
-func (n *NetResponse) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&n.Counter, 1)
-	for i := range n.Instances {
-		ins := n.Instances[i]
-		if len(ins.Targets) == 0 {
-			continue
-		}
-		n.wg.Add(1)
-		go n.gatherOnce(slist, ins)
-	}
-	n.wg.Wait()
-}
-
-func (n *NetResponse) gatherOnce(slist *list.SafeList, ins *Instance) {
-	defer n.wg.Done()
-
-	if ins.IntervalTimes > 0 {
-		counter := atomic.LoadUint64(&n.Counter)
-		if counter%uint64(ins.IntervalTimes) != 0 {
-			return
-		}
-	}
-
-	if config.Config.DebugMode {
-		if len(ins.Targets) == 0 {
-			log.Println("D! net_response targets empty")
-		}
+func (ins *Instance) Gather(slist *list.SafeList) {
+	if len(ins.Targets) == 0 {
+		return
 	}
 
 	wg := new(sync.WaitGroup)

@@ -25,16 +25,18 @@ import (
 const inputName = "oracle"
 
 type Instance struct {
-	Address               string            `toml:"address"`
-	Username              string            `toml:"username"`
-	Password              string            `toml:"password"`
-	IsSysDBA              bool              `toml:"is_sys_dba"`
-	IsSysOper             bool              `toml:"is_sys_oper"`
-	DisableConnectionPool bool              `toml:"disable_connection_pool"`
-	MaxOpenConnections    int               `toml:"max_open_connections"`
-	Labels                map[string]string `toml:"labels"`
-	IntervalTimes         int64             `toml:"interval_times"`
-	Metrics               []MetricConfig    `toml:"metrics"`
+	config.InstanceConfig
+
+	Address               string         `toml:"address"`
+	Username              string         `toml:"username"`
+	Password              string         `toml:"password"`
+	IsSysDBA              bool           `toml:"is_sys_dba"`
+	IsSysOper             bool           `toml:"is_sys_oper"`
+	DisableConnectionPool bool           `toml:"disable_connection_pool"`
+	MaxOpenConnections    int            `toml:"max_open_connections"`
+	Metrics               []MetricConfig `toml:"metrics"`
+
+	client *sqlx.DB
 }
 
 type MetricConfig struct {
@@ -49,12 +51,8 @@ type MetricConfig struct {
 
 type Oracle struct {
 	config.Interval
-	Instances []Instance     `toml:"instances"`
+	Instances []*Instance    `toml:"instances"`
 	Metrics   []MetricConfig `toml:"metrics"`
-
-	dbconnpool map[string]*sqlx.DB // key: instance
-	Counter    uint64
-	wg         sync.WaitGroup
 }
 
 func init() {
@@ -63,67 +61,50 @@ func init() {
 	})
 }
 
-func (o *Oracle) Prefix() string {
-	return inputName
+func (o *Oracle) Prefix() string              { return inputName }
+func (o *Oracle) Init() error                 { return nil }
+func (o *Oracle) Gather(slist *list.SafeList) {}
+
+func (o *Oracle) Drop() {
+	for i := 0; i < len(o.Instances); i++ {
+		o.Instances[i].Drop()
+	}
 }
 
-func (o *Oracle) Init() error {
-	if len(o.Instances) == 0 {
+func (o *Oracle) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(o.Instances))
+	for i := 0; i < len(o.Instances); i++ {
+		ret[i] = o.Instances[i]
+	}
+	return ret
+}
+
+func (ins *Instance) Init() error {
+	if ins.Address == "" {
 		return types.ErrInstancesEmpty
 	}
 
-	o.dbconnpool = make(map[string]*sqlx.DB)
-	for i := 0; i < len(o.Instances); i++ {
-		dbConf := o.Instances[i]
-		if dbConf.Address == "" {
-			continue
-		}
-		connString := getConnectionString(dbConf)
-		db, err := sqlx.Open("godror", connString)
-		if err != nil {
-			return fmt.Errorf("failed to open oracle connection: %v", err)
-		}
-		db.SetMaxOpenConns(dbConf.MaxOpenConnections)
-		o.dbconnpool[dbConf.Address] = db
+	connString := ins.getConnectionString()
+	var err error
+	client, err = sqlx.Open("godror", connString)
+	if err != nil {
+		return fmt.Errorf("failed to open oracle connection: %v", err)
 	}
 
-	return nil
+	client.SetMaxOpenConns(ins.MaxOpenConnections)
 }
 
-func (o *Oracle) Drop() {
-	for address := range o.dbconnpool {
-		if config.Config.DebugMode {
-			log.Println("D! dropping oracle connection:", address)
-		}
-		if err := o.dbconnpool[address].Close(); err != nil {
-			log.Println("E! failed to close oracle connection:", address, "error:", err)
-		}
+func (ins *Instance) Drop() error {
+	if config.Config.DebugMode {
+		log.Println("D! dropping oracle connection:", ins.Address)
+	}
+
+	if err := ins.Close(); err != nil {
+		log.Println("E! failed to close oracle connection:", ins.Address, "error:", err)
 	}
 }
 
-func (o *Oracle) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&o.Counter, 1)
-	for i := range o.Instances {
-		ins := o.Instances[i]
-		if ins.Address == "" {
-			continue
-		}
-		o.wg.Add(1)
-		go o.gatherOnce(slist, ins)
-	}
-	o.wg.Wait()
-}
-
-func (o *Oracle) gatherOnce(slist *list.SafeList, ins Instance) {
-	defer o.wg.Done()
-
-	if ins.IntervalTimes > 0 {
-		counter := atomic.LoadUint64(&o.Counter)
-		if counter%uint64(ins.IntervalTimes) != 0 {
-			return
-		}
-	}
-
+func (ins *Instance) Gather(slist *list.SafeList) {
 	tags := map[string]string{"address": ins.Address}
 	for k, v := range ins.Labels {
 		tags[k] = v
@@ -134,9 +115,7 @@ func (o *Oracle) gatherOnce(slist *list.SafeList, ins Instance) {
 		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags))
 	}(time.Now())
 
-	db := o.dbconnpool[ins.Address]
-
-	if err := db.Ping(); err != nil {
+	if err := ins.client.Ping(); err != nil {
 		slist.PushFront(types.NewSample("up", 0, tags))
 		log.Println("E! failed to ping oracle:", ins.Address, "error:", err)
 	} else {
@@ -148,26 +127,26 @@ func (o *Oracle) gatherOnce(slist *list.SafeList, ins Instance) {
 	for i := 0; i < len(o.Metrics); i++ {
 		m := o.Metrics[i]
 		waitMetrics.Add(1)
-		go ins.scrapeMetric(waitMetrics, slist, db, m, tags)
+		go ins.scrapeMetric(waitMetrics, slist, m, tags)
 	}
 
 	for i := 0; i < len(ins.Metrics); i++ {
 		m := ins.Metrics[i]
 		waitMetrics.Add(1)
-		go ins.scrapeMetric(waitMetrics, slist, db, m, tags)
+		go ins.scrapeMetric(waitMetrics, slist, m, tags)
 	}
 
 	waitMetrics.Wait()
 }
 
-func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList, db *sqlx.DB, metricConf MetricConfig, tags map[string]string) {
+func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList, metricConf MetricConfig, tags map[string]string) {
 	defer waitMetrics.Done()
 
 	timeout := time.Duration(metricConf.Timeout)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	rows, err := db.QueryContext(ctx, metricConf.Request)
+	rows, err := client.QueryContext(ctx, metricConf.Request)
 
 	if ctx.Err() == context.DeadlineExceeded {
 		log.Println("E! oracle query timeout, request:", metricConf.Request)
@@ -269,22 +248,22 @@ func cleanName(s string) string {
 	return s
 }
 
-func getConnectionString(args Instance) string {
+func (ins *Instance) getConnectionString() string {
 	return godror.ConnectionParams{
-		StandaloneConnection: args.DisableConnectionPool,
+		StandaloneConnection: ins.DisableConnectionPool,
 		CommonParams: dsn.CommonParams{
-			Username:      args.Username,
-			Password:      dsn.NewPassword(args.Password),
-			ConnectString: args.Address,
+			Username:      ins.Username,
+			Password:      dsn.NewPassword(ins.Password),
+			ConnectString: ins.Address,
 		},
 		PoolParams: dsn.PoolParams{
 			MinSessions:      0,
-			MaxSessions:      args.MaxOpenConnections,
+			MaxSessions:      ins.MaxOpenConnections,
 			SessionIncrement: 1,
 		},
 		ConnParams: dsn.ConnParams{
-			IsSysDBA:  args.IsSysDBA,
-			IsSysOper: args.IsSysOper,
+			IsSysDBA:  ins.IsSysDBA,
+			IsSysOper: ins.IsSysOper,
 		},
 	}.StringWithPassword()
 }

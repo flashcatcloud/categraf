@@ -30,6 +30,11 @@ func init() {
 	})
 }
 
+// just placeholder
+func (d *DiskIO) GetInstances() []inputs.Instance {
+	return nil
+}
+
 func (d *DiskIO) Prefix() string {
 	return inputName
 }

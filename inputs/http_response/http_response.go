@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -34,19 +33,19 @@ const (
 )
 
 type Instance struct {
-	Targets                  []string          `toml:"targets"`
-	Labels                   map[string]string `toml:"labels"`
-	IntervalTimes            int64             `toml:"interval_times"`
-	Interface                string            `toml:"interface"`
-	Method                   string            `toml:"method"`
-	ResponseTimeout          config.Duration   `toml:"response_timeout"`
-	FollowRedirects          bool              `toml:"follow_redirects"`
-	Username                 string            `toml:"username"`
-	Password                 string            `toml:"password"`
-	Headers                  []string          `toml:"headers"`
-	Body                     string            `toml:"body"`
-	ExpectResponseSubstring  string            `toml:"expect_response_substring"`
-	ExpectResponseStatusCode *int              `toml:"expect_response_status_code"`
+	config.InstanceConfig
+
+	Targets                  []string        `toml:"targets"`
+	Interface                string          `toml:"interface"`
+	Method                   string          `toml:"method"`
+	ResponseTimeout          config.Duration `toml:"response_timeout"`
+	FollowRedirects          bool            `toml:"follow_redirects"`
+	Username                 string          `toml:"username"`
+	Password                 string          `toml:"password"`
+	Headers                  []string        `toml:"headers"`
+	Body                     string          `toml:"body"`
+	ExpectResponseSubstring  string          `toml:"expect_response_substring"`
+	ExpectResponseStatusCode *int            `toml:"expect_response_status_code"`
 	config.HTTPProxy
 
 	tls.ClientConfig
@@ -59,7 +58,7 @@ type httpClient interface {
 
 func (ins *Instance) Init() error {
 	if len(ins.Targets) == 0 {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	if ins.ResponseTimeout < config.Duration(time.Second) {
@@ -139,8 +138,6 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 type HTTPResponse struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
-	Counter   uint64
-	wg        sync.WaitGroup
 }
 
 func init() {
@@ -149,53 +146,22 @@ func init() {
 	})
 }
 
-func (h *HTTPResponse) Prefix() string {
-	return inputName
-}
+func (h *HTTPResponse) Prefix() string              { return inputName }
+func (h *HTTPResponse) Init() error                 { return nil }
+func (h *HTTPResponse) Drop()                       {}
+func (h *HTTPResponse) Gather(slist *list.SafeList) {}
 
-func (h *HTTPResponse) Init() error {
-	if len(h.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (h *HTTPResponse) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(h.Instances))
 	for i := 0; i < len(h.Instances); i++ {
-		if err := h.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = h.Instances[i]
 	}
-
-	return nil
+	return ret
 }
 
-func (h *HTTPResponse) Drop() {}
-
-func (h *HTTPResponse) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&h.Counter, 1)
-	for i := range h.Instances {
-		ins := h.Instances[i]
-		if len(ins.Targets) == 0 {
-			continue
-		}
-		h.wg.Add(1)
-		go h.gatherOnce(slist, ins)
-	}
-	h.wg.Wait()
-}
-
-func (h *HTTPResponse) gatherOnce(slist *list.SafeList, ins *Instance) {
-	defer h.wg.Done()
-
-	if ins.IntervalTimes > 0 {
-		counter := atomic.LoadUint64(&h.Counter)
-		if counter%uint64(ins.IntervalTimes) != 0 {
-			return
-		}
-	}
-
-	if config.Config.DebugMode {
-		if len(ins.Targets) == 0 {
-			log.Println("D! http_response targets empty")
-		}
+func (ins *Instance) Gather(slist *list.SafeList) {
+	if len(ins.Targets) == 0 {
+		return
 	}
 
 	wg := new(sync.WaitGroup)

@@ -9,7 +9,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -45,8 +44,6 @@ var (
 
 type Docker struct {
 	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -56,57 +53,21 @@ func init() {
 	})
 }
 
-func (d *Docker) Prefix() string {
-	return ""
-}
+func (d *Docker) Prefix() string              { return "" }
+func (d *Docker) Init() error                 { return nil }
+func (d *Docker) Drop()                       {}
+func (d *Docker) Gather(slist *list.SafeList) {}
 
-func (d *Docker) Init() error {
-	if len(d.Instances) == 0 {
-		return itypes.ErrInstancesEmpty
-	}
-
+func (d *Docker) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(d.Instances))
 	for i := 0; i < len(d.Instances); i++ {
-		if err := d.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = d.Instances[i]
 	}
-
-	return nil
-}
-
-func (d *Docker) Drop() {}
-
-func (d *Docker) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&d.counter, 1)
-
-	for i := range d.Instances {
-		ins := d.Instances[i]
-
-		if len(ins.Endpoint) == 0 {
-			continue
-		}
-
-		d.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer d.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&d.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
-	}
-
-	d.waitgrp.Wait()
+	return ret
 }
 
 type Instance struct {
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
+	config.InstanceConfig
 
 	Endpoint                   string   `toml:"endpoint"`
 	GatherServices             bool     `toml:"gather_services"`
@@ -134,7 +95,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.Endpoint) == 0 {
-		return nil
+		return itypes.ErrInstancesEmpty
 	}
 
 	c, err := ins.getNewClient()
@@ -168,7 +129,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	if ins.Endpoint == "" {
 		return
 	}

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sync"
-	"sync/atomic"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -19,8 +17,6 @@ const inputName = "mongodb"
 
 type MongoDB struct {
 	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -30,22 +26,16 @@ func init() {
 	})
 }
 
-func (r *MongoDB) Prefix() string {
-	return ""
-}
+func (r *MongoDB) Prefix() string              { return "" }
+func (r *MongoDB) Init() error                 { return nil }
+func (r *MongoDB) Gather(slist *list.SafeList) {}
 
-func (r *MongoDB) Init() error {
-	if len(r.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (r *MongoDB) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {
-		if err := r.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = r.Instances[i]
 	}
-
-	return nil
+	return ret
 }
 
 func (r *MongoDB) Drop() {
@@ -60,38 +50,10 @@ func (r *MongoDB) Drop() {
 	}
 }
 
-func (r *MongoDB) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&r.counter, 1)
-
-	for i := range r.Instances {
-		ins := r.Instances[i]
-
-		if len(ins.MongodbURI) == 0 {
-			continue
-		}
-
-		r.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer r.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&r.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
-	}
-
-	r.waitgrp.Wait()
-}
-
 type Instance struct {
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
-	LogLevel      string            `toml:"log_level"`
+	config.InstanceConfig
+
+	LogLevel string `toml:"log_level"`
 
 	// Address (host:port) of MongoDB server.
 	MongodbURI                    string   `toml:"mongodb_uri,omitempty"`
@@ -117,7 +79,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.MongodbURI) == 0 {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	if len(ins.LogLevel) == 0 {
@@ -167,7 +129,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	err := inputs.Collect(ins.e, slist, ins.Labels)
 	if err != nil {
 		log.Println("E! failed to collect metrics:", err)

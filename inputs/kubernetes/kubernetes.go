@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -26,8 +24,6 @@ const (
 
 type Kubernetes struct {
 	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -37,57 +33,21 @@ func init() {
 	})
 }
 
-func (k *Kubernetes) Prefix() string {
-	return inputName
-}
+func (k *Kubernetes) Prefix() string              { return inputName }
+func (k *Kubernetes) Init() error                 { return nil }
+func (k *Kubernetes) Drop()                       {}
+func (k *Kubernetes) Gather(slist *list.SafeList) {}
 
-func (k *Kubernetes) Init() error {
-	if len(k.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (k *Kubernetes) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(k.Instances))
 	for i := 0; i < len(k.Instances); i++ {
-		if err := k.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = k.Instances[i]
 	}
-
-	return nil
-}
-
-func (k *Kubernetes) Drop() {}
-
-func (k *Kubernetes) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&k.counter, 1)
-
-	for i := range k.Instances {
-		ins := k.Instances[i]
-
-		if ins.URL == "" {
-			continue
-		}
-
-		k.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer k.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&k.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
-	}
-
-	k.waitgrp.Wait()
+	return ret
 }
 
 type Instance struct {
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
+	config.InstanceConfig
 
 	URL string
 
@@ -116,7 +76,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.URL == "" {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	ins.URL = os.Expand(ins.URL, config.GetEnv)
@@ -143,7 +103,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	summaryMetrics := &SummaryMetrics{}
 	urlpath := fmt.Sprintf("%s/stats/summary", ins.URL)
 	err := ins.LoadJSON(urlpath, summaryMetrics)

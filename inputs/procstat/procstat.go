@@ -6,8 +6,6 @@ import (
 	"log"
 	"runtime"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -22,15 +20,15 @@ const inputName = "procstat"
 type PID int32
 
 type Instance struct {
-	SearchExecSubstring    string            `toml:"search_exec_substring"`
-	SearchCmdlineSubstring string            `toml:"search_cmdline_substring"`
-	SearchWinService       string            `toml:"search_win_service"`
-	Labels                 map[string]string `toml:"labels"`
-	IntervalTimes          int64             `toml:"interval_times"`
-	Mode                   string            `toml:"mode"`
-	GatherTotal            bool              `toml:"gather_total"`
-	GatherPerPid           bool              `toml:"gather_per_pid"`
-	GatherMoreMetrics      []string          `toml:"gather_more_metrics"`
+	config.InstanceConfig
+
+	SearchExecSubstring    string   `toml:"search_exec_substring"`
+	SearchCmdlineSubstring string   `toml:"search_cmdline_substring"`
+	SearchWinService       string   `toml:"search_win_service"`
+	Mode                   string   `toml:"mode"`
+	GatherTotal            bool     `toml:"gather_total"`
+	GatherPerPid           bool     `toml:"gather_per_pid"`
+	GatherMoreMetrics      []string `toml:"gather_more_metrics"`
 
 	searchString string
 	solarisMode  bool
@@ -65,8 +63,6 @@ func (ins *Instance) Init() error {
 type Procstat struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
-	Counter   uint64
-	wg        sync.WaitGroup
 }
 
 func init() {
@@ -75,46 +71,20 @@ func init() {
 	})
 }
 
-func (s *Procstat) Prefix() string {
-	return inputName
-}
+func (s *Procstat) Prefix() string              { return inputName }
+func (s *Procstat) Init() error                 { return nil }
+func (s *Procstat) Drop()                       {}
+func (s *Procstat) Gather(slist *list.SafeList) {}
 
-func (s *Procstat) Init() error {
-	if len(s.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (s *Procstat) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(s.Instances))
 	for i := 0; i < len(s.Instances); i++ {
-		if err := s.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = s.Instances[i]
 	}
-
-	return nil
+	return ret
 }
 
-func (s *Procstat) Drop() {}
-
-func (s *Procstat) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&s.Counter, 1)
-	for i := range s.Instances {
-		ins := s.Instances[i]
-		s.wg.Add(1)
-		go s.gatherOnce(slist, ins)
-	}
-	s.wg.Wait()
-}
-
-func (s *Procstat) gatherOnce(slist *list.SafeList, ins *Instance) {
-	defer s.wg.Done()
-
-	if ins.IntervalTimes > 0 {
-		counter := atomic.LoadUint64(&s.Counter)
-		if counter%uint64(ins.IntervalTimes) != 0 {
-			return
-		}
-	}
-
+func (ins *Instance) Gather(slist *list.SafeList) {
 	var (
 		pids []PID
 		err  error
@@ -131,7 +101,7 @@ func (s *Procstat) gatherOnce(slist *list.SafeList, ins *Instance) {
 	} else if ins.SearchCmdlineSubstring != "" {
 		pids, err = pg.FullPattern(ins.SearchCmdlineSubstring)
 	} else if ins.SearchWinService != "" {
-		pids, err = s.winServicePIDs(ins.SearchWinService)
+		pids, err = ins.winServicePIDs()
 	} else {
 		log.Println("E! Oops... search string not found")
 		return
@@ -152,7 +122,7 @@ func (s *Procstat) gatherOnce(slist *list.SafeList, ins *Instance) {
 		return
 	}
 
-	s.updateProcesses(ins, pids)
+	ins.updateProcesses(pids)
 
 	for _, field := range ins.GatherMoreMetrics {
 		switch field {
@@ -176,7 +146,7 @@ func (s *Procstat) gatherOnce(slist *list.SafeList, ins *Instance) {
 	}
 }
 
-func (s *Procstat) updateProcesses(ins *Instance, pids []PID) {
+func (ins *Instance) updateProcesses(pids []PID) {
 	procs := make(map[PID]Process)
 
 	for _, pid := range pids {
@@ -367,10 +337,10 @@ func (ins *Instance) gatherLimit(slist *list.SafeList, procs map[PID]Process, ta
 	}
 }
 
-func (s *Procstat) winServicePIDs(winService string) ([]PID, error) {
+func (ins *Instance) winServicePIDs() ([]PID, error) {
 	var pids []PID
 
-	pid, err := queryPidWithWinServiceName(winService)
+	pid, err := queryPidWithWinServiceName(ins.SearchWinService)
 	if err != nil {
 		return pids, err
 	}

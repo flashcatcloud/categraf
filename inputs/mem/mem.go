@@ -13,8 +13,7 @@ import (
 const inputName = "mem"
 
 type MemStats struct {
-	ps       system.PS
-	platform string
+	ps system.PS
 
 	config.Interval
 	CollectPlatformFields bool `toml:"collect_platform_fields"`
@@ -29,16 +28,10 @@ func init() {
 	})
 }
 
-func (s *MemStats) Prefix() string {
-	return inputName
-}
-
-func (s *MemStats) Drop() {}
-
-func (s *MemStats) Init() error {
-	s.platform = runtime.GOOS
-	return nil
-}
+func (s *MemStats) Prefix() string                  { return inputName }
+func (s *MemStats) Init() error                     { return nil }
+func (s *MemStats) Drop()                           {}
+func (s *MemStats) GetInstances() []inputs.Instance { return nil }
 
 func (s *MemStats) Gather(slist *list.SafeList) {
 	vm, err := s.ps.VMStat()
@@ -56,7 +49,7 @@ func (s *MemStats) Gather(slist *list.SafeList) {
 	}
 
 	if s.CollectPlatformFields {
-		switch s.platform {
+		switch runtime.GOOS {
 		case "darwin":
 			fields["active"] = vm.Active
 			fields["free"] = vm.Free

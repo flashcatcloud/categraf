@@ -12,7 +12,7 @@ import (
 	"github.com/toolkits/pkg/container/list"
 )
 
-func (m *MySQL) gatherEngineInnodbStatus(slist *list.SafeList, ins *Instance, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+func (ins *Instance) gatherEngineInnodbStatus(slist *list.SafeList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
 	rows, err := db.Query(SQL_ENGINE_INNODB_STATUS)
 	if err != nil {
 		log.Println("E! failed to query engine innodb status:", err)

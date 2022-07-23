@@ -6,7 +6,6 @@ import (
 	"net"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -28,8 +27,6 @@ const (
 
 type DnsQuery struct {
 	config.Interval
-	counter   uint64
-	waitgrp   sync.WaitGroup
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -39,57 +36,21 @@ func init() {
 	})
 }
 
-func (r *DnsQuery) Prefix() string {
-	return inputName
-}
+func (dq *DnsQuery) Prefix() string              { return inputName }
+func (dq *DnsQuery) Init() error                 { return nil }
+func (dq *DnsQuery) Drop()                       {}
+func (dq *DnsQuery) Gather(slist *list.SafeList) {}
 
-func (r *DnsQuery) Init() error {
-	if len(r.Instances) == 0 {
-		return types.ErrInstancesEmpty
+func (dq *DnsQuery) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(dq.Instances))
+	for i := 0; i < len(dq.Instances); i++ {
+		ret[i] = dq.Instances[i]
 	}
-
-	for i := 0; i < len(r.Instances); i++ {
-		if err := r.Instances[i].Init(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (r *DnsQuery) Drop() {}
-
-func (r *DnsQuery) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&r.counter, 1)
-
-	for i := range r.Instances {
-		ins := r.Instances[i]
-
-		if len(ins.Servers) == 0 {
-			continue
-		}
-
-		r.waitgrp.Add(1)
-		go func(slist *list.SafeList, ins *Instance) {
-			defer r.waitgrp.Done()
-
-			if ins.IntervalTimes > 0 {
-				counter := atomic.LoadUint64(&r.counter)
-				if counter%uint64(ins.IntervalTimes) != 0 {
-					return
-				}
-			}
-
-			ins.gatherOnce(slist)
-		}(slist, ins)
-	}
-
-	r.waitgrp.Wait()
+	return ret
 }
 
 type Instance struct {
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
+	config.InstanceConfig
 
 	// Domains or subdomains to query
 	Domains []string `toml:"domains"`
@@ -112,7 +73,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.Servers) == 0 {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	if ins.Network == "" {
@@ -139,7 +100,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) gatherOnce(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *list.SafeList) {
 	var wg sync.WaitGroup
 
 	for _, domain := range ins.Domains {

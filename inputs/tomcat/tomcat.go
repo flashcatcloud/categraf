@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -65,12 +63,12 @@ type RequestInfo struct {
 }
 
 type Instance struct {
-	URL           string            `toml:"url"`
-	Username      string            `toml:"username"`
-	Password      string            `toml:"password"`
-	Timeout       config.Duration   `toml:"timeout"`
-	Labels        map[string]string `toml:"labels"`
-	IntervalTimes int64             `toml:"interval_times"`
+	config.InstanceConfig
+
+	URL      string          `toml:"url"`
+	Username string          `toml:"username"`
+	Password string          `toml:"password"`
+	Timeout  config.Duration `toml:"timeout"`
 
 	tls.ClientConfig
 	client  *http.Client
@@ -79,7 +77,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if ins.URL == "" {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	if ins.Timeout <= 0 {
@@ -134,9 +132,6 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 type Tomcat struct {
 	config.Interval
 	Instances []*Instance `toml:"instances"`
-
-	Counter uint64
-	wg      sync.WaitGroup
 }
 
 func init() {
@@ -145,49 +140,20 @@ func init() {
 	})
 }
 
-func (t *Tomcat) Prefix() string {
-	return inputName
-}
+func (t *Tomcat) Prefix() string              { return inputName }
+func (t *Tomcat) Init() error                 { return nil }
+func (t *Tomcat) Drop()                       {}
+func (t *Tomcat) Gather(slist *list.SafeList) {}
 
-func (t *Tomcat) Init() error {
-	if len(t.Instances) == 0 {
-		return types.ErrInstancesEmpty
-	}
-
+func (t *Tomcat) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(t.Instances))
 	for i := 0; i < len(t.Instances); i++ {
-		if err := t.Instances[i].Init(); err != nil {
-			return err
-		}
+		ret[i] = t.Instances[i]
 	}
-
-	return nil
+	return ret
 }
 
-func (t *Tomcat) Drop() {}
-
-func (t *Tomcat) Gather(slist *list.SafeList) {
-	atomic.AddUint64(&t.Counter, 1)
-	for i := range t.Instances {
-		ins := t.Instances[i]
-		if ins.URL == "" {
-			continue
-		}
-		t.wg.Add(1)
-		go t.gatherOnce(slist, ins)
-	}
-	t.wg.Wait()
-}
-
-func (t *Tomcat) gatherOnce(slist *list.SafeList, ins *Instance) {
-	defer t.wg.Done()
-
-	if ins.IntervalTimes > 0 {
-		counter := atomic.LoadUint64(&t.Counter)
-		if counter%uint64(ins.IntervalTimes) != 0 {
-			return
-		}
-	}
-
+func (ins *Instance) Gather(slist *list.SafeList) {
 	tags := map[string]string{"url": ins.URL}
 	for k, v := range ins.Labels {
 		tags[k] = v

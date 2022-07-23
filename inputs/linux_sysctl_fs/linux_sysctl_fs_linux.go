@@ -33,15 +33,10 @@ func init() {
 	})
 }
 
-func (s *SysctlFS) Prefix() string {
-	return inputName
-}
-
-func (s *SysctlFS) Init() error {
-	return nil
-}
-
-func (s *SysctlFS) Drop() {}
+func (s *SysctlFS) Prefix() string                  { return inputName }
+func (s *SysctlFS) Init() error                     { return nil }
+func (s *SysctlFS) Drop()                           {}
+func (s *SysctlFS) GetInstances() []inputs.Instance { return nil }
 
 func (s *SysctlFS) Gather(slist *list.SafeList) {
 	fields := map[string]interface{}{}
