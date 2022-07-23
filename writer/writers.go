@@ -45,19 +45,32 @@ func InitWriters() error {
 		Writers[opts[i].Url] = writer
 	}
 
+	initQueue()
+
 	return nil
 }
 
-func PostSeries(samples []*types.Sample) {
+func postSeries(samples []*types.Sample) {
+	now := time.Now()
+
 	if config.Config.TestMode {
-		printTestMetrics(samples)
+		printTestMetrics(samples, now)
 		return
 	}
 
 	count := len(samples)
-	series := make([]prompb.TimeSeries, count)
+	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < count; i++ {
-		series[i] = convert(samples[i])
+		if samples[i].Timestamp.IsZero() {
+			samples[i].Timestamp = now
+		}
+
+		item := convert(samples[i])
+		if len(item.Labels) == 0 {
+			continue
+		}
+
+		series = append(series, item)
 	}
 
 	wg := sync.WaitGroup{}
@@ -71,9 +84,13 @@ func PostSeries(samples []*types.Sample) {
 	wg.Wait()
 }
 
-func printTestMetrics(samples []*types.Sample) {
+func printTestMetrics(samples []*types.Sample, now time.Time) {
 	for i := 0; i < len(samples); i++ {
 		var sb strings.Builder
+
+		if samples[i].Timestamp.IsZero() {
+			samples[i].Timestamp = now
+		}
 
 		sb.WriteString(samples[i].Timestamp.Format("15:04:05"))
 		sb.WriteString(" ")

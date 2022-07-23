@@ -35,9 +35,6 @@ func NewInputReader(inputName string, in inputs.Input) *InputReader {
 }
 
 func (r *InputReader) Start() {
-	// start consumer goroutines
-	go r.read()
-
 	// start collector instance
 	go r.startInput()
 }
@@ -140,49 +137,9 @@ func (r *InputReader) gatherOnce() {
 		}
 
 		// write to remote write queue
-		r.queue <- s
+		writer.PushQueue(s)
 
 		// write to clickhouse queue
 		house.MetricsHouse.Push(s)
-	}
-}
-
-func (r *InputReader) read() {
-	batch := config.Config.WriterOpt.Batch
-	if batch <= 0 {
-		batch = 2000
-	}
-
-	series := make([]*types.Sample, 0, batch)
-
-	var count int
-
-	for {
-		select {
-		case item, open := <-r.queue:
-			if !open {
-				// queue closed
-				return
-			}
-
-			if item == nil {
-				continue
-			}
-
-			series = append(series, item)
-			count++
-			if count >= batch {
-				writer.PostSeries(series)
-				count = 0
-				series = make([]*types.Sample, 0, batch)
-			}
-		default:
-			if len(series) > 0 {
-				writer.PostSeries(series)
-				count = 0
-				series = make([]*types.Sample, 0, batch)
-			}
-			time.Sleep(time.Millisecond * 100)
-		}
 	}
 }

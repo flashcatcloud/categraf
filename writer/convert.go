@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
@@ -12,6 +13,12 @@ import (
 var labelReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "/", "_")
 
 func convert(item *types.Sample) prompb.TimeSeries {
+	value, err := conv.ToFloat64(item.Value)
+	if err != nil {
+		// If the Labels is empty, it means it is abnormal data
+		return prompb.TimeSeries{}
+	}
+
 	pt := prompb.TimeSeries{}
 
 	timestamp := item.Timestamp.UnixMilli()
@@ -21,7 +28,7 @@ func convert(item *types.Sample) prompb.TimeSeries {
 
 	pt.Samples = append(pt.Samples, prompb.Sample{
 		Timestamp: timestamp,
-		Value:     item.Value,
+		Value:     value,
 	})
 
 	// add label: metric
