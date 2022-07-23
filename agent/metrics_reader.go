@@ -24,7 +24,7 @@ type InputReader struct {
 	quitChan  chan struct{}
 }
 
-func (a *Agent) StartReader(name string, in inputs.Input) {
+func (a *Agent) StartInputReader(name string, in inputs.Input) {
 	reader := NewInputReader(name, in)
 	go reader.startInput()
 	a.InputReaders[name] = reader
@@ -55,7 +55,6 @@ func (r *InputReader) startInput() {
 			close(r.quitChan)
 			return
 		default:
-			time.Sleep(interval)
 			var start time.Time
 			if config.Config.DebugMode {
 				start = time.Now()
@@ -65,9 +64,10 @@ func (r *InputReader) startInput() {
 			r.gatherOnce()
 
 			if config.Config.DebugMode {
-				ms := time.Since(start).Milliseconds()
-				log.Println("D!", r.inputName, ": after gather once,", "duration:", ms, "ms")
+				log.Println("D!", r.inputName, ": after gather once,", "duration:", time.Since(start))
 			}
+
+			time.Sleep(interval)
 		}
 	}
 }

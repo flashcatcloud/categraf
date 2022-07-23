@@ -58,7 +58,7 @@ func (a *Agent) startMetricsAgent() error {
 			continue
 		}
 
-		a.StartReader(name, input)
+		a.StartInputReader(name, input)
 		log.Println("I! input:", name, "started")
 	}
 
