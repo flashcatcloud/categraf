@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -112,7 +113,19 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.Servers) == 0 {
-		return nil
+		resolvPath := "/etc/resolv.conf"
+		if _, err := os.Stat(resolvPath); os.IsNotExist(err) {
+			return nil
+		}
+		config, _ := dns.ClientConfigFromFile(resolvPath)
+		Servers := []string{}
+		for _, ipAddress := range config.Servers {
+			Servers = append(Servers, ipAddress)
+		}
+		ins.Servers = Servers
+		if len(ins.Servers) == 0 {
+			return nil
+		}
 	}
 
 	if ins.Network == "" {
