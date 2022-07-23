@@ -22,7 +22,12 @@ type InputReader struct {
 	inputName string
 	input     inputs.Input
 	quitChan  chan struct{}
-	queue     chan *types.Sample
+}
+
+func (a *Agent) StartReader(name string, in inputs.Input) {
+	reader := NewInputReader(name, in)
+	go reader.startInput()
+	a.InputReaders[name] = reader
 }
 
 func NewInputReader(inputName string, in inputs.Input) *InputReader {
@@ -30,13 +35,7 @@ func NewInputReader(inputName string, in inputs.Input) *InputReader {
 		inputName: inputName,
 		input:     in,
 		quitChan:  make(chan struct{}, 1),
-		queue:     make(chan *types.Sample, config.Config.WriterOpt.ChanSize),
 	}
-}
-
-func (r *InputReader) Start() {
-	// start collector instance
-	go r.startInput()
 }
 
 func (r *InputReader) Stop() {
@@ -54,7 +53,6 @@ func (r *InputReader) startInput() {
 		select {
 		case <-r.quitChan:
 			close(r.quitChan)
-			close(r.queue)
 			return
 		default:
 			time.Sleep(interval)
