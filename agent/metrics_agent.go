@@ -42,22 +42,23 @@ func (a *Agent) startMetricsAgent() error {
 		}
 
 		// construct input instance
-		inp := creator()
+		input := creator()
+
 		// set configurations for input instance
-		err = cfg.LoadConfigs(path.Join(config.Config.ConfigDir, inputFilePrefix+name), inp)
+		err = cfg.LoadConfigs(path.Join(config.Config.ConfigDir, inputFilePrefix+name), input)
 		if err != nil {
 			log.Println("E! failed to load configuration of plugin:", name, "error:", err)
 			continue
 		}
 
-		if err = inp.Init(); err != nil {
+		if err = input.Init(); err != nil {
 			if !errors.Is(err, types.ErrInstancesEmpty) {
 				log.Println("E! failed to init input:", name, "error:", err)
 			}
 			continue
 		}
 
-		a.StartReader(name, inp)
+		a.StartReader(name, input)
 		log.Println("I! input:", name, "started")
 	}
 
