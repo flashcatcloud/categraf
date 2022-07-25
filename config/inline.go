@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"flashcat.cloud/categraf/pkg/filter"
@@ -9,13 +10,27 @@ import (
 
 const agentHostnameLabelKey = "agent_hostname"
 
+type ProcessorEnum struct {
+	Metrics       []string `toml:"metrics"` // support glob
+	MetricsFilter filter.Filter
+	ValueMappings map[string]float64 `toml:"value_mappings"`
+}
+
 type InternalConfig struct {
-	Labels            map[string]string `toml:"labels"`
-	MetricsDrop       []string          `toml:"metrics_drop"`
-	MetricsPass       []string          `toml:"metrics_pass"`
-	MetricsNamePrefix string            `toml:"metrics_name_prefix"`
+	// append labels
+	Labels map[string]string `toml:"labels"`
+
+	// metrics drop and pass filter
+	MetricsDrop       []string `toml:"metrics_drop"`
+	MetricsPass       []string `toml:"metrics_pass"`
 	MetricsDropFilter filter.Filter
 	MetricsPassFilter filter.Filter
+
+	// metric name prefix
+	MetricsNamePrefix string `toml:"metrics_name_prefix"`
+
+	// mapping value
+	ProcessorEnum []*ProcessorEnum `toml:"processor_enum"`
 }
 
 func (ic *InternalConfig) GetLabels() map[string]string {
@@ -40,6 +55,16 @@ func (ic *InternalConfig) InitInternalConfig() error {
 		ic.MetricsPassFilter, err = filter.Compile(ic.MetricsPass)
 		if err != nil {
 			return err
+		}
+	}
+
+	for i := 0; i < len(ic.ProcessorEnum); i++ {
+		if len(ic.ProcessorEnum[i].Metrics) > 0 {
+			var err error
+			ic.ProcessorEnum[i].MetricsFilter, err = filter.Compile(ic.ProcessorEnum[i].Metrics)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -71,6 +96,16 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 		if ic.MetricsPassFilter != nil {
 			if !ic.MetricsPassFilter.Match(ss[i].Metric) {
 				continue
+			}
+		}
+
+		// mapping values
+		for j := 0; j < len(ic.ProcessorEnum); j++ {
+			if ic.ProcessorEnum[j].MetricsFilter.Match(ss[i].Metric) {
+				v, has := ic.ProcessorEnum[j].ValueMappings[fmt.Sprint(ss[i].Value)]
+				if has {
+					ss[i].Value = v
+				}
 			}
 		}
 
