@@ -1,6 +1,6 @@
 [[instances]]
   urls = ["http://localhost:8080/jolokia"]
-  name_prefix = "kafka_connect_"
+  metrics_name_prefix = "kafka_connect_"
 
   # [[processors.enum]]
   #   [[processors.enum.mapping]]

@@ -13,6 +13,7 @@ type InternalConfig struct {
 	Labels            map[string]string `toml:"labels"`
 	MetricsDrop       []string          `toml:"metrics_drop"`
 	MetricsPass       []string          `toml:"metrics_pass"`
+	MetricsNamePrefix string            `toml:"metrics_name_prefix"`
 	MetricsDropFilter filter.Filter
 	MetricsPassFilter filter.Filter
 }
@@ -75,6 +76,11 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 
 		if ss[i].Timestamp.IsZero() {
 			ss[i].Timestamp = now
+		}
+
+		// name prefix
+		if len(ic.MetricsNamePrefix) > 0 {
+			ss[i].Metric = ic.MetricsNamePrefix + ss[i].Metric
 		}
 
 		// add instance labels
