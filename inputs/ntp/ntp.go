@@ -7,14 +7,13 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 	"github.com/toolkits/pkg/nux"
 )
 
 const inputName = "ntp"
 
 type NTPStat struct {
-	config.Interval
+	config.PluginConfig
 	NTPServers []string `toml:"ntp_servers"`
 	server     string
 }
@@ -25,7 +24,6 @@ func init() {
 	})
 }
 
-func (n *NTPStat) Prefix() string                  { return inputName }
 func (n *NTPStat) Drop()                           {}
 func (n *NTPStat) GetInstances() []inputs.Instance { return nil }
 
@@ -36,7 +34,7 @@ func (n *NTPStat) Init() error {
 	return nil
 }
 
-func (n *NTPStat) Gather(slist *list.SafeList) {
+func (n *NTPStat) Gather(slist *types.SampleList) {
 	for _, server := range n.NTPServers {
 		if n.server == "" {
 			n.server = server
@@ -56,7 +54,7 @@ func (n *NTPStat) Gather(slist *list.SafeList) {
 		duration := ((serverReciveTime.UnixNano() - orgTime.UnixNano()) + (serverTransmitTime.UnixNano() - dstTime.UnixNano())) / 2
 
 		delta := duration / 1e6 // convert to ms
-		slist.PushFront(types.NewSample("offset_ms", delta))
+		slist.PushSample("", "ntp_offset_ms", delta)
 		break
 	}
 }

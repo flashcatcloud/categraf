@@ -10,13 +10,12 @@ import (
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 // Regexp to match various groups of status vars.
 var globalStatusRE = regexp.MustCompile(`^(com|handler|connection_errors|innodb_buffer_pool_pages|innodb_rows|performance_schema)_(.*)$`)
 
-func (ins *Instance) gatherGlobalStatus(slist *list.SafeList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+func (ins *Instance) gatherGlobalStatus(slist *types.SampleList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
 	rows, err := db.Query(SQL_GLOBAL_STATUS)
 	if err != nil {
 		log.Println("E! failed to query global status:", err)
@@ -62,42 +61,42 @@ func (ins *Instance) gatherGlobalStatus(slist *list.SafeList, db *sql.DB, global
 
 			match := globalStatusRE.FindStringSubmatch(key)
 			if match == nil {
-				slist.PushFront(types.NewSample("global_status_"+key, floatVal, tags))
+				slist.PushFront(types.NewSample(inputName, "global_status_"+key, floatVal, tags))
 				continue
 			}
 
 			switch match[1] {
 			case "com":
 				// Total number of executed MySQL commands.
-				slist.PushFront(types.NewSample("global_status_commands_total", floatVal, tags, map[string]string{"command": match[2]}))
+				slist.PushFront(types.NewSample(inputName, "global_status_commands_total", floatVal, tags, map[string]string{"command": match[2]}))
 			case "handler":
 				// Total number of executed MySQL handlers.
-				slist.PushFront(types.NewSample("global_status_handlers_total", floatVal, tags, map[string]string{"handler": match[2]}))
+				slist.PushFront(types.NewSample(inputName, "global_status_handlers_total", floatVal, tags, map[string]string{"handler": match[2]}))
 			case "connection_errors":
 				// Total number of MySQL connection errors.
-				slist.PushFront(types.NewSample("global_status_connection_errors_total", floatVal, tags, map[string]string{"error": match[2]}))
+				slist.PushFront(types.NewSample(inputName, "global_status_connection_errors_total", floatVal, tags, map[string]string{"error": match[2]}))
 			case "innodb_buffer_pool_pages":
 				switch match[2] {
 				case "data", "free", "misc", "old", "total", "dirty":
 					// Innodb buffer pool pages by state.
-					slist.PushFront(types.NewSample("global_status_buffer_pool_pages", floatVal, tags, map[string]string{"state": match[2]}))
+					slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_pages", floatVal, tags, map[string]string{"state": match[2]}))
 				default:
 					// Innodb buffer pool page state changes.
-					slist.PushFront(types.NewSample("global_status_buffer_pool_page_changes_total", floatVal, tags, map[string]string{"operation": match[2]}))
+					slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_page_changes_total", floatVal, tags, map[string]string{"operation": match[2]}))
 				}
 			case "innodb_rows":
 				// Total number of MySQL InnoDB row operations.
-				slist.PushFront(types.NewSample("global_status_innodb_row_ops_total", floatVal, tags, map[string]string{"operation": match[2]}))
+				slist.PushFront(types.NewSample(inputName, "global_status_innodb_row_ops_total", floatVal, tags, map[string]string{"operation": match[2]}))
 			case "performance_schema":
 				// Total number of MySQL instrumentations that could not be loaded or created due to memory constraints.
-				slist.PushFront(types.NewSample("global_status_performance_schema_lost_total", floatVal, tags, map[string]string{"instrumentation": match[2]}))
+				slist.PushFront(types.NewSample(inputName, "global_status_performance_schema_lost_total", floatVal, tags, map[string]string{"instrumentation": match[2]}))
 			}
 		}
 	}
 
 	// mysql_galera_variables_info metric.
 	if textItems["wsrep_local_state_uuid"] != "" {
-		slist.PushFront(types.NewSample("galera_status_info", 1, tags, map[string]string{
+		slist.PushFront(types.NewSample(inputName, "galera_status_info", 1, tags, map[string]string{
 			"wsrep_local_state_uuid":   textItems["wsrep_local_state_uuid"],
 			"wsrep_cluster_state_uuid": textItems["wsrep_cluster_state_uuid"],
 			"wsrep_provider_version":   textItems["wsrep_provider_version"],
@@ -134,7 +133,7 @@ func (ins *Instance) gatherGlobalStatus(slist *list.SafeList, db *sql.DB, global
 
 			if evsParsingSuccess {
 				for _, v := range evsMap {
-					slist.PushFront(types.NewSample("galera_evs_repl_latency_"+v.name, v.value, tags))
+					slist.PushFront(types.NewSample(inputName, "galera_evs_repl_latency_"+v.name, v.value, tags))
 				}
 			}
 		}

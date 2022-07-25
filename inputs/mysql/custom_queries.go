@@ -11,10 +11,9 @@ import (
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
-func (ins *Instance) gatherCustomQueries(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherCustomQueries(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
 	wg := new(sync.WaitGroup)
 	defer wg.Wait()
 
@@ -24,7 +23,7 @@ func (ins *Instance) gatherCustomQueries(slist *list.SafeList, db *sql.DB, globa
 	}
 }
 
-func (ins *Instance) gatherOneQuery(slist *list.SafeList, db *sql.DB, globalTags map[string]string, wg *sync.WaitGroup, query QueryConfig) {
+func (ins *Instance) gatherOneQuery(slist *types.SampleList, db *sql.DB, globalTags map[string]string, wg *sync.WaitGroup, query QueryConfig) {
 	defer wg.Done()
 
 	timeout := time.Duration(query.Timeout)
@@ -75,7 +74,7 @@ func (ins *Instance) gatherOneQuery(slist *list.SafeList, db *sql.DB, globalTags
 	}
 }
 
-func (ins *Instance) parseRow(row map[string]string, query QueryConfig, slist *list.SafeList, globalTags map[string]string) error {
+func (ins *Instance) parseRow(row map[string]string, query QueryConfig, slist *types.SampleList, globalTags map[string]string) error {
 	labels := tagx.Copy(globalTags)
 
 	for _, label := range query.LabelFields {
@@ -93,10 +92,10 @@ func (ins *Instance) parseRow(row map[string]string, query QueryConfig, slist *l
 		}
 
 		if query.FieldToAppend == "" {
-			slist.PushFront(types.NewSample(query.Mesurement+"_"+column, value, labels))
+			slist.PushFront(types.NewSample(inputName, query.Mesurement+"_"+column, value, labels))
 		} else {
 			suffix := cleanName(row[query.FieldToAppend])
-			slist.PushFront(types.NewSample(query.Mesurement+"_"+suffix+"_"+column, value, labels))
+			slist.PushFront(types.NewSample(inputName, query.Mesurement+"_"+suffix+"_"+column, value, labels))
 		}
 	}
 

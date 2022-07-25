@@ -1,7 +1,6 @@
 package mongodb
 
 import (
-	"errors"
 	"fmt"
 	"log"
 
@@ -10,13 +9,12 @@ import (
 	"flashcat.cloud/categraf/inputs/mongodb/exporter"
 	"flashcat.cloud/categraf/types"
 	"github.com/sirupsen/logrus"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "mongodb"
 
 type MongoDB struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -26,9 +24,8 @@ func init() {
 	})
 }
 
-func (r *MongoDB) Prefix() string              { return "" }
-func (r *MongoDB) Init() error                 { return nil }
-func (r *MongoDB) Gather(slist *list.SafeList) {}
+func (r *MongoDB) Init() error                    { return nil }
+func (r *MongoDB) Gather(slist *types.SampleList) {}
 
 func (r *MongoDB) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
@@ -90,14 +87,6 @@ func (ins *Instance) Init() error {
 		return err
 	}
 
-	if ins.Labels == nil {
-		ins.Labels = make(map[string]string)
-	}
-	_, ok := ins.Labels["instance"]
-	if !ok {
-		return errors.New("instance must be specified in labels")
-	}
-
 	l := logrus.New()
 	l.SetLevel(level)
 
@@ -129,8 +118,8 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
-	err := inputs.Collect(ins.e, slist, ins.Labels)
+func (ins *Instance) Gather(slist *types.SampleList) {
+	err := inputs.Collect(ins.e, slist)
 	if err != nil {
 		log.Println("E! failed to collect metrics:", err)
 	}

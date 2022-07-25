@@ -6,10 +6,9 @@ import (
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
-func (ins *Instance) gatherTableSize(slist *list.SafeList, db *sql.DB, globalTags map[string]string, isSystem bool) {
+func (ins *Instance) gatherTableSize(slist *types.SampleList, db *sql.DB, globalTags map[string]string, isSystem bool) {
 	query := SQL_QUERY_TABLE_SIZE
 	if isSystem {
 		query = SQL_QUERY_SYSTEM_TABLE_SIZE
@@ -42,7 +41,7 @@ func (ins *Instance) gatherTableSize(slist *list.SafeList, db *sql.DB, globalTag
 			return
 		}
 
-		slist.PushFront(types.NewSample("table_size_index_bytes", indexSize, labels, map[string]string{"schema": schema, "table": table}))
-		slist.PushFront(types.NewSample("table_size_data_bytes", dataSize, labels, map[string]string{"schema": schema, "table": table}))
+		slist.PushFront(types.NewSample(inputName, "table_size_index_bytes", indexSize, labels, map[string]string{"schema": schema, "table": table}))
+		slist.PushFront(types.NewSample(inputName, "table_size_data_bytes", dataSize, labels, map[string]string{"schema": schema, "table": table}))
 	}
 }

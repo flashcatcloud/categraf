@@ -6,8 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"flashcat.cloud/categraf/inputs"
-	"github.com/toolkits/pkg/container/list"
+	"flashcat.cloud/categraf/types"
 )
 
 const defaultFieldName = "value"
@@ -26,7 +25,7 @@ func NewGatherer(metrics []Metric) *Gatherer {
 
 // Gather adds points to an accumulator from responses returned
 // by a Jolokia agent.
-func (g *Gatherer) Gather(client *Client, slist *list.SafeList) error {
+func (g *Gatherer) Gather(client *Client, slist *types.SampleList) error {
 	var tags map[string]string
 
 	if client.config.ProxyConfig != nil {
@@ -47,7 +46,7 @@ func (g *Gatherer) Gather(client *Client, slist *list.SafeList) error {
 
 // gatherResponses adds points to an accumulator from the ReadResponse objects
 // returned by a Jolokia agent.
-func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]string, slist *list.SafeList) {
+func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]string, slist *types.SampleList) {
 	series := make(map[string][]point)
 
 	for _, metric := range g.metrics {
@@ -67,7 +66,7 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 
 	for measurement, points := range series {
 		for _, point := range compactPoints(points) {
-			inputs.PushMeasurements(slist, measurement, point.Fields, mergeTags(point.Tags, tags))
+			slist.PushSamples(measurement, point.Fields, mergeTags(point.Tags, tags))
 		}
 	}
 }

@@ -13,7 +13,6 @@ import (
 	"flashcat.cloud/categraf/pkg/runtimex"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const agentHostnameLabelKey = "agent_hostname"
@@ -76,13 +75,19 @@ func (r *InputReader) startInput() {
 	}
 }
 
-func (r *InputReader) work(slist *list.SafeList) {
-	instances := r.input.GetInstances()
-	if instances == nil {
-		r.input.Gather(slist)
-		return
-	}
+func (r *InputReader) gatherOnce() {
+	defer func() {
+		if rc := recover(); rc != nil {
+			log.Println("E!", r.inputName, ": gather metrics panic:", r, string(runtimex.Stack(3)))
+		}
+	}()
 
+	// plugin level, for system plugins
+	slist := types.NewSampleList()
+	r.input.Gather(slist)
+	r.forward(r.input.Process(slist))
+
+	instances := r.input.GetInstances()
 	if len(instances) == 0 {
 		return
 	}
@@ -91,7 +96,7 @@ func (r *InputReader) work(slist *list.SafeList) {
 
 	for i := 0; i < len(instances); i++ {
 		r.waitGroup.Add(1)
-		go func(slist *list.SafeList, ins inputs.Instance) {
+		go func(ins inputs.Instance) {
 			defer r.waitGroup.Done()
 
 			it := ins.GetIntervalTimes()
@@ -102,79 +107,19 @@ func (r *InputReader) work(slist *list.SafeList) {
 				}
 			}
 
-			ins.Gather(slist)
-		}(slist, instances[i])
+			insList := types.NewSampleList()
+			ins.Gather(insList)
+			r.forward(ins.Process(insList))
+		}(instances[i])
 	}
 
 	r.waitGroup.Wait()
 }
 
-func (r *InputReader) gatherOnce() {
-	defer func() {
-		if rc := recover(); rc != nil {
-			log.Println("E!", r.inputName, ": gather metrics panic:", r, string(runtimex.Stack(3)))
-		}
-	}()
-
-	// gather
-	slist := list.NewSafeList()
-	r.work(slist)
-
-	// handle result
-	samples := slist.PopBackAll()
-
-	size := len(samples)
-	if size == 0 {
-		return
-	}
-
-	if config.Config.DebugMode {
-		log.Println("D!", r.inputName, ": gathered samples size:", size)
-	}
-
-	now := time.Now()
-	for i := 0; i < size; i++ {
-		if samples[i] == nil {
-			continue
-		}
-
-		s := samples[i].(*types.Sample)
-		if s == nil {
-			continue
-		}
-
-		if s.Timestamp.IsZero() {
-			s.Timestamp = now
-		}
-
-		if len(r.input.Prefix()) > 0 {
-			s.Metric = r.input.Prefix() + "_" + metricReplacer.Replace(s.Metric)
-		} else {
-			s.Metric = metricReplacer.Replace(s.Metric)
-		}
-
-		if s.Labels == nil {
-			s.Labels = make(map[string]string)
-		}
-
-		// add label: agent_hostname
-		if _, has := s.Labels[agentHostnameLabelKey]; !has {
-			if !config.Config.Global.OmitHostname {
-				s.Labels[agentHostnameLabelKey] = config.Config.GetHostname()
-			}
-		}
-
-		// add global labels
-		for k, v := range config.Config.Global.Labels {
-			if _, has := s.Labels[k]; !has {
-				s.Labels[k] = v
-			}
-		}
-
-		// write to remote write queue
-		writer.PushQueue(s)
-
-		// write to clickhouse queue
-		house.MetricsHouse.Push(s)
+func (r *InputReader) forward(slist *types.SampleList) {
+	arr := slist.PopBackAll()
+	for i := 0; i < len(arr); i++ {
+		writer.PushQueue(arr[i])
+		house.MetricsHouse.Push(arr[i])
 	}
 }

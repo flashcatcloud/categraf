@@ -14,7 +14,6 @@ import (
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const (
@@ -23,7 +22,7 @@ const (
 )
 
 type Kubernetes struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -33,10 +32,9 @@ func init() {
 	})
 }
 
-func (k *Kubernetes) Prefix() string              { return inputName }
-func (k *Kubernetes) Init() error                 { return nil }
-func (k *Kubernetes) Drop()                       {}
-func (k *Kubernetes) Gather(slist *list.SafeList) {}
+func (k *Kubernetes) Init() error                    { return nil }
+func (k *Kubernetes) Drop()                          {}
+func (k *Kubernetes) Gather(slist *types.SampleList) {}
 
 func (k *Kubernetes) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(k.Instances))
@@ -103,17 +101,17 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	summaryMetrics := &SummaryMetrics{}
 	urlpath := fmt.Sprintf("%s/stats/summary", ins.URL)
 	err := ins.LoadJSON(urlpath, summaryMetrics)
 	if err != nil {
 		log.Println("E! failed to load", urlpath, "error:", err)
-		slist.PushFront(types.NewSample("kubelet_up", 0, ins.Labels))
+		slist.PushSample(inputName, "kubelet_up", 0)
 		return
 	}
 
-	slist.PushFront(types.NewSample("kubelet_up", 1, ins.Labels))
+	slist.PushSample(inputName, "kubelet_up", 1)
 
 	podInfos, err := ins.gatherPodInfo(ins.URL)
 	if err != nil {
@@ -132,7 +130,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	ins.buildPodMetrics(summaryMetrics, podInfos, ins.labelFilter, slist)
 }
 
-func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []Metadata, labelFilter filter.Filter, slist *list.SafeList) {
+func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []Metadata, labelFilter filter.Filter, slist *types.SampleList) {
 	for _, pod := range summaryMetrics.Pods {
 		podLabels := make(map[string]string)
 		for _, info := range podInfo {
@@ -170,7 +168,7 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 				fields["pod_container_logsfs_available_bytes"] = container.LogsFS.AvailableBytes
 				fields["pod_container_logsfs_capacity_bytes"] = container.LogsFS.CapacityBytes
 				fields["pod_container_logsfs_used_bytes"] = container.LogsFS.UsedBytes
-				inputs.PushSamples(slist, fields, tags, ins.Labels)
+				slist.PushSamples(inputName, fields, tags)
 			}
 		}
 
@@ -189,7 +187,7 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 				fields["pod_volume_available_bytes"] = volume.AvailableBytes
 				fields["pod_volume_capacity_bytes"] = volume.CapacityBytes
 				fields["pod_volume_used_bytes"] = volume.UsedBytes
-				inputs.PushSamples(slist, fields, tags, ins.Labels)
+				slist.PushSamples(inputName, fields, tags)
 			}
 		}
 
@@ -207,12 +205,12 @@ func (ins *Instance) buildPodMetrics(summaryMetrics *SummaryMetrics, podInfo []M
 			fields["pod_network_rx_errors"] = pod.Network.RXErrors
 			fields["pod_network_tx_bytes"] = pod.Network.TXBytes
 			fields["pod_network_tx_errors"] = pod.Network.TXErrors
-			inputs.PushSamples(slist, fields, tags, ins.Labels)
+			slist.PushSamples(inputName, fields, tags)
 		}
 	}
 }
 
-func (ins *Instance) buildSystemContainerMetrics(summaryMetrics *SummaryMetrics, slist *list.SafeList) {
+func (ins *Instance) buildSystemContainerMetrics(summaryMetrics *SummaryMetrics, slist *types.SampleList) {
 	for _, container := range summaryMetrics.Node.SystemContainers {
 		tags := map[string]string{
 			"node":      summaryMetrics.Node.NodeName,
@@ -232,11 +230,11 @@ func (ins *Instance) buildSystemContainerMetrics(summaryMetrics *SummaryMetrics,
 		fields["system_container_logsfs_available_bytes"] = container.LogsFS.AvailableBytes
 		fields["system_container_logsfs_capacity_bytes"] = container.LogsFS.CapacityBytes
 
-		inputs.PushSamples(slist, fields, tags, ins.Labels)
+		slist.PushSamples(inputName, fields, tags)
 	}
 }
 
-func (ins *Instance) buildNodeMetrics(summaryMetrics *SummaryMetrics, slist *list.SafeList) {
+func (ins *Instance) buildNodeMetrics(summaryMetrics *SummaryMetrics, slist *types.SampleList) {
 	tags := map[string]string{
 		"node": summaryMetrics.Node.NodeName,
 	}
@@ -260,7 +258,7 @@ func (ins *Instance) buildNodeMetrics(summaryMetrics *SummaryMetrics, slist *lis
 	fields["node_runtime_image_fs_capacity_bytes"] = summaryMetrics.Node.Runtime.ImageFileSystem.CapacityBytes
 	fields["node_runtime_image_fs_used_bytes"] = summaryMetrics.Node.Runtime.ImageFileSystem.UsedBytes
 
-	inputs.PushSamples(slist, fields, tags, ins.Labels)
+	slist.PushSamples(inputName, fields, tags)
 }
 
 func (ins *Instance) gatherPodInfo(baseURL string) ([]Metadata, error) {

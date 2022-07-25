@@ -19,13 +19,10 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
-	"github.com/toolkits/pkg/container/list"
 
 	tlsx "flashcat.cloud/categraf/pkg/tls"
 	itypes "flashcat.cloud/categraf/types"
 )
-
-const inputName = "docker"
 
 // KB, MB, GB, TB, PB...human friendly
 const (
@@ -43,20 +40,19 @@ var (
 )
 
 type Docker struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
+	inputs.Add("docker", func() inputs.Input {
 		return &Docker{}
 	})
 }
 
-func (d *Docker) Prefix() string              { return "" }
-func (d *Docker) Init() error                 { return nil }
-func (d *Docker) Drop()                       {}
-func (d *Docker) Gather(slist *list.SafeList) {}
+func (d *Docker) Init() error                     { return nil }
+func (d *Docker) Drop()                           {}
+func (d *Docker) Gather(slist *itypes.SampleList) {}
 
 func (d *Docker) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(d.Instances))
@@ -129,7 +125,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *itypes.SampleList) {
 	if ins.Endpoint == "" {
 		return
 	}
@@ -137,7 +133,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	if ins.client == nil {
 		c, err := ins.getNewClient()
 		if err != nil {
-			slist.PushFront(itypes.NewSample("docker_up", 0, ins.Labels))
+			slist.PushSample("docker", "up", 0)
 			log.Println("E! failed to new docker client:", err)
 			return
 		}
@@ -147,12 +143,12 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	defer ins.client.Close()
 
 	if err := ins.gatherInfo(slist); err != nil {
-		slist.PushFront(itypes.NewSample("docker_up", 0, ins.Labels))
+		slist.PushSample("docker", "up", 0)
 		log.Println("E! failed to gather docker info:", err)
 		return
 	}
 
-	slist.PushFront(itypes.NewSample("docker_up", 1, ins.Labels))
+	slist.PushSample("docker", "up", 1)
 
 	if ins.GatherServices {
 		ins.gatherSwarmInfo(slist)
@@ -199,7 +195,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gatherContainer(container types.Container, slist *list.SafeList) {
+func (ins *Instance) gatherContainer(container types.Container, slist *itypes.SampleList) {
 	// Parse container name
 	var cname string
 	for _, name := range container.Names {
@@ -271,7 +267,7 @@ func (ins *Instance) gatherContainer(container types.Container, slist *list.Safe
 	}
 }
 
-func (ins *Instance) gatherContainerInspect(container types.Container, slist *list.SafeList, tags map[string]string, daemonOSType string, v *types.StatsJSON) error {
+func (ins *Instance) gatherContainerInspect(container types.Container, slist *itypes.SampleList, tags map[string]string, daemonOSType string, v *types.StatsJSON) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
 	defer cancel()
 
@@ -299,7 +295,7 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *li
 	statefields := make(map[string]interface{})
 	finished, err := time.Parse(time.RFC3339, info.State.FinishedAt)
 	if err == nil && !finished.IsZero() {
-		statefields["docker_container_status_finished_at"] = finished.Unix()
+		statefields["status_finished_at"] = finished.Unix()
 	} else {
 		// set finished to now for use in uptime
 		finished = time.Now()
@@ -307,19 +303,19 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *li
 
 	started, err := time.Parse(time.RFC3339, info.State.StartedAt)
 	if err == nil && !started.IsZero() {
-		statefields["docker_container_status_started_at"] = started.Unix()
+		statefields["status_started_at"] = started.Unix()
 
 		uptime := finished.Sub(started)
 		if finished.Before(started) {
 			uptime = time.Since(started)
 		}
-		statefields["docker_container_status_uptime"] = uptime.Seconds()
+		statefields["status_uptime"] = uptime.Seconds()
 	}
 
-	inputs.PushSamples(slist, statefields, tags, ins.Labels)
+	slist.PushSamples("docker_container", statefields, tags)
 
 	if info.State.Health != nil {
-		slist.PushFront(itypes.NewSample("docker_container_health_failing_streak", info.ContainerJSONBase.State.Health.FailingStreak, tags, ins.Labels))
+		slist.PushSample("docker_container", "health_failing_streak", info.ContainerJSONBase.State.Health.FailingStreak, tags)
 	}
 
 	ins.parseContainerStats(v, slist, tags, daemonOSType)
@@ -327,7 +323,7 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *li
 	return nil
 }
 
-func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.SafeList, tags map[string]string, ostype string) {
+func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *itypes.SampleList, tags map[string]string, ostype string) {
 	// memory
 
 	basicMemstats := []string{
@@ -369,62 +365,62 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 
 	for _, field := range basicMemstats {
 		if value, ok := stat.MemoryStats.Stats[field]; ok {
-			memfields["docker_container_mem_"+field] = value
+			memfields[field] = value
 		}
 	}
 
 	if ins.GatherExtendMemstats {
 		for _, field := range extendMemstats {
 			if value, ok := stat.MemoryStats.Stats[field]; ok {
-				memfields["docker_container_mem_"+field] = value
+				memfields[field] = value
 			}
 		}
 	}
 
 	if stat.MemoryStats.Failcnt != 0 {
-		memfields["docker_container_mem_fail_count"] = stat.MemoryStats.Failcnt
+		memfields["fail_count"] = stat.MemoryStats.Failcnt
 	}
 
 	if ostype != "windows" {
-		memfields["docker_container_mem_limit"] = stat.MemoryStats.Limit
-		memfields["docker_container_mem_max_usage"] = stat.MemoryStats.MaxUsage
+		memfields["limit"] = stat.MemoryStats.Limit
+		memfields["max_usage"] = stat.MemoryStats.MaxUsage
 
 		mem := CalculateMemUsageUnixNoCache(stat.MemoryStats)
 		memLimit := float64(stat.MemoryStats.Limit)
-		memfields["docker_container_mem_usage"] = uint64(mem)
-		memfields["docker_container_mem_usage_percent"] = CalculateMemPercentUnixNoCache(memLimit, mem)
+		memfields["usage"] = uint64(mem)
+		memfields["usage_percent"] = CalculateMemPercentUnixNoCache(memLimit, mem)
 	} else {
-		memfields["docker_container_mem_commit_bytes"] = stat.MemoryStats.Commit
-		memfields["docker_container_mem_commit_peak_bytes"] = stat.MemoryStats.CommitPeak
-		memfields["docker_container_mem_private_working_set"] = stat.MemoryStats.PrivateWorkingSet
+		memfields["commit_bytes"] = stat.MemoryStats.Commit
+		memfields["commit_peak_bytes"] = stat.MemoryStats.CommitPeak
+		memfields["private_working_set"] = stat.MemoryStats.PrivateWorkingSet
 	}
 
-	inputs.PushSamples(slist, memfields, tags, ins.Labels)
+	slist.PushSamples("docker_container_mem", memfields, tags)
 
 	// cpu
 
 	if choice.Contains("cpu", ins.TotalInclude) {
 		cpufields := map[string]interface{}{
-			"docker_container_cpu_usage_total":                  stat.CPUStats.CPUUsage.TotalUsage,
-			"docker_container_cpu_usage_in_usermode":            stat.CPUStats.CPUUsage.UsageInUsermode,
-			"docker_container_cpu_usage_in_kernelmode":          stat.CPUStats.CPUUsage.UsageInKernelmode,
-			"docker_container_cpu_usage_system":                 stat.CPUStats.SystemUsage,
-			"docker_container_cpu_throttling_periods":           stat.CPUStats.ThrottlingData.Periods,
-			"docker_container_cpu_throttling_throttled_periods": stat.CPUStats.ThrottlingData.ThrottledPeriods,
-			"docker_container_cpu_throttling_throttled_time":    stat.CPUStats.ThrottlingData.ThrottledTime,
+			"usage_total":                  stat.CPUStats.CPUUsage.TotalUsage,
+			"usage_in_usermode":            stat.CPUStats.CPUUsage.UsageInUsermode,
+			"usage_in_kernelmode":          stat.CPUStats.CPUUsage.UsageInKernelmode,
+			"usage_system":                 stat.CPUStats.SystemUsage,
+			"throttling_periods":           stat.CPUStats.ThrottlingData.Periods,
+			"throttling_throttled_periods": stat.CPUStats.ThrottlingData.ThrottledPeriods,
+			"throttling_throttled_time":    stat.CPUStats.ThrottlingData.ThrottledTime,
 		}
 
 		if ostype != "windows" {
 			previousCPU := stat.PreCPUStats.CPUUsage.TotalUsage
 			previousSystem := stat.PreCPUStats.SystemUsage
 			cpuPercent := CalculateCPUPercentUnix(previousCPU, previousSystem, stat)
-			cpufields["docker_container_cpu_usage_percent"] = cpuPercent
+			cpufields["usage_percent"] = cpuPercent
 		} else {
 			cpuPercent := calculateCPUPercentWindows(stat)
-			cpufields["docker_container_cpu_usage_percent"] = cpuPercent
+			cpufields["usage_percent"] = cpuPercent
 		}
 
-		inputs.PushSamples(slist, cpufields, map[string]string{"cpu": "cpu-total"}, tags, ins.Labels)
+		slist.PushSamples("docker_container_cpu", cpufields, map[string]string{"cpu": "cpu-total"}, tags)
 	}
 
 	if choice.Contains("cpu", ins.PerDeviceInclude) && len(stat.CPUStats.CPUUsage.PercpuUsage) > 0 {
@@ -436,13 +432,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 		}
 
 		for i, percpu := range percpuusage {
-			slist.PushFront(itypes.NewSample(
-				"docker_container_cpu_usage_total",
-				percpu,
-				map[string]string{"cpu": fmt.Sprintf("cpu%d", i)},
-				tags,
-				ins.Labels,
-			))
+			slist.PushSample("", "docker_container_cpu_usage_total", percpu, map[string]string{"cpu": fmt.Sprintf("cpu%d", i)}, tags)
 		}
 	}
 
@@ -451,18 +441,18 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 	totalNetworkStatMap := make(map[string]interface{})
 	for network, netstats := range stat.Networks {
 		netfields := map[string]interface{}{
-			"docker_container_net_rx_dropped": netstats.RxDropped,
-			"docker_container_net_rx_bytes":   netstats.RxBytes,
-			"docker_container_net_rx_errors":  netstats.RxErrors,
-			"docker_container_net_tx_packets": netstats.TxPackets,
-			"docker_container_net_tx_dropped": netstats.TxDropped,
-			"docker_container_net_rx_packets": netstats.RxPackets,
-			"docker_container_net_tx_errors":  netstats.TxErrors,
-			"docker_container_net_tx_bytes":   netstats.TxBytes,
+			"rx_dropped": netstats.RxDropped,
+			"rx_bytes":   netstats.RxBytes,
+			"rx_errors":  netstats.RxErrors,
+			"tx_packets": netstats.TxPackets,
+			"tx_dropped": netstats.TxDropped,
+			"rx_packets": netstats.RxPackets,
+			"tx_errors":  netstats.TxErrors,
+			"tx_bytes":   netstats.TxBytes,
 		}
 
 		if choice.Contains("network", ins.PerDeviceInclude) {
-			inputs.PushSamples(slist, netfields, map[string]string{"network": network}, tags, ins.Labels)
+			slist.PushSamples("docker_container_net", netfields, map[string]string{"network": network}, tags)
 		}
 
 		if choice.Contains("network", ins.TotalInclude) {
@@ -489,13 +479,13 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *list.Safe
 
 	// totalNetworkStatMap could be empty if container is running with --net=host.
 	if choice.Contains("network", ins.TotalInclude) && len(totalNetworkStatMap) != 0 {
-		inputs.PushSamples(slist, totalNetworkStatMap, map[string]string{"network": "total"}, tags, ins.Labels)
+		slist.PushSamples("docker_container_net", totalNetworkStatMap, map[string]string{"network": "total"}, tags)
 	}
 
 	ins.gatherBlockIOMetrics(slist, stat, tags)
 }
 
-func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.StatsJSON, tags map[string]string) {
+func (ins *Instance) gatherBlockIOMetrics(slist *itypes.SampleList, stat *types.StatsJSON, tags map[string]string) {
 	perDeviceBlkio := choice.Contains("blkio", ins.PerDeviceInclude)
 	totalBlkio := choice.Contains("blkio", ins.TotalInclude)
 
@@ -505,7 +495,7 @@ func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.Stat
 	totalStatMap := make(map[string]interface{})
 	for device, fields := range deviceStatMap {
 		if perDeviceBlkio {
-			inputs.PushSamples(slist, fields, map[string]string{"device": device}, tags, ins.Labels)
+			slist.PushSamples("", fields, map[string]string{"device": device}, tags)
 		}
 		if totalBlkio {
 			for field, value := range fields {
@@ -530,7 +520,7 @@ func (ins *Instance) gatherBlockIOMetrics(slist *list.SafeList, stat *types.Stat
 	}
 
 	if totalBlkio {
-		inputs.PushSamples(slist, totalStatMap, map[string]string{"device": "total"}, tags, ins.Labels)
+		slist.PushSamples("", totalStatMap, map[string]string{"device": "total"}, tags)
 	}
 }
 
@@ -595,7 +585,7 @@ func getDeviceStatMap(blkioStats types.BlkioStats) map[string]map[string]interfa
 	return deviceStatMap
 }
 
-func (ins *Instance) gatherSwarmInfo(slist *list.SafeList) {
+func (ins *Instance) gatherSwarmInfo(slist *itypes.SampleList) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
 	defer cancel()
 
@@ -651,21 +641,21 @@ func (ins *Instance) gatherSwarmInfo(slist *list.SafeList) {
 		tags["service_name"] = service.Spec.Name
 		if service.Spec.Mode.Replicated != nil && service.Spec.Mode.Replicated.Replicas != nil {
 			tags["service_mode"] = "replicated"
-			fields["docker_swarm_tasks_running"] = running[service.ID]
-			fields["docker_swarm_tasks_desired"] = *service.Spec.Mode.Replicated.Replicas
+			fields["tasks_running"] = running[service.ID]
+			fields["tasks_desired"] = *service.Spec.Mode.Replicated.Replicas
 		} else if service.Spec.Mode.Global != nil {
 			tags["service_mode"] = "global"
-			fields["docker_swarm_tasks_running"] = running[service.ID]
-			fields["docker_swarm_tasks_desired"] = tasksNoShutdown[service.ID]
+			fields["tasks_running"] = running[service.ID]
+			fields["tasks_desired"] = tasksNoShutdown[service.ID]
 		} else {
 			log.Println("E! Unknown replica mode")
 		}
 
-		inputs.PushSamples(slist, fields, tags, ins.Labels)
+		slist.PushSamples("docker_swarm", fields, tags)
 	}
 }
 
-func (ins *Instance) gatherInfo(slist *list.SafeList) error {
+func (ins *Instance) gatherInfo(slist *itypes.SampleList) error {
 	// Get info from docker daemon
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
 	defer cancel()
@@ -689,7 +679,7 @@ func (ins *Instance) gatherInfo(slist *list.SafeList) error {
 		"docker_memory_total":            info.MemTotal,
 	}
 
-	inputs.PushSamples(slist, fields, ins.Labels)
+	slist.PushSamples("", fields)
 	return nil
 }
 

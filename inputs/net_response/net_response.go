@@ -14,7 +14,6 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const (
@@ -84,7 +83,7 @@ func (ins *Instance) Init() error {
 }
 
 type NetResponse struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -94,10 +93,9 @@ func init() {
 	})
 }
 
-func (n *NetResponse) Prefix() string              { return inputName }
-func (n *NetResponse) Init() error                 { return nil }
-func (n *NetResponse) Drop()                       {}
-func (n *NetResponse) Gather(slist *list.SafeList) {}
+func (n *NetResponse) Init() error                    { return nil }
+func (n *NetResponse) Drop()                          {}
+func (n *NetResponse) Gather(slist *types.SampleList) {}
 
 func (n *NetResponse) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(n.Instances))
@@ -107,7 +105,7 @@ func (n *NetResponse) GetInstances() []inputs.Instance {
 	return ret
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	if len(ins.Targets) == 0 {
 		return
 	}
@@ -123,21 +121,17 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gather(slist *list.SafeList, target string) {
+func (ins *Instance) gather(slist *types.SampleList, target string) {
 	if config.Config.DebugMode {
 		log.Println("D! net_response... target:", target)
 	}
 
 	labels := map[string]string{"target": target}
-	for k, v := range ins.Labels {
-		labels[k] = v
-	}
-
 	fields := map[string]interface{}{}
 
 	defer func() {
 		for field, value := range fields {
-			slist.PushFront(types.NewSample(field, value, labels))
+			slist.PushFront(types.NewSample(inputName, field, value, labels))
 		}
 	}()
 

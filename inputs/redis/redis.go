@@ -16,7 +16,6 @@ import (
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	"github.com/go-redis/redis/v8"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "redis"
@@ -66,7 +65,7 @@ func (ins *Instance) Init() error {
 }
 
 type Redis struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -76,9 +75,8 @@ func init() {
 	})
 }
 
-func (r *Redis) Prefix() string              { return inputName }
-func (r *Redis) Init() error                 { return nil }
-func (r *Redis) Gather(slist *list.SafeList) {}
+func (r *Redis) Init() error                    { return nil }
+func (r *Redis) Gather(slist *types.SampleList) {}
 
 func (r *Redis) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
@@ -96,36 +94,32 @@ func (r *Redis) Drop() {
 	}
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	tags := map[string]string{"address": ins.Address}
-	for k, v := range ins.Labels {
-		tags[k] = v
-	}
-
 	begun := time.Now()
 
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags))
+		slist.PushFront(types.NewSample(inputName, "scrape_use_seconds", use, tags))
 	}(begun)
 
 	// ping
 	err := ins.client.Ping(context.Background()).Err()
-	slist.PushFront(types.NewSample("ping_use_seconds", time.Since(begun).Seconds(), tags))
+	slist.PushFront(types.NewSample(inputName, "ping_use_seconds", time.Since(begun).Seconds(), tags))
 	if err != nil {
-		slist.PushFront(types.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
 		log.Println("E! failed to ping redis:", ins.Address, "error:", err)
 		return
 	} else {
-		slist.PushFront(types.NewSample("up", 1, tags))
+		slist.PushFront(types.NewSample(inputName, "up", 1, tags))
 	}
 
 	ins.gatherInfoAll(slist, tags)
 	ins.gatherCommandValues(slist, tags)
 }
 
-func (ins *Instance) gatherCommandValues(slist *list.SafeList, tags map[string]string) {
+func (ins *Instance) gatherCommandValues(slist *types.SampleList, tags map[string]string) {
 	fields := make(map[string]interface{})
 	for _, cmd := range ins.Commands {
 		val, err := ins.client.Do(context.Background(), cmd.Command...).Result()
@@ -144,11 +138,11 @@ func (ins *Instance) gatherCommandValues(slist *list.SafeList, tags map[string]s
 	}
 
 	for k, v := range fields {
-		slist.PushFront(types.NewSample("exec_result_"+k, v, tags))
+		slist.PushFront(types.NewSample(inputName, "exec_result_"+k, v, tags))
 	}
 }
 
-func (ins *Instance) gatherInfoAll(slist *list.SafeList, tags map[string]string) {
+func (ins *Instance) gatherInfoAll(slist *types.SampleList, tags map[string]string) {
 	info, err := ins.client.Info(context.Background(), "ALL").Result()
 	if err != nil {
 		info, err = ins.client.Info(context.Background()).Result()
@@ -267,7 +261,7 @@ func (ins *Instance) gatherInfoAll(slist *list.SafeList, tags map[string]string)
 	fields["keyspace_hitrate"] = keyspaceHitrate
 
 	for k, v := range fields {
-		slist.PushFront(types.NewSample(k, v, tags))
+		slist.PushFront(types.NewSample(inputName, k, v, tags))
 	}
 }
 
@@ -278,7 +272,7 @@ func (ins *Instance) gatherInfoAll(slist *list.SafeList, tags map[string]string)
 func gatherKeyspaceLine(
 	name string,
 	line string,
-	slist *list.SafeList,
+	slist *types.SampleList,
 	globalTags map[string]string,
 ) {
 	if strings.Contains(line, "keys=") {
@@ -298,7 +292,7 @@ func gatherKeyspaceLine(
 		}
 
 		for k, v := range fields {
-			slist.PushFront(types.NewSample("keyspace_"+k, v, tags))
+			slist.PushFront(types.NewSample(inputName, "keyspace_"+k, v, tags))
 		}
 	}
 }
@@ -310,7 +304,7 @@ func gatherKeyspaceLine(
 func gatherCommandstateLine(
 	name string,
 	line string,
-	slist *list.SafeList,
+	slist *types.SampleList,
 	globalTags map[string]string,
 ) {
 	if !strings.HasPrefix(name, "cmdstat") {
@@ -347,7 +341,7 @@ func gatherCommandstateLine(
 	}
 
 	for k, v := range fields {
-		slist.PushFront(types.NewSample("cmdstat_"+k, v, tags))
+		slist.PushFront(types.NewSample(inputName, "cmdstat_"+k, v, tags))
 	}
 }
 
@@ -358,7 +352,7 @@ func gatherCommandstateLine(
 func gatherReplicationLine(
 	name string,
 	line string,
-	slist *list.SafeList,
+	slist *types.SampleList,
 	globalTags map[string]string,
 ) {
 	fields := make(map[string]interface{})
@@ -393,6 +387,6 @@ func gatherReplicationLine(
 	}
 
 	for k, v := range fields {
-		slist.PushFront(types.NewSample("replication_"+k, v, tags))
+		slist.PushFront(types.NewSample(inputName, "replication_"+k, v, tags))
 	}
 }

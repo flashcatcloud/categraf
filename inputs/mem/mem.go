@@ -7,7 +7,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
-	"github.com/toolkits/pkg/container/list"
+	"flashcat.cloud/categraf/types"
 )
 
 const inputName = "mem"
@@ -15,7 +15,7 @@ const inputName = "mem"
 type MemStats struct {
 	ps system.PS
 
-	config.Interval
+	config.PluginConfig
 	CollectPlatformFields bool `toml:"collect_platform_fields"`
 }
 
@@ -28,12 +28,11 @@ func init() {
 	})
 }
 
-func (s *MemStats) Prefix() string                  { return inputName }
 func (s *MemStats) Init() error                     { return nil }
 func (s *MemStats) Drop()                           {}
 func (s *MemStats) GetInstances() []inputs.Instance { return nil }
 
-func (s *MemStats) Gather(slist *list.SafeList) {
+func (s *MemStats) Gather(slist *types.SampleList) {
 	vm, err := s.ps.VMStat()
 	if err != nil {
 		log.Println("E! failed to get vmstat:", err)
@@ -102,5 +101,5 @@ func (s *MemStats) Gather(slist *list.SafeList) {
 		}
 	}
 
-	inputs.PushSamples(slist, fields)
+	slist.PushSamples(inputName, fields)
 }

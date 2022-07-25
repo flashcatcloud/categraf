@@ -8,15 +8,13 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/choice"
-	"github.com/toolkits/pkg/container/list"
+	"flashcat.cloud/categraf/types"
 )
-
-const inputName = "disk"
 
 type DiskStats struct {
 	ps system.PS
 
-	config.Interval
+	config.PluginConfig
 	MountPoints       []string `toml:"mount_points"`
 	IgnoreFS          []string `toml:"ignore_fs"`
 	IgnoreMountPoints []string `toml:"ignore_mount_points"`
@@ -24,7 +22,7 @@ type DiskStats struct {
 
 func init() {
 	ps := system.NewSystemPS()
-	inputs.Add(inputName, func() inputs.Input {
+	inputs.Add("disk", func() inputs.Input {
 		return &DiskStats{
 			ps: ps,
 		}
@@ -36,10 +34,6 @@ func (s *DiskStats) GetInstances() []inputs.Instance {
 	return nil
 }
 
-func (s *DiskStats) Prefix() string {
-	return inputName
-}
-
 func (s *DiskStats) Init() error {
 	return nil
 }
@@ -47,7 +41,7 @@ func (s *DiskStats) Init() error {
 func (s *DiskStats) Drop() {
 }
 
-func (s *DiskStats) Gather(slist *list.SafeList) {
+func (s *DiskStats) Gather(slist *types.SampleList) {
 	disks, partitions, err := s.ps.DiskUsage(s.MountPoints, s.IgnoreFS)
 	if err != nil {
 		log.Println("E! failed to get disk usage:", err)
@@ -89,7 +83,7 @@ func (s *DiskStats) Gather(slist *list.SafeList) {
 			"inodes_used":  du.InodesUsed,
 		}
 
-		inputs.PushSamples(slist, fields, tags)
+		slist.PushSamples("disk", fields, tags)
 	}
 }
 

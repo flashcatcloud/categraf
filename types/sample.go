@@ -1,37 +1,30 @@
 package types
 
 import (
+	"strings"
 	"time"
-
-	"flashcat.cloud/categraf/pkg/conv"
 )
 
 type Sample struct {
 	Metric    string            `json:"metric"`
 	Timestamp time.Time         `json:"timestamp"`
-	Value     float64           `json:"value"`
+	Value     interface{}       `json:"value"`
 	Labels    map[string]string `json:"labels"`
 }
 
-func NewSample(metric string, value interface{}, labels ...map[string]string) *Sample {
-	floatValue, err := conv.ToFloat64(value)
-	if err != nil {
-		return nil
-	}
+var metricReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "'", "_", "\"", "_")
 
+func NewSample(prefix, metric string, value interface{}, labels ...map[string]string) *Sample {
 	s := &Sample{
 		Metric: metric,
-		Value:  floatValue,
+		Value:  value,
 		Labels: make(map[string]string),
 	}
 
-	for i := 0; i < len(labels); i++ {
-		for k, v := range labels[i] {
-			if v == "-" {
-				continue
-			}
-			s.Labels[k] = v
-		}
+	if len(prefix) > 0 {
+		s.Metric = prefix + "_" + metricReplacer.Replace(s.Metric)
+	} else {
+		s.Metric = metricReplacer.Replace(s.Metric)
 	}
 
 	return s

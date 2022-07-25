@@ -10,13 +10,12 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "nvidia_smi"
 
 type GPUStats struct {
-	config.Interval
+	config.PluginConfig
 
 	NvidiaSmiCommand string `toml:"nvidia_smi_command"`
 	QueryFieldNames  string `toml:"query_field_names"`
@@ -31,7 +30,6 @@ func init() {
 	})
 }
 
-func (s *GPUStats) Prefix() string                  { return inputName }
 func (s *GPUStats) Drop()                           {}
 func (s *GPUStats) GetInstances() []inputs.Instance { return nil }
 
@@ -51,7 +49,7 @@ func (s *GPUStats) Init() error {
 	return nil
 }
 
-func (s *GPUStats) Gather(slist *list.SafeList) {
+func (s *GPUStats) Gather(slist *types.SampleList) {
 	if s.NvidiaSmiCommand == "" {
 		return
 	}
@@ -61,16 +59,16 @@ func (s *GPUStats) Gather(slist *list.SafeList) {
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(types.NewSample("scrape_use_seconds", use))
+		slist.PushFront(types.NewSample(inputName, "scrape_use_seconds", use))
 	}(begun)
 
 	currentTable, err := scrape(s.qFields, s.NvidiaSmiCommand)
 	if err != nil {
-		slist.PushFront(types.NewSample("scraper_up", 0))
+		slist.PushFront(types.NewSample(inputName, "scraper_up", 0))
 		return
 	}
 
-	slist.PushFront(types.NewSample("scraper_up", 1))
+	slist.PushFront(types.NewSample(inputName, "scraper_up", 1))
 
 	for _, currentRow := range currentTable.rows {
 		uuid := strings.TrimPrefix(strings.ToLower(currentRow.qFieldToCells[uuidQField].rawValue), "gpu-")
@@ -80,7 +78,7 @@ func (s *GPUStats) Gather(slist *list.SafeList) {
 		vBiosVersion := currentRow.qFieldToCells[vBiosVersionQField].rawValue
 		driverVersion := currentRow.qFieldToCells[driverVersionQField].rawValue
 
-		slist.PushFront(types.NewSample("gpu_info", 1, map[string]string{
+		slist.PushFront(types.NewSample(inputName, "gpu_info", 1, map[string]string{
 			"uuid":                 uuid,
 			"name":                 name,
 			"driver_model_current": driverModelCurrent,
@@ -100,7 +98,7 @@ func (s *GPUStats) Gather(slist *list.SafeList) {
 				continue
 			}
 
-			slist.PushFront(types.NewSample(metricInfo.metricName, num, map[string]string{"uuid": uuid}))
+			slist.PushFront(types.NewSample(inputName, metricInfo.metricName, num, map[string]string{"uuid": uuid}))
 		}
 	}
 }

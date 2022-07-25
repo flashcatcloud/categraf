@@ -16,7 +16,6 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const (
@@ -62,7 +61,7 @@ func (ins *Instance) ZkConnect(host string) (net.Conn, error) {
 }
 
 type Zookeeper struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -72,10 +71,9 @@ func init() {
 	})
 }
 
-func (z *Zookeeper) Prefix() string              { return "" }
-func (z *Zookeeper) Init() error                 { return nil }
-func (z *Zookeeper) Drop()                       {}
-func (z *Zookeeper) Gather(slist *list.SafeList) {}
+func (z *Zookeeper) Init() error                    { return nil }
+func (z *Zookeeper) Drop()                          {}
+func (z *Zookeeper) Gather(slist *types.SampleList) {}
 
 func (z *Zookeeper) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(z.Instances))
@@ -92,7 +90,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	hosts := ins.ZkHosts()
 	if len(hosts) == 0 {
 		return
@@ -106,26 +104,22 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *list.SafeList, zkHost string) {
+func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *types.SampleList, zkHost string) {
 	defer wg.Done()
 
 	tags := map[string]string{"zk_host": zkHost, "zk_cluster": ins.ClusterName}
-	for k, v := range ins.Labels {
-		tags[k] = v
-	}
-
 	begun := time.Now()
 
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(types.NewSample("zk_scrape_use_seconds", use, tags))
+		slist.PushFront(types.NewSample("", "zk_scrape_use_seconds", use, tags))
 	}(begun)
 
 	// zk_up
 	mntrConn, err := ins.ZkConnect(zkHost)
 	if err != nil {
-		slist.PushFront(types.NewSample("zk_up", 0, tags))
+		slist.PushFront(types.NewSample("", "zk_up", 0, tags))
 		log.Println("E! failed to connect zookeeper:", zkHost, "error:", err)
 		return
 	}
@@ -136,7 +130,7 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *list.SafeList, zkH
 	// zk_ruok
 	ruokConn, err := ins.ZkConnect(zkHost)
 	if err != nil {
-		slist.PushFront(types.NewSample("zk_ruok", 0, tags))
+		slist.PushFront(types.NewSample("", "zk_ruok", 0, tags))
 		log.Println("E! failed to connect zookeeper:", zkHost, "error:", err)
 		return
 	}
@@ -145,7 +139,7 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *list.SafeList, zkH
 	ins.gatherRuokResult(ruokConn, slist, tags)
 }
 
-func (ins *Instance) gatherMntrResult(conn net.Conn, slist *list.SafeList, globalTags map[string]string) {
+func (ins *Instance) gatherMntrResult(conn net.Conn, slist *types.SampleList, globalTags map[string]string) {
 	res := sendZookeeperCmd(conn, "mntr")
 
 	// get slice of strings from response, like 'zk_avg_latency 0'
@@ -153,16 +147,16 @@ func (ins *Instance) gatherMntrResult(conn net.Conn, slist *list.SafeList, globa
 
 	// 'mntr' command isn't allowed in zk config, log as warning
 	if strings.Contains(lines[0], cmdNotExecutedSffx) {
-		slist.PushFront(types.NewSample("zk_up", 0, globalTags))
+		slist.PushFront(types.NewSample("", "zk_up", 0, globalTags))
 		log.Printf(commandNotAllowedTmpl, "mntr", conn.RemoteAddr().String())
 		return
 	}
 
-	slist.PushFront(types.NewSample("zk_up", 1, globalTags))
+	slist.PushFront(types.NewSample("", "zk_up", 1, globalTags))
 
 	// skip instance if it in a leader only state and doesnt serving client requests
 	if lines[0] == instanceNotServingMessage {
-		slist.PushFront(types.NewSample("zk_server_leader", 1, globalTags))
+		slist.PushFront(types.NewSample("", "zk_server_leader", 1, globalTags))
 		return
 	}
 
@@ -183,17 +177,17 @@ func (ins *Instance) gatherMntrResult(conn net.Conn, slist *list.SafeList, globa
 		switch key {
 		case "zk_server_state":
 			if value == "leader" {
-				slist.PushFront(types.NewSample("zk_server_leader", 1, globalTags))
+				slist.PushFront(types.NewSample("", "zk_server_leader", 1, globalTags))
 			} else {
-				slist.PushFront(types.NewSample("zk_server_leader", 0, globalTags))
+				slist.PushFront(types.NewSample("", "zk_server_leader", 0, globalTags))
 			}
 
 		case "zk_version":
 			version := versionRE.ReplaceAllString(value, "$1")
-			slist.PushFront(types.NewSample("zk_version", 1, globalTags, map[string]string{"version": version}))
+			slist.PushFront(types.NewSample("", "zk_version", 1, globalTags, map[string]string{"version": version}))
 
 		case "zk_peer_state":
-			slist.PushFront(types.NewSample("zk_peer_state", 1, globalTags, map[string]string{"state": value}))
+			slist.PushFront(types.NewSample("", "zk_peer_state", 1, globalTags, map[string]string{"state": value}))
 
 		default:
 			var k string
@@ -205,23 +199,23 @@ func (ins *Instance) gatherMntrResult(conn net.Conn, slist *list.SafeList, globa
 			k = metricNameReplacer.Replace(key)
 			if strings.Contains(k, "{") {
 				labels := parseLabels(k)
-				slist.PushFront(types.NewSample(k, value, globalTags, labels))
+				slist.PushFront(types.NewSample("", k, value, globalTags, labels))
 			} else {
-				slist.PushFront(types.NewSample(k, value, globalTags))
+				slist.PushFront(types.NewSample("", k, value, globalTags))
 			}
 		}
 	}
 }
 
-func (ins *Instance) gatherRuokResult(conn net.Conn, slist *list.SafeList, globalTags map[string]string) {
+func (ins *Instance) gatherRuokResult(conn net.Conn, slist *types.SampleList, globalTags map[string]string) {
 	res := sendZookeeperCmd(conn, "ruok")
 	if res == "imok" {
-		slist.PushFront(types.NewSample("zk_ruok", 1, globalTags))
+		slist.PushFront(types.NewSample("", "zk_ruok", 1, globalTags))
 	} else {
 		if strings.Contains(res, cmdNotExecutedSffx) {
 			log.Printf(commandNotAllowedTmpl, "ruok", conn.RemoteAddr().String())
 		}
-		slist.PushFront(types.NewSample("zk_ruok", 0, globalTags))
+		slist.PushFront(types.NewSample("", "zk_ruok", 0, globalTags))
 	}
 }
 

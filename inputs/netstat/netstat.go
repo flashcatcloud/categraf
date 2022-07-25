@@ -7,14 +7,14 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
-	"github.com/toolkits/pkg/container/list"
+	"flashcat.cloud/categraf/types"
 )
 
 const inputName = "netstat"
 
 type NetStats struct {
 	ps system.PS
-	config.Interval
+	config.PluginConfig
 }
 
 func init() {
@@ -26,12 +26,11 @@ func init() {
 	})
 }
 
-func (s *NetStats) Prefix() string                  { return inputName }
 func (s *NetStats) Init() error                     { return nil }
 func (s *NetStats) Drop()                           {}
 func (s *NetStats) GetInstances() []inputs.Instance { return nil }
 
-func (s *NetStats) Gather(slist *list.SafeList) {
+func (s *NetStats) Gather(slist *types.SampleList) {
 	netconns, err := s.ps.NetConnections()
 	if err != nil {
 		log.Println("E! failed to get net connections:", err)
@@ -71,5 +70,5 @@ func (s *NetStats) Gather(slist *list.SafeList) {
 		"udp_socket":      counts["UDP"],
 	}
 
-	inputs.PushSamples(slist, fields, tags)
+	slist.PushSamples(inputName, fields, tags)
 }

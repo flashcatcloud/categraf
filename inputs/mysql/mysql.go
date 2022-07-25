@@ -11,7 +11,6 @@ import (
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	"github.com/go-sql-driver/mysql"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "mysql"
@@ -149,7 +148,7 @@ func (ins *Instance) InitValidMetrics() {
 }
 
 type MySQL struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -159,10 +158,9 @@ func init() {
 	})
 }
 
-func (m *MySQL) Prefix() string              { return inputName }
-func (m *MySQL) Init() error                 { return nil }
-func (m *MySQL) Drop()                       {}
-func (m *MySQL) Gather(slist *list.SafeList) {}
+func (m *MySQL) Init() error                    { return nil }
+func (m *MySQL) Drop()                          {}
+func (m *MySQL) Gather(slist *types.SampleList) {}
 
 func (m *MySQL) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(m.Instances))
@@ -172,23 +170,20 @@ func (m *MySQL) GetInstances() []inputs.Instance {
 	return ret
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	tags := map[string]string{"address": ins.Address}
-	for k, v := range ins.Labels {
-		tags[k] = v
-	}
 
 	begun := time.Now()
 
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags))
+		slist.PushSample(inputName, "scrape_use_seconds", use, tags)
 	}(begun)
 
 	db, err := sql.Open("mysql", ins.dsn)
 	if err != nil {
-		slist.PushFront(types.NewSample("up", 0, tags))
+		slist.PushSample(inputName, "up", 0, tags)
 		log.Println("E! failed to open mysql:", err)
 		return
 	}
@@ -200,12 +195,12 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	db.SetConnMaxLifetime(time.Minute)
 
 	if err = db.Ping(); err != nil {
-		slist.PushFront(types.NewSample("up", 0, tags))
+		slist.PushSample(inputName, "up", 0, tags)
 		log.Println("E! failed to ping mysql:", err)
 		return
 	}
 
-	slist.PushFront(types.NewSample("up", 1, tags))
+	slist.PushSample(inputName, "up", 1, tags)
 
 	cache := make(map[string]float64)
 

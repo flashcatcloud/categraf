@@ -51,20 +51,14 @@ func InitWriters() error {
 }
 
 func postSeries(samples []*types.Sample) {
-	now := time.Now()
-
 	if config.Config.TestMode {
-		printTestMetrics(samples, now)
+		printTestMetrics(samples)
 		return
 	}
 
 	count := len(samples)
 	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < count; i++ {
-		if samples[i].Timestamp.IsZero() {
-			samples[i].Timestamp = now
-		}
-
 		item := convert(samples[i])
 		if len(item.Labels) == 0 {
 			continue
@@ -84,13 +78,9 @@ func postSeries(samples []*types.Sample) {
 	wg.Wait()
 }
 
-func printTestMetrics(samples []*types.Sample, now time.Time) {
+func printTestMetrics(samples []*types.Sample) {
 	for i := 0; i < len(samples); i++ {
 		var sb strings.Builder
-
-		if samples[i].Timestamp.IsZero() {
-			samples[i].Timestamp = now
-		}
 
 		sb.WriteString(samples[i].Timestamp.Format("15:04:05"))
 		sb.WriteString(" ")

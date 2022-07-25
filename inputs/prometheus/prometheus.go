@@ -16,7 +16,6 @@ import (
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "prometheus"
@@ -126,7 +125,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 }
 
 type Prometheus struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -136,10 +135,9 @@ func init() {
 	})
 }
 
-func (p *Prometheus) Prefix() string              { return "" }
-func (p *Prometheus) Init() error                 { return nil }
-func (p *Prometheus) Drop()                       {}
-func (p *Prometheus) Gather(slist *list.SafeList) {}
+func (p *Prometheus) Init() error                    { return nil }
+func (p *Prometheus) Drop()                          {}
+func (p *Prometheus) Gather(slist *types.SampleList) {}
 
 func (p *Prometheus) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(p.Instances))
@@ -149,7 +147,7 @@ func (p *Prometheus) GetInstances() []inputs.Instance {
 	return ret
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	urlwg := new(sync.WaitGroup)
 	defer urlwg.Wait()
 
@@ -177,7 +175,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	}
 }
 
-func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *list.SafeList, uri ScrapeUrl) {
+func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, uri ScrapeUrl) {
 	defer urlwg.Done()
 
 	u := uri.URL
@@ -204,23 +202,19 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *list.SafeList, uri 
 
 	labels[urlKey] = urlVal
 
-	for key, val := range ins.Labels {
-		labels[key] = val
-	}
-
 	for key, val := range uri.Tags {
 		labels[key] = val
 	}
 
 	res, err := ins.client.Do(req)
 	if err != nil {
-		slist.PushFront(types.NewSample("up", 0, labels))
+		slist.PushFront(types.NewSample("", "up", 0, labels))
 		log.Println("E! failed to query url:", u.String(), "error:", err)
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		slist.PushFront(types.NewSample("up", 0, labels))
+		slist.PushFront(types.NewSample("", "up", 0, labels))
 		log.Println("E! failed to query url:", u.String(), "status code:", res.StatusCode)
 		return
 	}
@@ -229,12 +223,12 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *list.SafeList, uri 
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		slist.PushFront(types.NewSample("up", 0, labels))
+		slist.PushFront(types.NewSample("", "up", 0, labels))
 		log.Println("E! failed to read response body, error:", err)
 		return
 	}
 
-	slist.PushFront(types.NewSample("up", 1, labels))
+	slist.PushFront(types.NewSample("", "up", 1, labels))
 
 	parser := prometheus.NewParser(ins.NamePrefix, labels, res.Header, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
 	if err = parser.Parse(body, slist); err != nil {

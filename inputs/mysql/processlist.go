@@ -7,7 +7,6 @@ import (
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 // These are const but can't be declared as such because golang doesn't allow const maps
@@ -90,7 +89,7 @@ var (
 	}
 )
 
-func (ins *Instance) gatherProcesslistByState(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherProcesslistByState(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
 	if !ins.GatherProcessListProcessByState {
 		return
 	}
@@ -131,7 +130,7 @@ func (ins *Instance) gatherProcesslistByState(slist *list.SafeList, db *sql.DB, 
 	}
 
 	for s, c := range stateCounts {
-		slist.PushFront(types.NewSample("processlist_processes_by_state", c, labels, map[string]string{"state": s}))
+		slist.PushFront(types.NewSample(inputName, "processlist_processes_by_state", c, labels, map[string]string{"state": s}))
 	}
 }
 

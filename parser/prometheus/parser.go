@@ -15,7 +15,6 @@ import (
 	"flashcat.cloud/categraf/types"
 	"github.com/matttproud/golang_protobuf_extensions/pbutil"
 	"github.com/prometheus/common/expfmt"
-	"github.com/toolkits/pkg/container/list"
 
 	dto "github.com/prometheus/client_model/go"
 )
@@ -38,7 +37,7 @@ func NewParser(namePrefix string, defaultTags map[string]string, header http.Hea
 	}
 }
 
-func (p *Parser) Parse(buf []byte, slist *list.SafeList) error {
+func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
 	var parser expfmt.TextParser
 
 	// parse even if the buffer begins with a newline
@@ -93,42 +92,42 @@ func (p *Parser) Parse(buf []byte, slist *list.SafeList) error {
 	return nil
 }
 
-func (p *Parser) HandleSummary(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
+func (p *Parser) HandleSummary(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
 	namePrefix := ""
 	if !strings.HasPrefix(metricName, p.NamePrefix) {
 		namePrefix = p.NamePrefix
 	}
-	slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags))
-	slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags))
+	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags))
+	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags))
 
 	for _, q := range m.GetSummary().Quantile {
-		slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
+		slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
 	}
 }
 
-func (p *Parser) HandleHistogram(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
+func (p *Parser) HandleHistogram(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
 	namePrefix := ""
 	if !strings.HasPrefix(metricName, p.NamePrefix) {
 		namePrefix = p.NamePrefix
 	}
-	slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags))
-	slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags))
-	slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
+	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags))
+	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags))
+	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
 
 	for _, b := range m.GetHistogram().Bucket {
 		le := fmt.Sprint(b.GetUpperBound())
 		value := float64(b.GetCumulativeCount())
-		slist.PushFront(types.NewSample(prom.BuildMetric(namePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}))
+		slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}))
 	}
 }
 
-func (p *Parser) handleGaugeCounter(m *dto.Metric, tags map[string]string, metricName string, slist *list.SafeList) {
+func (p *Parser) handleGaugeCounter(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
 	fields := getNameAndValue(m, metricName)
 	for metric, value := range fields {
 		if !strings.HasPrefix(metric, p.NamePrefix) {
-			slist.PushFront(types.NewSample(prom.BuildMetric(p.NamePrefix, metric, ""), value, tags))
+			slist.PushFront(types.NewSample("", prom.BuildMetric(p.NamePrefix, metric, ""), value, tags))
 		} else {
-			slist.PushFront(types.NewSample(prom.BuildMetric("", metric, ""), value, tags))
+			slist.PushFront(types.NewSample("", prom.BuildMetric("", metric, ""), value, tags))
 		}
 
 	}

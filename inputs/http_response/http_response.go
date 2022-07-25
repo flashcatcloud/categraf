@@ -17,7 +17,6 @@ import (
 	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const (
@@ -136,7 +135,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 }
 
 type HTTPResponse struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -146,10 +145,9 @@ func init() {
 	})
 }
 
-func (h *HTTPResponse) Prefix() string              { return inputName }
-func (h *HTTPResponse) Init() error                 { return nil }
-func (h *HTTPResponse) Drop()                       {}
-func (h *HTTPResponse) Gather(slist *list.SafeList) {}
+func (h *HTTPResponse) Init() error                    { return nil }
+func (h *HTTPResponse) Drop()                          {}
+func (h *HTTPResponse) Gather(slist *types.SampleList) {}
 
 func (h *HTTPResponse) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(h.Instances))
@@ -159,7 +157,7 @@ func (h *HTTPResponse) GetInstances() []inputs.Instance {
 	return ret
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	if len(ins.Targets) == 0 {
 		return
 	}
@@ -175,22 +173,16 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gather(slist *list.SafeList, target string) {
+func (ins *Instance) gather(slist *types.SampleList, target string) {
 	if config.Config.DebugMode {
 		log.Println("D! http_response... target:", target)
 	}
 
 	labels := map[string]string{"target": target}
-	for k, v := range ins.Labels {
-		labels[k] = v
-	}
-
 	fields := map[string]interface{}{}
 
 	defer func() {
-		for field, value := range fields {
-			slist.PushFront(types.NewSample(field, value, labels))
-		}
+		slist.PushSamples(inputName, fields, labels)
 	}()
 
 	var returnTags map[string]string

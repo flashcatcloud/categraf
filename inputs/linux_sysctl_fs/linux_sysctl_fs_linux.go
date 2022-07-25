@@ -14,13 +14,14 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/osx"
+	"flashcat.cloud/categraf/types"
 	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "linux_sysctl_fs"
 
 type SysctlFS struct {
-	config.Interval
+	config.PluginConfig
 
 	path string
 }
@@ -33,12 +34,11 @@ func init() {
 	})
 }
 
-func (s *SysctlFS) Prefix() string                  { return inputName }
 func (s *SysctlFS) Init() error                     { return nil }
 func (s *SysctlFS) Drop()                           {}
 func (s *SysctlFS) GetInstances() []inputs.Instance { return nil }
 
-func (s *SysctlFS) Gather(slist *list.SafeList) {
+func (s *SysctlFS) Gather(slist *types.SampleList) {
 	fields := map[string]interface{}{}
 
 	for _, n := range []string{"aio-nr", "aio-max-nr", "dquot-nr", "dquot-max", "super-nr", "super-max"} {
@@ -62,7 +62,7 @@ func (s *SysctlFS) Gather(slist *list.SafeList) {
 		log.Println("E! failed to gather file-nr:", err)
 	}
 
-	inputs.PushSamples(slist, fields)
+	slist.PushSamples(inputName, fields)
 }
 
 func (s *SysctlFS) gatherOne(name string, fields map[string]interface{}) error {

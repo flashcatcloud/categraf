@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 var slaveStatusQueries = [2]string{"SHOW ALL SLAVES STATUS", "SHOW SLAVE STATUS"}
@@ -31,7 +30,7 @@ func querySlaveStatus(db *sql.DB) (rows *sql.Rows, err error) {
 	return
 }
 
-func (ins *Instance) gatherSlaveStatus(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherSlaveStatus(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
 	if !ins.GatherSlaveStatus {
 		return
 	}
@@ -88,7 +87,7 @@ func (ins *Instance) gatherSlaveStatus(slist *list.SafeList, db *sql.DB, globalT
 			}
 
 			if value, ok := parseStatus(*scanArgs[i].(*sql.RawBytes)); ok {
-				slist.PushFront(types.NewSample("slave_status_"+key, value, globalTags, map[string]string{
+				slist.PushFront(types.NewSample(inputName, "slave_status_"+key, value, globalTags, map[string]string{
 					"master_host":  masterHost,
 					"master_uuid":  masterUUID,
 					"channel_name": channelName,

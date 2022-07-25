@@ -5,11 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/types/metric"
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
-	"github.com/toolkits/pkg/container/list"
 )
 
 // Parser is an InfluxDB Line Protocol parser that implements the
@@ -29,7 +27,7 @@ func NewParser() *Parser {
 	}
 }
 
-func (p *Parser) Parse(input []byte, slist *list.SafeList) error {
+func (p *Parser) Parse(input []byte, slist *types.SampleList) error {
 	metrics := make([]types.Metric, 0)
 	decoder := lineprotocol.NewDecoderWithBytes(input)
 
@@ -47,16 +45,7 @@ func (p *Parser) Parse(input []byte, slist *list.SafeList) error {
 		tags := m.Tags()
 		fields := m.Fields()
 		for k, v := range fields {
-			floatValue, err := conv.ToFloat64(v)
-			if err != nil {
-				continue
-			}
-
-			slist.PushFront(&types.Sample{
-				Metric: name + "_" + k,
-				Value:  floatValue,
-				Labels: tags,
-			})
+			slist.PushSample(name, k, v, tags)
 		}
 	}
 

@@ -9,10 +9,9 @@ import (
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
-func (ins *Instance) gatherGlobalVariables(slist *list.SafeList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+func (ins *Instance) gatherGlobalVariables(slist *types.SampleList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
 	rows, err := db.Query(SQL_GLOBAL_VARIABLES)
 	if err != nil {
 		log.Println("E! failed to query global variables:", err)
@@ -59,12 +58,12 @@ func (ins *Instance) gatherGlobalVariables(slist *list.SafeList, db *sql.DB, glo
 				continue
 			}
 
-			slist.PushFront(types.NewSample("global_variables_"+key, floatVal, tags))
+			slist.PushFront(types.NewSample(inputName, "global_variables_"+key, floatVal, tags))
 			continue
 		}
 	}
 
-	slist.PushFront(types.NewSample("version_info", 1, tags, map[string]string{
+	slist.PushFront(types.NewSample(inputName, "version_info", 1, tags, map[string]string{
 		"version":         textItems["version"],
 		"innodb_version":  textItems["innodb_version"],
 		"version_comment": textItems["version_comment"],
@@ -73,14 +72,14 @@ func (ins *Instance) gatherGlobalVariables(slist *list.SafeList, db *sql.DB, glo
 	// mysql_galera_variables_info metric.
 	// PXC/Galera variables information.
 	if textItems["wsrep_cluster_name"] != "" {
-		slist.PushFront(types.NewSample("galera_variables_info", 1, tags, map[string]string{
+		slist.PushFront(types.NewSample(inputName, "galera_variables_info", 1, tags, map[string]string{
 			"wsrep_cluster_name": textItems["wsrep_cluster_name"],
 		}))
 	}
 
 	// mysql_galera_gcache_size_bytes metric.
 	if textItems["wsrep_provider_options"] != "" {
-		slist.PushFront(types.NewSample("galera_gcache_size_bytes", parseWsrepProviderOptions(textItems["wsrep_provider_options"]), tags))
+		slist.PushFront(types.NewSample(inputName, "galera_gcache_size_bytes", parseWsrepProviderOptions(textItems["wsrep_provider_options"]), tags))
 	}
 
 	if textItems["transaction_isolation"] != "" || textItems["tx_isolation"] != "" {
@@ -89,7 +88,7 @@ func (ins *Instance) gatherGlobalVariables(slist *list.SafeList, db *sql.DB, glo
 			level = textItems["tx_isolation"]
 		}
 
-		slist.PushFront(types.NewSample("transaction_isolation", 1, tags, map[string]string{"level": level}))
+		slist.PushFront(types.NewSample(inputName, "transaction_isolation", 1, tags, map[string]string{"level": level}))
 	}
 }
 

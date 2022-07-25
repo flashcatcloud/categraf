@@ -6,10 +6,9 @@ import (
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
-func (ins *Instance) gatherProcesslistByUser(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherProcesslistByUser(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
 	if !ins.GatherProcessListProcessByUser {
 		return
 	}
@@ -34,6 +33,6 @@ func (ins *Instance) gatherProcesslistByUser(slist *list.SafeList, db *sql.DB, g
 			return
 		}
 
-		slist.PushFront(types.NewSample("processlist_processes_by_user", connections, labels, map[string]string{"user": user}))
+		slist.PushFront(types.NewSample(inputName, "processlist_processes_by_user", connections, labels, map[string]string{"user": user}))
 	}
 }

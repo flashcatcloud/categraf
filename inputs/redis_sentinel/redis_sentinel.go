@@ -16,7 +16,6 @@ import (
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	"github.com/go-redis/redis/v8"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "redis_sentinel"
@@ -26,7 +25,7 @@ const measurementSentinels = "redis_sentinel_sentinels"
 const measurementReplicas = "redis_sentinel_replicas"
 
 type RedisSentinel struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -36,10 +35,9 @@ func init() {
 	})
 }
 
-func (r *RedisSentinel) Prefix() string              { return "" }
-func (r *RedisSentinel) Init() error                 { return nil }
-func (r *RedisSentinel) Drop()                       {}
-func (r *RedisSentinel) Gather(slist *list.SafeList) {}
+func (r *RedisSentinel) Init() error                    { return nil }
+func (r *RedisSentinel) Drop()                          {}
+func (r *RedisSentinel) Gather(slist *types.SampleList) {}
 
 func (r *RedisSentinel) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
@@ -118,13 +116,13 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	var wg sync.WaitGroup
 
 	for _, client := range ins.clients {
 		wg.Add(1)
 
-		go func(slist *list.SafeList, client *RedisSentinelClient) {
+		go func(slist *types.SampleList, client *RedisSentinelClient) {
 			defer wg.Done()
 
 			masters, err := client.gatherMasterStats(slist)
@@ -150,7 +148,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	wg.Wait()
 }
 
-func (client *RedisSentinelClient) gatherInfoStats(slist *list.SafeList) error {
+func (client *RedisSentinelClient) gatherInfoStats(slist *types.SampleList) error {
 	infoCmd := redis.NewStringCmd(context.Background(), "info", "all")
 	if err := client.sentinel.Process(context.Background(), infoCmd); err != nil {
 		return err
@@ -167,7 +165,7 @@ func (client *RedisSentinelClient) gatherInfoStats(slist *list.SafeList) error {
 		return err
 	}
 
-	inputs.PushMeasurements(slist, measurementSentinel, infoFields, infoTags)
+	slist.PushSamples(measurementSentinel, infoFields, infoTags)
 
 	return nil
 }
@@ -228,7 +226,7 @@ func convertSentinelInfoOutput(
 	return tags, fields, nil
 }
 
-func (client *RedisSentinelClient) gatherSentinelStats(slist *list.SafeList, masterName string) error {
+func (client *RedisSentinelClient) gatherSentinelStats(slist *types.SampleList, masterName string) error {
 	sentinelsCmd := redis.NewSliceCmd(context.Background(), "sentinel", "sentinels", masterName)
 	if err := client.sentinel.Process(context.Background(), sentinelsCmd); err != nil {
 		return err
@@ -254,7 +252,7 @@ func (client *RedisSentinelClient) gatherSentinelStats(slist *list.SafeList, mas
 			return err
 		}
 
-		inputs.PushMeasurements(slist, measurementSentinels, sentinelFields, sentinelTags)
+		slist.PushSamples(measurementSentinels, sentinelFields, sentinelTags)
 	}
 
 	return nil
@@ -280,7 +278,7 @@ func convertSentinelSentinelsOutput(
 	return tags, fields, nil
 }
 
-func (client *RedisSentinelClient) gatherReplicaStats(slist *list.SafeList, masterName string) error {
+func (client *RedisSentinelClient) gatherReplicaStats(slist *types.SampleList, masterName string) error {
 	replicasCmd := redis.NewSliceCmd(context.Background(), "sentinel", "replicas", masterName)
 	if err := client.sentinel.Process(context.Background(), replicasCmd); err != nil {
 		return err
@@ -306,7 +304,7 @@ func (client *RedisSentinelClient) gatherReplicaStats(slist *list.SafeList, mast
 			return err
 		}
 
-		inputs.PushMeasurements(slist, measurementReplicas, replicaFields, replicaTags)
+		slist.PushSamples(measurementReplicas, replicaFields, replicaTags)
 	}
 
 	return nil
@@ -332,7 +330,7 @@ func convertSentinelReplicaOutput(
 	return tags, fields, nil
 }
 
-func (client *RedisSentinelClient) gatherMasterStats(slist *list.SafeList) ([]string, error) {
+func (client *RedisSentinelClient) gatherMasterStats(slist *types.SampleList) ([]string, error) {
 	var masterNames []string
 
 	mastersCmd := redis.NewSliceCmd(context.Background(), "sentinel", "masters")
@@ -369,7 +367,7 @@ func (client *RedisSentinelClient) gatherMasterStats(slist *list.SafeList) ([]st
 			return masterNames, err
 		}
 
-		inputs.PushMeasurements(slist, measurementMasters, sentinelMastersFields, sentinelMastersTags)
+		slist.PushSamples(measurementMasters, sentinelMastersFields, sentinelMastersTags)
 	}
 
 	return masterNames, nil

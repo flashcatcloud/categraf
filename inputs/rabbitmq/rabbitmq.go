@@ -14,13 +14,12 @@ import (
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "rabbitmq"
 
 type RabbitMQ struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -30,10 +29,9 @@ func init() {
 	})
 }
 
-func (r *RabbitMQ) Prefix() string              { return inputName }
-func (r *RabbitMQ) Init() error                 { return nil }
-func (r *RabbitMQ) Drop()                       {}
-func (r *RabbitMQ) Gather(slist *list.SafeList) {}
+func (r *RabbitMQ) Init() error                    { return nil }
+func (r *RabbitMQ) Drop()                          {}
+func (r *RabbitMQ) Gather(slist *types.SampleList) {}
 
 func (r *RabbitMQ) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
@@ -336,7 +334,7 @@ type ErrorResponse struct {
 }
 
 // gatherFunc ...
-type gatherFunc func(ins *Instance, slist *list.SafeList)
+type gatherFunc func(ins *Instance, slist *types.SampleList)
 
 var gatherFunctions = map[string]gatherFunc{
 	"exchange":   gatherExchanges,
@@ -346,7 +344,7 @@ var gatherFunctions = map[string]gatherFunc{
 	"queue":      gatherQueues,
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	tags := map[string]string{"url": ins.URL}
 
 	begun := time.Now()
@@ -354,7 +352,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags, ins.Labels))
+		slist.PushFront(types.NewSample(inputName, "scrape_use_seconds", use, tags))
 	}(begun)
 
 	var wg sync.WaitGroup
@@ -422,7 +420,7 @@ func (ins *Instance) requestJSON(u string, target interface{}) error {
 	return nil
 }
 
-func gatherOverview(ins *Instance, slist *list.SafeList) {
+func gatherOverview(ins *Instance, slist *types.SampleList) {
 	overview := OverviewResponse{}
 
 	err := ins.requestJSON("/api/overview", &overview)
@@ -446,9 +444,6 @@ func gatherOverview(ins *Instance, slist *list.SafeList) {
 	}
 
 	tags := map[string]string{"url": ins.URL}
-	for k, v := range ins.Labels {
-		tags[k] = v
-	}
 
 	fields := map[string]interface{}{
 		"overview_messages":                  overview.QueueTotals.Messages,
@@ -473,10 +468,10 @@ func gatherOverview(ins *Instance, slist *list.SafeList) {
 		"overview_return_unroutable_rate":    overview.MessageStats.ReturnUnroutableDetails.Rate,
 	}
 
-	inputs.PushSamples(slist, fields, tags)
+	slist.PushSamples(inputName, fields, tags)
 }
 
-func gatherExchanges(ins *Instance, slist *list.SafeList) {
+func gatherExchanges(ins *Instance, slist *types.SampleList) {
 	// Gather information about exchanges
 	exchanges := make([]Exchange, 0)
 	err := ins.requestJSON("/api/exchanges", &exchanges)
@@ -499,10 +494,6 @@ func gatherExchanges(ins *Instance, slist *list.SafeList) {
 			// "auto_delete": strconv.FormatBool(exchange.AutoDelete),
 		}
 
-		for k, v := range ins.Labels {
-			tags[k] = v
-		}
-
 		fields := map[string]interface{}{
 			"exchange_messages_publish_in":       exchange.MessageStats.PublishIn,
 			"exchange_messages_publish_in_rate":  exchange.MessageStats.PublishInDetails.Rate,
@@ -510,7 +501,7 @@ func gatherExchanges(ins *Instance, slist *list.SafeList) {
 			"exchange_messages_publish_out_rate": exchange.MessageStats.PublishOutDetails.Rate,
 		}
 
-		inputs.PushSamples(slist, fields, tags)
+		slist.PushSamples(inputName, fields, tags)
 	}
 }
 
@@ -528,7 +519,7 @@ func (ins *Instance) shouldGatherExchange(exchangeName string) bool {
 	return false
 }
 
-func gatherFederationLinks(ins *Instance, slist *list.SafeList) {
+func gatherFederationLinks(ins *Instance, slist *types.SampleList) {
 	// Gather information about federation links
 	federationLinks := make([]FederationLink, 0)
 	err := ins.requestJSON("/api/federation-links", &federationLinks)
@@ -568,7 +559,7 @@ func gatherFederationLinks(ins *Instance, slist *list.SafeList) {
 			"federation_messages_return_unroutable": link.LocalChannel.MessageStats.ReturnUnroutable,
 		}
 
-		inputs.PushSamples(slist, fields, tags, ins.Labels)
+		slist.PushSamples(inputName, fields, tags)
 	}
 }
 
@@ -587,7 +578,7 @@ func (ins *Instance) shouldGatherFederationLink(link FederationLink) bool {
 	}
 }
 
-func gatherNodes(ins *Instance, slist *list.SafeList) {
+func gatherNodes(ins *Instance, slist *types.SampleList) {
 	allNodes := make([]*Node, 0)
 
 	err := ins.requestJSON("/api/nodes", &allNodes)
@@ -698,7 +689,7 @@ func gatherNodes(ins *Instance, slist *list.SafeList) {
 				}
 			}
 
-			inputs.PushSamples(slist, fields, tags, ins.Labels)
+			slist.PushSamples(inputName, fields, tags)
 		}(node)
 	}
 
@@ -726,7 +717,7 @@ func boolToInt(b bool) int64 {
 	return 0
 }
 
-func gatherQueues(ins *Instance, slist *list.SafeList) {
+func gatherQueues(ins *Instance, slist *types.SampleList) {
 	if ins.excludeEveryQueue {
 		return
 	}
@@ -782,6 +773,6 @@ func gatherQueues(ins *Instance, slist *list.SafeList) {
 			"queue_messages_redeliver_rate":   queue.MessageStats.RedeliverDetails.Rate,
 		}
 
-		inputs.PushSamples(slist, fields, tags, ins.Labels)
+		slist.PushSamples(inputName, fields, tags)
 	}
 }

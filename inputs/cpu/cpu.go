@@ -4,38 +4,35 @@ import (
 	"log"
 
 	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
-	"github.com/toolkits/pkg/container/list"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
+	"flashcat.cloud/categraf/types"
 )
-
-const inputName = "cpu"
 
 type CPUStats struct {
 	ps        system.PS
 	lastStats map[string]cpuUtil.TimesStat
 
-	config.Interval
+	config.PluginConfig
 	CollectPerCPU bool `toml:"collect_per_cpu"`
 }
 
 func init() {
 	ps := system.NewSystemPS()
-	inputs.Add(inputName, func() inputs.Input {
+	inputs.Add("cpu", func() inputs.Input {
 		return &CPUStats{
 			ps: ps,
 		}
 	})
 }
 
-func (c *CPUStats) Prefix() string                  { return inputName }
 func (c *CPUStats) Init() error                     { return nil }
 func (c *CPUStats) Drop()                           {}
 func (c *CPUStats) GetInstances() []inputs.Instance { return nil }
 
-func (c *CPUStats) Gather(slist *list.SafeList) {
+func (c *CPUStats) Gather(slist *types.SampleList) {
 	times, err := c.ps.CPUTimes(c.CollectPerCPU, true)
 	if err != nil {
 		log.Println("E! failed to get cpu metrics:", err)
@@ -75,20 +72,20 @@ func (c *CPUStats) Gather(slist *list.SafeList) {
 		}
 
 		fields := map[string]interface{}{
-			"usage_user":       100 * (cts.User - lastCts.User - (cts.Guest - lastCts.Guest)) / totalDelta,
-			"usage_system":     100 * (cts.System - lastCts.System) / totalDelta,
-			"usage_idle":       100 * (cts.Idle - lastCts.Idle) / totalDelta,
-			"usage_nice":       100 * (cts.Nice - lastCts.Nice - (cts.GuestNice - lastCts.GuestNice)) / totalDelta,
-			"usage_iowait":     100 * (cts.Iowait - lastCts.Iowait) / totalDelta,
-			"usage_irq":        100 * (cts.Irq - lastCts.Irq) / totalDelta,
-			"usage_softirq":    100 * (cts.Softirq - lastCts.Softirq) / totalDelta,
-			"usage_steal":      100 * (cts.Steal - lastCts.Steal) / totalDelta,
-			"usage_guest":      100 * (cts.Guest - lastCts.Guest) / totalDelta,
-			"usage_guest_nice": 100 * (cts.GuestNice - lastCts.GuestNice) / totalDelta,
-			"usage_active":     100 * (active - lastActive) / totalDelta,
+			"user":       100 * (cts.User - lastCts.User - (cts.Guest - lastCts.Guest)) / totalDelta,
+			"system":     100 * (cts.System - lastCts.System) / totalDelta,
+			"idle":       100 * (cts.Idle - lastCts.Idle) / totalDelta,
+			"nice":       100 * (cts.Nice - lastCts.Nice - (cts.GuestNice - lastCts.GuestNice)) / totalDelta,
+			"iowait":     100 * (cts.Iowait - lastCts.Iowait) / totalDelta,
+			"irq":        100 * (cts.Irq - lastCts.Irq) / totalDelta,
+			"softirq":    100 * (cts.Softirq - lastCts.Softirq) / totalDelta,
+			"steal":      100 * (cts.Steal - lastCts.Steal) / totalDelta,
+			"guest":      100 * (cts.Guest - lastCts.Guest) / totalDelta,
+			"guest_nice": 100 * (cts.GuestNice - lastCts.GuestNice) / totalDelta,
+			"active":     100 * (active - lastActive) / totalDelta,
 		}
 
-		inputs.PushSamples(slist, fields, tags)
+		slist.PushSamples("cpu_usage", fields, tags)
 	}
 
 	c.lastStats = make(map[string]cpuUtil.TimesStat)

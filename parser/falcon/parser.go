@@ -3,11 +3,8 @@ package falcon
 import (
 	"encoding/json"
 	"strings"
-	"time"
 
-	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 // payload = [
@@ -40,7 +37,7 @@ func NewParser() *Parser {
 	return &Parser{}
 }
 
-func (p *Parser) Parse(input []byte, slist *list.SafeList) error {
+func (p *Parser) Parse(input []byte, slist *types.SampleList) error {
 	var samples []Sample
 
 	if input[0] == '[' {
@@ -57,14 +54,7 @@ func (p *Parser) Parse(input []byte, slist *list.SafeList) error {
 		samples = append(samples, s)
 	}
 
-	now := time.Now()
-
 	for i := 0; i < len(samples); i++ {
-		fv, err := conv.ToFloat64(samples[i].Value)
-		if err != nil {
-			continue
-		}
-
 		labels := make(map[string]string)
 		tagarr := strings.Split(samples[i].Tags, ",")
 		for j := 0; j < len(tagarr); j++ {
@@ -86,14 +76,7 @@ func (p *Parser) Parse(input []byte, slist *list.SafeList) error {
 			labels["endpoint"] = endpoint
 		}
 
-		item := &types.Sample{
-			Metric:    samples[i].Metric,
-			Value:     fv,
-			Labels:    labels,
-			Timestamp: now,
-		}
-
-		slist.PushFront(item)
+		slist.PushSample("", samples[i].Metric, samples[i].Value, labels)
 	}
 
 	return nil

@@ -17,13 +17,13 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/osx"
-	"github.com/toolkits/pkg/container/list"
+	"flashcat.cloud/categraf/types"
 )
 
 const inputName = "processes"
 
 type Processes struct {
-	config.Interval
+	config.PluginConfig
 	ForcePS   bool `toml:"force_ps"`
 	ForceProc bool `toml:"force_proc"`
 }
@@ -34,12 +34,11 @@ func init() {
 	})
 }
 
-func (p *Processes) Prefix() string                  { return inputName }
 func (p *Processes) Init() error                     { return nil }
 func (p *Processes) Drop()                           {}
 func (p *Processes) GetInstances() []inputs.Instance { return nil }
 
-func (p *Processes) Gather(slist *list.SafeList) {
+func (p *Processes) Gather(slist *types.SampleList) {
 	// Get an empty map of metric fields
 	fields := getEmptyFields()
 
@@ -65,7 +64,7 @@ func (p *Processes) Gather(slist *list.SafeList) {
 		}
 	}
 
-	inputs.PushSamples(slist, fields)
+	slist.PushSamples(inputName, fields)
 }
 
 // Gets empty fields of metrics based on the OS

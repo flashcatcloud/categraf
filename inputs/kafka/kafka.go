@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -12,7 +11,6 @@ import (
 	"flashcat.cloud/categraf/types"
 	"github.com/Shopify/sarama"
 	"github.com/go-kit/log/level"
-	"github.com/toolkits/pkg/container/list"
 
 	klog "github.com/go-kit/log"
 )
@@ -20,7 +18,7 @@ import (
 const inputName = "kafka"
 
 type Kafka struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -30,9 +28,8 @@ func init() {
 	})
 }
 
-func (r *Kafka) Prefix() string              { return "" }
-func (r *Kafka) Init() error                 { return nil }
-func (r *Kafka) Gather(slist *list.SafeList) {}
+func (r *Kafka) Init() error                    { return nil }
+func (r *Kafka) Gather(slist *types.SampleList) {}
 
 func (r *Kafka) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
@@ -165,13 +162,6 @@ func (ins *Instance) Init() error {
 	if len(ins.GroupFilter) == 0 {
 		ins.GroupFilter = ".*"
 	}
-	if ins.Labels == nil {
-		ins.Labels = make(map[string]string)
-	}
-	_, ok := ins.Labels["cluster"]
-	if !ok {
-		ins.Labels["cluster"] = ins.KafkaURIs[0]
-	}
 
 	options := exporter.Options{
 		Uri:                      ins.KafkaURIs,
@@ -194,13 +184,6 @@ func (ins *Instance) Init() error {
 		PruneIntervalSeconds:     ins.PruneIntervalSeconds,
 	}
 
-	encLabels := []string{}
-	for k, v := range ins.Labels {
-		encLabels = append(encLabels, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	options.Labels = strings.Join(encLabels, ",")
-
 	ins.l = level.NewFilter(klog.NewLogfmtLogger(klog.NewSyncWriter(os.Stderr)), levelFilter(ins.LogLevel))
 
 	e, err := exporter.New(ins.l, options, ins.TopicsFilter, ins.GroupFilter)
@@ -212,7 +195,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	err := inputs.Collect(ins.e, slist)
 	if err != nil {
 		log.Println("E! failed to collect metrics:", err)

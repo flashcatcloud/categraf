@@ -12,7 +12,6 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "tomcat"
@@ -130,7 +129,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 }
 
 type Tomcat struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -140,10 +139,9 @@ func init() {
 	})
 }
 
-func (t *Tomcat) Prefix() string              { return inputName }
-func (t *Tomcat) Init() error                 { return nil }
-func (t *Tomcat) Drop()                       {}
-func (t *Tomcat) Gather(slist *list.SafeList) {}
+func (t *Tomcat) Init() error                    { return nil }
+func (t *Tomcat) Drop()                          {}
+func (t *Tomcat) Gather(slist *types.SampleList) {}
 
 func (t *Tomcat) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(t.Instances))
@@ -153,30 +151,26 @@ func (t *Tomcat) GetInstances() []inputs.Instance {
 	return ret
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	tags := map[string]string{"url": ins.URL}
-	for k, v := range ins.Labels {
-		tags[k] = v
-	}
-
 	begun := time.Now()
 
 	// scrape use seconds
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags))
+		slist.PushFront(types.NewSample(inputName, "scrape_use_seconds", use, tags))
 	}(begun)
 
 	// url cannot connect? up = 0
 	resp, err := ins.client.Do(ins.request)
 	if err != nil {
-		slist.PushFront(types.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
 		log.Println("E! failed to query tomcat url:", err)
 		return
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		slist.PushFront(types.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
 		log.Println("E! received HTTP status code:", resp.StatusCode, "expected: 200")
 		return
 	}
@@ -185,16 +179,16 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 
 	var status TomcatStatus
 	if err := xml.NewDecoder(resp.Body).Decode(&status); err != nil {
-		slist.PushFront(types.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
 		log.Println("E! failed to decode response body:", err)
 		return
 	}
 
-	slist.PushFront(types.NewSample("up", 1, tags))
+	slist.PushFront(types.NewSample(inputName, "up", 1, tags))
 
-	slist.PushFront(types.NewSample("jvm_memory_free", status.TomcatJvm.JvmMemory.Free, tags))
-	slist.PushFront(types.NewSample("jvm_memory_total", status.TomcatJvm.JvmMemory.Total, tags))
-	slist.PushFront(types.NewSample("jvm_memory_max", status.TomcatJvm.JvmMemory.Max, tags))
+	slist.PushFront(types.NewSample(inputName, "jvm_memory_free", status.TomcatJvm.JvmMemory.Free, tags))
+	slist.PushFront(types.NewSample(inputName, "jvm_memory_total", status.TomcatJvm.JvmMemory.Total, tags))
+	slist.PushFront(types.NewSample(inputName, "jvm_memory_max", status.TomcatJvm.JvmMemory.Max, tags))
 
 	// add tomcat_jvm_memorypool measurements
 	for _, mp := range status.TomcatJvm.JvmMemoryPools {
@@ -210,7 +204,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 			"jvm_memorypool_used":      mp.UsageUsed,
 		}
 
-		inputs.PushSamples(slist, tcmpFields, tags, tcmpTags)
+		slist.PushSamples(inputName, tcmpFields, tags, tcmpTags)
 	}
 
 	// add tomcat_connector measurements
@@ -236,6 +230,6 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 			"connector_bytes_sent":           c.RequestInfo.BytesSent,
 		}
 
-		inputs.PushSamples(slist, tccFields, tags, tccTags)
+		slist.PushSamples(inputName, tccFields, tags, tccTags)
 	}
 }

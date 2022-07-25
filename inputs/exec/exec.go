@@ -21,10 +21,8 @@ import (
 	"flashcat.cloud/categraf/pkg/cmdx"
 	"flashcat.cloud/categraf/types"
 	"github.com/kballard/go-shellquote"
-	"github.com/toolkits/pkg/container/list"
 )
 
-const inputName = "exec"
 const MaxStderrBytes int = 512
 
 type Instance struct {
@@ -37,20 +35,19 @@ type Instance struct {
 }
 
 type Exec struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
+	inputs.Add("exec", func() inputs.Input {
 		return &Exec{}
 	})
 }
 
-func (e *Exec) Prefix() string              { return "" }
-func (e *Exec) Init() error                 { return nil }
-func (e *Exec) Drop()                       {}
-func (e *Exec) Gather(slist *list.SafeList) {}
+func (e *Exec) Init() error                    { return nil }
+func (e *Exec) Drop()                          {}
+func (e *Exec) Gather(slist *types.SampleList) {}
 
 func (e *Exec) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(e.Instances))
@@ -82,7 +79,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	var commands []string
 	for _, pattern := range ins.Commands {
 		cmdAndArgs := strings.SplitN(pattern, " ", 2)
@@ -128,7 +125,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	waitCommands.Wait()
 }
 
-func (ins *Instance) ProcessCommand(slist *list.SafeList, command string, wg *sync.WaitGroup) {
+func (ins *Instance) ProcessCommand(slist *types.SampleList, command string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	out, errbuf, runErr := commandRun(command, time.Duration(ins.Timeout))

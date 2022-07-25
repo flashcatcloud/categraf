@@ -28,7 +28,7 @@ var (
 )
 
 type KernelStats struct {
-	config.Interval
+	config.PluginConfig
 
 	statFile        string
 	entropyStatFile string
@@ -43,12 +43,11 @@ func init() {
 	})
 }
 
-func (s *KernelStats) Prefix() string                  { return inputName }
 func (s *KernelStats) Init() error                     { return nil }
 func (s *KernelStats) Drop()                           {}
 func (s *KernelStats) GetInstances() []inputs.Instance { return nil }
 
-func (s *KernelStats) Gather(slist *list.SafeList) {
+func (s *KernelStats) Gather(slist *types.SampleList) {
 	data, err := s.getProcStat()
 	if err != nil {
 		log.Println("E! failed to read:", s.statFile, "error:", err)
@@ -112,7 +111,7 @@ func (s *KernelStats) Gather(slist *list.SafeList) {
 		}
 	}
 
-	inputs.PushSamples(slist, fields)
+	slist.PushSamples(inputName, fields)
 }
 
 func (s *KernelStats) getProcStat() ([]byte, error) {

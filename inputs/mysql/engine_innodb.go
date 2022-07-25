@@ -9,10 +9,9 @@ import (
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
-func (ins *Instance) gatherEngineInnodbStatus(slist *list.SafeList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+func (ins *Instance) gatherEngineInnodbStatus(slist *types.SampleList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
 	rows, err := db.Query(SQL_ENGINE_INNODB_STATUS)
 	if err != nil {
 		log.Println("E! failed to query engine innodb status:", err)
@@ -43,19 +42,19 @@ func (ins *Instance) gatherEngineInnodbStatus(slist *list.SafeList, db *sql.DB, 
 			if err != nil {
 				continue
 			}
-			slist.PushFront(types.NewSample("engine_innodb_queries_inside_innodb", value, tags))
+			slist.PushFront(types.NewSample(inputName, "engine_innodb_queries_inside_innodb", value, tags))
 
 			value, err = strconv.ParseFloat(data[2], 64)
 			if err != nil {
 				continue
 			}
-			slist.PushFront(types.NewSample("engine_innodb_queries_in_queue", value, tags))
+			slist.PushFront(types.NewSample(inputName, "engine_innodb_queries_in_queue", value, tags))
 		} else if data := rViews.FindStringSubmatch(line); data != nil {
 			value, err := strconv.ParseFloat(data[1], 64)
 			if err != nil {
 				continue
 			}
-			slist.PushFront(types.NewSample("engine_innodb_read_views_open_inside_innodb", value, tags))
+			slist.PushFront(types.NewSample(inputName, "engine_innodb_read_views_open_inside_innodb", value, tags))
 		}
 	}
 }

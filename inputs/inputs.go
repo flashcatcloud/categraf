@@ -2,15 +2,18 @@ package inputs
 
 import (
 	"flashcat.cloud/categraf/config"
-	"github.com/toolkits/pkg/container/list"
+	"flashcat.cloud/categraf/types"
 )
 
 type Input interface {
+	GetLabels() map[string]string
+	GetInterval() config.Duration
+	InitInternalConfig() error
+	Process(*types.SampleList) *types.SampleList
+
 	Init() error
 	Drop()
-	Prefix() string
-	GetInterval() config.Duration
-	Gather(slist *list.SafeList)
+	Gather(*types.SampleList)
 	GetInstances() []Instance
 }
 
@@ -25,6 +28,9 @@ func Add(name string, creator Creator) {
 type Instance interface {
 	GetLabels() map[string]string
 	GetIntervalTimes() int64
+	InitInternalConfig() error
+	Process(*types.SampleList) *types.SampleList
+
 	Init() error
-	Gather(slist *list.SafeList)
+	Gather(*types.SampleList)
 }

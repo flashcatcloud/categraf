@@ -14,7 +14,7 @@
 有些字段可以为空，如果 mesurement、metric_fields、field_to_append 三个字段都配置了，会把这 3 部分拼成 metric 的最终名字，参考下面的代码：
 
 ```go
-func (o *Oracle) parseRow(row map[string]string, metricConf MetricConfig, slist *list.SafeList, tags map[string]string) error {
+func (o *Oracle) parseRow(row map[string]string, metricConf MetricConfig, slist *types.SampleList, tags map[string]string) error {
 	labels := make(map[string]string)
 	for k, v := range tags {
 		labels[k] = v

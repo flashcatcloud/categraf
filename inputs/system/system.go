@@ -7,16 +7,16 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/types"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "system"
 
 type SystemStats struct {
-	config.Interval
+	config.PluginConfig
 	CollectUserNumber bool `toml:"collect_user_number"`
 }
 
@@ -26,12 +26,11 @@ func init() {
 	})
 }
 
-func (s *SystemStats) Prefix() string                  { return inputName }
 func (s *SystemStats) Init() error                     { return nil }
 func (s *SystemStats) Drop()                           {}
 func (s *SystemStats) GetInstances() []inputs.Instance { return nil }
 
-func (s *SystemStats) Gather(slist *list.SafeList) {
+func (s *SystemStats) Gather(slist *types.SampleList) {
 	loadavg, err := load.Avg()
 	if err != nil && !strings.Contains(err.Error(), "not implemented") {
 		log.Println("E! failed to gather system load:", err)
@@ -72,5 +71,5 @@ func (s *SystemStats) Gather(slist *list.SafeList) {
 		}
 	}
 
-	inputs.PushSamples(slist, fields)
+	slist.PushSamples(inputName, fields)
 }

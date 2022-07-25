@@ -12,13 +12,11 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"github.com/toolkits/pkg/container/list"
+	"flashcat.cloud/categraf/types"
 )
 
-const inputName = "conntrack"
-
 type Conntrack struct {
-	config.Interval
+	config.PluginConfig
 	Dirs  []string `toml:"dirs"`
 	Files []string `toml:"files"`
 	Quiet bool     `toml:"quiet"`
@@ -37,7 +35,7 @@ var dfltFiles = []string{
 }
 
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
+	inputs.Add("conntrack", func() inputs.Input {
 		return &Conntrack{}
 	})
 }
@@ -45,10 +43,6 @@ func init() {
 // just placeholder
 func (c *Conntrack) GetInstances() []inputs.Instance {
 	return nil
-}
-
-func (c *Conntrack) Prefix() string {
-	return inputName
 }
 
 func (c *Conntrack) setDefaults() {
@@ -68,7 +62,7 @@ func (c *Conntrack) Init() error {
 
 func (c *Conntrack) Drop() {}
 
-func (c *Conntrack) Gather(slist *list.SafeList) {
+func (c *Conntrack) Gather(slist *types.SampleList) {
 	var metricKey string
 	fields := make(map[string]interface{})
 
@@ -105,5 +99,5 @@ func (c *Conntrack) Gather(slist *list.SafeList) {
 		log.Println("E! Conntrack input failed to collect metrics. Is the conntrack kernel module loaded?")
 	}
 
-	inputs.PushSamples(slist, fields)
+	slist.PushSamples("conntrack", fields)
 }

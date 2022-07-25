@@ -6,7 +6,6 @@ import (
 
 	"flashcat.cloud/categraf/types"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/toolkits/pkg/container/list"
 
 	pp "flashcat.cloud/categraf/parser/prometheus"
 	dto "github.com/prometheus/client_model/go"
@@ -16,7 +15,7 @@ const capMetricChan = 1000
 
 var parser = new(pp.Parser)
 
-func Collect(e prometheus.Collector, slist *list.SafeList, constLabels ...map[string]string) error {
+func Collect(e prometheus.Collector, slist *types.SampleList, constLabels ...map[string]string) error {
 	if e == nil {
 		return errors.New("exporter must not be nil")
 	}
@@ -62,19 +61,15 @@ func Collect(e prometheus.Collector, slist *list.SafeList, constLabels ...map[st
 
 		switch {
 		case dtoMetric.Counter != nil:
-			_ = slist.PushFront(types.NewSample(desc.Name(), *dtoMetric.Counter.Value, labels))
-
+			slist.PushSample("", desc.Name(), *dtoMetric.Counter.Value, labels)
 		case dtoMetric.Gauge != nil:
-			_ = slist.PushFront(types.NewSample(desc.Name(), *dtoMetric.Gauge.Value, labels))
-
+			slist.PushSample("", desc.Name(), *dtoMetric.Gauge.Value, labels)
 		case dtoMetric.Summary != nil:
 			parser.HandleSummary(dtoMetric, nil, desc.Name(), slist)
-
 		case dtoMetric.Histogram != nil:
 			parser.HandleHistogram(dtoMetric, nil, desc.Name(), slist)
-
 		default:
-			_ = slist.PushFront(types.NewSample(desc.Name(), *dtoMetric.Untyped.Value, labels))
+			slist.PushSample("", desc.Name(), *dtoMetric.Untyped.Value, labels)
 		}
 	}
 

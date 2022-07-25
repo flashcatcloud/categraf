@@ -5,10 +5,9 @@ import (
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
-func (ins *Instance) gatherEngineInnodbStatusCompute(slist *list.SafeList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+func (ins *Instance) gatherEngineInnodbStatusCompute(slist *types.SampleList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
 	tags := tagx.Copy(globalTags)
 
 	pageUsed := cache["innodb_buffer_pool_pages_total"] - cache["innodb_buffer_pool_pages_free"]
@@ -22,14 +21,14 @@ func (ins *Instance) gatherEngineInnodbStatusCompute(slist *list.SafeList, db *s
 		pageUtil = pageUsed / cache["innodb_buffer_pool_pages_total"] * 100
 	}
 
-	slist.PushFront(types.NewSample("global_status_buffer_pool_bytes", byteUsed, tags, map[string]string{"state": "used"}))
-	slist.PushFront(types.NewSample("global_status_buffer_pool_bytes", byteData, tags, map[string]string{"state": "data"}))
-	slist.PushFront(types.NewSample("global_status_buffer_pool_bytes", byteFree, tags, map[string]string{"state": "free"}))
-	slist.PushFront(types.NewSample("global_status_buffer_pool_bytes", byteTotal, tags, map[string]string{"state": "total"}))
-	slist.PushFront(types.NewSample("global_status_buffer_pool_bytes", byteDirty, tags, map[string]string{"state": "dirty"}))
-	slist.PushFront(types.NewSample("global_status_buffer_pool_pages_utilization", pageUtil, tags))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes", byteUsed, tags, map[string]string{"state": "used"}))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes", byteData, tags, map[string]string{"state": "data"}))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes", byteFree, tags, map[string]string{"state": "free"}))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes", byteTotal, tags, map[string]string{"state": "total"}))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes", byteDirty, tags, map[string]string{"state": "dirty"}))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_pages_utilization", pageUtil, tags))
 
 	if ins.ExtraInnodbMetrics {
-		slist.PushFront(types.NewSample("global_status_buffer_pool_pages", pageUsed, tags, map[string]string{"state": "used"}))
+		slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_pages", pageUsed, tags, map[string]string{"state": "used"}))
 	}
 }

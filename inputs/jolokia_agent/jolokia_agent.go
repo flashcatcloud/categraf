@@ -11,13 +11,12 @@ import (
 	"flashcat.cloud/categraf/inputs/jolokia"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "jolokia_agent"
 
 type JolokiaAgent struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -27,10 +26,9 @@ func init() {
 	})
 }
 
-func (r *JolokiaAgent) Prefix() string              { return "" }
-func (r *JolokiaAgent) Init() error                 { return nil }
-func (r *JolokiaAgent) Drop()                       {}
-func (r *JolokiaAgent) Gather(slist *list.SafeList) {}
+func (r *JolokiaAgent) Init() error                    { return nil }
+func (r *JolokiaAgent) Drop()                          {}
+func (r *JolokiaAgent) Gather(slist *types.SampleList) {}
 
 func (r *JolokiaAgent) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
@@ -70,7 +68,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.gatherer == nil {
 		ins.gatherer = jolokia.NewGatherer(ins.createMetrics())
 	}

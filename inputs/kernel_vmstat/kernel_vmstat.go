@@ -18,7 +18,7 @@ import (
 const inputName = "kernel_vmstat"
 
 type KernelVmstat struct {
-	config.Interval
+	config.PluginConfig
 	WhiteList map[string]int `toml:"white_list"`
 
 	statFile string
@@ -32,12 +32,11 @@ func init() {
 	})
 }
 
-func (s *KernelVmstat) Prefix() string                  { return inputName }
 func (s *KernelVmstat) Init() error                     { return nil }
 func (s *KernelVmstat) Drop()                           {}
 func (s *KernelVmstat) GetInstances() []inputs.Instance { return nil }
 
-func (s *KernelVmstat) Gather(slist *list.SafeList) {
+func (s *KernelVmstat) Gather(slist *types.SampleList) {
 	data, err := s.getProcVmstat()
 	if err != nil {
 		log.Println("E! failed to gather vmstat:", err)
@@ -68,7 +67,7 @@ func (s *KernelVmstat) Gather(slist *list.SafeList) {
 		}
 	}
 
-	inputs.PushSamples(slist, fields)
+	slist.PushSamples(inputName, fields)
 }
 
 func (s *KernelVmstat) getProcVmstat() ([]byte, error) {

@@ -8,10 +8,9 @@ import (
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
-func (ins *Instance) gatherBinlog(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherBinlog(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
 	var logBin uint8
 	err := db.QueryRow(`SELECT @@log_bin`).Scan(&logBin)
 	if err != nil {
@@ -66,11 +65,11 @@ func (ins *Instance) gatherBinlog(slist *list.SafeList, db *sql.DB, globalTags m
 	}
 
 	tags := tagx.Copy(globalTags)
-	slist.PushFront(types.NewSample("binlog_size_bytes", size, tags))
-	slist.PushFront(types.NewSample("binlog_file_count", count, tags))
+	slist.PushSample(inputName, "binlog_size_bytes", size, tags)
+	slist.PushSample(inputName, "binlog_file_count", count, tags)
 
 	value, err := strconv.ParseFloat(strings.Split(filename, ".")[1], 64)
 	if err == nil {
-		slist.PushFront(types.NewSample("binlog_file_number", value, tags))
+		slist.PushSample(inputName, "binlog_file_number", value, tags)
 	}
 }

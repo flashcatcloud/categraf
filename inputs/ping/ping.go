@@ -13,7 +13,6 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 	"github.com/go-ping/ping"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const (
@@ -80,7 +79,7 @@ func (ins *Instance) Init() error {
 }
 
 type Ping struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -90,10 +89,9 @@ func init() {
 	})
 }
 
-func (p *Ping) Prefix() string              { return inputName }
-func (p *Ping) Init() error                 { return nil }
-func (p *Ping) Drop()                       {}
-func (p *Ping) Gather(slist *list.SafeList) {}
+func (p *Ping) Init() error                    { return nil }
+func (p *Ping) Drop()                          {}
+func (p *Ping) Gather(slist *types.SampleList) {}
 
 func (p *Ping) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(p.Instances))
@@ -103,7 +101,7 @@ func (p *Ping) GetInstances() []inputs.Instance {
 	return ret
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	if len(ins.Targets) == 0 {
 		return
 	}
@@ -119,21 +117,18 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gather(slist *list.SafeList, target string) {
+func (ins *Instance) gather(slist *types.SampleList, target string) {
 	if config.Config.DebugMode {
 		log.Println("D! ping...", target)
 	}
 
 	labels := map[string]string{"target": target}
-	for k, v := range ins.Labels {
-		labels[k] = v
-	}
 
 	fields := map[string]interface{}{}
 
 	defer func() {
 		for field, value := range fields {
-			slist.PushFront(types.NewSample(field, value, labels))
+			slist.PushFront(types.NewSample(inputName, field, value, labels))
 		}
 	}()
 

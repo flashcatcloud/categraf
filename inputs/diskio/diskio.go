@@ -8,22 +8,20 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/filter"
-	"github.com/toolkits/pkg/container/list"
+	"flashcat.cloud/categraf/types"
 )
-
-const inputName = "diskio"
 
 type DiskIO struct {
 	ps system.PS
 
-	config.Interval
+	config.PluginConfig
 	Devices      []string `toml:"devices"`
 	deviceFilter filter.Filter
 }
 
 func init() {
 	ps := system.NewSystemPS()
-	inputs.Add(inputName, func() inputs.Input {
+	inputs.Add("diskio", func() inputs.Input {
 		return &DiskIO{
 			ps: ps,
 		}
@@ -33,10 +31,6 @@ func init() {
 // just placeholder
 func (d *DiskIO) GetInstances() []inputs.Instance {
 	return nil
-}
-
-func (d *DiskIO) Prefix() string {
-	return inputName
 }
 
 func (d *DiskIO) Drop() {}
@@ -54,7 +48,7 @@ func (d *DiskIO) Init() error {
 	return nil
 }
 
-func (d *DiskIO) Gather(slist *list.SafeList) {
+func (d *DiskIO) Gather(slist *types.SampleList) {
 	devices := []string{}
 	if d.deviceFilter == nil {
 		// no glob chars
@@ -86,6 +80,6 @@ func (d *DiskIO) Gather(slist *list.SafeList) {
 			"merged_writes":    io.MergedWriteCount,
 		}
 
-		inputs.PushSamples(slist, fields, map[string]string{"name": io.Name})
+		slist.PushSamples("diskio", fields, map[string]string{"name": io.Name})
 	}
 }

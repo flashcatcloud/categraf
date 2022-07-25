@@ -17,10 +17,7 @@ import (
 	"flashcat.cloud/categraf/pkg/jsonx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
-
-const inputName = "elasticsearch"
 
 // Nodestats are always generated, so simply define a constant for these endpoints
 const statsPath = "/_nodes/stats"
@@ -87,20 +84,19 @@ type indexStat struct {
 }
 
 type Elasticsearch struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
 func init() {
-	inputs.Add(inputName, func() inputs.Input {
+	inputs.Add("elasticsearch", func() inputs.Input {
 		return &Elasticsearch{}
 	})
 }
 
-func (r *Elasticsearch) Prefix() string              { return inputName }
-func (r *Elasticsearch) Init() error                 { return nil }
-func (r *Elasticsearch) Drop()                       {}
-func (r *Elasticsearch) Gather(slist *list.SafeList) {}
+func (r *Elasticsearch) Init() error                    { return nil }
+func (r *Elasticsearch) Drop()                          {}
+func (r *Elasticsearch) Gather(slist *types.SampleList) {}
 
 func (r *Elasticsearch) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
@@ -183,14 +179,14 @@ func (ins *Instance) compileIndexMatchers() (map[string]filter.Filter, error) {
 	return indexMatchers, nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.ClusterStats || len(ins.IndicesInclude) > 0 || len(ins.IndicesLevel) > 0 {
 		var wgC sync.WaitGroup
 		wgC.Add(len(ins.Servers))
 
 		ins.serverInfo = make(map[string]serverInfo)
 		for _, serv := range ins.Servers {
-			go func(s string, slist *list.SafeList) {
+			go func(s string, slist *types.SampleList) {
 				defer wgC.Done()
 				info := serverInfo{}
 
@@ -198,7 +194,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 
 				// Gather node ID
 				if info.nodeID, err = ins.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
-					slist.PushFront(types.NewSample("up", 0, map[string]string{"address": s}, ins.Labels))
+					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
 					log.Println("E! failed to gather node id:", err)
 					return
 				}
@@ -206,12 +202,12 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 				// get cat/master information here so NodeStats can determine
 				// whether this node is the Master
 				if info.masterID, err = ins.getCatMaster(s + "/_cat/master"); err != nil {
-					slist.PushFront(types.NewSample("up", 0, map[string]string{"address": s}, ins.Labels))
+					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
 					log.Println("E! failed to get cat master:", err)
 					return
 				}
 
-				slist.PushFront(types.NewSample("up", 1, map[string]string{"address": s}, ins.Labels))
+				slist.PushSample("elasticsearch", "up", 1, map[string]string{"address": s})
 				ins.serverInfoMutex.Lock()
 				ins.serverInfo[s] = info
 				ins.serverInfoMutex.Unlock()
@@ -224,7 +220,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	wg.Add(len(ins.Servers))
 
 	for _, serv := range ins.Servers {
-		go func(s string, slist *list.SafeList) {
+		go func(s string, slist *types.SampleList) {
 			defer wg.Done()
 			url := ins.nodeStatsURL(s)
 
@@ -271,7 +267,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gatherIndicesStats(url string, address string, slist *list.SafeList) error {
+func (ins *Instance) gatherIndicesStats(url string, address string, slist *types.SampleList) error {
 	indicesStats := &struct {
 		Shards  map[string]interface{} `json:"_shards"`
 		All     map[string]interface{} `json:"_all"`
@@ -285,9 +281,7 @@ func (ins *Instance) gatherIndicesStats(url string, address string, slist *list.
 	addrTag := map[string]string{"address": address}
 
 	// Total Shards Stats
-	for k, v := range indicesStats.Shards {
-		slist.PushFront(types.NewSample("indices_stats_shards_total_"+k, v, addrTag, ins.Labels))
-	}
+	slist.PushSamples("elasticsearch_indices_stats_shards_total", indicesStats.Shards, addrTag)
 
 	// All Stats
 	for m, s := range indicesStats.All {
@@ -298,7 +292,7 @@ func (ins *Instance) gatherIndicesStats(url string, address string, slist *list.
 			return err
 		}
 		for key, val := range jsonParser.Fields {
-			slist.PushFront(types.NewSample("indices_stats_"+m+"_"+key, val, map[string]string{"index_name": "_all"}, addrTag, ins.Labels))
+			slist.PushSample("elasticsearch", "indices_stats_"+m+"_"+key, val, map[string]string{"index_name": "_all"}, addrTag)
 		}
 	}
 
@@ -307,7 +301,7 @@ func (ins *Instance) gatherIndicesStats(url string, address string, slist *list.
 }
 
 // gatherSortedIndicesStats gathers stats for all indices in no particular order.
-func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, addrTag map[string]string, slist *list.SafeList) error {
+func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, addrTag map[string]string, slist *types.SampleList) error {
 	// Sort indices into buckets based on their configured prefix, if any matches.
 	categorizedIndexNames := ins.categorizeIndices(indices)
 	for _, matchingIndices := range categorizedIndexNames {
@@ -337,7 +331,7 @@ func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, 
 	return nil
 }
 
-func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, addrTag map[string]string, slist *list.SafeList) error {
+func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, addrTag map[string]string, slist *types.SampleList) error {
 	indexTag := map[string]string{"index_name": name}
 	stats := map[string]interface{}{
 		"primaries": index.Primaries,
@@ -351,7 +345,7 @@ func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, addrTa
 			return err
 		}
 		for key, val := range f.Fields {
-			slist.PushFront(types.NewSample("indices_stats_"+m+"_"+key, val, indexTag, addrTag, ins.Labels))
+			slist.PushSample("elasticsearch", "indices_stats_"+m+"_"+key, val, indexTag, addrTag)
 		}
 	}
 
@@ -393,9 +387,7 @@ func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, addrTa
 					}
 				}
 
-				for key, val := range flattened.Fields {
-					slist.PushFront(types.NewSample("indices_stats_shards_"+key, val, shardTags, addrTag, ins.Labels))
-				}
+				slist.PushSamples("elasticsearch_indices_stats_shards", flattened.Fields, shardTags, addrTag)
 			}
 		}
 	}
@@ -433,7 +425,7 @@ func (ins *Instance) categorizeIndices(indices map[string]indexStat) map[string]
 	return categorizedIndexNames
 }
 
-func (ins *Instance) gatherClusterStats(url string, address string, slist *list.SafeList) error {
+func (ins *Instance) gatherClusterStats(url string, address string, slist *types.SampleList) error {
 	clusterStats := &clusterStats{}
 	if err := ins.gatherJSONData(url, clusterStats); err != nil {
 		return err
@@ -460,14 +452,14 @@ func (ins *Instance) gatherClusterStats(url string, address string, slist *list.
 		}
 
 		for key, val := range f.Fields {
-			slist.PushFront(types.NewSample("clusterstats_"+p+"_"+key, val, tags, ins.Labels))
+			slist.PushSample("elasticsearch", "clusterstats_"+p+"_"+key, val, tags)
 		}
 	}
 
 	return nil
 }
 
-func (ins *Instance) gatherClusterHealth(url string, address string, slist *list.SafeList) error {
+func (ins *Instance) gatherClusterHealth(url string, address string, slist *types.SampleList) error {
 	healthStats := &clusterHealth{}
 	if err := ins.gatherJSONData(url, healthStats); err != nil {
 		return err
@@ -492,7 +484,7 @@ func (ins *Instance) gatherClusterHealth(url string, address string, slist *list
 		"cluster_health_unassigned_shards":                healthStats.UnassignedShards,
 	}
 
-	inputs.PushSamples(slist, clusterFields, map[string]string{"cluster_name": healthStats.ClusterName}, addrTag, ins.Labels)
+	slist.PushSamples("elasticsearch", clusterFields, map[string]string{"cluster_name": healthStats.ClusterName}, addrTag)
 
 	for name, health := range healthStats.Indices {
 		indexFields := map[string]interface{}{
@@ -505,13 +497,13 @@ func (ins *Instance) gatherClusterHealth(url string, address string, slist *list
 			"cluster_health_indices_status_code":           mapHealthStatusToCode(health.Status),
 			"cluster_health_indices_unassigned_shards":     health.UnassignedShards,
 		}
-		inputs.PushSamples(slist, indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, addrTag, ins.Labels)
+		slist.PushSamples("elasticsearch", indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, addrTag)
 	}
 
 	return nil
 }
 
-func (ins *Instance) gatherNodeStats(url string, address string, slist *list.SafeList) error {
+func (ins *Instance) gatherNodeStats(url string, address string, slist *types.SampleList) error {
 	nodeStats := &struct {
 		ClusterName string               `json:"cluster_name"`
 		Nodes       map[string]*nodeStat `json:"nodes"`
@@ -534,7 +526,7 @@ func (ins *Instance) gatherNodeStats(url string, address string, slist *list.Saf
 		}
 
 		for k, v := range n.Attributes {
-			slist.PushFront(types.NewSample("node_attribute_"+k, v, tags, addrTag, ins.Labels))
+			slist.PushSample("elasticsearch", "node_attribute_"+k, v, tags, addrTag)
 		}
 
 		stats := map[string]interface{}{
@@ -563,7 +555,7 @@ func (ins *Instance) gatherNodeStats(url string, address string, slist *list.Saf
 			}
 
 			for key, val := range f.Fields {
-				slist.PushFront(types.NewSample(p+"_"+key, val, tags, addrTag, ins.Labels))
+				slist.PushSample("elasticsearch", p+"_"+key, val, tags, addrTag)
 			}
 		}
 	}

@@ -16,14 +16,12 @@ import (
 	"flashcat.cloud/categraf/pkg/jsonx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "logstash"
 
 type Logstash struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -33,10 +31,9 @@ func init() {
 	})
 }
 
-func (l *Logstash) Prefix() string              { return inputName }
-func (l *Logstash) Init() error                 { return nil }
-func (l *Logstash) Drop()                       {}
-func (l *Logstash) Gather(slist *list.SafeList) {}
+func (l *Logstash) Init() error                    { return nil }
+func (l *Logstash) Drop()                          {}
+func (l *Logstash) Gather(slist *types.SampleList) {}
 
 func (l *Logstash) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(l.Instances))
@@ -147,7 +144,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	if choice.Contains("jvm", ins.Collect) {
 		jvmURL, err := url.Parse(ins.URL + jvmStats)
 		if err != nil {
@@ -255,7 +252,7 @@ func (ins *Instance) gatherJSONData(address string, value interface{}) error {
 }
 
 // gatherJVMStats gather the JVM metrics and add results to list
-func (ins *Instance) gatherJVMStats(address string, slist *list.SafeList) error {
+func (ins *Instance) gatherJVMStats(address string, slist *types.SampleList) error {
 	jvmStats := &JVMStats{}
 
 	err := ins.gatherJSONData(address, jvmStats)
@@ -276,14 +273,14 @@ func (ins *Instance) gatherJVMStats(address string, slist *list.SafeList) error 
 		return err
 	}
 	for key, val := range jsonParser.Fields {
-		slist.PushFront(types.NewSample("jvm_"+key, val, tags, ins.Labels))
+		slist.PushSample(inputName, "jvm_"+key, val, tags)
 	}
 
 	return nil
 }
 
 // gatherJVMStats gather the Process metrics and add results to list
-func (ins *Instance) gatherProcessStats(address string, slist *list.SafeList) error {
+func (ins *Instance) gatherProcessStats(address string, slist *types.SampleList) error {
 	processStats := &ProcessStats{}
 
 	err := ins.gatherJSONData(address, processStats)
@@ -304,13 +301,13 @@ func (ins *Instance) gatherProcessStats(address string, slist *list.SafeList) er
 	}
 
 	for key, val := range jsonParser.Fields {
-		slist.PushFront(types.NewSample("process_"+key, val, tags, ins.Labels))
+		slist.PushSample(inputName, "process_"+key, val, tags)
 	}
 	return nil
 }
 
 // gatherJVMStats gather the Pipeline metrics and add results to list (for Logstash < 6)
-func (ins *Instance) gatherPipelineStats(address string, slist *list.SafeList) error {
+func (ins *Instance) gatherPipelineStats(address string, slist *types.SampleList) error {
 	pipelineStats := &PipelineStats{}
 
 	err := ins.gatherJSONData(address, pipelineStats)
@@ -331,7 +328,7 @@ func (ins *Instance) gatherPipelineStats(address string, slist *list.SafeList) e
 		return err
 	}
 	for key, val := range jsonParser.Fields {
-		slist.PushFront(types.NewSample("events_"+key, val, tags, ins.Labels))
+		slist.PushSample(inputName, "events_"+key, val, tags)
 	}
 
 	err = ins.gatherPluginsStats(pipelineStats.Pipeline.Plugins.Inputs, "input", tags, slist)
@@ -358,7 +355,7 @@ func (ins *Instance) gatherPipelineStats(address string, slist *list.SafeList) e
 func (ins *Instance) gatherQueueStats(
 	queue *PipelineQueue,
 	tags map[string]string,
-	slist *list.SafeList,
+	slist *types.SampleList,
 ) error {
 	queueTags := map[string]string{
 		"queue_type": queue.Type,
@@ -400,13 +397,13 @@ func (ins *Instance) gatherQueueStats(
 
 	}
 	for key, val := range queueFields {
-		slist.PushFront(types.NewSample("queue_"+key, val, queueTags, ins.Labels))
+		slist.PushSample(inputName, "queue_"+key, val, queueTags)
 	}
 	return nil
 }
 
 //gatherJVMStats gather the Pipelines metrics and add results to list  (for Logstash >= 6)
-func (ins *Instance) gatherPipelinesStats(address string, slist *list.SafeList) error {
+func (ins *Instance) gatherPipelinesStats(address string, slist *types.SampleList) error {
 	pipelinesStats := &PipelinesStats{}
 
 	err := ins.gatherJSONData(address, pipelinesStats)
@@ -430,7 +427,7 @@ func (ins *Instance) gatherPipelinesStats(address string, slist *list.SafeList) 
 		}
 
 		for key, val := range jsonParser.Fields {
-			slist.PushFront(types.NewSample("events_"+key, val, tags, ins.Labels))
+			slist.PushSample(inputName, "events_"+key, val, tags)
 		}
 
 		err = ins.gatherPluginsStats(pipeline.Plugins.Inputs, "input", tags, slist)
@@ -460,7 +457,7 @@ func (ins *Instance) gatherPluginsStats(
 	plugins []Plugin,
 	pluginType string,
 	tags map[string]string,
-	slist *list.SafeList,
+	slist *types.SampleList,
 ) error {
 	for _, plugin := range plugins {
 		pluginTags := map[string]string{
@@ -477,7 +474,7 @@ func (ins *Instance) gatherPluginsStats(
 			return err
 		}
 		for key, val := range jsonParser.Fields {
-			slist.PushFront(types.NewSample("plugins_"+key, val, pluginTags, ins.Labels))
+			slist.PushSample(inputName, "plugins_"+key, val, pluginTags)
 		}
 		/*
 			The elasticsearch/opensearch output produces additional stats around
@@ -512,7 +509,7 @@ func (ins *Instance) gatherPluginsStats(
 			}
 
 			for key, val := range jsonParser.Fields {
-				slist.PushFront(types.NewSample("plugins_"+key, val, pluginTags, ins.Labels))
+				slist.PushSample(inputName, "plugins_"+key, val, pluginTags)
 			}
 
 			/*
@@ -537,7 +534,7 @@ func (ins *Instance) gatherPluginsStats(
 				delete(jsonParser.Fields, k)
 			}
 			for key, val := range jsonParser.Fields {
-				slist.PushFront(types.NewSample("plugins_"+key, val, pluginTags, ins.Labels))
+				slist.PushSample(inputName, "plugins_"+key, val, pluginTags)
 			}
 		}
 	}

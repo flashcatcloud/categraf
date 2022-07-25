@@ -50,7 +50,7 @@ type MetricConfig struct {
 }
 
 type Oracle struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance    `toml:"instances"`
 	Metrics   []MetricConfig `toml:"metrics"`
 }
@@ -61,9 +61,8 @@ func init() {
 	})
 }
 
-func (o *Oracle) Prefix() string              { return inputName }
-func (o *Oracle) Init() error                 { return nil }
-func (o *Oracle) Gather(slist *list.SafeList) {}
+func (o *Oracle) Init() error                    { return nil }
+func (o *Oracle) Gather(slist *types.SampleList) {}
 
 func (o *Oracle) Drop() {
 	for i := 0; i < len(o.Instances); i++ {
@@ -104,22 +103,19 @@ func (ins *Instance) Drop() error {
 	}
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	tags := map[string]string{"address": ins.Address}
-	for k, v := range ins.Labels {
-		tags[k] = v
-	}
 
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
-		slist.PushFront(types.NewSample("scrape_use_seconds", use, tags))
+		slist.PushFront(types.NewSample(inputName, "scrape_use_seconds", use, tags))
 	}(time.Now())
 
 	if err := ins.client.Ping(); err != nil {
-		slist.PushFront(types.NewSample("up", 0, tags))
+		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
 		log.Println("E! failed to ping oracle:", ins.Address, "error:", err)
 	} else {
-		slist.PushFront(types.NewSample("up", 1, tags))
+		slist.PushFront(types.NewSample(inputName, "up", 1, tags))
 	}
 
 	waitMetrics := new(sync.WaitGroup)
@@ -139,7 +135,7 @@ func (ins *Instance) Gather(slist *list.SafeList) {
 	waitMetrics.Wait()
 }
 
-func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeList, metricConf MetricConfig, tags map[string]string) {
+func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.SampleList, metricConf MetricConfig, tags map[string]string) {
 	defer waitMetrics.Done()
 
 	timeout := time.Duration(metricConf.Timeout)
@@ -205,7 +201,7 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *list.SafeL
 	}
 }
 
-func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, slist *list.SafeList, tags map[string]string) error {
+func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, slist *types.SampleList, tags map[string]string) error {
 	labels := make(map[string]string)
 	for k, v := range tags {
 		labels[k] = v
@@ -226,10 +222,10 @@ func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, sl
 		}
 
 		if metricConf.FieldToAppend == "" {
-			slist.PushFront(types.NewSample(metricConf.Mesurement+"_"+column, value, labels))
+			slist.PushFront(types.NewSample(inputName, metricConf.Mesurement+"_"+column, value, labels))
 		} else {
 			suffix := cleanName(row[metricConf.FieldToAppend])
-			slist.PushFront(types.NewSample(metricConf.Mesurement+"_"+suffix+"_"+column, value, labels))
+			slist.PushFront(types.NewSample(inputName, metricConf.Mesurement+"_"+suffix+"_"+column, value, labels))
 		}
 	}
 

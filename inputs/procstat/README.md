@@ -28,7 +28,7 @@ search_exec_substring = "nginx"
 mode 配置有两个值供选择，一个是 solaris，一个是 irix，默认是 irix，用这个配置来决定使用哪种 cpu 使用率的计算方法：
 
 ```go
-func (ins *Instance) gatherCPU(slist *list.SafeList, procs map[PID]Process, tags map[string]string, solarisMode bool) {
+func (ins *Instance) gatherCPU(slist *types.SampleList, procs map[PID]Process, tags map[string]string, solarisMode bool) {
 	var value float64
 	for pid := range procs {
 		v, err := procs[pid].Percent(time.Duration(0))

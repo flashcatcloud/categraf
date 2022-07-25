@@ -17,13 +17,12 @@ import (
 	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "nginx_upstream_check"
 
 type NginxUpstreamCheck struct {
-	config.Interval
+	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 
@@ -33,10 +32,9 @@ func init() {
 	})
 }
 
-func (r *NginxUpstreamCheck) Prefix() string              { return inputName }
-func (r *NginxUpstreamCheck) Init() error                 { return nil }
-func (r *NginxUpstreamCheck) Drop()                       {}
-func (r *NginxUpstreamCheck) Gather(slist *list.SafeList) {}
+func (r *NginxUpstreamCheck) Init() error                    { return nil }
+func (r *NginxUpstreamCheck) Drop()                          {}
+func (r *NginxUpstreamCheck) Gather(slist *types.SampleList) {}
 
 func (r *NginxUpstreamCheck) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
@@ -149,7 +147,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func (ins *Instance) Gather(slist *list.SafeList) {
+func (ins *Instance) Gather(slist *types.SampleList) {
 	wg := new(sync.WaitGroup)
 	for _, target := range ins.Targets {
 		wg.Add(1)
@@ -180,15 +178,12 @@ type NginxUpstreamCheckServer struct {
 	Port     uint16 `json:"port"`
 }
 
-func (ins *Instance) gather(slist *list.SafeList, target string) {
+func (ins *Instance) gather(slist *types.SampleList, target string) {
 	if config.Config.DebugMode {
 		log.Println("D! nginx_upstream_check... target:", target)
 	}
 
 	labels := map[string]string{"target": target}
-	for k, v := range ins.Labels {
-		labels[k] = v
-	}
 
 	checkData := &NginxUpstreamCheckData{}
 
@@ -212,7 +207,7 @@ func (ins *Instance) gather(slist *list.SafeList, target string) {
 			"fall":        server.Fall,
 		}
 
-		inputs.PushSamples(slist, fields, tags, labels)
+		slist.PushSamples(inputName, fields, tags, labels)
 	}
 }
 

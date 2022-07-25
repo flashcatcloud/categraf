@@ -6,10 +6,9 @@ import (
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/container/list"
 )
 
-func (ins *Instance) gatherSchemaSize(slist *list.SafeList, db *sql.DB, globalTags map[string]string) {
+func (ins *Instance) gatherSchemaSize(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
 	if !ins.GatherSchemaSize {
 		return
 	}
@@ -34,6 +33,6 @@ func (ins *Instance) gatherSchemaSize(slist *list.SafeList, db *sql.DB, globalTa
 			return
 		}
 
-		slist.PushFront(types.NewSample("schema_size_bytes", size, labels, map[string]string{"schema": schema}))
+		slist.PushFront(types.NewSample(inputName, "schema_size_bytes", size, labels, map[string]string{"schema": schema}))
 	}
 }

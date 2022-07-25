@@ -9,7 +9,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/filter"
-	"github.com/toolkits/pkg/container/list"
+	"flashcat.cloud/categraf/types"
 )
 
 const inputName = "net"
@@ -17,7 +17,7 @@ const inputName = "net"
 type NetIOStats struct {
 	ps system.PS
 
-	config.Interval
+	config.PluginConfig
 	CollectProtocolStats bool     `toml:"collect_protocol_stats"`
 	Interfaces           []string `toml:"interfaces"`
 
@@ -33,7 +33,6 @@ func init() {
 	})
 }
 
-func (s *NetIOStats) Prefix() string                  { return inputName }
 func (s *NetIOStats) Drop()                           {}
 func (s *NetIOStats) GetInstances() []inputs.Instance { return nil }
 
@@ -50,7 +49,7 @@ func (s *NetIOStats) Init() error {
 	return nil
 }
 
-func (s *NetIOStats) Gather(slist *list.SafeList) {
+func (s *NetIOStats) Gather(slist *types.SampleList) {
 	netio, err := s.ps.NetIO()
 	if err != nil {
 		log.Println("E! failed to get net io metrics:", err)
@@ -111,6 +110,6 @@ func (s *NetIOStats) Gather(slist *list.SafeList) {
 			"drop_out":     io.Dropout,
 		}
 
-		inputs.PushSamples(slist, fields, tags)
+		slist.PushSamples(inputName, fields, tags)
 	}
 }
