@@ -19,7 +19,6 @@ import (
 	"github.com/godror/godror"
 	"github.com/godror/godror/dsn"
 	"github.com/jmoiron/sqlx"
-	"github.com/toolkits/pkg/container/list"
 )
 
 const inputName = "oracle"
