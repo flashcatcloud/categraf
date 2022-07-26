@@ -8,6 +8,7 @@
                 "definition": "label_values(mongodb_up,instance)"
             }
         ],
+        "version": "2.0.0",
         "panels": [
             {
                 "id": "dd7882d6-9502-4a76-845a-efdbcdb25466",
