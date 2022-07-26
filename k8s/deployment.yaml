@@ -169,13 +169,19 @@ data:
   prometheus.toml: |
     [prometheus]
     enable = true
-    scrape_config_file="/opt/categraf/conf/in_cluster_scrape.yaml"
+    scrape_config_file="/opt/categraf/scrape/in_cluster_scrape.yaml"
     ## log level, debug warn info error
     log_level="info"
     ## wal file storage path ,default ./data-agent
     wal_storage_path="/"
     ## wal reserve time duration, default value is 2 hour
     # wal_min_duration=2
+---
+kind: ConfigMap
+metadata:
+  name: scrape-config
+apiVersion: v1
+data:
   in_cluster_scrape.yaml: |
     global:
       scrape_interval: 15s
@@ -322,6 +328,8 @@ spec:
         volumeMounts:
         - mountPath: /opt/categraf/conf
           name: categraf-config
+        - mountPath: /opt/categraf/scrape
+          name: scrape-config
         - mountPath: /opt/categraf/pki/etcd
           name: etcd-pki
       dnsPolicy: ClusterFirst
@@ -339,6 +347,10 @@ spec:
           defaultMode: 420
           name: categraf-config
         name: categraf-config
+      - configMap:
+          defaultMode: 420
+          name: scrape-config
+        name: scrape-config
       - configMap:
           name: etcd-pki
         name: etcd-pki
