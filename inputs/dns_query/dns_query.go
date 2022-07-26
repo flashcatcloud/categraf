@@ -70,22 +70,23 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
-	if ins.EnableAutoDetectDnsServer == true {
-		if len(ins.Servers) == 0 {
-			resolvPath := "/etc/resolv.conf"
-			if _, err := os.Stat(resolvPath); os.IsNotExist(err) {
-				return nil
-			}
-			config, _ := dns.ClientConfigFromFile(resolvPath)
-			Servers := []string{}
-			for _, ipAddress := range config.Servers {
-				Servers = append(Servers, ipAddress)
-			}
-			ins.Servers = Servers
+	if len(ins.Servers) == 0 && ins.EnableAutoDetectDnsServer {
+		resolvPath := "/etc/resolv.conf"
+		if _, err := os.Stat(resolvPath); os.IsNotExist(err) {
+			return types.ErrInstancesEmpty
 		}
+
+		config, err := dns.ClientConfigFromFile(resolvPath)
+		if err != nil {
+			log.Println("E! failed to detect local dns server:", err)
+			return types.ErrInstancesEmpty
+		}
+
+		ins.Servers = config.Servers
 	}
+
 	if len(ins.Servers) == 0 {
-		return nil
+		return types.ErrInstancesEmpty
 	}
 
 	if ins.Network == "" {
