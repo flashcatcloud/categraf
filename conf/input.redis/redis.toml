@@ -2,7 +2,7 @@
 # interval = 15
 
 [[instances]]
-# address = "127.0.0.1:6379"
+# address = "127.0.0.1:6379"  # cluster mode use space to separate addrs, eg. "127.0.0.1:6379 127.0.0.2:6379 127.0.0.3:6379"
 # username = ""
 # password = ""
 # pool_size = 2

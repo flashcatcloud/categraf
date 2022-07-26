@@ -37,7 +37,9 @@ type Instance struct {
 	Commands []Command `toml:"commands"`
 
 	tls.ClientConfig
-	client *redis.Client
+	addrs         []string
+	client        *redis.Client
+	clusterClient *redis.ClusterClient
 }
 
 func (ins *Instance) Init() error {
@@ -45,23 +47,58 @@ func (ins *Instance) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
-	redisOptions := &redis.Options{
-		Addr:     ins.Address,
-		Username: ins.Username,
-		Password: ins.Password,
-		PoolSize: ins.PoolSize,
+	ins.addrs = strings.Fields(ins.Address)
+
+	tlsConfig, err := ins.TLSConfig()
+	if err != nil {
+		return fmt.Errorf("failed to init tls config: %v", err)
 	}
 
-	if ins.UseTLS {
-		tlsConfig, err := ins.TLSConfig()
-		if err != nil {
-			return fmt.Errorf("failed to init tls config: %v", err)
+	if len(ins.addrs) == 1 {
+		redisOptions := &redis.Options{
+			Addr:     ins.addrs[0],
+			Username: ins.Username,
+			Password: ins.Password,
+			PoolSize: ins.PoolSize,
 		}
 		redisOptions.TLSConfig = tlsConfig
+		ins.client = redis.NewClient(redisOptions)
+	} else {
+		redisClusterOptions := &redis.ClusterOptions{
+			Addrs:    ins.addrs,
+			Username: ins.Username,
+			Password: ins.Password,
+			PoolSize: ins.PoolSize,
+		}
+		redisClusterOptions.TLSConfig = tlsConfig
+		ins.clusterClient = redis.NewClusterClient(redisClusterOptions)
 	}
 
-	ins.client = redis.NewClient(redisOptions)
 	return nil
+}
+
+func (ins *Instance) clientDo(ctx context.Context, args ...interface{}) *redis.Cmd {
+	if ins.client != nil {
+		return ins.client.Do(ctx, args...)
+	} else {
+		return ins.clusterClient.Do(ctx, args...)
+	}
+}
+
+func (ins *Instance) clientPing(ctx context.Context) *redis.StatusCmd {
+	if ins.client != nil {
+		return ins.client.Ping(ctx)
+	} else {
+		return ins.clusterClient.Ping(ctx)
+	}
+}
+
+func (ins *Instance) clientInfo(ctx context.Context, section ...string) *redis.StringCmd {
+	if ins.client != nil {
+		return ins.client.Info(ctx, section...)
+	} else {
+		return ins.clusterClient.Info(ctx, section...)
+	}
 }
 
 type Redis struct {
@@ -95,7 +132,7 @@ func (r *Redis) Drop() {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
-	tags := map[string]string{"address": ins.Address}
+	tags := map[string]string{"address": strings.Join(ins.addrs, ",")}
 	begun := time.Now()
 
 	// scrape use seconds
@@ -105,7 +142,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}(begun)
 
 	// ping
-	err := ins.client.Ping(context.Background()).Err()
+	err := ins.clientPing(context.Background()).Err()
 	slist.PushFront(types.NewSample(inputName, "ping_use_seconds", time.Since(begun).Seconds(), tags))
 	if err != nil {
 		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
@@ -122,7 +159,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 func (ins *Instance) gatherCommandValues(slist *types.SampleList, tags map[string]string) {
 	fields := make(map[string]interface{})
 	for _, cmd := range ins.Commands {
-		val, err := ins.client.Do(context.Background(), cmd.Command...).Result()
+		val, err := ins.clientDo(context.Background(), cmd.Command...).Result()
 		if err != nil {
 			log.Println("E! failed to exec redis command:", cmd.Command)
 			continue
@@ -143,9 +180,9 @@ func (ins *Instance) gatherCommandValues(slist *types.SampleList, tags map[strin
 }
 
 func (ins *Instance) gatherInfoAll(slist *types.SampleList, tags map[string]string) {
-	info, err := ins.client.Info(context.Background(), "ALL").Result()
+	info, err := ins.clientInfo(context.Background(), "ALL").Result()
 	if err != nil {
-		info, err = ins.client.Info(context.Background()).Result()
+		info, err = ins.clientInfo(context.Background()).Result()
 	}
 
 	if err != nil {
