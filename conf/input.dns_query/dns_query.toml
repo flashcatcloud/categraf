@@ -8,6 +8,9 @@
 # # interval = global.interval * interval_times
 # interval_times = 1
 
+# # 
+auto_detect_local_dns_server  = false
+
 ## servers to query
 # servers = ["8.8.8.8"]
 servers = []
