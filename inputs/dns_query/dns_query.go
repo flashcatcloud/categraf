@@ -49,7 +49,7 @@ func (dq *DnsQuery) GetInstances() []inputs.Instance {
 type Instance struct {
 	config.InstanceConfig
 
-	Enable bool `toml:"enable"`
+	EnableAutoDetectDnsServer bool `toml:"auto_detect_local_dns_server"`
 	// Domains or subdomains to query
 	Domains []string `toml:"domains"`
 
@@ -70,23 +70,22 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
-	if ins.Enable == false {
-		return nil
+	if ins.EnableAutoDetectDnsServer == true {
+		if len(ins.Servers) == 0 {
+			resolvPath := "/etc/resolv.conf"
+			if _, err := os.Stat(resolvPath); os.IsNotExist(err) {
+				return nil
+			}
+			config, _ := dns.ClientConfigFromFile(resolvPath)
+			Servers := []string{}
+			for _, ipAddress := range config.Servers {
+				Servers = append(Servers, ipAddress)
+			}
+			ins.Servers = Servers
+		}
 	}
 	if len(ins.Servers) == 0 {
-		resolvPath := "/etc/resolv.conf"
-		if _, err := os.Stat(resolvPath); os.IsNotExist(err) {
-			return nil
-		}
-		config, _ := dns.ClientConfigFromFile(resolvPath)
-		Servers := []string{}
-		for _, ipAddress := range config.Servers {
-			Servers = append(Servers, ipAddress)
-		}
-		ins.Servers = Servers
-		if len(ins.Servers) == 0 {
-			return nil
-		}
+		return nil
 	}
 
 	if ins.Network == "" {

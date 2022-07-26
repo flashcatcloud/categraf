@@ -9,7 +9,7 @@
 # interval_times = 1
 
 # # 
-enable = false
+auto_detect_local_dns_server  = false
 
 ## servers to query
 # servers = ["8.8.8.8"]
