@@ -23,4 +23,6 @@
    i. replace ${CATEGRAF_NAMESPACE} which located in ClusterRoleBinding part
    ii. replace ${NSERVER_SERVICE_WITH_PORT} which located in ConfigMap part config.toml and in_cluster_scrape.yaml
  
-10. `kubectl apply -f  deplyment-etcd-http.yaml -n monitoring`
+10. `kubectl apply -f  deployment-etcd-http.yaml -n monitoring`
+
+Make sure that `deployment.yaml` always appears with `etcd-service.yaml` and `deployment-etcd-http` appears with `etcd-service-http.yaml`. They cannot be apply at the same time.
