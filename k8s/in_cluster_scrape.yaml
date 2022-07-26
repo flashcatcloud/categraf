@@ -66,6 +66,29 @@ scrape_configs:
         action: keep
         regex: kube-system;kube-scheduler;https
 
+  - job_name: "etcd"
+    metrics_path: "/metrics"
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      #eg. /etc/kubernetes/pki/etcd/ca.crt
+      ca_file: /path/to/etcd/ca.crt
+      #eg. /etc/kubernetes/pki/apiserver-etcd-client.crt
+      cert_file: /path/to/etcd/client.crt
+      #eg. /etc/kubernetes/pki/apiserver-etcd-client.key
+      key_file: /path/to/etcd/client.key
+      insecure_skip_verify: true
+    relabel_configs:
+      - source_labels:
+          [
+            __meta_kubernetes_namespace,
+            __meta_kubernetes_service_name,
+            __meta_kubernetes_endpoint_port_name,
+          ]
+        action: keep
+        regex: kebe-system;etcd;https
+
   - job_name: "coredns"
     metrics_path: "/metrics"
     kubernetes_sd_configs:
