@@ -20,8 +20,15 @@
 
 ### create all other objects with deployment
 9. edit deployment.yaml and modify it with your own configure.
+ 
    i. replace ${CATEGRAF_NAMESPACE} which located in ClusterRoleBinding part
+ 
    ii. replace ${NSERVER_SERVICE_WITH_PORT} which located in ConfigMap part config.toml and in_cluster_scrape.yaml
+
+   if you choose `etcd-service.yaml` with https mode, then `kubectl apply -f etcd-service.yaml`.
+ 
+   iii. replace `{data of your etcd ca file}` `{data of your etcd client cert file}` `{data of your etcd client key file}` in ConfigMap etcd-pki.
+
  
 10. `kubectl apply -f  deployment-etcd-http.yaml -n monitoring`
 
