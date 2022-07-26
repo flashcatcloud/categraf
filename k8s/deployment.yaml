@@ -51,6 +51,71 @@ subjects:
   name: categraf-serviceaccount
   namespace: ${CATEGRAF_NAMESPACE}
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: kube-controller-manager
+  labels:
+    k8s-app: kube-controller-manager
+spec:
+  selector:
+    component: kube-controller-manager
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: https
+      port: 10257
+      targetPort: 10257
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: kube-scheduler
+  labels:
+    k8s-app: kube-scheduler
+spec:
+  selector:
+    component: kube-scheduler
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: https
+      port: 10259
+      targetPort: 10259
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: etcd
+  labels:
+    k8s-app: etcd
+spec:
+  selector:
+    component: etcd
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: https
+      port: 2379
+      targetPort: 2379
+      protocol: TCP
+---
+kind: ConfigMap
+metadata:
+  name: etcd-pki
+apiVersion: v1
+data:
+  ca.crt: |
+    {data of your etcd ca file}
+  client.crt: |
+    {data of your etcd client cert file}
+  client.key: |
+    {data of your etcd client key file}
+---
 kind: ConfigMap
 metadata:
   name: categraf-config
@@ -118,7 +183,7 @@ data:
       #  cluster: test
       #  replica: 0
     scrape_configs:
-      - job_name: "categraf-apiserver"
+      - job_name: "apiserver"
         metrics_path: "/metrics"
         kubernetes_sd_configs:
           - role: endpoints
@@ -136,11 +201,35 @@ data:
               ]
             action: keep
             regex: default;kubernetes;https
-      - job_name: "coredns"
+    
+      - job_name: "controller-manager"
         metrics_path: "/metrics"
         kubernetes_sd_configs:
           - role: endpoints
-        scheme: http
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels:
+              [
+                __meta_kubernetes_namespace,
+                __meta_kubernetes_service_name,
+                __meta_kubernetes_endpoint_port_name,
+             ]
+           action: keep
+           regex: kube-system;kube-controller-manager;https
+  
+      - job_name: "scheduler"
+        metrics_path: "/metrics"
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
         relabel_configs:
           - source_labels:
               [
@@ -149,10 +238,45 @@ data:
                 __meta_kubernetes_endpoint_port_name,
               ]
             action: keep
-            regex: kube-system;kube-dns;metrics
+            regex: kube-system;kube-scheduler;https
+            
+      - job_name: "etcd"
+        metrics_path: "/metrics"
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /opt/categraf/pki/etcd/ca.crt
+          cert_file: /opt/categraf/pki/etcd/client.crt
+          key_file: /opt/categraf/pki/etcd/client.key
+          insecure_skip_verify: true
+        relabel_configs:
+          - source_labels:
+              [
+                __meta_kubernetes_namespace,
+                __meta_kubernetes_service_name,
+                __meta_kubernetes_endpoint_port_name,
+              ]
+            action: keep
+            regex: kebe-system;etcd;https
+          
+        - job_name: "coredns"
+          metrics_path: "/metrics"
+          kubernetes_sd_configs:
+            - role: endpoints
+          scheme: http
+          relabel_configs:
+            - source_labels:
+                [
+                  __meta_kubernetes_namespace,
+                  __meta_kubernetes_service_name,
+                  __meta_kubernetes_endpoint_port_name,
+                ]
+              action: keep
+              regex: kube-system;kube-dns;metrics
+             
     remote_write:
       - url: 'http://${NSERVER_SERVICE_WITH_PORT}/prometheus/v1/write'
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -198,6 +322,8 @@ spec:
         volumeMounts:
         - mountPath: /opt/categraf/conf
           name: categraf-config
+        - mountPath: /opt/categraf/pki/etcd
+          name: etcd-pki
       dnsPolicy: ClusterFirst
       hostNetwork: false
       restartPolicy: Always
@@ -213,3 +339,6 @@ spec:
           defaultMode: 420
           name: categraf-config
         name: categraf-config
+      - configMap:
+          name: etcd-pki
+        name: etcd-pki

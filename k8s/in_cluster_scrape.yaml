@@ -5,11 +5,11 @@ global:
   #  replica: 0
 
 scrape_configs:
-  - job_name: "categraf-scrape-metrics"
-    static_configs:
-      - targets: ["172.16.3.186:8080"]
+  #- job_name: "categraf-scrape-metrics"
+  #  static_configs:
+  #    - targets: ["172.16.3.186:8080"]
 
-  - job_name: "categraf-kubernetes-apiservers"
+  - job_name: "apiserver"
     metrics_path: "/metrics"
     kubernetes_sd_configs:
       - role: endpoints
@@ -27,7 +27,69 @@ scrape_configs:
           ]
         action: keep
         regex: default;kubernetes;https
-  - job_name: "categraf-core-dns"
+
+  - job_name: "controller-manager"
+    metrics_path: "/metrics"
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    authorization:
+      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels:
+          [
+            __meta_kubernetes_namespace,
+            __meta_kubernetes_service_name,
+            __meta_kubernetes_endpoint_port_name,
+          ]
+        action: keep
+        regex: kube-system;kube-controller-manager;https
+
+  - job_name: "scheduler"
+    metrics_path: "/metrics"
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    authorization:
+      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels:
+          [
+            __meta_kubernetes_namespace,
+            __meta_kubernetes_service_name,
+            __meta_kubernetes_endpoint_port_name,
+          ]
+        action: keep
+        regex: kube-system;kube-scheduler;https
+
+  - job_name: "etcd"
+    metrics_path: "/metrics"
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      #eg. /etc/kubernetes/pki/etcd/ca.crt
+      ca_file: /path/to/etcd/ca.crt
+      #eg. /etc/kubernetes/pki/apiserver-etcd-client.crt
+      cert_file: /path/to/etcd/client.crt
+      #eg. /etc/kubernetes/pki/apiserver-etcd-client.key
+      key_file: /path/to/etcd/client.key
+      insecure_skip_verify: true
+    relabel_configs:
+      - source_labels:
+          [
+            __meta_kubernetes_namespace,
+            __meta_kubernetes_service_name,
+            __meta_kubernetes_endpoint_port_name,
+          ]
+        action: keep
+        regex: kebe-system;etcd;https
+
+  - job_name: "coredns"
     metrics_path: "/metrics"
     kubernetes_sd_configs:
       - role: endpoints
