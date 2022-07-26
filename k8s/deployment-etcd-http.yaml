@@ -1,0 +1,279 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations: {}
+  labels:
+    app: n9e
+    component: categraf
+  name: categraf-role
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/metrics
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "list", "watch"]
+  - apiGroups:
+      - extensions
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
+    verbs: ["get"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations: {}
+  labels:
+    app: n9e
+    component: categraf
+  name: categraf-serviceaccount
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations: {}
+  labels:
+    app: n9e
+    component: categraf
+  name: categraf-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: categraf-role
+subjects:
+- kind: ServiceAccount
+  name: categraf-serviceaccount
+  namespace: ${CATEGRAF_NAMESPACE}
+---
+kind: ConfigMap
+metadata:
+  name: categraf-config
+apiVersion: v1
+data:
+  config.toml: |
+    [global]
+    # whether print configs
+    print_configs = true
+
+    # add label(agent_hostname) to series
+    # "" -> auto detect hostname
+    # "xx" -> use specified string xx
+    # "$hostname" -> auto detect hostname
+    # "$ip" -> auto detect ip
+    # "$hostname-$ip" -> auto detect hostname and ip to replace the vars
+    hostname = "$HOSTNAME"
+
+    # will not add label(agent_hostname) if true
+    omit_hostname = false
+
+    # s | ms
+    precision = "ms"
+
+    # global collect interval
+    interval = 15
+
+    # [global.labels]
+    # region = "shanghai"
+    # env = "localhost"
+
+    [writer_opt]
+    # default: 2000
+    batch = 2000
+    # channel(as queue) size
+    chan_size = 10000
+
+    [[writers]]
+    url = "http://${NSERVER_SERVICE_WITH_PORT}/prometheus/v1/write"
+
+    # Basic auth username
+    basic_auth_user = ""
+
+    # Basic auth password
+    basic_auth_pass = ""
+
+    # timeout settings, unit: ms
+    timeout = 5000
+    dial_timeout = 2500
+    max_idle_conns_per_host = 100
+  prometheus.toml: |
+    [prometheus]
+    enable = true
+    scrape_config_file="/opt/categraf/scrape/in_cluster_scrape.yaml"
+    ## log level, debug warn info error
+    log_level="info"
+    ## wal reserve time duration, default value is 2 hour
+    # wal_min_duration=2
+---
+kind: ConfigMap
+metadata:
+  name: scrape-config
+apiVersion: v1
+data:
+  in_cluster_scrape.yaml: |
+    global:
+      scrape_interval: 15s
+      #external_labels:
+      #  cluster: test
+      #  replica: 0
+    scrape_configs:
+      - job_name: "apiserver"
+        metrics_path: "/metrics"
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels:
+              [
+                __meta_kubernetes_namespace,
+                __meta_kubernetes_service_name,
+                __meta_kubernetes_endpoint_port_name,
+              ]
+            action: keep
+            regex: default;kubernetes;https
+
+      - job_name: "controller-manager"
+        metrics_path: "/metrics"
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels:
+              [
+                __meta_kubernetes_namespace,
+                __meta_kubernetes_service_name,
+                __meta_kubernetes_endpoint_port_name,
+              ]
+            action: keep
+            regex: kube-system;kube-controller-manager;https
+
+      - job_name: "scheduler"
+        metrics_path: "/metrics"
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels:
+              [
+                __meta_kubernetes_namespace,
+                __meta_kubernetes_service_name,
+                __meta_kubernetes_endpoint_port_name,
+              ]
+            action: keep
+            regex: kube-system;kube-scheduler;https
+
+      - job_name: "etcd"
+        metrics_path: "/metrics"
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: http
+        relabel_configs:
+          - source_labels:
+              [
+                __meta_kubernetes_namespace,
+                __meta_kubernetes_service_name,
+                __meta_kubernetes_endpoint_port_name,
+              ]
+            action: keep
+            regex: kube-system;etcd;http
+
+      - job_name: "coredns"
+        metrics_path: "/metrics"
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: http
+        relabel_configs:
+          - source_labels:
+              [
+              __meta_kubernetes_namespace,
+              __meta_kubernetes_service_name,
+              __meta_kubernetes_endpoint_port_name,
+              ]
+            action: keep
+            regex: kube-system;kube-dns;metrics
+
+    remote_write:
+      - url: 'http://${NSERVER_SERVICE_WITH_PORT}/prometheus/v1/write'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: n9e
+    component: categraf
+  name: nightingale-categraf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n9e
+      component: categraf
+  template:
+    metadata:
+      labels:
+        app: n9e
+        component: categraf
+    spec:
+      containers:
+      - env:
+        - name: TZ
+          value: Asia/Shanghai
+        - name: HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: HOSTIP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.hostIP
+        image: flashcatcloud/categraf:latest
+        imagePullPolicy: IfNotPresent
+        name: categraf
+        command: ["/usr/bin/categraf"]
+        args: ["-configs", "/opt/categraf/conf"]
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/categraf/conf
+          name: categraf-config
+        - mountPath: /opt/categraf/scrape
+          name: scrape-config
+      dnsPolicy: ClusterFirst
+      hostNetwork: false
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccountName: categraf-serviceaccount
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: categraf-config
+        name: categraf-config
+      - configMap:
+          defaultMode: 420
+          name: scrape-config
+        name: scrape-config
