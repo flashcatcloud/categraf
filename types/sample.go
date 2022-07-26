@@ -27,5 +27,11 @@ func NewSample(prefix, metric string, value interface{}, labels ...map[string]st
 		s.Metric = metricReplacer.Replace(s.Metric)
 	}
 
+	for i := 0; i < len(labels); i++ {
+		for k, v := range labels[i] {
+			s.Labels[k] = v
+		}
+	}
+
 	return s
 }
