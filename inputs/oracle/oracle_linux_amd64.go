@@ -9,7 +9,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -84,12 +83,13 @@ func (ins *Instance) Init() error {
 
 	connString := ins.getConnectionString()
 	var err error
-	client, err = sqlx.Open("godror", connString)
+	ins.client, err = sqlx.Open("godror", connString)
 	if err != nil {
 		return fmt.Errorf("failed to open oracle connection: %v", err)
 	}
 
-	client.SetMaxOpenConns(ins.MaxOpenConnections)
+	ins.client.SetMaxOpenConns(ins.MaxOpenConnections)
+	return nil
 }
 
 func (ins *Instance) Drop() error {
@@ -97,9 +97,11 @@ func (ins *Instance) Drop() error {
 		log.Println("D! dropping oracle connection:", ins.Address)
 	}
 
-	if err := ins.Close(); err != nil {
+	if err := ins.client.Close(); err != nil {
 		log.Println("E! failed to close oracle connection:", ins.Address, "error:", err)
 	}
+
+	return nil
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
@@ -119,8 +121,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	waitMetrics := new(sync.WaitGroup)
 
-	for i := 0; i < len(o.Metrics); i++ {
-		m := o.Metrics[i]
+	for i := 0; i < len(ins.Metrics); i++ {
+		m := ins.Metrics[i]
 		waitMetrics.Add(1)
 		go ins.scrapeMetric(waitMetrics, slist, m, tags)
 	}
@@ -141,7 +143,7 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	rows, err := client.QueryContext(ctx, metricConf.Request)
+	rows, err := ins.client.QueryContext(ctx, metricConf.Request)
 
 	if ctx.Err() == context.DeadlineExceeded {
 		log.Println("E! oracle query timeout, request:", metricConf.Request)
