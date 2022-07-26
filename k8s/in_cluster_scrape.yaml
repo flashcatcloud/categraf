@@ -5,9 +5,9 @@ global:
   #  replica: 0
 
 scrape_configs:
-  - job_name: "categraf-scrape-metrics"
-    static_configs:
-      - targets: ["172.16.3.186:8080"]
+  #- job_name: "categraf-scrape-metrics"
+  #  static_configs:
+  #    - targets: ["172.16.3.186:8080"]
 
   - job_name: "apiserver"
     metrics_path: "/metrics"
