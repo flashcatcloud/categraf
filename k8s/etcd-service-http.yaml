@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: kube-system
+  name: etcd
+  labels:
+    k8s-app: etcd
+spec:
+  selector:
+    component: etcd
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: 2381
+      targetPort: 2381
+      protocol: TCP
