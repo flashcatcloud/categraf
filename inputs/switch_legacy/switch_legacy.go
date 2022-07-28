@@ -36,6 +36,14 @@ func init() {
 func (s *Switch) Drop()                          {}
 func (s *Switch) Gather(slist *types.SampleList) {}
 
+func (s *Switch) MappingIP(ip string) string {
+	val, has := s.Mappings[ip]
+	if has {
+		return val
+	}
+	return ip
+}
+
 func (s *Switch) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(s.Instances))
 	for i := 0; i < len(s.Instances); i++ {
@@ -230,7 +238,7 @@ func (ins *Instance) gatherMemMetrics(ips []string, slist *types.SampleList) {
 		if utilPercent < 0 {
 			continue
 		}
-		slist.PushFront(types.NewSample(inputName, "mem_util", utilPercent, map[string]string{ins.parent.SwitchIdLabel: ip}))
+		slist.PushFront(types.NewSample(inputName, "mem_util", utilPercent, map[string]string{ins.parent.SwitchIdLabel: ins.parent.MappingIP(ip)}))
 	}
 }
 
@@ -275,7 +283,7 @@ func (ins *Instance) gatherCpuMetrics(ips []string, slist *types.SampleList) {
 			continue
 		}
 
-		slist.PushFront(types.NewSample(inputName, "cpu_util", utilPercent, map[string]string{ins.parent.SwitchIdLabel: ip}))
+		slist.PushFront(types.NewSample(inputName, "cpu_util", utilPercent, map[string]string{ins.parent.SwitchIdLabel: ins.parent.MappingIP(ip)}))
 	}
 }
 
@@ -343,7 +351,7 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 			}
 
 			tags := map[string]string{
-				ins.parent.SwitchIdLabel: ip,
+				ins.parent.SwitchIdLabel: ins.parent.MappingIP(ip),
 				"ifname":                 ifStat.IfName,
 			}
 
@@ -614,7 +622,7 @@ func (ins *Instance) gatherPing(ips []string, slist *types.SampleList) []string 
 		}
 
 		if ins.GatherPingMetrics {
-			slist.PushFront(types.NewSample(inputName, "ping_up", val, map[string]string{ins.parent.SwitchIdLabel: ip}))
+			slist.PushFront(types.NewSample(inputName, "ping_up", val, map[string]string{ins.parent.SwitchIdLabel: ins.parent.MappingIP(ip)}))
 		}
 	}
 
