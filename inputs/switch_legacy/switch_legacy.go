@@ -203,7 +203,7 @@ func (ins *Instance) custstat(wg *sync.WaitGroup, ip string, slist *types.Sample
 		if len(snmpPDUs) > 0 && err == nil {
 			value, err = conv.ToFloat64(snmpPDUs[0].Value)
 			if err == nil {
-				slist.PushFront(types.NewSample(inputName, cust.Metric, value, cust.Tags))
+				slist.PushFront(types.NewSample(inputName, cust.Metric, value, cust.Tags, map[string]string{ins.parent.SwitchIdLabel: ins.parent.MappingIP(ip)}))
 			} else {
 				log.Println("E! failed to convert to float64, ip:", ip, "oid:", cust.OID, "value:", snmpPDUs[0].Value)
 			}
