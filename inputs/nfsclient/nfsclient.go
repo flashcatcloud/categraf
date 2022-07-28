@@ -36,10 +36,6 @@ func init() {
 	})
 }
 
-func (s *NfsClient) Prefix() string {
-	return inputName
-}
-
 func (s *NfsClient) Init() error {
 	var nfs3Fields = []string{
 		"NULL",
@@ -279,7 +275,7 @@ func (s *NfsClient) parseStat(mountpoint string, export string, version string, 
 	}
 
 	if len(nline) == 0 {
-		log.Println("W! Parsing Stat line with one field: %s\n", line)
+		log.Println("W! Parsing Stat line with one field:", line)
 		return nil
 	}
 

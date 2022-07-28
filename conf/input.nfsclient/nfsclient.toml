@@ -1,15 +1,8 @@
 # # collect interval
 # interval = 15
 
-
-# # append some labels for series
-# labels = { region="cloud", product="n9e" }
-
-# # interval = global.interval * interval_times
-# interval_times = 1
-
 ## Read more low-level metrics (optional, defaults to false)
- fullstat = false
+fullstat = false
 
 ## List of mounts to explictly include or exclude (optional)
 ## The pattern (Go regexp) is matched against the mount point (not the
@@ -17,8 +10,8 @@
 ## unless present in the list. If a mount is listed in both include_mounts
 ## and exclude_mounts, it is excluded.  Go regexp patterns can be used.
 
-  # include_mounts = []
-  # exclude_mounts = []
+# include_mounts = []
+# exclude_mounts = []
 
 ## List of operations to include or exclude from collecting.  This applies
 ## only when fullstat=true.  Symantics are similar to {include,exclude}_mounts:
@@ -33,5 +26,5 @@
 ## with their own lists.  See "include_mounts" above, and be careful of
 ## duplicate metrics.
 
-#include_operations = ['READ','WRITE','ACCESS','GETATTR','READDIR','LOOKUP']
+# include_operations = ['READ','WRITE','ACCESS','GETATTR','READDIR','LOOKUP']
 # exclude_operations = []
