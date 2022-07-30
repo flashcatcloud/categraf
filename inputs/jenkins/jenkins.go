@@ -69,6 +69,9 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
+	if ins.URL == "" {
+		return types.ErrInstancesEmpty
+	}
 	return nil
 }
 
@@ -76,9 +79,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.client == nil {
 		client, err := ins.newHTTPClient()
 		if err != nil {
+			log.Println("E! failed to new HTTPClient", err)
 			return
 		}
 		if err = ins.initialize(client); err != nil {
+			log.Println("E! failed to initialize", err)
 			return
 		}
 	}
