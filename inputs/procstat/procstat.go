@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -356,11 +355,7 @@ func execJstat(pid PID) (map[string]string, error) {
 		return nil, err
 	}
 	jvmMetrics := make(map[string]string)
-	strOut := string(out)
-	reg := regexp.MustCompile("\\s+")
-	strOut = reg.ReplaceAllString(strOut, " ")
-	strOut = strings.Trim(strOut, " ")
-	jvm := strings.Split(strOut, " ")
+	jvm:=strings.Fields(string(out))
 	half := len(jvm) / 2
 	for i := 0; i < half; i++ {
 		jvmMetrics[jvm[i]] = jvm[i+half]
