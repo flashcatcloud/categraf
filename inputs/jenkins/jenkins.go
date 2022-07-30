@@ -185,9 +185,10 @@ func (ins *Instance) gatherNodeData(n node, slist *types.SampleList) error {
 		tags["arch"] = monitorData.HudsonNodeMonitorsArchitectureMonitor
 	}
 
-	tags["status"] = "online"
 	if n.Offline {
-		tags["status"] = "offline"
+		slist.PushSample(inputName, "up", 0, tags)
+	} else {
+		slist.PushSample(inputName, "up", 1, tags)
 	}
 
 	tags["source"] = ins.Source
