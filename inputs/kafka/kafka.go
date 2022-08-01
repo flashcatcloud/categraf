@@ -124,10 +124,6 @@ func (ins *Instance) Init() error {
 	if len(ins.KafkaURIs) == 0 || ins.KafkaURIs[0] == "" {
 		return types.ErrInstancesEmpty
 	}
-
-	if ins.UseTLS && (ins.CertFile == "" || ins.KeyFile == "") {
-		return fmt.Errorf("tls is enabled but key pair was not provided")
-	}
 	if ins.UseSASL && (ins.SASLPassword == "" || ins.SASLUsername == "") {
 		return fmt.Errorf("SASL is enabled but username or password was not provided")
 	}
