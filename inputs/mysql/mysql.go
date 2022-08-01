@@ -158,10 +158,6 @@ func init() {
 	})
 }
 
-func (m *MySQL) Init() error                    { return nil }
-func (m *MySQL) Drop()                          {}
-func (m *MySQL) Gather(slist *types.SampleList) {}
-
 func (m *MySQL) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(m.Instances))
 	for i := 0; i < len(m.Instances); i++ {

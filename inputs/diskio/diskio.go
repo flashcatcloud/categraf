@@ -28,13 +28,6 @@ func init() {
 	})
 }
 
-// just placeholder
-func (d *DiskIO) GetInstances() []inputs.Instance {
-	return nil
-}
-
-func (d *DiskIO) Drop() {}
-
 func (d *DiskIO) Init() error {
 	for _, device := range d.Devices {
 		if filter.HasMeta(device) {

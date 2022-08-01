@@ -139,10 +139,6 @@ func init() {
 	})
 }
 
-func (t *Tomcat) Init() error                    { return nil }
-func (t *Tomcat) Drop()                          {}
-func (t *Tomcat) Gather(slist *types.SampleList) {}
-
 func (t *Tomcat) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(t.Instances))
 	for i := 0; i < len(t.Instances); i++ {

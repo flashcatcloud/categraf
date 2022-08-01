@@ -34,10 +34,6 @@ func init() {
 	})
 }
 
-func (p *Processes) Init() error                     { return nil }
-func (p *Processes) Drop()                           {}
-func (p *Processes) GetInstances() []inputs.Instance { return nil }
-
 func (p *Processes) Gather(slist *types.SampleList) {
 	// Get an empty map of metric fields
 	fields := getEmptyFields()

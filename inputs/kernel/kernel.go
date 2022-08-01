@@ -43,10 +43,6 @@ func init() {
 	})
 }
 
-func (s *KernelStats) Init() error                     { return nil }
-func (s *KernelStats) Drop()                           {}
-func (s *KernelStats) GetInstances() []inputs.Instance { return nil }
-
 func (s *KernelStats) Gather(slist *types.SampleList) {
 	data, err := s.getProcStat()
 	if err != nil {

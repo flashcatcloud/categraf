@@ -28,10 +28,6 @@ func init() {
 	})
 }
 
-func (c *CPUStats) Init() error                     { return nil }
-func (c *CPUStats) Drop()                           {}
-func (c *CPUStats) GetInstances() []inputs.Instance { return nil }
-
 func (c *CPUStats) Gather(slist *types.SampleList) {
 	times, err := c.ps.CPUTimes(c.CollectPerCPU, true)
 	if err != nil {

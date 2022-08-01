@@ -40,11 +40,6 @@ func init() {
 	})
 }
 
-// just placeholder
-func (c *Conntrack) GetInstances() []inputs.Instance {
-	return nil
-}
-
 func (c *Conntrack) setDefaults() {
 	if len(c.Dirs) == 0 {
 		c.Dirs = dfltDirs
@@ -59,8 +54,6 @@ func (c *Conntrack) Init() error {
 	c.setDefaults()
 	return nil
 }
-
-func (c *Conntrack) Drop() {}
 
 func (c *Conntrack) Gather(slist *types.SampleList) {
 	var metricKey string

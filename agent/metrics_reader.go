@@ -41,7 +41,7 @@ func NewInputReader(inputName string, in inputs.Input) *InputReader {
 
 func (r *InputReader) Stop() {
 	r.quitChan <- struct{}{}
-	r.input.Drop()
+	inputs.MayDrop(r.input)
 }
 
 func (r *InputReader) startInput() {
@@ -82,10 +82,10 @@ func (r *InputReader) gatherOnce() {
 
 	// plugin level, for system plugins
 	slist := types.NewSampleList()
-	r.input.Gather(slist)
+	inputs.MayGather(r.input, slist)
 	r.forward(r.input.Process(slist))
 
-	instances := r.input.GetInstances()
+	instances := inputs.MayGetInstances(r.input)
 	if len(instances) == 0 {
 		return
 	}
@@ -106,7 +106,7 @@ func (r *InputReader) gatherOnce() {
 			}
 
 			insList := types.NewSampleList()
-			ins.Gather(insList)
+			inputs.MayGather(ins, insList)
 			r.forward(ins.Process(insList))
 		}(instances[i])
 	}

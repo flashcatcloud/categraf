@@ -94,10 +94,6 @@ func init() {
 	})
 }
 
-func (r *Elasticsearch) Init() error                    { return nil }
-func (r *Elasticsearch) Drop()                          {}
-func (r *Elasticsearch) Gather(slist *types.SampleList) {}
-
 func (r *Elasticsearch) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

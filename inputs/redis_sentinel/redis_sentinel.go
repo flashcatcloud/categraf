@@ -35,10 +35,6 @@ func init() {
 	})
 }
 
-func (r *RedisSentinel) Init() error                    { return nil }
-func (r *RedisSentinel) Drop()                          {}
-func (r *RedisSentinel) Gather(slist *types.SampleList) {}
-
 func (r *RedisSentinel) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

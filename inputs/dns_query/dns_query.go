@@ -34,10 +34,6 @@ func init() {
 	})
 }
 
-func (dq *DnsQuery) Init() error                    { return nil }
-func (dq *DnsQuery) Drop()                          {}
-func (dq *DnsQuery) Gather(slist *types.SampleList) {}
-
 func (dq *DnsQuery) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(dq.Instances))
 	for i := 0; i < len(dq.Instances); i++ {
