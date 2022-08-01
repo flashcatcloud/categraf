@@ -26,10 +26,6 @@ func init() {
 	})
 }
 
-func (s *NetStats) Init() error                     { return nil }
-func (s *NetStats) Drop()                           {}
-func (s *NetStats) GetInstances() []inputs.Instance { return nil }
-
 func (s *NetStats) Gather(slist *types.SampleList) {
 	netconns, err := s.ps.NetConnections()
 	if err != nil {

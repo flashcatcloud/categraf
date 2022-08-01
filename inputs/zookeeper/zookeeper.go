@@ -71,10 +71,6 @@ func init() {
 	})
 }
 
-func (z *Zookeeper) Init() error                    { return nil }
-func (z *Zookeeper) Drop()                          {}
-func (z *Zookeeper) Gather(slist *types.SampleList) {}
-
 func (z *Zookeeper) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(z.Instances))
 	for i := 0; i < len(z.Instances); i++ {

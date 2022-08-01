@@ -29,10 +29,6 @@ func init() {
 	})
 }
 
-func (r *RabbitMQ) Init() error                    { return nil }
-func (r *RabbitMQ) Drop()                          {}
-func (r *RabbitMQ) Gather(slist *types.SampleList) {}
-
 func (r *RabbitMQ) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

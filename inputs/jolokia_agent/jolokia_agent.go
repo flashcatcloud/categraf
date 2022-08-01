@@ -26,10 +26,6 @@ func init() {
 	})
 }
 
-func (r *JolokiaAgent) Init() error                    { return nil }
-func (r *JolokiaAgent) Drop()                          {}
-func (r *JolokiaAgent) Gather(slist *types.SampleList) {}
-
 func (r *JolokiaAgent) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

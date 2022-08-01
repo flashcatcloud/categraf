@@ -32,10 +32,6 @@ func init() {
 	})
 }
 
-func (s *KernelVmstat) Init() error                     { return nil }
-func (s *KernelVmstat) Drop()                           {}
-func (s *KernelVmstat) GetInstances() []inputs.Instance { return nil }
-
 func (s *KernelVmstat) Gather(slist *types.SampleList) {
 	data, err := s.getProcVmstat()
 	if err != nil {

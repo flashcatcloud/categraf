@@ -29,18 +29,6 @@ func init() {
 	})
 }
 
-// just placeholder
-func (s *DiskStats) GetInstances() []inputs.Instance {
-	return nil
-}
-
-func (s *DiskStats) Init() error {
-	return nil
-}
-
-func (s *DiskStats) Drop() {
-}
-
 func (s *DiskStats) Gather(slist *types.SampleList) {
 	disks, partitions, err := s.ps.DiskUsage(s.MountPoints, s.IgnoreFS)
 	if err != nil {

@@ -56,19 +56,15 @@ func (a *Agent) startMetricsAgent() error {
 			continue
 		}
 
-		if err = input.Init(); err != nil {
+		if err = inputs.MayInit(input); err != nil {
 			if !errors.Is(err, types.ErrInstancesEmpty) {
 				log.Println("E! failed to init input:", name, "error:", err)
 			}
 			continue
 		}
 
-		if input.GetInstances() != nil {
-			instances := input.GetInstances()
-			if len(instances) == 0 {
-				continue
-			}
-
+		instances := inputs.MayGetInstances(input)
+		if instances != nil {
 			empty := true
 			for i := 0; i < len(instances); i++ {
 				if err := instances[i].InitInternalConfig(); err != nil {
@@ -76,13 +72,12 @@ func (a *Agent) startMetricsAgent() error {
 					continue
 				}
 
-				if err := instances[i].Init(); err != nil {
+				if err := inputs.MayInit(instances[i]); err != nil {
 					if !errors.Is(err, types.ErrInstancesEmpty) {
 						log.Println("E! failed to init input:", name, "error:", err)
 					}
 					continue
 				}
-
 				empty = false
 			}
 

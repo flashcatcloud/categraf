@@ -45,10 +45,6 @@ func init() {
 	})
 }
 
-func (e *Exec) Init() error                    { return nil }
-func (e *Exec) Drop()                          {}
-func (e *Exec) Gather(slist *types.SampleList) {}
-
 func (e *Exec) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(e.Instances))
 	for i := 0; i < len(e.Instances); i++ {

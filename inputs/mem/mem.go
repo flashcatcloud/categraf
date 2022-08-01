@@ -28,10 +28,6 @@ func init() {
 	})
 }
 
-func (s *MemStats) Init() error                     { return nil }
-func (s *MemStats) Drop()                           {}
-func (s *MemStats) GetInstances() []inputs.Instance { return nil }
-
 func (s *MemStats) Gather(slist *types.SampleList) {
 	vm, err := s.ps.VMStat()
 	if err != nil {

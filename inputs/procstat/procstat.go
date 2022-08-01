@@ -70,10 +70,6 @@ func init() {
 	})
 }
 
-func (s *Procstat) Init() error                    { return nil }
-func (s *Procstat) Drop()                          {}
-func (s *Procstat) Gather(slist *types.SampleList) {}
-
 func (s *Procstat) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(s.Instances))
 	for i := 0; i < len(s.Instances); i++ {

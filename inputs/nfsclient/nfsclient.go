@@ -212,8 +212,6 @@ func (s *NfsClient) Init() error {
 	return nil
 }
 
-func (r *NfsClient) Drop() {}
-
 func (s *NfsClient) Gather(slist *types.SampleList) {
 	file, err := os.Open(s.mountstatsPath)
 	if err != nil {
@@ -230,9 +228,6 @@ func (s *NfsClient) Gather(slist *types.SampleList) {
 	if err := scanner.Err(); err != nil {
 		log.Println("E!", err)
 	}
-}
-func (s *NfsClient) GetInstances() []inputs.Instance {
-	return nil
 }
 
 func convertToUint64(line []string) ([]uint64, error) {

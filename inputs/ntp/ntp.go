@@ -24,9 +24,6 @@ func init() {
 	})
 }
 
-func (n *NTPStat) Drop()                           {}
-func (n *NTPStat) GetInstances() []inputs.Instance { return nil }
-
 func (n *NTPStat) Init() error {
 	if len(n.NTPServers) == 0 {
 		return types.ErrInstancesEmpty

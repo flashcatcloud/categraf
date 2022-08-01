@@ -3,7 +3,6 @@ package tpl
 import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/types"
 )
 
 const inputName = "plugin_tpl"
@@ -19,11 +18,6 @@ func init() {
 	})
 }
 
-func (pt *PluginTpl) Prefix() string                 { return inputName }
-func (pt *PluginTpl) Init() error                    { return nil }
-func (pt *PluginTpl) Drop()                          {}
-func (pt *PluginTpl) Gather(slist *types.SampleList) {}
-
 func (pt *PluginTpl) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
 	for i := 0; i < len(pt.Instances); i++ {
@@ -34,12 +28,4 @@ func (pt *PluginTpl) GetInstances() []inputs.Instance {
 
 type Instance struct {
 	config.InstanceConfig
-}
-
-func (ins *Instance) Init() error {
-	return nil
-}
-
-func (ins *Instance) Gather(slist *types.SampleList) {
-
 }

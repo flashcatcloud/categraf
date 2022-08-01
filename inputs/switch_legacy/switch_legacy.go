@@ -33,9 +33,6 @@ func init() {
 	})
 }
 
-func (s *Switch) Drop()                          {}
-func (s *Switch) Gather(slist *types.SampleList) {}
-
 func (s *Switch) MappingIP(ip string) string {
 	val, has := s.Mappings[ip]
 	if has {
@@ -121,8 +118,6 @@ type Custom struct {
 	Tags   map[string]string `toml:"tags"`
 	OID    string            `toml:"oid"`
 }
-
-func (ins *Instance) Init() error { return nil }
 
 func (ins *Instance) RealInit() error {
 	if len(ins.IPs) == 0 {
