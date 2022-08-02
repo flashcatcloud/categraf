@@ -44,6 +44,10 @@ type WriterOption struct {
 	MaxIdleConnsPerHost int   `toml:"max_idle_conns_per_host"`
 }
 
+type HTTPServer struct {
+	Address string `toml:"address"`
+}
+
 type ConfigType struct {
 	// from console args
 	ConfigDir string
@@ -52,6 +56,7 @@ type ConfigType struct {
 
 	// from config.toml
 	Global       Global         `toml:"global"`
+	HTTPServer   HTTPServer     `toml:"http"`
 	WriterOpt    WriterOpt      `toml:"writer_opt"`
 	Writers      []WriterOption `toml:"writers"`
 	Logs         Logs           `toml:"logs"`

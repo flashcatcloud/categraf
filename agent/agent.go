@@ -1,8 +1,11 @@
 package agent
 
 import (
+	"context"
 	"log"
 
+	"flashcat.cloud/categraf/api"
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/traces"
 
 	// auto registry
@@ -51,21 +54,34 @@ type Agent struct {
 	InputFilters   map[string]struct{}
 	InputReaders   map[string]*InputReader
 	TraceCollector *traces.Collector
+	Server         *api.Server
 }
 
 func NewAgent(filters map[string]struct{}) *Agent {
 	return &Agent{
 		InputFilters: filters,
 		InputReaders: make(map[string]*InputReader),
+		Server:       api.NewServer(api.Address(config.Config.HTTPServer.Address)),
 	}
 }
 
 func (a *Agent) Start() {
 	log.Println("I! agent starting")
 	a.startLogAgent()
-	a.startMetricsAgent()
-	a.startTracesAgent()
+	err := a.startMetricsAgent()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = a.startTracesAgent()
+	if err != nil {
+		log.Fatal(err)
+	}
 	a.startPrometheusScrape()
+	err = a.Server.Start(context.TODO())
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("I! agent started")
 }
 
@@ -73,8 +89,16 @@ func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
 	a.stopLogAgent()
 	a.stopMetricsAgent()
-	a.stopTracesAgent()
+	err := a.stopTracesAgent()
+	if err != nil {
+		log.Fatal(err)
+	}
 	a.stopPrometheusScrape()
+	err = a.Server.Stop(context.TODO())
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("I! agent stopped")
 }
 

@@ -59,7 +59,7 @@ func postSeries(samples []*types.Sample) {
 	count := len(samples)
 	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < count; i++ {
-		item := convert(samples[i])
+		item := samples[i].ConvertTimeSeries(config.Config.Global.Precision)
 		if len(item.Labels) == 0 {
 			continue
 		}

@@ -29,6 +29,9 @@ batch = 2000
 # channel(as queue) size
 chan_size = 10000
 
+[http]
+address = ":9100"
+
 [[writers]]
 url = "http://127.0.0.1:19000/prometheus/v1/write"
 
