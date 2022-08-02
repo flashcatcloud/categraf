@@ -18,6 +18,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/elasticsearch"
 	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/http_response"
+	_ "flashcat.cloud/categraf/inputs/jenkins"
 	_ "flashcat.cloud/categraf/inputs/jolokia_agent"
 	_ "flashcat.cloud/categraf/inputs/jolokia_proxy"
 	_ "flashcat.cloud/categraf/inputs/kafka"
