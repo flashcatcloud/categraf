@@ -1,16 +1,7 @@
 # # collect interval
 # interval = 15
 
-############################################################################
-# !!! uncomment [[instances]] to enable this plugin
 [[instances]]
-# # interval = global.interval * interval_times
-# interval_times = 1
-
-# append some labels to metrics
-
-
-
 # Address (host:port) of jenkins server.
 # jenkins_url = "http://my-jenkins-instance:8080"
 

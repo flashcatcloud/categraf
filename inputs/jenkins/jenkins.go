@@ -32,15 +32,10 @@ func init() {
 	})
 }
 
-func (pt *Jenkins) Prefix() string                 { return inputName }
-func (pt *Jenkins) Init() error                    { return nil }
-func (pt *Jenkins) Drop()                          {}
-func (pt *Jenkins) Gather(slist *types.SampleList) {}
-
-func (pt *Jenkins) GetInstances() []inputs.Instance {
-	ret := make([]inputs.Instance, len(pt.Instances))
-	for i := 0; i < len(pt.Instances); i++ {
-		ret[i] = pt.Instances[i]
+func (j *Jenkins) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(j.Instances))
+	for i := 0; i < len(j.Instances); i++ {
+		ret[i] = j.Instances[i]
 	}
 	return ret
 }
@@ -85,18 +80,18 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.client == nil {
 		client, err := ins.newHTTPClient()
 		if err != nil {
-			log.Println("E! failed to new HTTPClient", err)
+			log.Println("E! failed to new HTTPClient:", err)
 			return
 		}
+
 		if err = ins.initialize(client); err != nil {
-			log.Println("E! failed to initialize", err)
+			log.Println("E! failed to initialize:", err)
 			return
 		}
 	}
 
 	ins.gatherNodesData(slist)
 	ins.gatherJobs(slist)
-
 }
 
 /////////////////////////////////////////////////////////////
