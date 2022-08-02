@@ -68,16 +68,16 @@ func (a *Agent) Start() {
 	a.startLogAgent()
 	err := a.startMetricsAgent()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	err = a.startTracesAgent()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	a.startPrometheusScrape()
 	err = a.startHttpAgent()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	log.Println("I! agent started")
@@ -89,12 +89,12 @@ func (a *Agent) Stop() {
 	a.stopMetricsAgent()
 	err := a.stopTracesAgent()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	a.stopPrometheusScrape()
 	err = a.stopHttpAgent()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	log.Println("I! agent stopped")
