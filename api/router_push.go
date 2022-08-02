@@ -82,7 +82,8 @@ func (push *push) OpenTSDB(c *gin.Context) {
 		ts      = time.Now().Unix()
 	)
 
-	globalLabels := c.GetBool("global_labels")
+	ignoreHostname := c.GetBool("ignore_hostname")
+	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
 	for i := 0; i < len(list); i++ {
 		if err := list[i].Clean(ts); err != nil {
 			log.Printf("opentsdb msg clean error: %s\n", err.Error())
@@ -93,7 +94,7 @@ func (push *push) OpenTSDB(c *gin.Context) {
 			continue
 		}
 		// add global labels
-		if globalLabels {
+		if !ignoreGlobalLabels {
 			for k, v := range config.Config.Global.Labels {
 				if _, has := list[i].Tags[k]; has {
 					continue
@@ -102,7 +103,7 @@ func (push *push) OpenTSDB(c *gin.Context) {
 			}
 		}
 		// add label: agent_hostname
-		if _, has := list[i].Tags[agentHostnameLabelKey]; !has {
+		if _, has := list[i].Tags[agentHostnameLabelKey]; !has && !ignoreHostname {
 			list[i].Tags[agentHostnameLabelKey] = config.Config.GetHostname()
 		}
 
@@ -164,7 +165,8 @@ func (push *push) falcon(c *gin.Context) {
 		ts      = time.Now().Unix()
 	)
 
-	globalLabels := c.GetBool("global_labels")
+	ignoreHostname := c.GetBool("ignore_hostname")
+	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
 	for i := 0; i < len(arr); i++ {
 		if err := arr[i].Clean(ts); err != nil {
 			fail++
@@ -182,7 +184,7 @@ func (push *push) falcon(c *gin.Context) {
 			tags[label.Name] = label.Value
 		}
 		// add global labels
-		if globalLabels {
+		if !ignoreGlobalLabels {
 			for k, v := range config.Config.Global.Labels {
 				if _, has := tags[k]; has {
 					continue
@@ -191,7 +193,7 @@ func (push *push) falcon(c *gin.Context) {
 			}
 		}
 		// add label: agent_hostname
-		if _, has := tags[agentHostnameLabelKey]; !has {
+		if _, has := tags[agentHostnameLabelKey]; !has && !ignoreHostname {
 			pt.Labels = append(pt.Labels, prompb.Label{Name: agentHostnameLabelKey, Value: config.Config.GetHostname()})
 		}
 
@@ -224,7 +226,8 @@ func (push *push) remoteWrite(c *gin.Context) {
 		return
 	}
 
-	globalLabels := c.GetBool("global_labels")
+	ignoreHostname := c.GetBool("ignore_hostname")
+	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
 	for i := 0; i < count; i++ {
 		// 去除重复的数据
 		if duplicateLabelKey(req.Timeseries[i]) {
@@ -236,7 +239,7 @@ func (push *push) remoteWrite(c *gin.Context) {
 			tags[label.Name] = label.Value
 		}
 		// add global labels
-		if globalLabels {
+		if !ignoreGlobalLabels {
 			for k, v := range config.Config.Global.Labels {
 				if _, has := tags[k]; has {
 					continue
@@ -245,7 +248,7 @@ func (push *push) remoteWrite(c *gin.Context) {
 			}
 		}
 		// add label: agent_hostname
-		if _, has := tags[agentHostnameLabelKey]; !has {
+		if _, has := tags[agentHostnameLabelKey]; !has && !ignoreHostname {
 			req.Timeseries[i].Labels = append(req.Timeseries[i].Labels, prompb.Label{Name: agentHostnameLabelKey, Value: config.Config.GetHostname()})
 		}
 
