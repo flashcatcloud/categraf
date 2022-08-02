@@ -84,6 +84,8 @@ func (push *push) OpenTSDB(c *gin.Context) {
 
 	ignoreHostname := c.GetBool("ignore_hostname")
 	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
+	count := len(list)
+	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < len(list); i++ {
 		if err := list[i].Clean(ts); err != nil {
 			log.Printf("opentsdb msg clean error: %s\n", err.Error())
@@ -117,7 +119,7 @@ func (push *push) OpenTSDB(c *gin.Context) {
 			continue
 		}
 
-		writer.PushQueue(types.TimeSeriesConvertSample(pt))
+		series = append(series, *pt)
 		success++
 	}
 
@@ -125,6 +127,7 @@ func (push *push) OpenTSDB(c *gin.Context) {
 		log.Printf("opentsdb msg process error , msg is : %s\n", string(bytes))
 	}
 
+	writer.PostTimeSeries(series)
 	cc.Success(map[string]interface{}{
 		"success": success,
 		"fail":    fail,
@@ -167,7 +170,9 @@ func (push *push) falcon(c *gin.Context) {
 
 	ignoreHostname := c.GetBool("ignore_hostname")
 	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
-	for i := 0; i < len(arr); i++ {
+	count := len(arr)
+	series := make([]prompb.TimeSeries, 0, count)
+	for i := 0; i < count; i++ {
 		if err := arr[i].Clean(ts); err != nil {
 			fail++
 			continue
@@ -198,12 +203,15 @@ func (push *push) falcon(c *gin.Context) {
 		}
 
 		writer.PushQueue(types.TimeSeriesConvertSample(pt))
+		series = append(series, *pt)
 		success++
 	}
 
 	if fail > 0 {
 		log.Printf("falconmetric msg process error , msg is : %s\n", string(bytes))
 	}
+
+	writer.PostTimeSeries(series)
 
 	cc.Success(map[string]interface{}{
 		"success": success,
@@ -251,9 +259,9 @@ func (push *push) remoteWrite(c *gin.Context) {
 		if _, has := tags[agentHostnameLabelKey]; !has && !ignoreHostname {
 			req.Timeseries[i].Labels = append(req.Timeseries[i].Labels, prompb.Label{Name: agentHostnameLabelKey, Value: config.Config.GetHostname()})
 		}
-
-		writer.PushQueue(types.TimeSeriesConvertSample(&req.Timeseries[i]))
 	}
+
+	writer.PostTimeSeries(req.Timeseries)
 
 	cc.Success()
 }

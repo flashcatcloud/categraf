@@ -67,12 +67,20 @@ func postSeries(samples []*types.Sample) {
 		series = append(series, item)
 	}
 
+	PostTimeSeries(series)
+}
+
+func PostTimeSeries(timeSeries []prompb.TimeSeries) {
+	if len(timeSeries) == 0 {
+		return
+	}
+
 	wg := sync.WaitGroup{}
 	for key := range Writers {
 		wg.Add(1)
 		go func(key string) {
 			defer wg.Done()
-			Writers[key].Write(series)
+			Writers[key].Write(timeSeries)
 		}(key)
 	}
 	wg.Wait()
