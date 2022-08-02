@@ -134,7 +134,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		case "jvm":
 			ins.gatherJvm(slist, ins.procs, tags)
 		default:
-			log.Println("unknown choice in gather_more_metrics:", field)
+			log.Println("E! unknown choice in gather_more_metrics:", field)
 		}
 	}
 }
@@ -331,31 +331,42 @@ func (ins *Instance) gatherLimit(slist *types.SampleList, procs map[PID]Process,
 }
 
 func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
-
 	for pid := range procs {
 		jvmStat, err := execJstat(pid)
-		if err == nil {
-			for k, v := range jvmStat {
-				slist.PushFront(types.NewSample(inputName, "jvm_"+k, v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
-			}
+		if err != nil {
+			log.Println("E! failed to exec jstat:", err)
+			continue
+		}
+
+		pidTag := map[string]string{"pid": fmt.Sprint(pid)}
+		for k, v := range jvmStat {
+			slist.PushSample(inputName, "jvm_"+k, v, pidTag, tags)
 		}
 	}
 }
+
 func execJstat(pid PID) (map[string]string, error) {
 	bin, err := exec.LookPath("jstat")
 	if err != nil {
 		return nil, err
 	}
+
 	out, err := exec.Command(bin, "-gc", fmt.Sprint(pid)).Output()
 	if err != nil {
 		return nil, err
 	}
+
+	jvm := strings.Fields(string(out))
+	if len(jvm)%2 != 0 {
+		return nil, fmt.Errorf("failed to parse jstat output: %v", jvm)
+	}
+
 	jvmMetrics := make(map[string]string)
-	jvm:=strings.Fields(string(out))
 	half := len(jvm) / 2
 	for i := 0; i < half; i++ {
 		jvmMetrics[jvm[i]] = jvm[i+half]
 	}
+
 	return jvmMetrics, err
 }
 
