@@ -26,6 +26,7 @@ gather_total = true
 # will append pid as tag
 gather_per_pid = false
 
+#  gather jvm metrics only when jstat is ready
 # gather_more_metrics = [
 #     "threads",
 #     "fd",
@@ -33,5 +34,6 @@ gather_per_pid = false
 #     "uptime",
 #     "cpu",
 #     "mem",
-#     "limit"
+#     "limit",
+#     "jvm"
 # ]

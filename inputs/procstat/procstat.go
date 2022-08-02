@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os/exec"
 	"runtime"
 	"strings"
 	"time"
@@ -130,6 +131,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			ins.gatherMem(slist, ins.procs, tags)
 		case "limit":
 			ins.gatherLimit(slist, ins.procs, tags)
+		case "jvm":
+			ins.gatherJvm(slist, ins.procs, tags)
 		default:
 			log.Println("unknown choice in gather_more_metrics:", field)
 		}
@@ -325,6 +328,35 @@ func (ins *Instance) gatherLimit(slist *types.SampleList, procs map[PID]Process,
 		slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_soft_minimum", softMin, tags))
 		slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_hard_minimum", hardMin, tags))
 	}
+}
+
+func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
+
+	for pid := range procs {
+		jvmStat, err := execJstat(pid)
+		if err == nil {
+			for k, v := range jvmStat {
+				slist.PushFront(types.NewSample(inputName, "jvm_"+k, v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+			}
+		}
+	}
+}
+func execJstat(pid PID) (map[string]string, error) {
+	bin, err := exec.LookPath("jstat")
+	if err != nil {
+		return nil, err
+	}
+	out, err := exec.Command(bin, "-gc", fmt.Sprint(pid)).Output()
+	if err != nil {
+		return nil, err
+	}
+	jvmMetrics := make(map[string]string)
+	jvm:=strings.Fields(string(out))
+	half := len(jvm) / 2
+	for i := 0; i < half; i++ {
+		jvmMetrics[jvm[i]] = jvm[i+half]
+	}
+	return jvmMetrics, err
 }
 
 func (ins *Instance) winServicePIDs() ([]PID, error) {
