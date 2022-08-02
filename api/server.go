@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,13 +27,6 @@ func Address(addr string) ServerOption {
 	}
 }
 
-// Timeout with server timeout.
-func Timeout(timeout time.Duration) ServerOption {
-	return func(s *Server) {
-		s.timeout = timeout
-	}
-}
-
 // Listener with server lis
 func Listener(lis net.Listener) ServerOption {
 	return func(s *Server) {
@@ -48,14 +40,12 @@ type Server struct {
 	lis     net.Listener
 	network string
 	address string
-	timeout time.Duration
 }
 
 func NewServer(opts ...ServerOption) *Server {
 	srv := &Server{
 		network: "tcp",
 		address: ":0",
-		timeout: 1 * time.Second,
 	}
 	for _, o := range opts {
 		o(srv)

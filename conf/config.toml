@@ -30,6 +30,7 @@ batch = 2000
 chan_size = 10000
 
 [http]
+enable = false
 address = ":9100"
 
 [[writers]]

@@ -1,11 +1,9 @@
 package agent
 
 import (
-	"context"
 	"log"
 
 	"flashcat.cloud/categraf/api"
-	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/traces"
 
 	// auto registry
@@ -62,7 +60,6 @@ func NewAgent(filters map[string]struct{}) *Agent {
 	return &Agent{
 		InputFilters: filters,
 		InputReaders: make(map[string]*InputReader),
-		Server:       api.NewServer(api.Address(config.Config.HTTPServer.Address)),
 	}
 }
 
@@ -78,7 +75,7 @@ func (a *Agent) Start() {
 		log.Fatal(err)
 	}
 	a.startPrometheusScrape()
-	err = a.Server.Start(context.TODO())
+	err = a.startHttpAgent()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,7 +92,7 @@ func (a *Agent) Stop() {
 		log.Fatal(err)
 	}
 	a.stopPrometheusScrape()
-	err = a.Server.Stop(context.TODO())
+	err = a.stopHttpAgent()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -45,6 +45,7 @@ type WriterOption struct {
 }
 
 type HTTPServer struct {
+	Enable  bool   `toml:"enable"`
 	Address string `toml:"address"`
 }
 
@@ -56,12 +57,12 @@ type ConfigType struct {
 
 	// from config.toml
 	Global       Global         `toml:"global"`
-	HTTPServer   HTTPServer     `toml:"http"`
 	WriterOpt    WriterOpt      `toml:"writer_opt"`
 	Writers      []WriterOption `toml:"writers"`
 	Logs         Logs           `toml:"logs"`
 	MetricsHouse MetricsHouse   `toml:"metricshouse"`
 	Traces       *traces.Config `toml:"traces"`
+	HTTPServer   *HTTPServer    `toml:"http"`
 	Prometheus   *Prometheus    `toml:"prometheus"`
 }
 
