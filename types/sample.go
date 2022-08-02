@@ -45,7 +45,7 @@ func NewSample(prefix, metric string, value interface{}, labels ...map[string]st
 
 func TimeSeriesConvertSample(timeSeries *prompb.TimeSeries) *Sample {
 	var t time.Time
-	if timeSeries.Samples[0].Timestamp > 0 && len(timeSeries.Samples) == 13 {
+	if timeSeries.Samples[0].Timestamp > 0 && timeSeries.Samples[0].Timestamp > 0xffffffff {
 		t = time.Unix(0, timeSeries.Samples[0].Timestamp*1e6)
 	} else {
 		t = time.Now()
