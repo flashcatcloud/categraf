@@ -43,34 +43,6 @@ func NewSample(prefix, metric string, value interface{}, labels ...map[string]st
 	return s
 }
 
-func TimeSeriesConvertSample(timeSeries *prompb.TimeSeries) *Sample {
-	var t time.Time
-	if timeSeries.Samples[0].Timestamp > 0 && timeSeries.Samples[0].Timestamp > 0xffffffff {
-		t = time.Unix(0, timeSeries.Samples[0].Timestamp*1e6)
-	} else {
-		t = time.Now()
-	}
-
-	sample := &Sample{
-		Timestamp: t,
-		Value:     timeSeries.Samples[0].Value,
-		Labels:    make(map[string]string),
-	}
-
-	var metric string
-	for _, label := range timeSeries.Labels {
-		if label.Name == model.MetricNameLabel {
-			metric = label.Value
-			continue
-		}
-
-		sample.Labels[label.Name] = label.Value
-	}
-
-	sample.Metric = metric
-	return sample
-}
-
 func (item *Sample) ConvertTimeSeries(precision string) prompb.TimeSeries {
 	value, err := conv.ToFloat64(item.Value)
 	if err != nil {

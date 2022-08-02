@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
 	"github.com/gin-gonic/gin"
 	"github.com/gogo/protobuf/proto"
@@ -202,7 +201,6 @@ func (push *push) falcon(c *gin.Context) {
 			pt.Labels = append(pt.Labels, prompb.Label{Name: agentHostnameLabelKey, Value: config.Config.GetHostname()})
 		}
 
-		writer.PushQueue(types.TimeSeriesConvertSample(pt))
 		series = append(series, *pt)
 		success++
 	}
