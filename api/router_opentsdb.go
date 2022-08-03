@@ -155,7 +155,7 @@ func openTSDB(c *gin.Context) {
 	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < len(list); i++ {
 		if err := list[i].Clean(ts); err != nil {
-			log.Printf("opentsdb msg clean error: %s\n", err.Error())
+			log.Println("clean opentsdb sample:", err)
 			if fail == 0 {
 				msg = fmt.Sprintf("%s , Error clean: %s", msg, err.Error())
 			}
@@ -178,7 +178,7 @@ func openTSDB(c *gin.Context) {
 
 		pt, err := list[i].ToProm()
 		if err != nil {
-			log.Printf("opentsdb msg to tsdb error: %s\n", err.Error())
+			log.Println("convert opentsdb sample:", err)
 			if fail == 0 {
 				msg = fmt.Sprintf("%s , Error toprom: %s", msg, err.Error())
 			}
