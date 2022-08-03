@@ -206,14 +206,9 @@ func openFalcon(c *gin.Context) {
 	}
 
 	if fail > 0 {
-		log.Printf("falconmetric msg process error , msg is : %s\n", string(bytes))
+		log.Println("falcon forwarder error, message:", string(bytes))
 	}
 
 	writer.PostTimeSeries(series)
-
-	c.JSON(200, gin.H{
-		"succ": succ,
-		"fail": fail,
-		"msg":  msg,
-	})
+	c.String(200, "succ:%d fail:%d message:%s", succ, fail, msg)
 }
