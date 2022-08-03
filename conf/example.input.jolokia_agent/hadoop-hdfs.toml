@@ -3,7 +3,7 @@
 ################
 [[instances]]
   urls = ["http://localhost:8778/jolokia"]
-  name_prefix = "hadoop_hdfs.namenode_"
+  metrics_name_prefix = "hadoop_hdfs_namenode_"
 
   [[instances.metric]]
     name = "FSNamesystem"
@@ -49,7 +49,7 @@
 ################
 [[instances]]
   urls = ["http://localhost:7778/jolokia"]
-  name_prefix = "hadoop_hdfs_datanode_"
+  metrics_name_prefix = "hadoop_hdfs_datanode_"
 
   [[instances.metric]]
     name = "FSDatasetState"

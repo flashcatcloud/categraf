@@ -1,6 +1,6 @@
 [[instances]]
   urls = ["http://localhost:8778/jolokia"]
-  name_prefix = "java_"
+  metrics_name_prefix = "java_"
 
   [[instances.metric]]
     name  = "Memory"
@@ -14,7 +14,7 @@
 
 [[instances]]
   urls = ["http://localhost:8778/jolokia"]
-  name_prefix = "cassandra_"
+  metrics_name_prefix = "cassandra_"
 
   [[instances.metric]]
     name  = "Cache"

@@ -2,16 +2,15 @@
   urls = ["http://localhost:8080/jolokia"]
   metrics_name_prefix = "kafka_connect_"
 
-  # [[processors.enum]]
-  #   [[processors.enum.mapping]]
-  #     field = "status"
+  [[processor_enum]]
+    metrics = ["status"]
 
-  #     [processors.enum.mapping.value_mappings]
-  #       paused = 0
-  #       running = 1
-  #       unassigned = 2
-  #       failed = 3
-  #       destroyed = 4
+  [processor_enum.value_mappings]
+    paused = 0
+    running = 1
+    unassigned = 2
+    failed = 3
+    destroyed = 4
 
   [instances.labels]
     input_type   = "kafka-connect"

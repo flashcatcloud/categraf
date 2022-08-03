@@ -2,7 +2,7 @@
 
 [[instances]]
   urls = ["http://localhost:8161/api/jolokia"]
-  name_prefix = "activemq_"
+  metrics_name_prefix = "activemq_"
   username = "admin"
   password = "admin"
 

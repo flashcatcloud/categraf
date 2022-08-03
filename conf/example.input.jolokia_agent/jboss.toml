@@ -1,6 +1,6 @@
 [[instances]]
   urls = ["http://localhost:8080/jolokia"]
-  name_prefix = "jboss_"
+  metrics_name_prefix = "jboss_"
 
   ### JVM Generic
 

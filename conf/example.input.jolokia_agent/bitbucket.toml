@@ -1,6 +1,6 @@
 [[instances]]
   urls = ["http://localhost:8778/jolokia"]
-  name_prefix = "bitbucket_"
+  metrics_name_prefix = "bitbucket_"
 
   [[instances.metric]]
     name  = "jvm_operatingsystem"
