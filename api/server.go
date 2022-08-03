@@ -1,104 +1,68 @@
 package api
 
 import (
-	"context"
-	"errors"
+	"crypto/tls"
 	"log"
-	"net"
 	"net/http"
+	"strings"
+	"time"
 
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/pkg/aop"
 	"github.com/gin-gonic/gin"
 )
 
-// ServerOption is an HTTP server option.
-type ServerOption func(*Server)
+func Start() {
+	conf := config.Config.HTTP
+	if !conf.Enable {
+		return
+	}
 
-// Network with server network.
-func Network(network string) ServerOption {
-	return func(s *Server) {
-		s.network = network
+	gin.SetMode(conf.RunMode)
+
+	if strings.ToLower(conf.RunMode) == "release" {
+		aop.DisableConsoleColor()
+	}
+
+	r := gin.New()
+	r.Use(aop.Recovery())
+
+	if conf.PrintAccess {
+		r.Use(aop.Logger())
+	}
+
+	configRoutes(r)
+
+	srv := &http.Server{
+		Addr:         conf.Address,
+		Handler:      r,
+		ReadTimeout:  time.Duration(conf.ReadTimeout) * time.Second,
+		WriteTimeout: time.Duration(conf.WriteTimeout) * time.Second,
+		IdleTimeout:  time.Duration(conf.IdleTimeout) * time.Second,
+	}
+
+	log.Println("I! http server listening on:", conf.Address)
+
+	var err error
+	if conf.CertFile != "" && conf.KeyFile != "" {
+		srv.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+		err = srv.ListenAndServeTLS(conf.CertFile, conf.KeyFile)
+	} else {
+		err = srv.ListenAndServe()
+	}
+
+	if err != nil && err != http.ErrServerClosed {
+		panic(err)
 	}
 }
 
-// Address with server address.
-func Address(addr string) ServerOption {
-	return func(s *Server) {
-		s.address = addr
-	}
-}
+func configRoutes(r *gin.Engine) {
+	r.GET("/ping", func(c *gin.Context) {
+		c.String(200, "pong")
+	})
 
-// Listener with server lis
-func Listener(lis net.Listener) ServerOption {
-	return func(s *Server) {
-		s.lis = lis
-	}
-}
-
-type Server struct {
-	*http.Server
-	engine  *gin.Engine
-	lis     net.Listener
-	network string
-	address string
-}
-
-func NewServer(opts ...ServerOption) *Server {
-	srv := &Server{
-		network: "tcp",
-		address: ":0",
-	}
-	for _, o := range opts {
-		o(srv)
-	}
-
-	srv.engine = gin.New()
-	srv.engine.Use(gin.Recovery(), gin.Logger())
-	srv.Server = &http.Server{
-		Handler: srv.engine,
-	}
-
-	newRouter(srv)
-	return srv
-}
-
-// ServeHTTP should write reply headers and data to the ResponseWriter and then return.
-func (s *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	s.Handler.ServeHTTP(res, req)
-}
-
-func (s *Server) listenAndEndpoint() error {
-	if s.lis == nil {
-		lis, err := net.Listen(s.network, s.address)
-		if err != nil {
-			return err
-		}
-		s.lis = lis
-	}
-
-	return nil
-}
-
-// Start start the HTTP server.
-func (s *Server) Start(ctx context.Context) error {
-	if err := s.listenAndEndpoint(); err != nil {
-		return err
-	}
-	s.BaseContext = func(net.Listener) context.Context {
-		return ctx
-	}
-
-	log.Printf("[HTTP] server listening on: %s]\n", s.lis.Addr().String())
-	go func() {
-		err := s.Serve(s.lis)
-		if !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("[HTTP] server error: %v", err)
-		}
-	}()
-	return nil
-}
-
-// Stop stop the HTTP server.
-func (s *Server) Stop(ctx context.Context) error {
-	log.Println("[HTTP] server stopping")
-	return s.Shutdown(ctx)
+	g := r.Group("/api/push")
+	g.POST("/opentsdb", openTSDB)
+	g.POST("/openfalcon", openFalcon)
+	g.POST("/remotewrite", remoteWrite)
 }

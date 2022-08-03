@@ -173,7 +173,6 @@ func (s *NfsClient) Init() error {
 			log.Println("D! Including these mount patterns:", s.IncludeMounts)
 		}
 	} else {
-		log.Println("Including all mounts.")
 		if config.Config.DebugMode {
 			log.Println("D! Including all mounts.")
 		}
@@ -215,7 +214,9 @@ func (s *NfsClient) Init() error {
 func (s *NfsClient) Gather(slist *types.SampleList) {
 	file, err := os.Open(s.mountstatsPath)
 	if err != nil {
-		log.Println("E! Failed opening the", file, "file:", err)
+		if config.Config.DebugMode {
+			log.Println("D! Failed opening the", file, "file:", err)
+		}
 		return
 	}
 	defer file.Close()

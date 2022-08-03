@@ -29,10 +29,6 @@ batch = 2000
 # channel(as queue) size
 chan_size = 10000
 
-[http]
-enable = false
-address = ":9100"
-
 [[writers]]
 url = "http://127.0.0.1:19000/prometheus/v1/write"
 
@@ -46,3 +42,9 @@ basic_auth_pass = ""
 timeout = 5000
 dial_timeout = 2500
 max_idle_conns_per_host = 100
+
+[http]
+enable = true
+address = ":9100"
+print_access = false
+run_mode = "release"

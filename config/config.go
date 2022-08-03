@@ -44,9 +44,16 @@ type WriterOption struct {
 	MaxIdleConnsPerHost int   `toml:"max_idle_conns_per_host"`
 }
 
-type HTTPServer struct {
-	Enable  bool   `toml:"enable"`
-	Address string `toml:"address"`
+type HTTP struct {
+	Enable       bool   `toml:"enable"`
+	Address      string `toml:"address"`
+	PrintAccess  bool   `toml:"print_access"`
+	RunMode      string `toml:"run_mode"`
+	CertFile     string `toml:"cert_file"`
+	KeyFile      string `toml:"key_file"`
+	ReadTimeout  int    `toml:"read_timeout"`
+	WriteTimeout int    `toml:"write_timeout"`
+	IdleTimeout  int    `toml:"idle_timeout"`
 }
 
 type ConfigType struct {
@@ -62,7 +69,7 @@ type ConfigType struct {
 	Logs         Logs           `toml:"logs"`
 	MetricsHouse MetricsHouse   `toml:"metricshouse"`
 	Traces       *traces.Config `toml:"traces"`
-	HTTPServer   *HTTPServer    `toml:"http"`
+	HTTP         *HTTP          `toml:"http"`
 	Prometheus   *Prometheus    `toml:"prometheus"`
 }
 

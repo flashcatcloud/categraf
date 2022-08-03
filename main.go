@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"flashcat.cloud/categraf/agent"
+	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/house"
 	"flashcat.cloud/categraf/pkg/osx"
@@ -65,6 +66,8 @@ func main() {
 	}
 
 	initWriters()
+
+	go api.Start()
 
 	ag := agent.NewAgent(parseFilter(*inputFilters))
 	runAgent(ag)
