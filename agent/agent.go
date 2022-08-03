@@ -3,6 +3,7 @@ package agent
 import (
 	"log"
 
+	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/traces"
 
 	// auto registry
@@ -52,6 +53,7 @@ type Agent struct {
 	InputFilters   map[string]struct{}
 	InputReaders   map[string]*InputReader
 	TraceCollector *traces.Collector
+	Server         *api.Server
 }
 
 func NewAgent(filters map[string]struct{}) *Agent {
@@ -64,9 +66,20 @@ func NewAgent(filters map[string]struct{}) *Agent {
 func (a *Agent) Start() {
 	log.Println("I! agent starting")
 	a.startLogAgent()
-	a.startMetricsAgent()
-	a.startTracesAgent()
+	err := a.startMetricsAgent()
+	if err != nil {
+		log.Println(err)
+	}
+	err = a.startTracesAgent()
+	if err != nil {
+		log.Println(err)
+	}
 	a.startPrometheusScrape()
+	err = a.startHttpAgent()
+	if err != nil {
+		log.Println(err)
+	}
+
 	log.Println("I! agent started")
 }
 
@@ -74,8 +87,16 @@ func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
 	a.stopLogAgent()
 	a.stopMetricsAgent()
-	a.stopTracesAgent()
+	err := a.stopTracesAgent()
+	if err != nil {
+		log.Println(err)
+	}
 	a.stopPrometheusScrape()
+	err = a.stopHttpAgent()
+	if err != nil {
+		log.Println(err)
+	}
+
 	log.Println("I! agent stopped")
 }
 

@@ -44,6 +44,11 @@ type WriterOption struct {
 	MaxIdleConnsPerHost int   `toml:"max_idle_conns_per_host"`
 }
 
+type HTTPServer struct {
+	Enable  bool   `toml:"enable"`
+	Address string `toml:"address"`
+}
+
 type ConfigType struct {
 	// from console args
 	ConfigDir string
@@ -57,6 +62,7 @@ type ConfigType struct {
 	Logs         Logs           `toml:"logs"`
 	MetricsHouse MetricsHouse   `toml:"metricshouse"`
 	Traces       *traces.Config `toml:"traces"`
+	HTTPServer   *HTTPServer    `toml:"http"`
 	Prometheus   *Prometheus    `toml:"prometheus"`
 }
 
