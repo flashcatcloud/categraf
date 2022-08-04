@@ -53,7 +53,7 @@ total_include = ["cpu", "blkio", "network"]
 ## docker labels to include and exclude as tags. Globs accepted.
 ## Note that an empty array for both will include all labels as tags
 docker_label_include = []
-docker_label_exclude = ["annotation*", "io.kubernetes*", "*description*", "*maintainer*", "*hash", "*author*"]
+docker_label_exclude = ["annotation*", "io.kubernetes*", "*description*", "*maintainer*", "*hash", "*author*", "*org_*", "*date*", "*url*", "*docker_compose*"]
 
 ## Optional TLS Config
 # use_tls = false
