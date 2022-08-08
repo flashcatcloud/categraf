@@ -58,7 +58,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "apiserver_requested_deprecated_apis",
+                        "expr": "apiserver_requested_deprecated_apis{job=\"apiserver\"}",
                         "legend": ""
                     }
                 ],
@@ -100,8 +100,8 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum by (code) (rate(apiserver_request_total[5m]))",
-                        "legend": "{{ code }}"
+                        "expr": "sum by (instance,code) (rate(apiserver_request_total{job=\"apiserver\"}[5m]))",
+                        "legend": "{{ instance }} {{ code }}"
                     }
                 ],
                 "name": "API Server - HTTP Requests by code",
@@ -109,7 +109,8 @@
                 "description": "按照返回码分类统计apiserver请求数",
                 "options": {
                     "tooltip": {
-                        "mode": "multi"
+                        "mode": "all",
+                        "sort": "none"
                     },
                     "legend": {
                         "displayMode": "list",
@@ -125,7 +126,9 @@
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "lineWidth": 1,
                     "fillOpacity": 0.25,
+                    "gradientMode": "none",
                     "stack": "off"
                 },
                 "version": "2.0.0",
@@ -144,8 +147,8 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum by (verb) (rate(apiserver_request_total[5m]))",
-                        "legend": "{{ verb}}"
+                        "expr": "sum by (instance,verb) (rate(apiserver_request_total{job=\"apiserver\"}[5m]))",
+                        "legend": "{{ instance }} {{ verb }}"
                     }
                 ],
                 "name": "API Server - HTTP Requests by verb",
@@ -153,7 +156,8 @@
                 "description": "按照请求动作分类统计apiserver的请求数",
                 "options": {
                     "tooltip": {
-                        "mode": "multi"
+                        "mode": "all",
+                        "sort": "desc"
                     },
                     "legend": {
                         "displayMode": "list",
@@ -169,7 +173,9 @@
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "lineWidth": 1,
                     "fillOpacity": 0.25,
+                    "gradientMode": "none",
                     "stack": "off"
                 },
                 "version": "2.0.0",
@@ -188,23 +194,24 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_request_duration_seconds_bucket{job=\"apiserver\"}[5m])) by (instance)",
-                        "legend": "{{ instance }}"
+                        "expr": "apiserver_current_inflight_requests{job=\"apiserver\"}",
+                        "legend": "{{ instance }} {{ request_kind }}"
                     }
                 ],
-                "name": "API Server - HTTP Requets Latency by instance",
+                "name": "API Server - Current Inflight Requests by kind",
                 "links": [],
-                "description": "apiserver的响应延迟",
+                "description": "当前并发请求apiserver的数量",
                 "options": {
                     "tooltip": {
-                        "mode": "multi"
+                        "mode": "all",
+                        "sort": "desc"
                     },
                     "legend": {
                         "displayMode": "list",
                         "placement": "bottom"
                     },
                     "standardOptions": {
-                        "util": "milliseconds"
+                        "util": "none"
                     },
                     "thresholds": {
                         "steps": []
@@ -213,7 +220,9 @@
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "lineWidth": 1,
                     "fillOpacity": 0.25,
+                    "gradientMode": "none",
                     "stack": "off"
                 },
                 "version": "2.0.0",
@@ -223,17 +232,17 @@
                     "w": 12,
                     "x": 0,
                     "y": 16,
-                    "i": "1e775704-9ee4-45ce-9d24-b49af89fb5c7",
+                    "i": "ce5a15ad-11c6-44a2-a071-be57009162e1",
                     "isResizable": true
                 },
-                "id": "1e775704-9ee4-45ce-9d24-b49af89fb5c7"
+                "id": "fb6266a3-3da0-4310-bfe8-c64a53db5db3"
             },
             {
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_request_duration_seconds_bucket{job=\"apiserver\"}[5m])) by (verb)",
-                        "legend": "{{ verb }}"
+                        "expr": "sum(rate(apiserver_request_duration_seconds_bucket{job=\"apiserver\"}[5m])) by (instance,verb)",
+                        "legend": "{{ instance }} {{ verb }}"
                     }
                 ],
                 "name": "API Server - HTTP Requets Latency by verb",
@@ -241,7 +250,8 @@
                 "description": "apiserver的响应延迟，按请求动作分类统计",
                 "options": {
                     "tooltip": {
-                        "mode": "multi"
+                        "mode": "all",
+                        "sort": "none"
                     },
                     "legend": {
                         "displayMode": "list",
@@ -257,7 +267,9 @@
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "lineWidth": 1,
                     "fillOpacity": 0.25,
+                    "gradientMode": "none",
                     "stack": "off"
                 },
                 "version": "2.0.0",
@@ -276,23 +288,24 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum by(instance) (rate(apiserver_request_total{code=~\"5..\", job=\"apiserver\"}[5m]))\n / sum by(instance) (rate(apiserver_request_total{job=\"apiserver\"}[5m]))",
+                        "expr": "sum(rate(apiserver_request_duration_seconds_bucket {job=\"apiserver\"}[5m])) by (instance)",
                         "legend": "{{ instance }}"
                     }
                 ],
-                "name": "API Server - Errors by Instance",
+                "name": "API Server - HTTP Requets Latency by instance",
                 "links": [],
-                "description": "apiserver的5xx 错误率(5xx请求数/总请求数)",
+                "description": "apiserver的响应延迟",
                 "options": {
                     "tooltip": {
-                        "mode": "multi"
+                        "mode": "all",
+                        "sort": "desc"
                     },
                     "legend": {
                         "displayMode": "list",
                         "placement": "bottom"
                     },
                     "standardOptions": {
-                        "util": "none"
+                        "util": "milliseconds"
                     },
                     "thresholds": {
                         "steps": []
@@ -301,7 +314,9 @@
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "lineWidth": 1,
                     "fillOpacity": 0.25,
+                    "gradientMode": "none",
                     "stack": "off"
                 },
                 "version": "2.0.0",
@@ -311,17 +326,17 @@
                     "w": 12,
                     "x": 0,
                     "y": 24,
-                    "i": "92a209a1-7d30-4627-9ae1-55ded5095ed7",
+                    "i": "1e775704-9ee4-45ce-9d24-b49af89fb5c7",
                     "isResizable": true
                 },
-                "id": "92a209a1-7d30-4627-9ae1-55ded5095ed7"
+                "id": "1e775704-9ee4-45ce-9d24-b49af89fb5c7"
             },
             {
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum by(verb) (rate(apiserver_request_total{code=~\"5..\",job=\"apiserver\"}[5m]))\n / sum by(verb) (rate(apiserver_request_total{job=\"apiserver\"}[5m]))",
-                        "legend": "{{ verb }}"
+                        "expr": "sum by(instance,verb) (rate(apiserver_request_total{code=~\"5..\",job=\"apiserver\"}[5m]))\n / sum by(instance,verb) (rate(apiserver_request_total{job=\"apiserver\"}[5m]))",
+                        "legend": "{{ instance }}  {{ verb }}"
                     }
                 ],
                 "name": "API Server - Errors by verb",
@@ -329,7 +344,8 @@
                 "description": "apiserver的5xx错误率，按请求动作分类统计",
                 "options": {
                     "tooltip": {
-                        "mode": "multi"
+                        "mode": "all",
+                        "sort": "desc"
                     },
                     "legend": {
                         "displayMode": "list",
@@ -345,7 +361,9 @@
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "lineWidth": 1,
                     "fillOpacity": 0.25,
+                    "gradientMode": "none",
                     "stack": "off"
                 },
                 "version": "2.0.0",
@@ -364,16 +382,17 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(apiserver_request_total[5m])) by (instance)",
+                        "expr": "sum by(instance) (rate(apiserver_request_total{code=~\"5..\", job=\"apiserver\"}[5m]))\n / sum by(instance) (rate(apiserver_request_total{job=\"apiserver\"}[5m]))",
                         "legend": "{{ instance }}"
                     }
                 ],
-                "name": "API Server - Stacked HTTP Requests by instance",
+                "name": "API Server - Errors by Instance",
                 "links": [],
-                "description": "5分钟内apiserver的请求数统计",
+                "description": "apiserver的5xx 错误率(5xx请求数/总请求数)",
                 "options": {
                     "tooltip": {
-                        "mode": "multi"
+                        "mode": "all",
+                        "sort": "desc"
                     },
                     "legend": {
                         "displayMode": "list",
@@ -389,8 +408,10 @@
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "lineWidth": 1,
                     "fillOpacity": 0.25,
-                    "stack": "normal"
+                    "gradientMode": "none",
+                    "stack": "off"
                 },
                 "version": "2.0.0",
                 "type": "timeseries",
@@ -399,17 +420,17 @@
                     "w": 12,
                     "x": 0,
                     "y": 32,
-                    "i": "3e9f9df7-d9fb-4791-b3b2-2c52678f060f",
+                    "i": "92a209a1-7d30-4627-9ae1-55ded5095ed7",
                     "isResizable": true
                 },
-                "id": "3e9f9df7-d9fb-4791-b3b2-2c52678f060f"
+                "id": "92a209a1-7d30-4627-9ae1-55ded5095ed7"
             },
             {
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(workqueue_depth{job=\"apiserver\"}[5m])) by (instance)",
-                        "legend": "{{ instance }}"
+                        "expr": "sum(rate(workqueue_depth{job=\"apiserver\"}[5m])) by (instance,name)",
+                        "legend": "{{ instance }} {{ name }}"
                     }
                 ],
                 "name": "API Server - Work Queue by instance",
@@ -417,7 +438,8 @@
                 "description": "apiserver工作队列深度，越接近0越好",
                 "options": {
                     "tooltip": {
-                        "mode": "multi"
+                        "mode": "all",
+                        "sort": "desc"
                     },
                     "legend": {
                         "displayMode": "list",
@@ -433,7 +455,9 @@
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "lineWidth": 1,
                     "fillOpacity": 0.25,
+                    "gradientMode": "none",
                     "stack": "off"
                 },
                 "version": "2.0.0",
@@ -452,6 +476,53 @@
                 "targets": [
                     {
                         "refId": "A",
+                        "expr": "sum(rate(apiserver_request_total{job=\"apiserver\"}[5m])) by (instance)",
+                        "legend": "{{ instance }}"
+                    }
+                ],
+                "name": "API Server - HTTP Requests by instance",
+                "links": [],
+                "description": "5分钟内apiserver的请求数统计",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "none"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 1,
+                    "fillOpacity": 0.25,
+                    "gradientMode": "none",
+                    "stack": "normal"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 40,
+                    "i": "3e9f9df7-d9fb-4791-b3b2-2c52678f060f",
+                    "isResizable": true
+                },
+                "id": "3e9f9df7-d9fb-4791-b3b2-2c52678f060f"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
                         "expr": "rate(process_cpu_seconds_total{job=\"apiserver\"}[5m])",
                         "legend": "{{ instance }}"
                     }
@@ -461,7 +532,8 @@
                 "description": "apiserver的cpu使用率",
                 "options": {
                     "tooltip": {
-                        "mode": "multi"
+                        "mode": "all",
+                        "sort": "desc"
                     },
                     "legend": {
                         "displayMode": "list",
@@ -478,7 +550,9 @@
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "lineWidth": 1,
                     "fillOpacity": 0.25,
+                    "gradientMode": "none",
                     "stack": "off"
                 },
                 "version": "2.0.0",
@@ -486,8 +560,8 @@
                 "layout": {
                     "h": 8,
                     "w": 12,
-                    "x": 0,
-                    "y": 40,
+                    "x": 12,
+                    "y": 42,
                     "i": "3d5c1ae5-e640-4986-9202-78258169bffb",
                     "isResizable": true
                 },
@@ -506,7 +580,8 @@
                 "description": "apiserver的内存使用量",
                 "options": {
                     "tooltip": {
-                        "mode": "multi"
+                        "mode": "all",
+                        "sort": "desc"
                     },
                     "legend": {
                         "displayMode": "list",
@@ -522,7 +597,9 @@
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "lineWidth": 1,
                     "fillOpacity": 0.25,
+                    "gradientMode": "none",
                     "stack": "off"
                 },
                 "version": "2.0.0",
@@ -530,8 +607,8 @@
                 "layout": {
                     "h": 8,
                     "w": 12,
-                    "x": 12,
-                    "y": 40,
+                    "x": 0,
+                    "y": 48,
                     "i": "1550a2d5-c808-4174-865a-a41b2c16b486",
                     "isResizable": true
                 },
