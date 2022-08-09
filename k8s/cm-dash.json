@@ -35,6 +35,26 @@
                                 }
                             },
                             "type": "value"
+                        },
+                        {
+                            "type": "special",
+                            "result": {
+                                "color": "#3fc453",
+                                "text": "UP"
+                            },
+                            "match": {
+                                "special": 1
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "result": {
+                                "color": "#f60707",
+                                "text": "DOWN"
+                            },
+                            "match": {
+                                "special": 0
+                            }
                         }
                     ],
                     "standardOptions": {
@@ -64,7 +84,7 @@
                         "legend": "{{ instance }}"
                     }
                 ],
-                "name": "Controller Manager - Election master status",
+                "name": "Controller Manager - Member Status",
                 "links": [],
                 "description": "controller manager 主从状态",
                 "custom": {
@@ -92,8 +112,8 @@
                         {
                             "type": "special",
                             "result": {
-                                "color": "#000000",
-                                "text": "master"
+                                "color": "#3fc453",
+                                "text": "MASTER"
                             },
                             "match": {
                                 "special": 1
@@ -102,8 +122,8 @@
                         {
                             "type": "special",
                             "result": {
-                                "color": "#000000",
-                                "text": "backup"
+                                "color": "#9470ff",
+                                "text": "BACKUP"
                             },
                             "match": {
                                 "special": 0
@@ -231,7 +251,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_requests_total{job=\"apiserver\"}[5m])) by (instance)",
+                        "expr": "sum(rate(rest_client_requests_total{job=\"controller-manager\"}[5m])) by (instance)",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -372,7 +392,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,le))*1000",
+                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,le)) * 1000",
                         "legend": "{{ instance }}"
                     }
                 ],

@@ -1,5 +1,5 @@
 {
-    "name": "Kubernetes / Scheduler",
+    "name": "Kubernetes / Etcd",
     "tags": "Categraf",
     "configs": {
         "version": "2.0.0",
@@ -10,13 +10,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "up{job=\"scheduler\"}",
+                        "expr": "up{job=\"etcd\"}",
                         "legend": "{{ instance }}"
                     }
                 ],
-                "name": "Scheduler - Health Status",
+                "name": "Etcd - Health Status",
                 "links": [],
-                "description": "scheduler健康状态",
+                "description": "etcd健康状态",
                 "custom": {
                     "showHeader": true,
                     "colorMode": "value",
@@ -49,7 +49,7 @@
                         {
                             "type": "special",
                             "result": {
-                                "color": "#f80202",
+                                "color": "#000000",
                                 "text": "DOWN"
                             },
                             "match": {
@@ -80,18 +80,23 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "leader_election_master_status{job=\"scheduler\"}",
-                        "legend": "{{ instance }}"
+                        "expr": "etcd_server_is_leader{job=\"etcd\"} * on (instance) group_left(server_id) etcd_server_id{job=\"etcd\"}",
+                        "legend": ""
                     }
                 ],
-                "name": "Scheduler - Member Status",
+                "name": "Etcd - Member Status",
                 "links": [],
-                "description": "scheduler 主从状态",
+                "description": "etcd snapshot 状态",
                 "custom": {
                     "showHeader": true,
                     "colorMode": "value",
                     "calc": "lastNotNull",
-                    "displayMode": "seriesToRows"
+                    "displayMode": "labelsOfSeriesToRows",
+                    "columns": [
+                        "instance",
+                        "server_id",
+                        "value"
+                    ]
                 },
                 "options": {
                     "valueMappings": [
@@ -106,14 +111,14 @@
                             },
                             "type": "value",
                             "result": {
-                                "text": "val2"
+                                "text": ""
                             }
                         },
                         {
                             "type": "special",
                             "result": {
                                 "color": "#3fc453",
-                                "text": "MASTER"
+                                "text": "LEADER"
                             },
                             "match": {
                                 "special": 1
@@ -122,8 +127,8 @@
                         {
                             "type": "special",
                             "result": {
-                                "color": "#9470ff",
-                                "text": "BACKUP"
+                                "color": "#e90e17",
+                                "text": "LERANER"
                             },
                             "match": {
                                 "special": 0
@@ -148,6 +153,207 @@
                     "w": 12,
                     "x": 12,
                     "y": 0,
+                    "i": "2d6c513d-5553-4635-a3f7-ec5955deb009",
+                    "isResizable": true
+                },
+                "id": "7480f8ad-c5a5-48e8-aec1-c6347beb3f38"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "etcd_server_health_success{job=\"etcd\"}",
+                        "legend": "{{ instance }} - check success"
+                    },
+                    {
+                        "expr": "etcd_server_health_failures{job=\"etcd\"}",
+                        "refId": "B",
+                        "legend": "{{ instance }} - check failure"
+                    }
+                ],
+                "name": "Etcd - Health Check Stats",
+                "links": [],
+                "description": "etcd 健康检查状态",
+                "custom": {
+                    "showHeader": true,
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "displayMode": "seriesToRows"
+                },
+                "options": {
+                    "valueMappings": [],
+                    "standardOptions": {
+                        "util": "none"
+                    }
+                },
+                "overrides": [
+                    {
+                        "properties": {
+                            "valueMappings": []
+                        }
+                    }
+                ],
+                "version": "2.0.0",
+                "type": "table",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 6,
+                    "i": "e8794091-aff6-4dbf-9876-685a6f277794",
+                    "isResizable": true
+                },
+                "id": "db5575c1-0859-4b42-b327-5dd57f1e1225"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "etcd_disk_defrag_inflight{job=\"etcd\"}",
+                        "legend": "{{ instance }}"
+                    }
+                ],
+                "name": "Etcd - Defrag Status",
+                "links": [],
+                "description": "etcd defrag（压缩） 状态",
+                "custom": {
+                    "showHeader": true,
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "displayMode": "seriesToRows"
+                },
+                "options": {
+                    "valueMappings": [
+                        {
+                            "options": {
+                                "0": {
+                                    "text": "DOWN"
+                                },
+                                "1": {
+                                    "text": "UP"
+                                }
+                            },
+                            "type": "value",
+                            "result": {
+                                "text": ""
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "result": {
+                                "color": "#3fc453",
+                                "text": "DEFRAG"
+                            },
+                            "match": {
+                                "special": 1
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "result": {
+                                "color": "#9470ff",
+                                "text": "-"
+                            },
+                            "match": {
+                                "special": 0
+                            }
+                        }
+                    ],
+                    "standardOptions": {
+                        "util": "none"
+                    }
+                },
+                "overrides": [
+                    {
+                        "properties": {
+                            "valueMappings": []
+                        }
+                    }
+                ],
+                "version": "2.0.0",
+                "type": "table",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 6,
+                    "i": "ce4a873d-65f0-4071-868c-e67d6b723ab6",
+                    "isResizable": true
+                },
+                "id": "69d1bab4-1b37-4ece-9630-d8e3e105ce4e"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "etcd_server_snapshot_apply_in_progress_total{job=\"etcd\"}",
+                        "legend": "{{ instance }}"
+                    }
+                ],
+                "name": "Etcd - Snapshot Status",
+                "links": [],
+                "description": "etcd snapshot（快照） 状态",
+                "custom": {
+                    "showHeader": true,
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "displayMode": "seriesToRows"
+                },
+                "options": {
+                    "valueMappings": [
+                        {
+                            "options": {
+                                "0": {
+                                    "text": "DOWN"
+                                },
+                                "1": {
+                                    "text": "UP"
+                                }
+                            },
+                            "type": "value",
+                            "result": {
+                                "text": ""
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "result": {
+                                "color": "#3fc453",
+                                "text": "APPLYING"
+                            },
+                            "match": {
+                                "special": 1
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "result": {
+                                "color": "#9470ff",
+                                "text": "-"
+                            },
+                            "match": {
+                                "special": 0
+                            }
+                        }
+                    ],
+                    "standardOptions": {
+                        "util": "none"
+                    }
+                },
+                "overrides": [
+                    {
+                        "properties": {
+                            "valueMappings": []
+                        }
+                    }
+                ],
+                "version": "2.0.0",
+                "type": "table",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 14,
                     "i": "a5d1ef0c-83e3-4194-b242-d5c51ba4bdd2",
                     "isResizable": true
                 },
@@ -157,13 +363,55 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_requests_total{job=\"scheduler\"}[5m])) by (instance,code)",
-                        "legend": "{{ instance }} {{ code }}"
+                        "expr": "etcd_server_leader_changes_seen_total{job=\"etcd\"}",
+                        "legend": "{{ instance }}"
                     }
                 ],
-                "name": "Scheduler - Requests by code",
+                "name": "Etcd - Leader Change Stats",
                 "links": [],
-                "description": "scheduler 请求量 按返回码统计",
+                "description": "etcd leader切换统计",
+                "custom": {
+                    "showHeader": true,
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "displayMode": "seriesToRows"
+                },
+                "options": {
+                    "valueMappings": [],
+                    "standardOptions": {
+                        "util": "none"
+                    }
+                },
+                "overrides": [
+                    {
+                        "properties": {
+                            "valueMappings": []
+                        }
+                    }
+                ],
+                "version": "2.0.0",
+                "type": "table",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 14,
+                    "i": "25b5262d-a318-4489-9dae-152d31906704",
+                    "isResizable": true
+                },
+                "id": "be940718-c4ac-4f6f-a966-dd1961a9e019"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(rate(grpc_server_handled_total{job=\"etcd\"}[5m])) by (instance,grpc_code)",
+                        "legend": "{{ instance }} {{ grpc_code }}"
+                    }
+                ],
+                "name": "Etcd - Requests by code",
+                "links": [],
+                "description": "etcd 处理的请求数，按响应码统计",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -194,7 +442,7 @@
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 6,
+                    "y": 22,
                     "i": "94713dc3-acb7-43b5-ae2f-399b2da61763",
                     "isResizable": true
                 },
@@ -204,13 +452,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_requests_total{job=\"scheduler\"}[5m])) by (instance,method)",
-                        "legend": "{{ instance }} {{ method }}"
+                        "expr": "sum(rate(grpc_server_handled_total{job=\"etcd\"}[5m])) by (instance)",
+                        "legend": "{{ instance }}"
                     }
                 ],
-                "name": "Scheduler - Requests by verb",
+                "name": "Etcd -Requests by instance",
                 "links": [],
-                "description": "scheduler请求量，按请求类型统计",
+                "description": "etcd处理的请求数， 按实例统计",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -241,54 +489,7 @@
                     "h": 8,
                     "w": 12,
                     "x": 12,
-                    "y": 6,
-                    "i": "a6928b49-cf0a-443e-a8fd-b999685df0be",
-                    "isResizable": true
-                },
-                "id": "a6928b49-cf0a-443e-a8fd-b999685df0be"
-            },
-            {
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "sum(rate(rest_client_requests_total{job=\"scheduler\"}[5m])) by (instance)",
-                        "legend": "{{ instance }}"
-                    }
-                ],
-                "name": "Scheduler -Requests by instance",
-                "links": [],
-                "description": "scheduler请求(apiserver)量",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "desc"
-                    },
-                    "legend": {
-                        "displayMode": "list",
-                        "placement": "bottom"
-                    },
-                    "standardOptions": {
-                        "util": "none"
-                    },
-                    "thresholds": {
-                        "steps": []
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "lineWidth": 1,
-                    "fillOpacity": 0.25,
-                    "gradientMode": "none",
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 14,
+                    "y": 22,
                     "i": "69690063-d044-4547-9f5f-126e5f8bf55a",
                     "isResizable": true
                 },
@@ -298,13 +499,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,verb,le))*1000",
-                        "legend": "{{ instance }} {{ verb }}"
+                        "expr": "sum(rate(grpc_server_handled_total{job=\"etcd\",grpc_method=~\"Compact|Defrag.*|Member.*|Put|Watch|Lease.*|Range|Snapshot|Txn|Hash.*|Status|Auth.*\"}[5m])) by (instance,grpc_method)",
+                        "legend": "{{ instance }} {{ grpc_method }}"
                     }
                 ],
-                "name": "Scheduler - Requests Latancy by verb",
+                "name": "Etcd - Requests by verb",
                 "links": [],
-                "description": "scheduler 90分位请求延迟，按请求类型统计",
+                "description": "etcd处理的请求数，按请求类型统计",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -315,54 +516,7 @@
                         "placement": "bottom"
                     },
                     "standardOptions": {
-                        "util": "milliseconds"
-                    },
-                    "thresholds": {
-                        "steps": []
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "lineWidth": 1,
-                    "fillOpacity": 0.25,
-                    "gradientMode": "none",
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 12,
-                    "y": 14,
-                    "i": "d5a67103-9930-46e0-97e1-296e0d71e30e",
-                    "isResizable": true
-                },
-                "id": "053d10f3-1113-40e0-85aa-dfbabb706995"
-            },
-            {
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,url,verb,le))*1000",
-                        "legend": "{{ instance }} {{ verb }}  {{ url }}"
-                    }
-                ],
-                "name": "Scheduler - Requests Latancy by url",
-                "links": [],
-                "description": "scheduler 90分位请求延迟，按请求类型统计",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "desc"
-                    },
-                    "legend": {
-                        "displayMode": "list",
-                        "placement": "bottom"
-                    },
-                    "standardOptions": {
-                        "util": "milliseconds"
+                        "util": "none"
                     },
                     "thresholds": {
                         "steps": []
@@ -382,23 +536,23 @@
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 22,
-                    "i": "2924bb3f-20c3-4f56-96ff-76d473743d8b",
+                    "y": 30,
+                    "i": "a6928b49-cf0a-443e-a8fd-b999685df0be",
                     "isResizable": true
                 },
-                "id": "c86ed101-a91c-4478-b67a-7182a5e856d1"
+                "id": "a6928b49-cf0a-443e-a8fd-b999685df0be"
             },
             {
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,le))*1000",
+                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket{job=\"etcd\"}[5m])) by (instance,le))*1000",
                         "legend": "{{ instance }}"
                     }
                 ],
-                "name": "Scheduler - Requests Latancy by instance",
+                "name": "Etcd - WAL Fsync Latancy by instance",
                 "links": [],
-                "description": "scheduler 90分位请求延迟，按实例统计",
+                "description": "etcd 90分位WAL fsync耗时",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -429,7 +583,7 @@
                     "h": 8,
                     "w": 12,
                     "x": 12,
-                    "y": 22,
+                    "y": 30,
                     "i": "75671720-bca1-449f-9c68-bf562f105b66",
                     "isResizable": true
                 },
@@ -439,13 +593,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum by(instance,method) (rate(rest_client_requests_total{code=~\"5..\",job=\"scheduler\"}[5m]))\n / sum by(instance,method) (rate(rest_client_requests_total{job=\"scheduler\"}[5m]))",
-                        "legend": "{{ instance }} {{ method }}"
+                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_backend_commit_duration_seconds_bucket{job=\"etcd\"}[5m])) by (instance,le))*1000",
+                        "legend": "{{ instance }} "
                     }
                 ],
-                "name": "Scheduler - Errors by verb",
+                "name": "Etcd - Commit Latancy by instance",
                 "links": [],
-                "description": "scheduler请求5xx，按请求类型统计",
+                "description": "etcd 90分位commit耗时",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -476,23 +630,23 @@
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 30,
-                    "i": "cfc389ad-5648-4107-a5bd-1680f6ede2ed",
+                    "y": 38,
+                    "i": "d5a67103-9930-46e0-97e1-296e0d71e30e",
                     "isResizable": true
                 },
-                "id": "32a09298-d0f8-4d54-808e-d223d0a428ff"
+                "id": "053d10f3-1113-40e0-85aa-dfbabb706995"
             },
             {
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum by(instance) (rate(rest_client_requests_total{code=~\"5..\",job=\"scheduler\"}[5m]))\n / sum by(instance) (rate(rest_client_requests_total{job=\"scheduler\"}[5m]))",
+                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_backend_defrag_duration_seconds_bucket{job=\"etcd\"}[5m])) by (instance,le))*1000",
                         "legend": "{{ instance }}"
                     }
                 ],
-                "name": "Scheduler - Errors by instance",
+                "name": "Etcd - Defrag Latancy by instance",
                 "links": [],
-                "description": "scheduler请求5xx，按实例统计",
+                "description": "etcd 90分位defrag耗时",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -523,7 +677,106 @@
                     "h": 8,
                     "w": 12,
                     "x": 12,
-                    "y": 30,
+                    "y": 38,
+                    "i": "2924bb3f-20c3-4f56-96ff-76d473743d8b",
+                    "isResizable": true
+                },
+                "id": "c86ed101-a91c-4478-b67a-7182a5e856d1"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_backend_snapshot_duration_seconds_bucket{job=\"etcd\"}[5m])) by (instance,le))*1000",
+                        "legend": "{{ instance }}"
+                    }
+                ],
+                "name": "Etcd - Snapshot Latancy by instance",
+                "links": [],
+                "description": "etcd 90分位snapshot耗时",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "milliseconds"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 1,
+                    "fillOpacity": 0.25,
+                    "gradientMode": "none",
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 46,
+                    "i": "e4ec9053-5700-4ede-abfa-35f115597665",
+                    "isResizable": true
+                },
+                "id": "5c6c48fd-b12b-49d7-86df-b86d90134339"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum by(instance) (rate(etcd_server_proposals_failed_total{job=\"etcd\"}[5m]))",
+                        "legend": "{{ instance }} failure"
+                    },
+                    {
+                        "expr": "etcd_server_proposals_pending{job=\"etcd\"}",
+                        "refId": "B",
+                        "legend": "{{ instance }} pending"
+                    }
+                ],
+                "name": "Etcd - Proposal Failures/Pending by instance",
+                "links": [],
+                "description": "etcd协商失败/pending次数",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "none"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "lineWidth": 1,
+                    "fillOpacity": 0.25,
+                    "gradientMode": "none",
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 46,
                     "i": "152b5817-ad87-44d0-a71f-5fbd0fc10ca3",
                     "isResizable": true
                 },
@@ -533,13 +786,18 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "avg(rate(scheduler_queue_incoming_pods_total{job=\"scheduler\"}[5m])) by (instance)",
-                        "legend": "{{ instance }}"
+                        "expr": "sum (rate(etcd_server_read_indexes_failed_total{job=\"etcd\"}[5m])) by (instance)",
+                        "legend": "{{ instance }} failure read"
+                    },
+                    {
+                        "expr": "sum(rate(etcd_server_slow_read_indexes_total{job=\"etcd\"}[5m])) by (instance)",
+                        "refId": "B",
+                        "legend": "{{ instance }} slow read"
                     }
                 ],
-                "name": "Scheduler - Average Enqueue Rate by instance",
+                "name": "Etcd - Server Read Indexes Failure / Slow Read",
                 "links": [],
-                "description": "pod进入调度队列的平均速率",
+                "description": "etcd读取索引失败 读取索引慢（过期索引或者超时）次数",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -570,23 +828,33 @@
                     "h": 8,
                     "w": 12,
                     "x": 0,
-                    "y": 38,
-                    "i": "0c8ac9ee-2a3e-4e7e-b338-748d79f6cbb6",
+                    "y": 54,
+                    "i": "784d72f7-fb4e-46e3-b632-e70df6dde0a7",
                     "isResizable": true
                 },
-                "id": "0c8ac9ee-2a3e-4e7e-b338-748d79f6cbb6"
+                "id": "369af7f4-9851-4c8c-a186-04db4fa7f90f"
             },
             {
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "avg(rate(scheduler_preemption_attempts_total{job=\"scheduler\"}[5m])) by (instance)",
-                        "legend": "{{ instance }}"
+                        "expr": "etcd_server_quota_backend_bytes{job=\"etcd\"}",
+                        "legend": "{{ instance }} quota"
+                    },
+                    {
+                        "expr": "etcd_mvcc_db_total_size_in_bytes{job=\"etcd\"}",
+                        "refId": "B",
+                        "legend": "{{ instance }} total size"
+                    },
+                    {
+                        "expr": "etcd_mvcc_db_total_size_in_use_in_bytes",
+                        "refId": "C",
+                        "legend": "{{ instance }} in use"
                     }
                 ],
-                "name": "Scheduler - Preemption Attempts Total by instance",
+                "name": "Etcd - MVCC DB Size",
                 "links": [],
-                "description": "调度器驱逐容器的次数",
+                "description": "etcd 存储quota/total/in use大小",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -597,7 +865,7 @@
                         "placement": "bottom"
                     },
                     "standardOptions": {
-                        "util": "none"
+                        "util": "bytesIEC"
                     },
                     "thresholds": {
                         "steps": []
@@ -617,7 +885,7 @@
                     "h": 8,
                     "w": 12,
                     "x": 12,
-                    "y": 38,
+                    "y": 54,
                     "i": "730be715-cfdd-4f2a-b878-1b2fb9a9be45",
                     "isResizable": true
                 },
@@ -627,201 +895,28 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": " scheduler_scheduler_cache_size{job=\"scheduler\"}",
-                        "legend": "{{ instance }} {{ type }}"
-                    }
-                ],
-                "name": "Scheduler - Cache Size",
-                "links": [],
-                "description": "调度器cache中pod node和已绑定pod的数量",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "desc"
+                        "expr": "sum(rate(etcd_mvcc_range_total{job=\"etcd\"}[5m])) by (instance)",
+                        "legend": "{{ instance }} range"
                     },
-                    "legend": {
-                        "displayMode": "list",
-                        "placement": "bottom"
-                    },
-                    "standardOptions": {
-                        "util": "none"
-                    },
-                    "thresholds": {
-                        "steps": []
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "lineWidth": 1,
-                    "fillOpacity": 0.25,
-                    "gradientMode": "none",
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 46,
-                    "i": "668362fe-211a-4286-861c-eeb90907b2fb",
-                    "isResizable": true
-                },
-                "id": "dd189a18-704b-44c0-8a8b-186ccc591c81"
-            },
-            {
-                "targets": [
                     {
-                        "refId": "A",
-                        "expr": "scheduler_pending_pods{job=\"scheduler\"}",
-                        "legend": "{{ instance }} {{ queue }}"
-                    }
-                ],
-                "name": "Scheduler - Pending Pod",
-                "links": [],
-                "description": "调度队列中pending pod的数目",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "desc"
-                    },
-                    "legend": {
-                        "displayMode": "list",
-                        "placement": "bottom"
-                    },
-                    "standardOptions": {
-                        "util": "none"
-                    },
-                    "thresholds": {
-                        "steps": []
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "lineWidth": 1,
-                    "fillOpacity": 0.25,
-                    "gradientMode": "none",
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 12,
-                    "y": 46,
-                    "i": "f20223e4-199a-4b08-b5f0-470ac1974afc",
-                    "isResizable": true
-                },
-                "id": "0e231e69-4651-4728-abcb-46fafd1a7d61"
-            },
-            {
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "histogram_quantile(0.9, sum(rate(scheduler_plugin_execution_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,extension_point,plugin,status,le))*1000",
-                        "legend": "{{ instance }} {{ plugin }} {{ extension_point }} {{ status }}"
-                    }
-                ],
-                "name": "Scheduler - Plugin Execution Duration by plugin",
-                "links": [],
-                "description": "调度插件在每个扩展点的执行时间,90分位",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "desc"
-                    },
-                    "legend": {
-                        "displayMode": "list",
-                        "placement": "bottom"
-                    },
-                    "standardOptions": {
-                        "util": "milliseconds"
-                    },
-                    "thresholds": {
-                        "steps": []
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "lineWidth": 1,
-                    "fillOpacity": 0.25,
-                    "gradientMode": "none",
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 0,
-                    "y": 54,
-                    "i": "ec0db15d-fa63-4448-a961-0b8a7b977dd0",
-                    "isResizable": true
-                },
-                "id": "51cb0215-0827-4543-bb58-64eaec6cdc77"
-            },
-            {
-                "targets": [
-                    {
-                        "expr": "histogram_quantile(0.9, sum (rate(scheduler_scheduling_algorithm_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,le))*1000",
+                        "expr": "sum(rate(etcd_mvcc_put_total{job=\"etcd\"}[5m])) by (instance)",
                         "refId": "B",
-                        "legend": "{{ instance }} "
-                    }
-                ],
-                "name": "Scheduler - Scheduling Algorithm Duration by instance",
-                "links": [],
-                "description": "调度算法90分位耗时",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "desc"
+                        "legend": "{{ instance }} put"
                     },
-                    "legend": {
-                        "displayMode": "list",
-                        "placement": "bottom"
-                    },
-                    "standardOptions": {
-                        "util": "milliseconds"
-                    },
-                    "thresholds": {
-                        "steps": []
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "lineWidth": 1,
-                    "fillOpacity": 0.25,
-                    "gradientMode": "none",
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 8,
-                    "w": 12,
-                    "x": 12,
-                    "y": 54,
-                    "i": "c5c557a6-0f48-4154-91f7-30a300f00813",
-                    "isResizable": true
-                },
-                "id": "bf41347e-c307-4ae1-84d8-6202b563837f"
-            },
-            {
-                "targets": [
                     {
-                        "refId": "A",
-                        "expr": "histogram_quantile(0.9, sum(rate(scheduler_scheduling_attempt_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,le,profile,result))*1000",
-                        "legend": "{{ instance }} {{ profile }} {{ result }}"
+                        "expr": "sum(rate(etcd_mvcc_delete_total{job=\"etcd\"}[5m])) by (instance)",
+                        "refId": "C",
+                        "legend": "{{ instance }} delete"
+                    },
+                    {
+                        "expr": "sum(rate(etcd_mvcc_txn_total{job=\"etcd\"}[5m])) by (instance)",
+                        "refId": "D",
+                        "legend": "{{ instance }} txn"
                     }
                 ],
-                "name": "Scheduler - Scheduling Duration by instance",
+                "name": "Etcd - Operations Stats by instance",
                 "links": [],
-                "description": "调度算法+绑定 90分位耗时",
+                "description": "etcd操作类型统计",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -853,22 +948,22 @@
                     "w": 12,
                     "x": 0,
                     "y": 62,
-                    "i": "68585816-6a08-422d-a7d3-c414ae427380",
+                    "i": "cfc389ad-5648-4107-a5bd-1680f6ede2ed",
                     "isResizable": true
                 },
-                "id": "4f2de85b-7fa7-4e06-bcbf-7362fa71f010"
+                "id": "32a09298-d0f8-4d54-808e-d223d0a428ff"
             },
             {
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(process_cpu_seconds_total{job=\"scheduler\"}[5m])",
+                        "expr": "rate(process_cpu_seconds_total{job=\"etcd\"}[5m])",
                         "legend": "{{ instance }}"
                     }
                 ],
-                "name": "Scheduler - CPU Usage by instance",
+                "name": "Etcd - CPU Usage by instance",
                 "links": [],
-                "description": "scheduler cpu使用率",
+                "description": "etcd cpu使用率",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -910,13 +1005,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "process_resident_memory_bytes{job=\"scheduler\"}",
+                        "expr": "process_resident_memory_bytes{job=\"etcd\"}",
                         "legend": "{{ instance }}"
                     }
                 ],
-                "name": "Scheduler - Memory Usage by instance",
+                "name": "Etcd - Memory Usage by instance",
                 "links": [],
-                "description": "scheduler 内存使用量",
+                "description": "etcd 内存使用量",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -957,13 +1052,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "process_open_fds{job=\"scheduler\"}",
+                        "expr": "process_open_fds{job=\"etcd\"}",
                         "legend": "{{ instance }}"
                     }
                 ],
-                "name": "Scheduler - Open fds by instance",
+                "name": "Etcd - Open fds by instance",
                 "links": [],
-                "description": "scheduler打开的fd数量",
+                "description": "etcd打开的fd数量",
                 "options": {
                     "tooltip": {
                         "mode": "all",
