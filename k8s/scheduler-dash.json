@@ -244,7 +244,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -277,13 +278,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_request_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,verb)",
+                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,verb,le))*1000",
                         "legend": "{{ instance }} {{ verb }}"
                     }
                 ],
                 "name": "Scheduler - Requests Latancy by verb",
                 "links": [],
-                "description": "scheduler请求延迟，按请求类型统计",
+                "description": "scheduler 90分位请求延迟，按请求类型统计",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -324,13 +325,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_request_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,url,verb)",
+                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,url,verb,le))*1000",
                         "legend": "{{ instance }} {{ verb }}  {{ url }}"
                     }
                 ],
                 "name": "Scheduler - Requests Latancy by url",
                 "links": [],
-                "description": "scheduler请求延迟，按请求类型统计",
+                "description": "scheduler 90分位请求延迟，按请求类型统计",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -371,13 +372,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_request_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance)",
+                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,le))*1000",
                         "legend": "{{ instance }}"
                     }
                 ],
                 "name": "Scheduler - Requests Latancy by instance",
                 "links": [],
-                "description": "scheduler请求延迟，按实例统计",
+                "description": "scheduler 90分位请求延迟，按实例统计",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -525,7 +526,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -571,7 +573,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -617,7 +620,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -663,7 +667,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -696,20 +701,21 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(scheduler_plugin_execution_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,extension_point,plugin,status)",
+                        "expr": "histogram_quantile(0.9, sum(rate(scheduler_plugin_execution_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,extension_point,plugin,status,le))*1000",
                         "legend": "{{ instance }} {{ plugin }} {{ extension_point }} {{ status }}"
                     }
                 ],
                 "name": "Scheduler - Plugin Execution Duration by plugin",
                 "links": [],
-                "description": "调度插件在每个扩展点的执行时间",
+                "description": "调度插件在每个扩展点的执行时间,90分位",
                 "options": {
                     "tooltip": {
                         "mode": "all",
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "milliseconds"
@@ -741,21 +747,22 @@
             {
                 "targets": [
                     {
-                        "refId": "A",
-                        "expr": "sum(rate(scheduler_scheduling_algorithm_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,profile, result)",
+                        "expr": "histogram_quantile(0.9, sum (rate(scheduler_scheduling_algorithm_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,le))*1000",
+                        "refId": "B",
                         "legend": "{{ instance }} "
                     }
                 ],
                 "name": "Scheduler - Scheduling Algorithm Duration by instance",
                 "links": [],
-                "description": "调度算法耗时",
+                "description": "调度算法90分位耗时",
                 "options": {
                     "tooltip": {
                         "mode": "all",
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "milliseconds"
@@ -788,20 +795,21 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(scheduler_scheduling_attempt_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance)",
-                        "legend": "{{ instance }} "
+                        "expr": "histogram_quantile(0.9, sum(rate(scheduler_scheduling_attempt_duration_seconds_bucket{job=\"scheduler\"}[5m])) by (instance,le,profile,result))*1000",
+                        "legend": "{{ instance }} {{ profile }} {{ result }}"
                     }
                 ],
                 "name": "Scheduler - Scheduling Duration by instance",
                 "links": [],
-                "description": "调度算法+绑定耗时",
+                "description": "调度算法+绑定 90分位耗时",
                 "options": {
                     "tooltip": {
                         "mode": "all",
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "milliseconds"
@@ -942,7 +950,7 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list"
                     },
                     "standardOptions": {
                         "util": "none"

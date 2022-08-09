@@ -241,7 +241,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(apiserver_request_duration_seconds_bucket{job=\"apiserver\"}[5m])) by (instance,verb)",
+                        "expr": "histogram_quantile(0.9, sum(rate(apiserver_request_duration_seconds_bucket{job=\"apiserver\"}[5m])) by (instance,verb,le))*1000",
                         "legend": "{{ instance }} {{ verb }}"
                     }
                 ],
@@ -288,13 +288,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(apiserver_request_duration_seconds_bucket {job=\"apiserver\"}[5m])) by (instance)",
+                        "expr": "histogram_quantile(0.9, sum(rate(apiserver_request_duration_seconds_bucket {job=\"apiserver\",verb!=\"WATCH\"}[5m])) by (instance,le))*1000",
                         "legend": "{{ instance }}"
                     }
                 ],
                 "name": "API Server - HTTP Requets Latency by instance",
                 "links": [],
-                "description": "apiserver的响应延迟",
+                "description": "apiserver的响应延迟(非watch请求）",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -561,7 +561,7 @@
                     "h": 8,
                     "w": 12,
                     "x": 12,
-                    "y": 42,
+                    "y": 40,
                     "i": "3d5c1ae5-e640-4986-9202-78258169bffb",
                     "isResizable": true
                 },

@@ -103,7 +103,7 @@
                             "type": "special",
                             "result": {
                                 "color": "#000000",
-                                "text": "slave"
+                                "text": "backup"
                             },
                             "match": {
                                 "special": 0
@@ -244,7 +244,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -277,13 +278,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_request_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,verb)",
+                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,verb,le))*1000",
                         "legend": "{{ instance }} {{ verb }}"
                     }
                 ],
                 "name": "Controller Manager - Requests Latancy by verb",
                 "links": [],
-                "description": "controller manager请求延迟，按请求类型统计",
+                "description": "controller manager 90分位请求apiserver延迟，按请求类型统计",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -324,13 +325,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_request_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,url,verb)",
+                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,url,verb,le))*1000",
                         "legend": "{{ instance }} {{ verb }}  {{ url }}"
                     }
                 ],
                 "name": "Controller Manager - Requests Latancy by url",
                 "links": [],
-                "description": "controller manager请求延迟，按请求类型统计",
+                "description": "controller manager90分位请求延迟，按url统计",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -371,13 +372,13 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(rest_client_request_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance)",
+                        "expr": "histogram_quantile(0.9, sum(rate(rest_client_request_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,le))*1000",
                         "legend": "{{ instance }}"
                     }
                 ],
                 "name": "Controller Manager - Requests Latancy by instance",
                 "links": [],
-                "description": "controller manager请求延迟，按实例统计",
+                "description": "controller manager90分位请求延迟，按实例统计",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -516,7 +517,7 @@
                         "legend": "{{ instance }} {{ name }}"
                     }
                 ],
-                "name": "Controller Manager - average enqueue rate",
+                "name": "Controller Manager - Average Enqueue Rate by instance",
                 "links": [],
                 "description": "controller manager workqueue 添加任务数的速率",
                 "options": {
@@ -525,7 +526,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -562,7 +564,7 @@
                         "legend": "{{ instance }} {{ name }} workqueue depth"
                     }
                 ],
-                "name": "Controller Manager - workqueue depth by name",
+                "name": "Controller Manager - WorkQueue Depth by name",
                 "links": [],
                 "description": "各个controller 队列深度",
                 "options": {
@@ -571,7 +573,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -604,20 +607,21 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(workqueue_queue_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,name)",
+                        "expr": "histogram_quantile(0.9, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,name,le))*1000",
                         "legend": "{{ instance }} {{ name }}"
                     }
                 ],
-                "name": "Controller Manager - WorkQueue Queue time by name",
+                "name": "Controller Manager - WorkQueue Queue Time by name",
                 "links": [],
-                "description": "controller manager 任务在队列中的等待耗时",
+                "description": "任务在队列中的90分位等待耗时",
                 "options": {
                     "tooltip": {
                         "mode": "all",
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "milliseconds"
@@ -650,20 +654,21 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(workqueue_work_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,name)",
+                        "expr": "histogram_quantile(0.9, sum(rate(workqueue_work_duration_seconds_bucket{job=\"controller-manager\"}[5m])) by (instance,name,le))*1000",
                         "legend": "{{ instance }} {{ name }}"
                     }
                 ],
                 "name": "Controller Manager - WorkQueue Work Time by name",
                 "links": [],
-                "description": "controller manager 任务出队到完成的耗时",
+                "description": "controller manager 90分位 任务出队到完成的耗时",
                 "options": {
                     "tooltip": {
                         "mode": "all",
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "milliseconds"
@@ -709,7 +714,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -755,7 +761,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "milliseconds"
@@ -806,7 +813,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -852,7 +860,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -951,7 +960,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
@@ -997,7 +1007,8 @@
                         "sort": "desc"
                     },
                     "legend": {
-                        "displayMode": "hidden"
+                        "displayMode": "list",
+                        "placement": "bottom"
                     },
                     "standardOptions": {
                         "util": "none"
