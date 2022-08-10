@@ -1,7 +1,7 @@
 # monitoring kubernetes control plane with plugin prometheus
 
 
-## if your control plane is in pod, for example, you use kubeadm build k8s cluster. Then kube-controller-manager, kube-scheduler and etcd need some extrac work to be discovery.
+## if your control plane is in pod, for example, you use kubeadm build k8s cluster. Then kube-controller-manager, kube-scheduler and etcd need some extra work to be discovery.
 
 ### create service for kube-controller-manager
 1. `kubectl apply -f controller-service.yaml` 
