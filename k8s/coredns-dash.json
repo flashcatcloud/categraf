@@ -1,0 +1,504 @@
+{
+    "name": "Kubernetes / CoreDNS",
+    "tags": "Categraf",
+    "configs": {
+        "version": "2.0.0",
+        "links": [],
+        "var": [
+            {
+                "name": "instance",
+                "definition": "label_values(up{job=\"coredns\"}, instance)",
+                "multi": true,
+                "allOption": true
+            },
+            {
+                "name": "protocol",
+                "definition": "label_values(coredns_dns_requests_total, proto)",
+                "allOption": false,
+                "multi": false
+            }
+        ],
+        "panels": [
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "up{job=\"coredns\", instance=~\"$instance\"}",
+                        "legend": "{{ instance }}"
+                    }
+                ],
+                "name": "CoreDNS - Health Status",
+                "links": [],
+                "description": "core dns健康状态",
+                "custom": {
+                    "textMode": "value",
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "colSpan": 1,
+                    "textSize": {}
+                },
+                "options": {
+                    "valueMappings": [
+                        {
+                            "options": {
+                                "0": {
+                                    "text": "DOWN"
+                                },
+                                "1": {
+                                    "text": "UP"
+                                }
+                            },
+                            "type": "value"
+                        }
+                    ],
+                    "standardOptions": {
+                        "util": "none"
+                    }
+                },
+                "version": "2.0.0",
+                "type": "stat",
+                "layout": {
+                    "h": 3,
+                    "w": 24,
+                    "x": 0,
+                    "y": 0,
+                    "i": "5d6560c5-6137-4632-bb88-ff8c9cf42e9d"
+                },
+                "id": "5d6560c5-6137-4632-bb88-ff8c9cf42e9d"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "rate(process_cpu_seconds_total{job=\"coredns\", instance=~\"$instance\"}[5m])",
+                        "legend": "{{ instance }}"
+                    }
+                ],
+                "name": "CoreDNS - CPU Usage by instance",
+                "links": [],
+                "description": "coredns cpu使用率",
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "percentUnit",
+                        "decimals": 2
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.25,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 3,
+                    "i": "9c187c1c-f5cd-4aab-af81-09169948ab82"
+                },
+                "id": "9c187c1c-f5cd-4aab-af81-09169948ab82"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "process_resident_memory_bytes{job=\"coredns\", instance=~\"$instance\"}",
+                        "legend": "{{ instance }}"
+                    }
+                ],
+                "name": "CoreDNS - Memory Usage by instance",
+                "links": [],
+                "description": "coredns 内存使用量",
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "bytesIEC"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.25,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 3,
+                    "i": "8cff2618-b2d4-4fb4-bfc2-d1d4c4f1b35c"
+                },
+                "id": "8cff2618-b2d4-4fb4-bfc2-d1d4c4f1b35c"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(rate(coredns_dns_requests_total{instance=~\"$instance\",proto=\"$protocol\"}[5m]))",
+                        "legend": "total $protocol requests"
+                    }
+                ],
+                "name": "CoreDNS - Total DNS Requests ($protocol)",
+                "links": [],
+                "description": "coredns请求量",
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "none"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.25,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 11,
+                    "i": "69690063-d044-4547-9f5f-126e5f8bf55a"
+                },
+                "id": "69690063-d044-4547-9f5f-126e5f8bf55a"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "avg(rate(coredns_dns_request_size_bytes_sum{instance=~\"$instance\",proto=\"$protocol\"}[5m])) by (proto)",
+                        "legend": "average $protocol packet size"
+                    }
+                ],
+                "name": "CoreDNS - Average Packet Size  ($protocol)",
+                "links": [],
+                "description": "coredns 平均包大小",
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "bytesIEC"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.25,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 11,
+                    "i": "0c8ac9ee-2a3e-4e7e-b338-748d79f6cbb6"
+                },
+                "id": "0c8ac9ee-2a3e-4e7e-b338-748d79f6cbb6"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(rate(coredns_dns_requests_total{instance=~\"$instance\"}[5m])) by (type)",
+                        "legend": "{{ type }}"
+                    }
+                ],
+                "name": "CoreDNS - Requests by type",
+                "links": [],
+                "description": "coredns 请求量，按请求类型统计",
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "none"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.25,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 19,
+                    "i": "a6928b49-cf0a-443e-a8fd-b999685df0be"
+                },
+                "id": "a6928b49-cf0a-443e-a8fd-b999685df0be"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(rate(coredns_dns_responses_total{instance=~\"$instance\"}[5m])) by (rcode)",
+                        "legend": "{{ rcode }}"
+                    }
+                ],
+                "name": "CoreDNS - Requests by return code",
+                "links": [],
+                "description": "coredns 请求量 按返回码统计",
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "none"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.25,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 19,
+                    "i": "94713dc3-acb7-43b5-ae2f-399b2da61763"
+                },
+                "id": "94713dc3-acb7-43b5-ae2f-399b2da61763"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(rate(coredns_forward_requests_total[5m]))",
+                        "legend": "total forward requests"
+                    }
+                ],
+                "name": "CoreDNS - Total Forward Requests",
+                "links": [],
+                "description": "coredns转发请求量",
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "none"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.25,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 27,
+                    "i": "b15af6b1-107d-4246-9eec-06fd370d4d35"
+                },
+                "id": "b15af6b1-107d-4246-9eec-06fd370d4d35"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(rate(coredns_forward_responses_total{rcode=\"SERVFAIL|REFUSED\"}[5m])) by (rcode)",
+                        "legend": "{{ rcode }}"
+                    }
+                ],
+                "name": "CoreDNS - DNS Errors",
+                "links": [],
+                "description": "coredns error",
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "none"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.25,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 27,
+                    "i": "6a656941-722f-4815-901a-438f677812cd"
+                },
+                "id": "6a656941-722f-4815-901a-438f677812cd"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(rate(coredns_cache_hits_total{instance=~\"$instance\"}[5m])) by (type)",
+                        "legend": "{{ type }}"
+                    },
+                    {
+                        "refId": "B",
+                        "expr": "sum(rate(coredns_cache_misses_total{instance=~\"$instance\"}[5m])) by (type)",
+                        "legend": "misses"
+                    }
+                ],
+                "name": "CoreDNS - Cache Hits / Misses",
+                "links": [],
+                "description": "coredns缓存命中/缺失次数",
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "none"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.25,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 35,
+                    "i": "bccb6071-786c-44ed-8e5e-8b47a8c5349e"
+                },
+                "id": "bccb6071-786c-44ed-8e5e-8b47a8c5349e"
+            },
+            {
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(coredns_cache_entries) by (type)",
+                        "legend": "{{ type }}"
+                    }
+                ],
+                "name": "CoreDNS - Cache Size",
+                "links": [],
+                "description": "coredns cache 条目数",
+                "options": {
+                    "tooltip": {
+                        "mode": "multi"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "util": "bytesIEC"
+                    },
+                    "thresholds": {
+                        "steps": []
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "fillOpacity": 0.25,
+                    "stack": "off"
+                },
+                "version": "2.0.0",
+                "type": "timeseries",
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 35,
+                    "i": "331d24a5-65e5-4f89-ab92-38d0ede3cb61"
+                },
+                "id": "331d24a5-65e5-4f89-ab92-38d0ede3cb61"
+            }
+        ]
+    }
+}
