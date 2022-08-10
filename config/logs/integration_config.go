@@ -34,16 +34,16 @@ type (
 		Type string
 
 		Port        int    // Network
-		IdleTimeout string `mapstructure:"idle_timeout" json:"idle_timeout"` // Network
+		IdleTimeout string `mapstructure:"idle_timeout" json:"idle_timeout" toml:"idle_timeout"` // Network
 		Path        string // File, Journald
 
-		Encoding     string   `mapstructure:"encoding" json:"encoding"`             // File
-		ExcludePaths []string `mapstructure:"exclude_paths" json:"exclude_paths"`   // File
-		TailingMode  string   `mapstructure:"start_position" json:"start_position"` // File
+		Encoding     string   `mapstructure:"encoding" json:"encoding" toml:"encoding"`                   // File
+		ExcludePaths []string `mapstructure:"exclude_paths" json:"exclude_paths" toml:"exclude_paths"`    // File
+		TailingMode  string   `mapstructure:"start_position" json:"start_position" toml:"start_position"` // File
 
-		IncludeUnits  []string `mapstructure:"include_units" json:"include_units"`   // Journald
-		ExcludeUnits  []string `mapstructure:"exclude_units" json:"exclude_units"`   // Journald
-		ContainerMode bool     `mapstructure:"container_mode" json:"container_mode"` // Journald
+		IncludeUnits  []string `mapstructure:"include_units" json:"include_units" toml:"include_units"`    // Journald
+		ExcludeUnits  []string `mapstructure:"exclude_units" json:"exclude_units" toml:"exclude_units"`    // Journald
+		ContainerMode bool     `mapstructure:"container_mode" json:"container_mode" toml:"container_mode"` // Journald
 
 		Image string // Docker
 		Label string // Docker
@@ -52,7 +52,7 @@ type (
 		// Identifier contains the container ID
 		Identifier string // Docker
 
-		ChannelPath string `mapstructure:"channel_path" json:"channel_path"` // Windows Event
+		ChannelPath string `mapstructure:"channel_path" json:"channel_path" toml:"channel_path"` // Windows Event
 		Query       string // Windows Event
 
 		// used as input only by the Channel tailer.
@@ -63,11 +63,11 @@ type (
 		Source          string
 		SourceCategory  string
 		Tags            []string
-		ProcessingRules []*ProcessingRule `mapstructure:"log_processing_rules" json:"log_processing_rules"`
+		ProcessingRules []*ProcessingRule `mapstructure:"log_processing_rules" json:"log_processing_rules" toml:"log_processing_rules"`
 
-		AutoMultiLine               bool    `mapstructure:"auto_multi_line_detection" json:"auto_multi_line_detection"`
-		AutoMultiLineSampleSize     int     `mapstructure:"auto_multi_line_sample_size" json:"auto_multi_line_sample_size"`
-		AutoMultiLineMatchThreshold float64 `mapstructure:"auto_multi_line_match_threshold" json:"auto_multi_line_match_threshold"`
+		AutoMultiLine               bool    `mapstructure:"auto_multi_line_detection" json:"auto_multi_line_detection" toml:"auto_multi_line_detectio"`
+		AutoMultiLineSampleSize     int     `mapstructure:"auto_multi_line_sample_size" json:"auto_multi_line_sample_size" toml:"auto_multi_line_sample_size"`
+		AutoMultiLineMatchThreshold float64 `mapstructure:"auto_multi_line_match_threshold" json:"auto_multi_line_match_threshold" toml:"auto_multi_line_match_threshold"`
 	}
 )
 

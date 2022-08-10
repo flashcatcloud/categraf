@@ -88,7 +88,7 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64) erro
 	}
 
 	if err := cfg.LoadConfigs(configDir, Config); err != nil {
-		return fmt.Errorf("failed to load configs of dir: %s", configDir)
+		return fmt.Errorf("failed to load configs of dir: %s err:%s", configDir, err)
 	}
 
 	if interval > 0 {
@@ -108,8 +108,12 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64) erro
 	}
 
 	if Config.Global.PrintConfigs {
-		bs, _ := json.MarshalIndent(Config, "", "    ")
-		fmt.Println(string(bs))
+		bs, err := json.MarshalIndent(Config, "", "    ")
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(string(bs))
+		}
 	}
 
 	return nil
