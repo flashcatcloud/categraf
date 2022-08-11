@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/house"
@@ -40,7 +41,14 @@ func pushgateway(c *gin.Context) {
 	ignoreHostname := c.GetBool("ignore_hostname")
 	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
 
+	now := time.Now()
+
 	for i := 0; i < count; i++ {
+		// handle timestamp
+		if samples[i].Timestamp.IsZero() {
+			samples[i].Timestamp = now
+		}
+
 		// add global labels
 		if !ignoreGlobalLabels {
 			for k, v := range config.Config.Global.Labels {
