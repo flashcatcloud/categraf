@@ -13,10 +13,13 @@ import (
 )
 
 func Start() {
-	conf := config.Config.HTTP
-	if !conf.Enable {
+	if config.Config == nil ||
+		config.Config.HTTP == nil ||
+		!config.Config.HTTP.Enable {
 		return
 	}
+
+	conf := config.Config.HTTP
 
 	gin.SetMode(conf.RunMode)
 

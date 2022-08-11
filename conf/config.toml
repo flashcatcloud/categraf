@@ -44,7 +44,7 @@ dial_timeout = 2500
 max_idle_conns_per_host = 100
 
 [http]
-enable = true
+enable = false
 address = ":9100"
 print_access = false
 run_mode = "release"
