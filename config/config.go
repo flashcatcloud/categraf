@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -11,6 +10,7 @@ import (
 
 	"flashcat.cloud/categraf/config/traces"
 	"flashcat.cloud/categraf/pkg/cfg"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/toolkits/pkg/file"
 )
 
@@ -108,6 +108,7 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64) erro
 	}
 
 	if Config.Global.PrintConfigs {
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		bs, err := json.MarshalIndent(Config, "", "    ")
 		if err != nil {
 			fmt.Println(err)
