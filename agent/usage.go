@@ -67,13 +67,11 @@ func Report() {
 	}
 	timer := time.NewTimer(1 * time.Second)
 	defer timer.Stop()
-	go func() {
-		for {
-			select {
-			case <-timer.C:
-				do()
-				timer.Reset(10 * time.Minute)
-			}
+	for {
+		select {
+		case <-timer.C:
+			do()
+			timer.Reset(10 * time.Second)
 		}
-	}()
+	}
 }
