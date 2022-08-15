@@ -68,6 +68,7 @@ func main() {
 	initWriters()
 
 	go api.Start()
+	go agent.Report()
 
 	ag := agent.NewAgent(parseFilter(*inputFilters))
 	runAgent(ag)
