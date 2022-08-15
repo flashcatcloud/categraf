@@ -19,7 +19,8 @@ const inputName = "ipvs"
 
 type IPVS struct {
 	config.PluginConfig
-	Instances []*Instance `toml:"instances"`
+
+	handle *ipvs.Handle
 }
 
 func init() {
@@ -28,23 +29,8 @@ func init() {
 	})
 }
 
-func (l *IPVS) GetInstances() []inputs.Instance {
-	ret := make([]inputs.Instance, len(l.Instances))
-	for i := 0; i < len(l.Instances); i++ {
-		ret[i] = l.Instances[i]
-	}
-	return ret
-}
-
-// IPVS holds the state for this input plugin
-type Instance struct {
-	config.InstanceConfig
-
-	handle *ipvs.Handle
-}
-
 // Gather gathers the stats
-func (i *Instance) Gather(slist *types.SampleList) error {
+func (i *IPVS) Gather(slist *types.SampleList) error {
 	if i.handle == nil {
 		h, err := ipvs.New("")
 		if err != nil {
