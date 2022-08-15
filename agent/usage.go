@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	url = "http://n9e.io/report"
+	url = "http://n9e.io/categraf"
 )
 
 func do() {
@@ -22,17 +22,15 @@ func do() {
 	}
 
 	u := struct {
-		Samples    float64
-		Users      float64
-		Hostname   string
-		Version    string
-		Maintainer string
+		Hostname string
+		Version  string
+		Job      string
+		User     string
 	}{
-		Samples:    1.0,
-		Users:      1.0,
-		Hostname:   hostname,
-		Maintainer: "categraf",
-		Version:    config.Version,
+		Hostname: hostname,
+		Version:  config.Version,
+		Job:      "categraf",
+		User:     "",
 	}
 	body, err := json.Marshal(u)
 	if err != nil {
