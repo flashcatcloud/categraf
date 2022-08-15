@@ -65,7 +65,7 @@ func Report() {
 	if config.Config.DisableUsageReport {
 		return
 	}
-	timer := time.NewTimer(0 * time.Second)
+	timer := time.NewTimer(1 * time.Second)
 	defer timer.Stop()
 	go func() {
 		for {
