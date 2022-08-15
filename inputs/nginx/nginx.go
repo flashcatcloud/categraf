@@ -95,14 +95,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, u := range ins.Urls {
 		addr, err := url.Parse(u)
 		if err != nil {
-			log.Printf("failed to parse the url: %s, error: %v", u, err)
+			log.Println("E! failed to parse the url:", u, "error:", err)
 			continue
 		}
 		wg.Add(1)
 		go func(addr *url.URL) {
 			defer wg.Done()
 			if err := ins.gather(addr, slist); err != nil {
-				log.Println(err)
+				log.Println("E!", err)
 			}
 		}(addr)
 	}
@@ -139,7 +139,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 
 func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	if config.Config.DebugMode {
-		log.Println("D! nginx... url: ", addr)
+		log.Println("D! nginx... url:", addr)
 	}
 
 	var body io.Reader
@@ -167,7 +167,7 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			log.Println("E! failed to close the body of client: ", err)
+			log.Println("E! failed to close the body of client:", err)
 		}
 	}(resp.Body)
 
