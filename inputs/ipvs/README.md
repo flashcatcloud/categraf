@@ -15,7 +15,6 @@ to ensure these permissions before running telegraf with this plugin included.
 ## Configuration
 ```
 # Collect virtual and real server stats from Linux IPVS
-[[instances]]
   # no configuration
 ```
 
