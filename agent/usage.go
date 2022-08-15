@@ -71,7 +71,7 @@ func Report() {
 		select {
 		case <-timer.C:
 			do()
-			timer.Reset(10 * time.Second)
+			timer.Reset(10 * time.Minute)
 		}
 	}
 }
