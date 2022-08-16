@@ -1,0 +1,285 @@
+{
+  "name": "kafka by topic",
+  "tags": "",
+  "configs": {
+    "var": [
+      {
+        "type": "query",
+        "name": "cluster",
+        "definition": "label_values(kafka_brokers, cluster)",
+        "multi": false
+      },
+      {
+        "type": "query",
+        "name": "topic",
+        "definition": "label_values(kafka_topic_partitions{cluster=\"$cluster\"}, topic)",
+        "multi": false
+      },
+      {
+        "type": "query",
+        "name": "consumergroup",
+        "definition": "label_values(kafka_consumergroup_current_offset{cluster=\"$cluster\",topic=~\"$topic\"}, consumergroup)"
+      }
+    ],
+    "panels": [
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(kafka_topic_partition_current_offset{cluster=\"$cluster\", topic=~\"$topic\"})  by (topic, partition) - sum(kafka_consumergroup_current_offset{cluster=\"$cluster\", topic=~\"$topic\", consumergroup=\"$consumergroup\"}) by (topic, partition)",
+            "legend": "lag"
+          }
+        ],
+        "name": "current consume lag by partition (c)",
+        "custom": {
+          "showHeader": true,
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "displayMode": "labelsOfSeriesToRows",
+          "columns": [
+            "topic",
+            "partition",
+            "value"
+          ],
+          "sortColumn": "partition",
+          "sortOrder": "ascend"
+        },
+        "options": {
+          "standardOptions": {}
+        },
+        "overrides": [
+          {}
+        ],
+        "version": "2.0.0",
+        "type": "table",
+        "layout": {
+          "h": 5,
+          "w": 12,
+          "x": 0,
+          "y": 0,
+          "i": "ccdac0e6-82d7-4b43-b669-fb142e73a995",
+          "isResizable": true
+        },
+        "id": "407bf0c9-3d6c-434b-ab63-65ef8892ef8d"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(kafka_topic_partition_current_offset{cluster=\"$cluster\", topic=~\"$topic\"}) by (topic) - sum(kafka_consumergroup_current_offset_sum{cluster=\"$cluster\", topic=~\"$topic\", consumergroup=\"$consumergroup\"}) by (topic)",
+            "legend": "lag"
+          }
+        ],
+        "name": "message consume lag total (c)",
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [
+            {
+              "type": "range",
+              "result": {
+                "color": "#3fc453"
+              },
+              "match": {
+                "from": 0,
+                "to": 1000
+              }
+            },
+            {
+              "type": "range",
+              "result": {
+                "color": "#ff656b"
+              },
+              "match": {
+                "from": 1000
+              }
+            }
+          ],
+          "standardOptions": {}
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 5,
+          "w": 12,
+          "x": 12,
+          "y": 0,
+          "i": "a03d2f72-18eb-4aca-bee0-60e2fd5bbf2e",
+          "isResizable": true
+        },
+        "id": "1b3956e9-6ffe-4059-9c14-24481574b211"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(rate(kafka_topic_partition_current_offset{cluster=\"$cluster\", topic=~\"$topic\"}[1m]))  by (topic)",
+            "legend": "produce rate"
+          },
+          {
+            "expr": "sum(rate(kafka_consumergroup_current_offset_sum{cluster=\"$cluster\", topic=~\"$topic\", consumergroup=\"$consumergroup\"}[1m])) by (topic)",
+            "refId": "B",
+            "legend": "consume rate"
+          }
+        ],
+        "name": "message produce/consume rate (c/s)",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {}
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off"
+        },
+        "version": "2.0.0",
+        "type": "timeseries",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 5,
+          "i": "4b437335-de79-4f6e-bf2c-469e75071e15",
+          "isResizable": true
+        },
+        "id": "4b437335-de79-4f6e-bf2c-469e75071e15"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(rate(kafka_topic_partition_current_offset{cluster=\"$cluster\", topic=~\"$topic\"})[1m]) by (topic, partition)",
+            "legend": "{{ partition }}"
+          }
+        ],
+        "name": "message produce rate by partition (c/s)",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {}
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off"
+        },
+        "version": "2.0.0",
+        "type": "timeseries",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 5,
+          "i": "451959d1-d42d-4d6b-8b84-ba16633c91fe",
+          "isResizable": true
+        },
+        "id": "f98a2f34-86fd-4bdb-8f40-cf2e26a9d203"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(kafka_topic_partition_current_offset{cluster=\"$cluster\", topic=~\"$topic\"}) by (topic) - sum(kafka_consumergroup_current_offset_sum{cluster=\"$cluster\", topic=~\"$topic\", consumergroup=\"$consumergroup\"}) by (topic)",
+            "legend": "lag"
+          }
+        ],
+        "name": "message consume lag total (c)",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {}
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off"
+        },
+        "version": "2.0.0",
+        "type": "timeseries",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 12,
+          "i": "3dbd60f8-e697-4464-9e3d-0302990a90d5",
+          "isResizable": true
+        },
+        "id": "f99ad1c9-7885-4ffd-bab6-11e96f49f309"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(kafka_topic_partition_current_offset{cluster=\"$cluster\", topic=~\"$topic\"}) by (topic, partition) - sum(kafka_consumergroup_current_offset{cluster=\"$cluster\", topic=~\"$topic\", consumergroup=\"$consumergroup\"}) by (topic, partition)",
+            "legend": "{{ partition }}"
+          }
+        ],
+        "name": "message consume lag by partition (c)",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {}
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off"
+        },
+        "version": "2.0.0",
+        "type": "timeseries",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 12,
+          "i": "fae80df9-314d-4ff0-8c4f-850871cc2508",
+          "isResizable": true
+        },
+        "id": "0d2763f7-7058-46f8-9821-b7d423653fae"
+      }
+    ],
+    "version": "2.0.0"
+  }
+}

@@ -32,6 +32,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/net_response"
 	_ "flashcat.cloud/categraf/inputs/netstat"
 	_ "flashcat.cloud/categraf/inputs/nfsclient"
+	_ "flashcat.cloud/categraf/inputs/nginx"
 	_ "flashcat.cloud/categraf/inputs/nginx_upstream_check"
 	_ "flashcat.cloud/categraf/inputs/ntp"
 	_ "flashcat.cloud/categraf/inputs/nvidia_smi"
