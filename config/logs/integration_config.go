@@ -25,6 +25,16 @@ const (
 	UTF16BE string = "utf-16-be"
 	// UTF16LE for UTF-16 Little Endian encoding
 	UTF16LE string = "utf-16-le"
+
+	// https://en.wikipedia.org/wiki/GB_2312
+	// https://en.wikipedia.org/wiki/GBK_(character_encoding)
+	// https://en.wikipedia.org/wiki/GB_18030
+	// https://en.wikipedia.org/wiki/Big5
+	GB18030  string = "gb18030"
+	GB2312   string = "gb2312"
+	HZGB2312 string = "hz-gb2312"
+	GBK      string = "gbk"
+	BIG5     string = "big5"
 )
 
 // LogsConfig represents a log source config, which can be for instance
