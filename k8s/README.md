@@ -33,3 +33,15 @@
 10. `kubectl apply -f  deployment-etcd-http.yaml -n monitoring`
 
 Make sure that `deployment.yaml` always appears with `etcd-service.yaml` and `deployment-etcd-http` appears with `etcd-service-http.yaml`. They cannot be apply at the same time.
+
+#dashboards show
+___
+![apiserver-dashboards](images/apiserver-dash.jpg)
+___
+![controller-dashboards](images/cm-dash.jpg)
+___
+![scheduler-dashboards](images/scheduler-dash.jpg)
+___
+![etcd-dashboards](images/etcd-dash.jpg)
+___
+![coredns-dashboards](images/coredns-dash.jpg)
