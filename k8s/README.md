@@ -34,7 +34,7 @@
 
 Make sure that `deployment.yaml` always appears with `etcd-service.yaml` and `deployment-etcd-http` appears with `etcd-service-http.yaml`. They cannot be apply at the same time.
 
-#dashboards show
+# dashboards show
 ___
 ![apiserver-dashboards](images/apiserver-dash.jpg)
 ___
