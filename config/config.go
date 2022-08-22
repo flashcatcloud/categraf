@@ -35,9 +35,10 @@ type WriterOpt struct {
 }
 
 type WriterOption struct {
-	Url           string `toml:"url"`
-	BasicAuthUser string `toml:"basic_auth_user"`
-	BasicAuthPass string `toml:"basic_auth_pass"`
+	Url           string   `toml:"url"`
+	BasicAuthUser string   `toml:"basic_auth_user"`
+	BasicAuthPass string   `toml:"basic_auth_pass"`
+	Headers       []string `toml:"headers"`
 
 	Timeout             int64 `toml:"timeout"`
 	DialTimeout         int64 `toml:"dial_timeout"`

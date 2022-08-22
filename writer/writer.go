@@ -52,6 +52,10 @@ func (w WriterType) Post(req []byte) error {
 	httpReq.Header.Set("User-Agent", "categraf")
 	httpReq.Header.Set("X-Prometheus-Remote-Write-Version", "0.1.0")
 
+	for i := 0; i < len(w.Opts.Headers); i += 2 {
+		httpReq.Header.Add(w.Opts.Headers[i], w.Opts.Headers[i+1])
+	}
+
 	if w.Opts.BasicAuthUser != "" {
 		httpReq.SetBasicAuth(w.Opts.BasicAuthUser, w.Opts.BasicAuthPass)
 	}
