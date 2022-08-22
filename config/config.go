@@ -62,6 +62,8 @@ type ConfigType struct {
 	DebugMode bool
 	TestMode  bool
 
+	DisableUsageReport bool `toml:"disable_usage_report"`
+
 	// from config.toml
 	Global       Global         `toml:"global"`
 	WriterOpt    WriterOpt      `toml:"writer_opt"`

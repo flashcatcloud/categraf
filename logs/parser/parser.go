@@ -7,6 +7,8 @@ package parser
 
 import (
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/encoding/traditionalchinese"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 )
@@ -22,6 +24,16 @@ const (
 	UTF16LE = iota
 	// UTF16BE UTF16 big endian
 	UTF16BE
+	//
+	GBK18030
+	//
+	GB2312
+	//
+	HZGB2312
+	//
+	GBK
+	//
+	BIG5
 )
 
 // Parser parse messages
@@ -67,6 +79,14 @@ func NewDecodingParser(e Encoding) *DecodingParser {
 		enc = unicode.UTF16(unicode.LittleEndian, unicode.UseBOM)
 	case UTF16BE:
 		enc = unicode.UTF16(unicode.BigEndian, unicode.UseBOM)
+	case GBK, GB2312:
+		enc = simplifiedchinese.GBK
+	case HZGB2312:
+		enc = simplifiedchinese.HZGB2312
+	case GBK18030:
+		enc = simplifiedchinese.GB18030
+	case BIG5:
+		enc = traditionalchinese.Big5
 	}
 	p.decoder = enc.NewDecoder()
 	return p

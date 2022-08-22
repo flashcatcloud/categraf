@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -77,13 +78,26 @@ func NewDecoderFromSourceWithPattern(source *logsconfig.LogSource, multiLinePatt
 	//  lineParser = docker.JSONParser
 	//  matcher = &decoder.NewLineMatcher{}
 	default:
-		switch source.Config.Encoding {
+		switch strings.ToLower(source.Config.Encoding) {
 		case logsconfig.UTF16BE:
 			lineParser = parser.NewDecodingParser(parser.UTF16BE)
 			matcher = decoder.NewBytesSequenceMatcher(decoder.Utf16beEOL)
 		case logsconfig.UTF16LE:
 			lineParser = parser.NewDecodingParser(parser.UTF16LE)
 			matcher = decoder.NewBytesSequenceMatcher(decoder.Utf16leEOL)
+		case logsconfig.GB18030:
+			lineParser = parser.NewDecodingParser(parser.GBK18030)
+			matcher = &decoder.NewLineMatcher{}
+		case logsconfig.HZGB2312:
+			lineParser = parser.NewDecodingParser(parser.HZGB2312)
+			matcher = &decoder.NewLineMatcher{}
+		case logsconfig.GBK, logsconfig.GB2312:
+			lineParser = parser.NewDecodingParser(parser.GBK)
+			matcher = &decoder.NewLineMatcher{}
+		case logsconfig.BIG5:
+			lineParser = parser.NewDecodingParser(parser.BIG5)
+			matcher = &decoder.NewLineMatcher{}
+
 		default:
 			lineParser = parser.NoopParser
 			matcher = &decoder.NewLineMatcher{}

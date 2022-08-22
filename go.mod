@@ -24,11 +24,14 @@ require (
 	github.com/hashicorp/consul/api v1.13.0
 	github.com/influxdata/line-protocol/v2 v2.2.1
 	github.com/jmoiron/sqlx v1.3.5
+	github.com/json-iterator/go v1.1.12
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
 	github.com/krallistic/kazoo-go v0.0.0-20170526135507-a15279744f4e
+	github.com/mattn/go-isatty v0.0.14
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369
 	github.com/miekg/dns v1.1.50
+	github.com/moby/ipvs v1.0.2
 	github.com/oklog/run v1.1.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alibabacloudlogserviceexporter v0.54.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/jaegerexporter v0.54.0
@@ -187,7 +190,6 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/klauspost/compress v1.15.6 // indirect
 	github.com/knadh/koanf v1.4.2 // indirect
@@ -198,7 +200,6 @@ require (
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -251,6 +252,8 @@ require (
 	github.com/uber/jaeger-client-go v2.30.0+incompatible // indirect
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
+	github.com/vishvananda/netlink v1.1.0 // indirect
+	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
 	github.com/vultr/govultr/v2 v2.17.2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.1 // indirect
