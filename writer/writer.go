@@ -54,6 +54,9 @@ func (w WriterType) Post(req []byte) error {
 
 	for i := 0; i < len(w.Opts.Headers); i += 2 {
 		httpReq.Header.Add(w.Opts.Headers[i], w.Opts.Headers[i+1])
+		if w.Opts.Headers[i] == "Host" {
+			httpReq.Host = w.Opts.Headers[i+1]
+		}
 	}
 
 	if w.Opts.BasicAuthUser != "" {
