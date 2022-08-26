@@ -15,6 +15,10 @@ const inputName = "netstat"
 type NetStats struct {
 	ps system.PS
 	config.PluginConfig
+	Laddr_IP   string `toml:"laddr_ip"`
+	Laddr_Port uint32 `toml:"laddr_port"`
+	Raddr_IP   string `toml:"raddr_ip"`
+	Raddr_Port uint32 `toml:"raddr_port"`
 }
 
 func init() {
@@ -47,7 +51,22 @@ func (s *NetStats) Gather(slist *types.SampleList) {
 		if !ok {
 			counts[netcon.Status] = 0
 		}
-		counts[netcon.Status] = c + 1
+		var zero uint32 = 0
+
+		if len(s.Laddr_IP) != 0 ||
+			len(s.Raddr_IP) != 0 ||
+			s.Laddr_Port != zero ||
+			s.Raddr_Port != zero {
+			if s.Laddr_IP == netcon.Laddr.IP ||
+				s.Laddr_Port == netcon.Laddr.Port ||
+				s.Raddr_IP == netcon.Raddr.IP ||
+				s.Raddr_Port == netcon.Raddr.Port {
+				counts[netcon.Status] = c + 1
+			}
+		} else {
+			counts[netcon.Status] = c + 1
+		}
+
 	}
 
 	fields := map[string]interface{}{
