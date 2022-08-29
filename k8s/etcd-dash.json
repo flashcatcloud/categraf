@@ -4,13 +4,18 @@
     "configs": {
         "version": "2.0.0",
         "links": [],
-        "var": [],
+        "var": [
+            {
+                "name": "job",
+                "definition": "label_values(etcd_server_is_leader, job)"
+            }
+        ],
         "panels": [
             {
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "up{job=\"etcd\"}",
+                        "expr": "up{job=\"$job\"}",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -80,7 +85,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "etcd_server_is_leader{job=\"etcd\"} * on (instance) group_left(server_id) etcd_server_id{job=\"etcd\"}",
+                        "expr": "etcd_server_is_leader{job=\"$job\"} * on (instance) group_left(server_id) etcd_server_id{job=\"$job\"}",
                         "legend": ""
                     }
                 ],
@@ -162,11 +167,11 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "etcd_server_health_success{job=\"etcd\"}",
+                        "expr": "etcd_server_health_success{job=\"$job\"}",
                         "legend": "{{ instance }} - check success"
                     },
                     {
-                        "expr": "etcd_server_health_failures{job=\"etcd\"}",
+                        "expr": "etcd_server_health_failures{job=\"$job\"}",
                         "refId": "B",
                         "legend": "{{ instance }} - check failure"
                     }
@@ -209,7 +214,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "etcd_disk_defrag_inflight{job=\"etcd\"}",
+                        "expr": "etcd_disk_defrag_inflight{job=\"$job\"}",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -286,7 +291,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "etcd_server_snapshot_apply_in_progress_total{job=\"etcd\"}",
+                        "expr": "etcd_server_snapshot_apply_in_progress_total{job=\"$job\"}",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -363,7 +368,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "etcd_server_leader_changes_seen_total{job=\"etcd\"}",
+                        "expr": "etcd_server_leader_changes_seen_total{job=\"$job\"}",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -405,7 +410,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(grpc_server_handled_total{job=\"etcd\"}[5m])) by (instance,grpc_code)",
+                        "expr": "sum(rate(grpc_server_handled_total{job=\"$job\"}[5m])) by (instance,grpc_code)",
                         "legend": "{{ instance }} {{ grpc_code }}"
                     }
                 ],
@@ -452,7 +457,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(grpc_server_handled_total{job=\"etcd\"}[5m])) by (instance)",
+                        "expr": "sum(rate(grpc_server_handled_total{job=\"$job\"}[5m])) by (instance)",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -499,7 +504,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(grpc_server_handled_total{job=\"etcd\",grpc_method=~\"Compact|Defrag.*|Member.*|Put|Watch|Lease.*|Range|Snapshot|Txn|Hash.*|Status|Auth.*\"}[5m])) by (instance,grpc_method)",
+                        "expr": "sum(rate(grpc_server_handled_total{job=\"$job\",grpc_method=~\"Compact|Defrag.*|Member.*|Put|Watch|Lease.*|Range|Snapshot|Txn|Hash.*|Status|Auth.*\"}[5m])) by (instance,grpc_method)",
                         "legend": "{{ instance }} {{ grpc_method }}"
                     }
                 ],
@@ -546,7 +551,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket{job=\"etcd\"}[5m])) by (instance,le))*1000",
+                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_wal_fsync_duration_seconds_bucket{job=\"$job\"}[5m])) by (instance,le))*1000",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -593,7 +598,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_backend_commit_duration_seconds_bucket{job=\"etcd\"}[5m])) by (instance,le))*1000",
+                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_backend_commit_duration_seconds_bucket{job=\"$job\"}[5m])) by (instance,le))*1000",
                         "legend": "{{ instance }} "
                     }
                 ],
@@ -640,7 +645,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_backend_defrag_duration_seconds_bucket{job=\"etcd\"}[5m])) by (instance,le))*1000",
+                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_backend_defrag_duration_seconds_bucket{job=\"$job\"}[5m])) by (instance,le))*1000",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -687,7 +692,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_backend_snapshot_duration_seconds_bucket{job=\"etcd\"}[5m])) by (instance,le))*1000",
+                        "expr": "histogram_quantile(0.9, sum(rate(etcd_disk_backend_snapshot_duration_seconds_bucket{job=\"$job\"}[5m])) by (instance,le))*1000",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -734,11 +739,11 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum by(instance) (rate(etcd_server_proposals_failed_total{job=\"etcd\"}[5m]))",
+                        "expr": "sum by(instance) (rate(etcd_server_proposals_failed_total{job=\"$job\"}[5m]))",
                         "legend": "{{ instance }} failure"
                     },
                     {
-                        "expr": "etcd_server_proposals_pending{job=\"etcd\"}",
+                        "expr": "etcd_server_proposals_pending{job=\"$job\"}",
                         "refId": "B",
                         "legend": "{{ instance }} pending"
                     }
@@ -786,11 +791,11 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum (rate(etcd_server_read_indexes_failed_total{job=\"etcd\"}[5m])) by (instance)",
+                        "expr": "sum (rate(etcd_server_read_indexes_failed_total{job=\"$job\"}[5m])) by (instance)",
                         "legend": "{{ instance }} failure read"
                     },
                     {
-                        "expr": "sum(rate(etcd_server_slow_read_indexes_total{job=\"etcd\"}[5m])) by (instance)",
+                        "expr": "sum(rate(etcd_server_slow_read_indexes_total{job=\"$job\"}[5m])) by (instance)",
                         "refId": "B",
                         "legend": "{{ instance }} slow read"
                     }
@@ -838,11 +843,11 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "etcd_server_quota_backend_bytes{job=\"etcd\"}",
+                        "expr": "etcd_server_quota_backend_bytes{job=\"$job\"}",
                         "legend": "{{ instance }} quota"
                     },
                     {
-                        "expr": "etcd_mvcc_db_total_size_in_bytes{job=\"etcd\"}",
+                        "expr": "etcd_mvcc_db_total_size_in_bytes{job=\"$job\"}",
                         "refId": "B",
                         "legend": "{{ instance }} total size"
                     },
@@ -895,21 +900,21 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(rate(etcd_mvcc_range_total{job=\"etcd\"}[5m])) by (instance)",
+                        "expr": "sum(rate(etcd_mvcc_range_total{job=\"$job\"}[5m])) by (instance)",
                         "legend": "{{ instance }} range"
                     },
                     {
-                        "expr": "sum(rate(etcd_mvcc_put_total{job=\"etcd\"}[5m])) by (instance)",
+                        "expr": "sum(rate(etcd_mvcc_put_total{job=\"$job\"}[5m])) by (instance)",
                         "refId": "B",
                         "legend": "{{ instance }} put"
                     },
                     {
-                        "expr": "sum(rate(etcd_mvcc_delete_total{job=\"etcd\"}[5m])) by (instance)",
+                        "expr": "sum(rate(etcd_mvcc_delete_total{job=\"$job\"}[5m])) by (instance)",
                         "refId": "C",
                         "legend": "{{ instance }} delete"
                     },
                     {
-                        "expr": "sum(rate(etcd_mvcc_txn_total{job=\"etcd\"}[5m])) by (instance)",
+                        "expr": "sum(rate(etcd_mvcc_txn_total{job=\"$job\"}[5m])) by (instance)",
                         "refId": "D",
                         "legend": "{{ instance }} txn"
                     }
@@ -957,7 +962,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(process_cpu_seconds_total{job=\"etcd\"}[5m])",
+                        "expr": "rate(process_cpu_seconds_total{job=\"$job\"}[5m])",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -1005,7 +1010,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "process_resident_memory_bytes{job=\"etcd\"}",
+                        "expr": "process_resident_memory_bytes{job=\"$job\"}",
                         "legend": "{{ instance }}"
                     }
                 ],
@@ -1052,7 +1057,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "process_open_fds{job=\"etcd\"}",
+                        "expr": "process_open_fds{job=\"$job\"}",
                         "legend": "{{ instance }}"
                     }
                 ],
