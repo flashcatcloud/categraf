@@ -48,7 +48,6 @@ func (s *NetStats) Gather(slist *types.SampleList) {
 			counts[netcon.Status] = 0
 		}
 		counts[netcon.Status] = c + 1
-
 	}
 
 	fields := map[string]interface{}{
