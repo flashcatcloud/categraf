@@ -31,11 +31,6 @@ func init() {
 	})
 }
 
-func (pt *RocketMQ) Prefix() string                 { return inputName }
-func (pt *RocketMQ) Init() error                    { return nil }
-func (pt *RocketMQ) Drop()                          {}
-func (pt *RocketMQ) Gather(slist *types.SampleList) {}
-
 func (pt *RocketMQ) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
 	for i := 0; i < len(pt.Instances); i++ {
@@ -50,10 +45,6 @@ type Instance struct {
 	RocketMQConsoleIPAndPort string   `toml:"rocketmq_console_ip_port"`
 }
 
-func (ins *Instance) Init() error {
-	return nil
-}
-
 func (ins *Instance) Gather(slist *types.SampleList) {
 	//获取rocketmq集群中的topicNameList
 	topicNameArray := GetTopicNameList(ins.RocketMQConsoleIPAndPort)
@@ -63,27 +54,27 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	//按照topic聚合msgDiff
-	var diff_Topic_Map = make(map[string]*MsgDiff_Topic)
+	var diff_Topic_Map = make(map[string]*MsgDiffTopic)
 
 	//按照consumerGroup聚合msgDiff
 	//var diff_ConsumerGroup_Slice []model.MsgDiff_ConsumerGroup = []model.MsgDiff_ConsumerGroup{}
-	var diff_ConsumerGroup_Map = make(map[string]*MsgDiff_ConsumerGroup)
+	var diff_ConsumerGroup_Map = make(map[string]*MsgDiffConsumerGroup)
 
 	//按照topic, consumeGroup聚合msgDiff
 	//var diff_Topic_ConsumerGroup_Slice []model.MsgDiff_Topics_ConsumerGroup = []model.MsgDiff_Topics_ConsumerGroup{}
-	var diff_Topic_ConsumerGroup_Map = make(map[string]*MsgDiff_Topic_ConsumerGroup)
+	var diff_Topic_ConsumerGroup_Map = make(map[string]*MsgDiffTopicConsumerGroup)
 
 	//按照broker聚合msgDiff
 	//var diff_Broker_Slice []model.MsgDiff_Broker = []model.MsgDiff_Broker{}
-	var diff_Broker_Map = make(map[string]*MsgDiff_Broker)
+	var diff_Broker_Map = make(map[string]*MsgDiffBroker)
 
 	//按照clientInfo聚合msgDiff
 	//var diff_Clientinfo_Slice []model.MsgDiff_ClientInfo = []model.MsgDiff_ClientInfo{}
-	var diff_Clientinfo_Map = make(map[string]*MsgDiff_ClientInfo)
+	var diff_Clientinfo_Map = make(map[string]*MsgDiffClientInfo)
 
 	//按照queue聚合msgDiff
 	//var MsgDiff_Queue_Slice []model.MsgDiff_Queue = []model.MsgDiff_Queue{}
-	var diff_Queue_Map = make(map[string]*MsgDiff_Queue)
+	var diff_Queue_Map = make(map[string]*MsgDiffQueue)
 
 	for i := range topicNameArray {
 		var topicName = topicNameArray[i]
@@ -92,7 +83,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			continue
 		}
 
-		var data *ConsumerList_By_Topic = GetConsumerListByTopic(ins.RocketMQConsoleIPAndPort, topicName)
+		var data *ConsumerListByTopic = GetConsumerListByTopic(ins.RocketMQConsoleIPAndPort, topicName)
 
 		if data == nil {
 			continue
@@ -145,7 +136,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					//如果已经存在，计算diff
 					diff_Topic_Map[topic].Diff = diff_Topic_Map[topic].Diff + diff
 				} else {
-					var diffTopic *MsgDiff_Topic = new(MsgDiff_Topic)
+					var diffTopic *MsgDiffTopic = new(MsgDiffTopic)
 
 					diffTopic.Diff = diff
 					diffTopic.Topic = topic
@@ -157,7 +148,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				if _, ok := diff_ConsumerGroup_Map[cgName]; ok {
 					diff_ConsumerGroup_Map[cgName].Diff = diff_ConsumerGroup_Map[cgName].Diff + diff
 				} else {
-					var diffConsumerGroup *MsgDiff_ConsumerGroup = new(MsgDiff_ConsumerGroup)
+					var diffConsumerGroup *MsgDiffConsumerGroup = new(MsgDiffConsumerGroup)
 
 					diffConsumerGroup.ConsumerGroup = cgName
 					diffConsumerGroup.Diff = diff
@@ -171,7 +162,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					diff_Topic_ConsumerGroup_Map[topic_cgName].Diff = diff_Topic_ConsumerGroup_Map[topic_cgName].Diff + diff
 
 				} else {
-					var diff_topic_cg *MsgDiff_Topic_ConsumerGroup = new(MsgDiff_Topic_ConsumerGroup)
+					var diff_topic_cg *MsgDiffTopicConsumerGroup = new(MsgDiffTopicConsumerGroup)
 
 					diff_topic_cg.ConsumerGroup = cgName
 					diff_topic_cg.Diff = diff
@@ -185,7 +176,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				if _, ok := diff_Broker_Map[brokerName]; ok {
 					diff_Broker_Map[brokerName].Diff = diff_Broker_Map[brokerName].Diff + diff
 				} else {
-					var diff_Broker *MsgDiff_Broker = new(MsgDiff_Broker)
+					var diff_Broker *MsgDiffBroker = new(MsgDiffBroker)
 
 					diff_Broker.Broker = brokerName
 					diff_Broker.Diff = diff
@@ -198,7 +189,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				if _, ok := diff_Queue_Map[string(queueId)]; ok {
 					diff_Queue_Map[queuestr].Diff = diff_Queue_Map[queuestr].Diff + diff
 				} else {
-					var diff_Queue *MsgDiff_Queue = new(MsgDiff_Queue)
+					var diff_Queue *MsgDiffQueue = new(MsgDiffQueue)
 
 					diff_Queue.Broker = brokerName
 					diff_Queue.Diff = diff
@@ -212,7 +203,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				if _, ok := diff_Clientinfo_Map[clientInfo]; ok {
 					diff_Clientinfo_Map[clientInfo].Diff = diff_Clientinfo_Map[clientInfo].Diff + diff
 				} else {
-					var diff_ClientInfo *MsgDiff_ClientInfo = new(MsgDiff_ClientInfo)
+					var diff_ClientInfo *MsgDiffClientInfo = new(MsgDiffClientInfo)
 
 					diff_ClientInfo.ConsumerClientIP = consumerClientIP
 					diff_ClientInfo.ConsumerClientPID = consumerClientPID
@@ -283,11 +274,11 @@ func GetTopicNameList(rocketmqConsoleIPAndPort string) []string {
 	return jsonData.Data.TopicList
 }
 
-func GetConsumerListByTopic(rocketmqConsoleIPAndPort string, topicName string) *ConsumerList_By_Topic {
+func GetConsumerListByTopic(rocketmqConsoleIPAndPort string, topicName string) *ConsumerListByTopic {
 	var url = consoleSchema + rocketmqConsoleIPAndPort + queryConsumerByTopicPath + topicName
 	var content = doRequest(url)
 
-	var jsonData *ConsumerList_By_Topic
+	var jsonData *ConsumerListByTopic
 	err := json.Unmarshal([]byte(content), &jsonData)
 
 	if err != nil {
