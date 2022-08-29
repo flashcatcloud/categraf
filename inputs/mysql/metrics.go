@@ -53,6 +53,9 @@ var VARIABLES_VARS = map[string]struct{}{
 	"query_cache_size":        {},
 	"table_open_cache":        {},
 	"thread_cache_size":       {},
+	"long_query_time":         {},
+	"max_user_connections":    {},
+	"read_only":               {},
 }
 
 // auto compute

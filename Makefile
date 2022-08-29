@@ -27,6 +27,10 @@ build-linux:
 	echo "Building version $(GIT_VERSION) for linux"
 	GOOS=linux GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP)
 
+build-linux-arm:
+	echo "Building version $(GIT_VERSION) for linux"
+	GOOS=linux GOARCH=arm64 go build -ldflags $(LDFLAGS) -o $(APP)
+
 build-windows:
 	echo "Building version $(GIT_VERSION) for windows"
 	GOOS=windows GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).exe
