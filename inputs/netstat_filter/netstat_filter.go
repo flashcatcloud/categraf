@@ -64,18 +64,17 @@ func (s *Instance) Gather(slist *types.SampleList) {
 
 	// TODO: add family to tags or else
 	tags := map[string]string{}
-	var zero uint32 = 0
 	if len(s.Laddr_IP) != 0 {
-		tags["Laddr_IP"] = s.Laddr_IP
+		tags["laddr_ip"] = s.Laddr_IP
 	}
 	if len(s.Laddr_Port) != 0 {
-		tags["Laddr_Port"] = s.Laddr_Port
+		tags["laddr_port"] = s.Laddr_Port
 	}
 	if len(s.Raddr_IP) != 0 {
-		tags["Raddr_IP"] = s.Raddr_IP
+		tags["raddr_ip"] = s.Raddr_IP
 	}
 	if len(s.Raddr_Port) != 0 {
-		tags["Raddr_Port"] = s.Raddr_Port
+		tags["raddr_port"] = s.Raddr_Port
 	}
 
 	for _, netcon := range netconns {
