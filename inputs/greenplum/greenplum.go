@@ -1,4 +1,4 @@
-package tpl
+package greenplum
 
 import (
 	"log"
@@ -38,8 +38,6 @@ func (ins *Greenplum) Gather(slist *types.SampleList) {
 	const lastHeader string = "gpadmin-[INFO]:---"
 	stateValue := stringOut[(strings.Index(stringOut, splitHeader) + len(splitHeader)) : strings.LastIndex(stringOut, lastHeader)-47]
 	stateValue = strings.TrimSpace(stateValue)
-	log.Println("")
-	log.Println(stateValue)
 	gpstate := strings.Fields(stateValue)
 	if len(gpstate)%7 != 0 {
 		log.Println("E! failed to parse gpstate -m output: %v", gpstate)
