@@ -2,22 +2,15 @@ package agent
 
 import (
 	"errors"
-	"fmt"
 	"log"
-	"path"
-	"strings"
 
-	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/file"
 )
 
-const inputFilePrefix = "input."
-
 func (a *Agent) startMetricsAgent() error {
-	names, err := a.getInputsByDirs()
+	names, err := a.InputProvider.GetInputs()
 	if err != nil {
 		return err
 	}
@@ -45,7 +38,12 @@ func (a *Agent) startMetricsAgent() error {
 		input := creator()
 
 		// set configurations for input instance
-		err = cfg.LoadConfigs(path.Join(config.Config.ConfigDir, inputFilePrefix+name), input)
+		configs, err := a.InputProvider.GetInputConfig(name)
+		if err != nil {
+			log.Println("E! failed to get configuration of plugin:", name, "error:", err)
+			continue
+		}
+		err = cfg.LoadConfigs(configs, input)
 		if err != nil {
 			log.Println("E! failed to load configuration of plugin:", name, "error:", err)
 			continue
@@ -91,28 +89,6 @@ func (a *Agent) startMetricsAgent() error {
 	}
 
 	return nil
-}
-
-// input dir should has prefix input.
-func (a *Agent) getInputsByDirs() ([]string, error) {
-	dirs, err := file.DirsUnder(config.Config.ConfigDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get dirs under %s : %v", config.Config.ConfigDir, err)
-	}
-
-	count := len(dirs)
-	if count == 0 {
-		return dirs, nil
-	}
-
-	names := make([]string, 0, count)
-	for i := 0; i < count; i++ {
-		if strings.HasPrefix(dirs[i], inputFilePrefix) {
-			names = append(names, dirs[i][len(inputFilePrefix):])
-		}
-	}
-
-	return names, nil
 }
 
 func (a *Agent) stopMetricsAgent() {

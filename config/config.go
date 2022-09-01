@@ -90,7 +90,7 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64) erro
 		TestMode:  testMode,
 	}
 
-	if err := cfg.LoadConfigs(configDir, Config); err != nil {
+	if err := cfg.LoadConfigByDir(configDir, Config); err != nil {
 		return fmt.Errorf("failed to load configs of dir: %s err:%s", configDir, err)
 	}
 
