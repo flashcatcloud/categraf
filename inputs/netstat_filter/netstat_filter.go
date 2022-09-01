@@ -14,13 +14,13 @@ import (
 const inputName = "netstat_filter"
 
 type NetStatFilter struct {
+	ps system.PS
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
 type Instance struct {
 	ps system.PS
 	config.InstanceConfig
-
 	Laddr_IP   string `toml:"laddr_ip"`
 	Laddr_Port uint32 `toml:"laddr_port"`
 	Raddr_IP   string `toml:"raddr_ip"`
@@ -28,9 +28,9 @@ type Instance struct {
 }
 
 func init() {
-
+	ps := system.NewSystemPS()
 	inputs.Add(inputName, func() inputs.Input {
-		return &NetStatFilter{}
+		return &NetStatFilter{ps: ps}
 	})
 }
 func (l *NetStatFilter) GetInstances() []inputs.Instance {
@@ -46,7 +46,6 @@ func (ins *Instance) Init() error {
 		len(ins.Raddr_IP) != 0 ||
 		ins.Laddr_Port != zero ||
 		ins.Raddr_Port != zero {
-		ins.ps = system.NewSystemPS()
 		return nil
 	}
 	log.Println("E! not setup filter")
