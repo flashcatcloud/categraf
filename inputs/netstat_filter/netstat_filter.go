@@ -48,7 +48,6 @@ func (ins *Instance) Init() error {
 		ins.Raddr_Port != zero {
 		return nil
 	}
-	log.Println("E! not setup filter")
 	return types.ErrInstancesEmpty
 }
 func (ins *Instance) Gather(slist *types.SampleList) {
