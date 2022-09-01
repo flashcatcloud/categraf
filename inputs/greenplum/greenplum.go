@@ -41,6 +41,7 @@ func (ins *Greenplum) Gather(slist *types.SampleList) {
 	gpstate := strings.Fields(stateValue)
 	if len(gpstate)%7 != 0 {
 		log.Println("E! failed to parse gpstate -m output: %v", gpstate)
+		return
 	}
 	line := len(gpstate) / 7
 	for i := 0; i < line; i++ {
