@@ -19,6 +19,9 @@ precision = "ms"
 # global collect interval
 interval = 15
 
+# input provider settings; optional: LocalProvider / HttpRemoteProvider
+provider = "LocalProvider"
+
 # [global.labels]
 # region = "shanghai"
 # env = "localhost"
@@ -51,3 +54,26 @@ enable = false
 address = ":9100"
 print_access = false
 run_mode = "release"
+
+[http_remote_provider]
+# HttpRemoteProvider插件，通过Http请求的方式获取Categraf的配置
+# 通过设置global中的provider为HttpRemoteProvider启用
+# example request: GET /categraf/configs?agent=categraf&host=machine1 HTTP/1.1
+# example response (响应结构为map[string][]string):
+# {
+#    "mysql": [
+#      "# # collect interval\n# interval = 15\n\n[[ instances ]]\naddress = \"127.0.01:3306\"\nusername = \"111\"\npassword = \"222\"\nlabels = { instance = \"mysql\"}\nextra_innodb_metrics =true"
+#    ]
+#  }
+#
+# remote url
+remote_url = "http://localhost:20000/categraf/configs"
+
+# additional tags when request config from remote
+tags = {agent = "categraf"}
+
+# format: toml/yaml/json for config content
+config_format = "toml"
+
+# reload interval in seconds
+reload_interval = 120

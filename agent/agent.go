@@ -59,15 +59,18 @@ type Agent struct {
 	InputProvider  inputs.Provider
 }
 
-func NewAgent(filters map[string]struct{}) *Agent {
-	provider := inputs.NewProvider("default", config.Config)
+func NewAgent(filters map[string]struct{}) (*Agent, error) {
+	provider, err := inputs.NewProvider(config.Config)
+	if err != nil {
+		return nil, err
+	}
 	agent := &Agent{
 		InputFilters:  filters,
 		InputReaders:  make(map[string]*InputReader),
 		InputProvider: provider,
 	}
-	go provider.StartReloader(agent.Reload)
-	return agent
+	provider.StartReloader(agent.Reload)
+	return agent, nil
 }
 
 func (a *Agent) Start() {

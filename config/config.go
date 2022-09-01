@@ -27,6 +27,7 @@ type Global struct {
 	Labels       map[string]string `toml:"labels"`
 	Precision    string            `toml:"precision"`
 	Interval     Duration          `toml:"interval"`
+	Provider     string            `toml:"provider"`
 }
 
 type WriterOpt struct {
@@ -74,6 +75,8 @@ type ConfigType struct {
 	Traces       *traces.Config `toml:"traces"`
 	HTTP         *HTTP          `toml:"http"`
 	Prometheus   *Prometheus    `toml:"prometheus"`
+
+	HttpRemoteProviderConfig *HttpRemoteProviderConfig `toml:"http_remote_provider"`
 }
 
 var Config *ConfigType

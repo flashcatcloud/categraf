@@ -12,9 +12,9 @@ import (
 type ConfigFormat string
 
 const (
-	YamlFormat ConfigFormat = "YamlFormat"
-	TomlFormat ConfigFormat = "TomlFormat"
-	JsonFormat ConfigFormat = "JsonFormat"
+	YamlFormat ConfigFormat = "yaml"
+	TomlFormat ConfigFormat = "toml"
+	JsonFormat ConfigFormat = "json"
 )
 
 type ConfigWithFormat struct {
