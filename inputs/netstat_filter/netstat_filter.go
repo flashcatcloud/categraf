@@ -1,8 +1,8 @@
 package netstat
 
 import (
+	"fmt"
 	"log"
-	"strconv"
 	"syscall"
 
 	"flashcat.cloud/categraf/config"
@@ -14,13 +14,14 @@ import (
 const inputName = "netstat_filter"
 
 type NetStatFilter struct {
-	ps system.PS
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
+
 type Instance struct {
-	ps system.PS
 	config.InstanceConfig
+
+	ps         system.PS
 	Laddr_IP   string `toml:"laddr_ip"`
 	Laddr_Port uint32 `toml:"laddr_port"`
 	Raddr_IP   string `toml:"raddr_ip"`
@@ -28,11 +29,11 @@ type Instance struct {
 }
 
 func init() {
-	ps := system.NewSystemPS()
 	inputs.Add(inputName, func() inputs.Input {
-		return &NetStatFilter{ps: ps}
+		return &NetStatFilter{}
 	})
 }
+
 func (l *NetStatFilter) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(l.Instances))
 	for i := 0; i < len(l.Instances); i++ {
@@ -46,6 +47,7 @@ func (ins *Instance) Init() error {
 		len(ins.Raddr_IP) != 0 ||
 		ins.Laddr_Port != zero ||
 		ins.Raddr_Port != zero {
+		ins.ps = system.NewSystemPS()
 		return nil
 	}
 	return types.ErrInstancesEmpty
@@ -61,34 +63,39 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	// TODO: add family to tags or else
 	tags := map[string]string{}
+
 	if len(ins.Laddr_IP) != 0 {
 		tags["laddr_ip"] = ins.Laddr_IP
 	}
+
 	if ins.Laddr_Port != 0 {
-		tags["laddr_port"] = strconv.Itoa(int(ins.Laddr_Port))
+		tags["laddr_port"] = fmt.Sprint(ins.Laddr_Port)
 	}
+
 	if len(ins.Raddr_IP) != 0 {
 		tags["raddr_ip"] = ins.Raddr_IP
 	}
+
 	if ins.Raddr_Port != 0 {
-		tags["raddr_port"] = strconv.Itoa(int(ins.Raddr_Port))
+		tags["raddr_port"] = fmt.Sprint(ins.Raddr_Port)
 	}
 
 	for _, netcon := range netconns {
 		if netcon.Type == syscall.SOCK_DGRAM {
 			continue // UDP has no status
 		}
+
 		c, ok := counts[netcon.Status]
 		if !ok {
 			counts[netcon.Status] = 0
 		}
+
 		if (len(ins.Laddr_IP) == 0 || ins.Laddr_IP == netcon.Laddr.IP) &&
 			(ins.Laddr_Port == 0 || ins.Laddr_Port == netcon.Laddr.Port) &&
 			(len(ins.Raddr_IP) == 0 || ins.Raddr_IP == netcon.Raddr.IP) &&
 			(ins.Raddr_Port == 0 || ins.Raddr_Port == netcon.Raddr.Port) {
 			counts[netcon.Status] = c + 1
 		}
-
 	}
 
 	fields := map[string]interface{}{
