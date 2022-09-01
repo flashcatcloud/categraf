@@ -2,7 +2,6 @@ package inputs
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -151,9 +150,6 @@ func (hrp *HttpRemoteProvider) reload() (changed bool) {
 	}
 	defer resp.Body.Close()
 	respData, err := io.ReadAll(resp.Body)
-	if len(respData) == 0 {
-		err = errors.New("empty response")
-	}
 	if err != nil {
 		logger.Error("http remote provider: request reload config error ", err)
 		return
