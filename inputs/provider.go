@@ -202,9 +202,7 @@ func newHttpRemoteProvider(c *config.ConfigType) (*HttpRemoteProvider, error) {
 	return httpRemoteProvider, nil
 }
 
-func (hrp *HttpRemoteProvider) reload() (changed bool) {
-	changed = false
-	logger.Info("http remote provider: start reload config from remote ", hrp.RemoteUrl)
+func (hrp *HttpRemoteProvider) doReq() (confResp *httpRemoteProviderResponse, err error) {
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -242,10 +240,21 @@ func (hrp *HttpRemoteProvider) reload() (changed bool) {
 		return
 	}
 
-	confResp := &httpRemoteProviderResponse{}
-	err = json.Unmarshal(respData, &confResp)
+	confResp = &httpRemoteProviderResponse{}
+	err = json.Unmarshal(respData, confResp)
 	if err != nil {
 		logger.Error("http remote provider: unmarshal result error ", err)
+		return
+	}
+	return
+}
+
+func (hrp *HttpRemoteProvider) reload() (changed bool) {
+	changed = false
+	logger.Info("http remote provider: start reload config from remote ", hrp.RemoteUrl)
+
+	confResp, err := hrp.doReq()
+	if err != nil {
 		return
 	}
 
