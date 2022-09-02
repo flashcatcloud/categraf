@@ -27,7 +27,7 @@ type Global struct {
 	Labels       map[string]string `toml:"labels"`
 	Precision    string            `toml:"precision"`
 	Interval     Duration          `toml:"interval"`
-	Provider     string            `toml:"provider"`
+	Providers    []string          `toml:"providers"`
 }
 
 type WriterOpt struct {
