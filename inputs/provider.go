@@ -345,7 +345,7 @@ func compareConfig(cold, cnew map[string]string) (news, updates, deletes []strin
 
 	for kold, vold := range cold {
 		if vnew, has := cnew[kold]; has {
-			if vold == vnew {
+			if vold != vnew {
 				updates = append(updates, kold)
 			}
 		} else {
