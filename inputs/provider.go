@@ -134,6 +134,7 @@ func (hrp *HttpRemoteProvider) reload() (changed bool) {
 	req, err := http.NewRequest("GET", hrp.RemoteUrl, nil)
 	if err != nil {
 		logger.Error("http remote provider: build reload config request error ", err)
+		return
 	}
 
 	// build query parameters
