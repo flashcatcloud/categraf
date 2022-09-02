@@ -72,7 +72,7 @@ func main() {
 
 	ag, err := agent.NewAgent(parseFilter(*inputFilters))
 	if err != nil {
-		fmt.Println("init agent failed, err: ", err)
+		fmt.Println("F! failed to init agent:", err)
 		os.Exit(-1)
 	}
 	runAgent(ag)
