@@ -7,6 +7,7 @@ type HttpRemoteProviderConfig struct {
 	Headers      map[string]string `toml:"headers"`
 	AuthUsername string            `toml:"basic_auth_user"`
 	AuthPassword string            `toml:"basic_auth_pass"`
+	Timeout      int               `toml:"timeout"`
 
 	ConfigFormat   cfg.ConfigFormat `toml:"config_format"`
 	ReloadInterval int              `toml:"reload_interval"`

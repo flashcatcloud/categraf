@@ -170,6 +170,7 @@ type HttpRemoteProvider struct {
 	Headers        map[string]string
 	AuthUsername   string
 	AuthPassword   string
+	Timeout        int
 	ConfigFormat   cfg.ConfigFormat
 	ReloadInterval int
 
@@ -195,16 +196,34 @@ func newHttpRemoteProvider(c *config.ConfigType) (*HttpRemoteProvider, error) {
 		Headers:        c.HttpRemoteProviderConfig.Headers,
 		AuthUsername:   c.HttpRemoteProviderConfig.AuthUsername,
 		AuthPassword:   c.HttpRemoteProviderConfig.AuthPassword,
+		Timeout:        c.HttpRemoteProviderConfig.Timeout,
 		ConfigFormat:   c.HttpRemoteProviderConfig.ConfigFormat,
 		ReloadInterval: c.HttpRemoteProviderConfig.ReloadInterval,
 	}
-
+	if err := httpRemoteProvider.check(); err != nil {
+		return nil, err
+	}
 	return httpRemoteProvider, nil
+}
+
+func (hrp *HttpRemoteProvider) check() error {
+	if hrp.Timeout < 0 {
+		hrp.Timeout = 0
+	}
+
+	if hrp.ReloadInterval <= 0 {
+		hrp.ReloadInterval = 120
+	}
+
+	if strings.HasPrefix(hrp.RemoteUrl, "http") {
+		return fmt.Errorf("http remote provider: bad remote url config: %s", hrp.RemoteUrl)
+	}
+	return nil
 }
 
 func (hrp *HttpRemoteProvider) doReq() (confResp *httpRemoteProviderResponse, err error) {
 	client := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: time.Duration(hrp.Timeout) * time.Second,
 	}
 	req, err := http.NewRequest("GET", hrp.RemoteUrl, nil)
 	if err != nil {

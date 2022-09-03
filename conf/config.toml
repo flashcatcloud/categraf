@@ -82,6 +82,9 @@ headers = {agent = "categraf"}
 basic_auth_user = ""
 basic_auth_pass = ""
 
+# http timeout in seconds
+timeout = 5
+
 # format: toml/yaml/json for config content
 config_format = "toml"
 
