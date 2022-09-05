@@ -10,6 +10,7 @@ import (
 )
 
 func (a *Agent) startMetricsAgent() error {
+	a.InputProvider.LoadConfig()
 	names, err := a.InputProvider.GetInputs()
 	if err != nil {
 		return err

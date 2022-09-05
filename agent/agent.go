@@ -102,7 +102,6 @@ func (a *Agent) Stop() {
 
 func (a *Agent) Reload() {
 	log.Println("I! agent reloading")
-	a.InputProvider.LoadConfig()
 	a.Stop()
 	a.Start()
 	log.Println("I! agent reloaded")

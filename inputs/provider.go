@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"path"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/toolkits/pkg/file"
-	"github.com/toolkits/pkg/logger"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
@@ -43,7 +43,7 @@ type Provider interface {
 	Name() string
 
 	// StartReloader Provider初始化后会调用此方法
-	// 可以根据需求实现定时加载配置的逻辑，注意对于远程拉取配置的Provider，先执行一次同步的拉取操作，再用goroutine定时请求
+	// 可以根据需求实现定时加载配置的逻辑
 	StartReloader(reloadFunc func())
 
 	// LoadConfig 加载配置的方法，如果配置改变，返回true；提供给 StartReloader 以及 HUP信号的Reload使用
@@ -57,7 +57,7 @@ type Provider interface {
 }
 
 func NewProvider(c *config.ConfigType) (Provider, error) {
-	logger.Info("use input provider: ", c.Global.Providers)
+	log.Println("I! use input provider: ", c.Global.Providers)
 
 	providers := make([]Provider, 0, len(c.Global.Providers))
 	for _, p := range c.Global.Providers {
@@ -100,7 +100,7 @@ func (pm *ProviderManager) LoadConfig() (bool, error) {
 	for _, p := range pm.providers {
 		_, err := p.LoadConfig()
 		if err != nil {
-			logger.Errorf("provider manager, LoadConfig of %s err: %s", p.Name(), err)
+			log.Printf("E! provider manager, LoadConfig of %s err: %s\n", p.Name(), err)
 		}
 	}
 	return false, nil
@@ -112,7 +112,7 @@ func (pm *ProviderManager) GetInputs() ([]string, error) {
 	for _, p := range pm.providers {
 		pInputs, err := p.GetInputs()
 		if err != nil {
-			logger.Warningf("provider manager, GetInputs of %s error, skip\n", p.Name())
+			log.Printf("E! provider manager, GetInputs of %s error, skip\n", p.Name())
 			continue
 		}
 		for _, inputKey := range pInputs {
@@ -134,7 +134,7 @@ func (pm *ProviderManager) GetInputConfig(inputName string) ([]cfg.ConfigWithFor
 		}
 		pcwf, err := p.GetInputConfig(inputKey)
 		if err != nil {
-			logger.Warningf("provider manager, failed to get config of %s from %s, error: %s", inputName, p.Name(), err)
+			log.Printf("E! provider manager, failed to get config of %s from %s, error: %s\n", inputName, p.Name(), err)
 			continue
 		}
 		cwf = append(cwf, pcwf...)
@@ -153,15 +153,9 @@ type LocalProvider struct {
 }
 
 func newLocalProvider(c *config.ConfigType) (*LocalProvider, error) {
-	lp := &LocalProvider{
+	return &LocalProvider{
 		configDir: c.ConfigDir,
-	}
-
-	_, err := lp.LoadConfig()
-	if err != nil {
-		return nil, err
-	}
-	return lp, nil
+	}, nil
 }
 
 func (lp *LocalProvider) Name() string {
@@ -296,10 +290,13 @@ func (hrp *HttpRemoteProvider) doReq() (confResp *httpRemoteProviderResponse, er
 	}
 	req, err := http.NewRequest("GET", hrp.RemoteUrl, nil)
 	if err != nil {
-		logger.Error("http remote provider: build reload config request error ", err)
+		log.Println("E! http remote provider: build reload config request error", err)
 		return
 	}
 	for k, v := range hrp.Headers {
+		if k == "Host" {
+			req.Host = v
+		}
 		req.Header.Add(k, v)
 	}
 
@@ -318,30 +315,32 @@ func (hrp *HttpRemoteProvider) doReq() (confResp *httpRemoteProviderResponse, er
 
 	resp, err := client.Do(req)
 	if err != nil {
-		logger.Error("http remote provider: request reload config error ", err)
+		log.Println("E! http remote provider: request reload config error", err)
 		return
 	}
 	defer resp.Body.Close()
 	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logger.Error("http remote provider: request reload config error ", err)
+		log.Println("E! http remote provider: request reload config error", err)
 		return
 	}
 
 	confResp = &httpRemoteProviderResponse{}
 	err = json.Unmarshal(respData, confResp)
 	if err != nil {
-		logger.Error("http remote provider: unmarshal result error ", err)
+		log.Println("E! http remote provider: unmarshal result error", err)
 		return
 	}
 	return
 }
 
 func (hrp *HttpRemoteProvider) LoadConfig() (changed bool, err error) {
-	changed = false
-	logger.Info("http remote provider: start reload config from remote ", hrp.RemoteUrl)
+	var confResp *httpRemoteProviderResponse
 
-	confResp, err := hrp.doReq()
+	changed = false
+	log.Println("E! http remote provider: start reload config from remote", hrp.RemoteUrl)
+
+	confResp, err = hrp.doReq()
 	if err != nil {
 		return
 	}
@@ -352,7 +351,7 @@ func (hrp *HttpRemoteProvider) LoadConfig() (changed bool, err error) {
 	}
 	// if config is nil, may some error occurs in server side, ignore this instead of deleting all configs
 	if confResp.Configs == nil {
-		logger.Warning("http remote provider: received config is empty")
+		log.Println("W! http remote provider: received config is empty")
 		return
 	}
 
@@ -365,13 +364,13 @@ func (hrp *HttpRemoteProvider) LoadConfig() (changed bool, err error) {
 
 	news, updates, deletes := compareConfig(hrp.configMap, confResp.Configs)
 	if len(news) > 0 {
-		logger.Info("http remote provider: new inputs ", news)
+		log.Println("I! http remote provider: new inputs", news)
 	}
 	if len(updates) > 0 {
-		logger.Info("http remote provider: updated inputs ", updates)
+		log.Println("I! http remote provider: updated inputs", updates)
 	}
 	if len(deletes) > 0 {
-		logger.Info("http remote provider: deleted inputs ", deletes)
+		log.Println("I! http remote provider: deleted inputs", deletes)
 	}
 
 	changed = len(news)+len(updates)+len(deletes) > 0
@@ -385,9 +384,6 @@ func (hrp *HttpRemoteProvider) LoadConfig() (changed bool, err error) {
 }
 
 func (hrp *HttpRemoteProvider) StartReloader(reloadFunc func()) {
-	// sync load remote config
-	hrp.LoadConfig()
-
 	go func() {
 		for {
 			time.Sleep(time.Duration(hrp.ReloadInterval) * time.Second)
