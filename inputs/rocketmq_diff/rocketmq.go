@@ -1,4 +1,4 @@
-package rocketmq
+package rocketmq_diff
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
-const inputName = "rocketmq"
+const inputName = "rocketmq_diff"
 
 const consoleSchema string = "http://"
 const topicNameListPath string = "/topic/list.query"
