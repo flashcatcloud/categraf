@@ -3,6 +3,8 @@ package agent
 import (
 	"log"
 
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/traces"
 
 	// auto registry
@@ -56,13 +58,21 @@ type Agent struct {
 	InputFilters   map[string]struct{}
 	InputReaders   map[string]*InputReader
 	TraceCollector *traces.Collector
+	InputProvider  inputs.Provider
 }
 
-func NewAgent(filters map[string]struct{}) *Agent {
-	return &Agent{
-		InputFilters: filters,
-		InputReaders: make(map[string]*InputReader),
+func NewAgent(filters map[string]struct{}) (*Agent, error) {
+	agent := &Agent{
+		InputFilters:  filters,
+		InputReaders:  make(map[string]*InputReader),
+		InputProvider: nil,
 	}
+	provider, err := inputs.NewProvider(config.Config, agent.Reload)
+	if err != nil {
+		return nil, err
+	}
+	agent.InputProvider = provider
+	return agent, nil
 }
 
 func (a *Agent) Start() {

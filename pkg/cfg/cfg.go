@@ -9,7 +9,30 @@ import (
 	"github.com/toolkits/pkg/file"
 )
 
-func LoadConfigs(configDir string, configPtr interface{}) error {
+type ConfigFormat string
+
+const (
+	YamlFormat ConfigFormat = "yaml"
+	TomlFormat ConfigFormat = "toml"
+	JsonFormat ConfigFormat = "json"
+)
+
+type ConfigWithFormat struct {
+	Config string       `json:"config"`
+	Format ConfigFormat `json:"format"`
+}
+
+func GuessFormat(fpath string) ConfigFormat {
+	if strings.HasSuffix(fpath, ".json") {
+		return JsonFormat
+	}
+	if strings.HasSuffix(fpath, ".yaml") || strings.HasSuffix(fpath, ".yml") {
+		return YamlFormat
+	}
+	return TomlFormat
+}
+
+func LoadConfigByDir(configDir string, configPtr interface{}) error {
 	loaders := []multiconfig.Loader{
 		&multiconfig.TagLoader{},
 		&multiconfig.EnvironmentLoader{},
@@ -21,13 +44,13 @@ func LoadConfigs(configDir string, configPtr interface{}) error {
 	}
 
 	for _, fpath := range files {
-		if strings.HasSuffix(fpath, "toml") {
+		if strings.HasSuffix(fpath, ".toml") {
 			loaders = append(loaders, &multiconfig.TOMLLoader{Path: path.Join(configDir, fpath)})
 		}
-		if strings.HasSuffix(fpath, "json") {
+		if strings.HasSuffix(fpath, ".json") {
 			loaders = append(loaders, &multiconfig.JSONLoader{Path: path.Join(configDir, fpath)})
 		}
-		if strings.HasSuffix(fpath, "yaml") || strings.HasSuffix(fpath, "yml") {
+		if strings.HasSuffix(fpath, ".yaml") || strings.HasSuffix(fpath, ".yml") {
 			loaders = append(loaders, &multiconfig.YAMLLoader{Path: path.Join(configDir, fpath)})
 		}
 	}
@@ -37,5 +60,28 @@ func LoadConfigs(configDir string, configPtr interface{}) error {
 		Validator: multiconfig.MultiValidator(&multiconfig.RequiredValidator{}),
 	}
 
+	return m.Load(configPtr)
+}
+
+func LoadConfigs(configs []ConfigWithFormat, configPtr interface{}) error {
+	loaders := []multiconfig.Loader{
+		&multiconfig.TagLoader{},
+		&multiconfig.EnvironmentLoader{},
+	}
+	for _, c := range configs {
+		switch c.Format {
+		case TomlFormat:
+			loaders = append(loaders, &multiconfig.TOMLLoader{Reader: strings.NewReader(c.Config)})
+		case YamlFormat:
+			loaders = append(loaders, &multiconfig.YAMLLoader{Reader: strings.NewReader(c.Config)})
+		case JsonFormat:
+			loaders = append(loaders, &multiconfig.JSONLoader{Reader: strings.NewReader(c.Config)})
+		}
+	}
+
+	m := multiconfig.DefaultLoader{
+		Loader:    multiconfig.MultiLoader(loaders...),
+		Validator: multiconfig.MultiValidator(&multiconfig.RequiredValidator{}),
+	}
 	return m.Load(configPtr)
 }

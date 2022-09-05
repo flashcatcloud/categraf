@@ -27,6 +27,7 @@ type Global struct {
 	Labels       map[string]string `toml:"labels"`
 	Precision    string            `toml:"precision"`
 	Interval     Duration          `toml:"interval"`
+	Providers    []string          `toml:"providers"`
 }
 
 type WriterOpt struct {
@@ -74,6 +75,8 @@ type ConfigType struct {
 	Traces       *traces.Config `toml:"traces"`
 	HTTP         *HTTP          `toml:"http"`
 	Prometheus   *Prometheus    `toml:"prometheus"`
+
+	HttpRemoteProviderConfig *HttpRemoteProviderConfig `toml:"http_remote_provider"`
 }
 
 var Config *ConfigType
@@ -90,7 +93,7 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64) erro
 		TestMode:  testMode,
 	}
 
-	if err := cfg.LoadConfigs(configDir, Config); err != nil {
+	if err := cfg.LoadConfigByDir(configDir, Config); err != nil {
 		return fmt.Errorf("failed to load configs of dir: %s err:%s", configDir, err)
 	}
 
