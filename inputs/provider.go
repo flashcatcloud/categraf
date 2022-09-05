@@ -27,6 +27,9 @@ type Provider interface {
 	// 可以根据需求实现定时加载配置的逻辑，注意对于远程拉取配置的Provider，先执行一次同步的拉取操作，再用goroutine定时请求
 	StartReloader(reloadFunc func())
 
+	// LoadConfig 加载配置的方法，如果配置改变，返回true；提供给 StartReloader 以及 HUP信号的Reload使用
+	LoadConfig() (bool, error)
+
 	// GetInputs 获取当前Provider提供了哪些插件
 	GetInputs() ([]string, error)
 
@@ -70,6 +73,16 @@ func (pm *ProviderManager) StartReloader(reloadFunc func()) {
 	}
 }
 
+func (pm *ProviderManager) LoadConfig() (bool, error) {
+	for _, p := range pm.providers {
+		_, err := p.LoadConfig()
+		if err != nil {
+			logger.Errorf("provider manager, LoadConfig of %s err: %s", reflect.TypeOf(p), err)
+		}
+	}
+	return false, nil
+}
+
 func (pm *ProviderManager) GetInputs() ([]string, error) {
 	inputSet := make(map[string]struct{})
 	for _, p := range pm.providers {
@@ -107,14 +120,33 @@ func (pm *ProviderManager) GetInputConfig(inputName string) ([]cfg.ConfigWithFor
 }
 
 type LocalProvider struct {
+	sync.RWMutex
+
 	configDir  string
 	inputNames []string
 }
 
 func newLocalProvider(c *config.ConfigType) (*LocalProvider, error) {
-	dirs, err := file.DirsUnder(c.ConfigDir)
+	lp := &LocalProvider{
+		configDir: c.ConfigDir,
+	}
+
+	_, err := lp.LoadConfig()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get dirs under %s : %v", config.Config.ConfigDir, err)
+		return nil, err
+	}
+	return lp, nil
+}
+
+// StartReloader 内部可以检查是否有配置的变更,如果有变更,则可以手动执行reloadFunc来重启插件
+func (lp *LocalProvider) StartReloader(reloadFunc func()) {
+	return
+}
+
+func (lp *LocalProvider) LoadConfig() (bool, error) {
+	dirs, err := file.DirsUnder(lp.configDir)
+	if err != nil {
+		return false, fmt.Errorf("failed to get dirs under %s : %v", config.Config.ConfigDir, err)
 	}
 
 	names := make([]string, 0, len(dirs))
@@ -123,26 +155,26 @@ func newLocalProvider(c *config.ConfigType) (*LocalProvider, error) {
 			names = append(names, dir[len(inputFilePrefix):])
 		}
 	}
-	return &LocalProvider{
-		configDir:  c.ConfigDir,
-		inputNames: names,
-	}, nil
-}
-
-// StartReloader 内部可以检查是否有配置的变更,如果有变更,则可以手动执行reloadFunc来重启插件
-func (lp *LocalProvider) StartReloader(reloadFunc func()) {
-	return
+	lp.Lock()
+	lp.inputNames = names
+	lp.Unlock()
+	return false, nil
 }
 
 func (lp *LocalProvider) GetInputs() ([]string, error) {
+	lp.RLock()
+	defer lp.RUnlock()
 	return lp.inputNames, nil
 }
 
 func (lp *LocalProvider) GetInputConfig(inputName string) ([]cfg.ConfigWithFormat, error) {
 	// 插件配置不在这个provider中
+	lp.RLock()
 	if !choice.Contains(inputName, lp.inputNames) {
+		lp.RUnlock()
 		return nil, nil
 	}
+	lp.RUnlock()
 
 	files, err := file.FilesUnder(path.Join(lp.configDir, inputFilePrefix+inputName))
 	if err != nil {
@@ -268,7 +300,7 @@ func (hrp *HttpRemoteProvider) doReq() (confResp *httpRemoteProviderResponse, er
 	return
 }
 
-func (hrp *HttpRemoteProvider) reload() (changed bool) {
+func (hrp *HttpRemoteProvider) LoadConfig() (changed bool, err error) {
 	changed = false
 	logger.Info("http remote provider: start reload config from remote ", hrp.RemoteUrl)
 
@@ -317,12 +349,16 @@ func (hrp *HttpRemoteProvider) reload() (changed bool) {
 
 func (hrp *HttpRemoteProvider) StartReloader(reloadFunc func()) {
 	// sync load remote config
-	hrp.reload()
+	hrp.LoadConfig()
 
 	go func() {
 		for {
 			time.Sleep(time.Duration(hrp.ReloadInterval) * time.Second)
-			if hrp.reload() {
+			changed, err := hrp.LoadConfig()
+			if err != nil {
+				continue
+			}
+			if changed {
 				reloadFunc()
 			}
 		}
