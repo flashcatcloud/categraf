@@ -12,6 +12,7 @@ import (
 func (a *Agent) startMetricsAgent() error {
 	a.InputProvider.LoadConfig()
 	a.InputProvider.StartReloader()
+
 	names, err := a.InputProvider.GetInputs()
 	if err != nil {
 		return err
@@ -46,6 +47,7 @@ func (a *Agent) startMetricsAgent() error {
 			log.Println("E! failed to get configuration of plugin:", name, "error:", err)
 			continue
 		}
+
 		err = cfg.LoadConfigs(configs, input)
 		if err != nil {
 			log.Println("E! failed to load configuration of plugin:", name, "error:", err)

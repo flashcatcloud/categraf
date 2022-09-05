@@ -76,7 +76,7 @@ type ConfigType struct {
 	HTTP         *HTTP          `toml:"http"`
 	Prometheus   *Prometheus    `toml:"prometheus"`
 
-	HttpRemoteProviderConfig *HttpRemoteProviderConfig `toml:"http_remote_provider"`
+	HTTPProviderConfig *HTTPProviderConfig `toml:"http_provider"`
 }
 
 var Config *ConfigType

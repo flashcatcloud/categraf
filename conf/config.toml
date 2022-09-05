@@ -19,8 +19,8 @@ precision = "ms"
 # global collect interval
 interval = 15
 
-# input provider settings; optional: LocalProvider / HttpRemoteProvider
-providers = ["LocalProvider"]
+# input provider settings; optional: local / http
+providers = ["local"]
 
 # [global.labels]
 # region = "shanghai"
@@ -55,7 +55,7 @@ address = ":9100"
 print_access = false
 run_mode = "release"
 
-[http_remote_provider]
+[http_provider]
 # HttpRemoteProvider插件，通过Http请求的方式获取Categraf的配置
 # 通过设置global中的provider为HttpRemoteProvider启用
 # example request: GET /categraf/configs?agent=categraf&host=machine1 HTTP/1.1
@@ -86,17 +86,22 @@ run_mode = "release"
 remote_url = "http://localhost:20000/categraf/configs"
 
 # header settings when request config from remote
-headers = {agent = "categraf"}
+# headers = ["X-From", "categraf", "X-Xyz", "abc"]
 
 # http basic auth config
-basic_auth_user = ""
-basic_auth_pass = ""
-
-# tls InsecureSkipVerify
-tls_insecure_skip_verify = false
+# basic_auth_user = ""
+# basic_auth_pass = ""
 
 # http timeout in seconds
 timeout = 5
 
 # reload interval in seconds
 reload_interval = 120
+
+## Optional TLS Config
+# use_tls = false
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = false
