@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
-	"flashcat.cloud/categraf/pkg/tls"
 	"github.com/toolkits/pkg/file"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/pkg/choice"
+	"flashcat.cloud/categraf/pkg/tls"
 )
 
 const inputFilePrefix = "input."
