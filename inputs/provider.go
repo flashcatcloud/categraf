@@ -292,7 +292,7 @@ func newHttpRemoteProvider(c *config.ConfigType, reloadFunc func()) (*HttpRemote
 }
 
 func (hrp *HttpRemoteProvider) check() error {
-	if hrp.Timeout < 0 {
+	if hrp.Timeout <= 0 {
 		hrp.Timeout = 5
 	}
 
@@ -304,7 +304,7 @@ func (hrp *HttpRemoteProvider) check() error {
 		return fmt.Errorf("http remote provider: bad remote url config: %s", hrp.RemoteUrl)
 	}
 
-	if strings.HasSuffix(hrp.RemoteUrl, "https") && hrp.TlsInsecureSkipVerify {
+	if strings.HasPrefix(hrp.RemoteUrl, "https") && hrp.TlsInsecureSkipVerify {
 		hrp.client = &http.Client{
 			Timeout: time.Duration(hrp.Timeout) * time.Second,
 			Transport: &http.Transport{
@@ -319,11 +319,11 @@ func (hrp *HttpRemoteProvider) check() error {
 	return nil
 }
 
-func (hrp *HttpRemoteProvider) doReq() (confResp *httpRemoteProviderResponse, err error) {
+func (hrp *HttpRemoteProvider) doReq() (*httpRemoteProviderResponse, error) {
 	req, err := http.NewRequest("GET", hrp.RemoteUrl, nil)
 	if err != nil {
 		log.Println("E! http remote provider: build reload config request error", err)
-		return
+		return nil, err
 	}
 
 	for k, v := range hrp.Headers {
@@ -349,43 +349,42 @@ func (hrp *HttpRemoteProvider) doReq() (confResp *httpRemoteProviderResponse, er
 	resp, err := hrp.client.Do(req)
 	if err != nil {
 		log.Println("E! http remote provider: request reload config error", err)
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
 	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("E! http remote provider: request reload config error", err)
-		return
+		return nil, err
 	}
 
-	confResp = &httpRemoteProviderResponse{}
+	confResp := &httpRemoteProviderResponse{}
 	err = json.Unmarshal(respData, confResp)
 	if err != nil {
 		log.Println("E! http remote provider: unmarshal result error", err)
-		return
+		return nil, err
 	}
-	return
+	return confResp, nil
 }
 
-func (hrp *HttpRemoteProvider) LoadConfig() (changed bool, err error) {
-	var confResp *httpRemoteProviderResponse
+func (hrp *HttpRemoteProvider) LoadConfig() (bool, error) {
+	//var confResp *httpRemoteProviderResponse
 
-	changed = false
 	log.Println("E! http remote provider: start reload config from remote", hrp.RemoteUrl)
 
-	confResp, err = hrp.doReq()
+	confResp, err := hrp.doReq()
 	if err != nil {
-		return
+		return false, err
 	}
 
 	// if config version is identical, means config is not changed
 	if confResp.Version == hrp.version {
-		return
+		return false, nil
 	}
 	// if config is nil, may some error occurs in server side, ignore this instead of deleting all configs
 	if confResp.Configs == nil {
 		log.Println("W! http remote provider: received config is empty")
-		return
+		return false, nil
 	}
 
 	// delete empty entries
@@ -406,14 +405,14 @@ func (hrp *HttpRemoteProvider) LoadConfig() (changed bool, err error) {
 		log.Println("I! http remote provider: deleted inputs", deletes)
 	}
 
-	changed = len(news)+len(updates)+len(deletes) > 0
+	changed := len(news)+len(updates)+len(deletes) > 0
 	if changed {
 		hrp.Lock()
 		defer hrp.Unlock()
 		hrp.configMap = confResp.Configs
 		hrp.version = confResp.Version
 	}
-	return
+	return changed, nil
 }
 
 func (hrp *HttpRemoteProvider) StartReloader() {
