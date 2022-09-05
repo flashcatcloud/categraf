@@ -320,7 +320,6 @@ func (hrp *HttpRemoteProvider) check() error {
 }
 
 func (hrp *HttpRemoteProvider) doReq() (confResp *httpRemoteProviderResponse, err error) {
-
 	req, err := http.NewRequest("GET", hrp.RemoteUrl, nil)
 	if err != nil {
 		log.Println("E! http remote provider: build reload config request error", err)
