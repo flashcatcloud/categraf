@@ -21,14 +21,15 @@ func (a *Agent) startMetricsAgent() error {
 	}
 
 	for _, name := range names {
+		_, inputKey := inputs.ParseInputName(name)
 		if len(a.InputFilters) > 0 {
 			// do filter
-			if _, has := a.InputFilters[name]; !has {
+			if _, has := a.InputFilters[inputKey]; !has {
 				continue
 			}
 		}
 
-		creator, has := inputs.InputCreators[name]
+		creator, has := inputs.InputCreators[inputKey]
 		if !has {
 			log.Println("E! input:", name, "not supported")
 			continue

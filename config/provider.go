@@ -1,7 +1,5 @@
 package config
 
-import "flashcat.cloud/categraf/pkg/cfg"
-
 type HttpRemoteProviderConfig struct {
 	RemoteUrl    string            `toml:"remote_url"`
 	Headers      map[string]string `toml:"headers"`
@@ -9,6 +7,5 @@ type HttpRemoteProviderConfig struct {
 	AuthPassword string            `toml:"basic_auth_pass"`
 	Timeout      int               `toml:"timeout"`
 
-	ConfigFormat   cfg.ConfigFormat `toml:"config_format"`
-	ReloadInterval int              `toml:"reload_interval"`
+	ReloadInterval int `toml:"reload_interval"`
 }

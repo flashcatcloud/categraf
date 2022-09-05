@@ -18,8 +18,8 @@ const (
 )
 
 type ConfigWithFormat struct {
-	Config string
-	Format ConfigFormat
+	Config string       `json:"config"`
+	Format ConfigFormat `json:"format"`
 }
 
 func GuessFormat(fpath string) ConfigFormat {

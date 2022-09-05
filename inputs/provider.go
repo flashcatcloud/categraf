@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"path"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -21,8 +20,28 @@ import (
 
 const inputFilePrefix = "input."
 
+// FormatInputName providerName + '.' + inputKey
+func FormatInputName(provider, inputKey string) string {
+	return provider + "." + inputKey
+}
+
+// ParseInputName parse name into providerName and inputName
+func ParseInputName(name string) (string, string) {
+	data := strings.SplitN(name, ".", 2)
+	if len(data) == 0 {
+		return "", ""
+	}
+	if len(data) == 1 {
+		return "", data[0]
+	}
+	return data[0], data[1]
+}
+
 // Provider InputProvider的抽象，可以实现此抽象来提供个性化的插件配置能力，如从远端定时读取配置等
 type Provider interface {
+	// Name 用于给input加前缀使用
+	Name() string
+
 	// StartReloader Provider初始化后会调用此方法
 	// 可以根据需求实现定时加载配置的逻辑，注意对于远程拉取配置的Provider，先执行一次同步的拉取操作，再用goroutine定时请求
 	StartReloader(reloadFunc func())
@@ -67,6 +86,10 @@ type ProviderManager struct {
 	providers []Provider
 }
 
+func (pm *ProviderManager) Name() string {
+	return "ProviderManager"
+}
+
 func (pm *ProviderManager) StartReloader(reloadFunc func()) {
 	for _, p := range pm.providers {
 		p.StartReloader(reloadFunc)
@@ -77,38 +100,41 @@ func (pm *ProviderManager) LoadConfig() (bool, error) {
 	for _, p := range pm.providers {
 		_, err := p.LoadConfig()
 		if err != nil {
-			logger.Errorf("provider manager, LoadConfig of %s err: %s", reflect.TypeOf(p), err)
+			logger.Errorf("provider manager, LoadConfig of %s err: %s", p.Name(), err)
 		}
 	}
 	return false, nil
 }
 
+// GetInputs 返回带有provider前缀的inputName
 func (pm *ProviderManager) GetInputs() ([]string, error) {
-	inputSet := make(map[string]struct{})
+	inputs := make([]string, 0, 40)
 	for _, p := range pm.providers {
 		pInputs, err := p.GetInputs()
 		if err != nil {
-			logger.Warningf("provider manager, GetInputs of %s error, skip\n", reflect.TypeOf(p))
+			logger.Warningf("provider manager, GetInputs of %s error, skip\n", p.Name())
 			continue
 		}
-		for _, input := range pInputs {
-			inputSet[input] = struct{}{}
+		for _, inputKey := range pInputs {
+			inputs = append(inputs, FormatInputName(p.Name(), inputKey))
 		}
 	}
 
-	inputs := make([]string, 0, len(inputSet))
-	for input, _ := range inputSet {
-		inputs = append(inputs, input)
-	}
 	return inputs, nil
 }
 
+// GetInputConfig 寻找匹配的Provider，从中查找input
 func (pm *ProviderManager) GetInputConfig(inputName string) ([]cfg.ConfigWithFormat, error) {
 	cwf := make([]cfg.ConfigWithFormat, 0, len(pm.providers))
+	providerName, inputKey := ParseInputName(inputName)
 	for _, p := range pm.providers {
-		pcwf, err := p.GetInputConfig(inputName)
+		// 没有匹配，说明input不是该provider提供的
+		if providerName != p.Name() {
+			continue
+		}
+		pcwf, err := p.GetInputConfig(inputKey)
 		if err != nil {
-			logger.Warningf("provider manager, failed to get config of %s from %s, error: %s", inputName, reflect.TypeOf(p), err)
+			logger.Warningf("provider manager, failed to get config of %s from %s, error: %s", inputName, p.Name(), err)
 			continue
 		}
 		cwf = append(cwf, pcwf...)
@@ -138,6 +164,10 @@ func newLocalProvider(c *config.ConfigType) (*LocalProvider, error) {
 	return lp, nil
 }
 
+func (lp *LocalProvider) Name() string {
+	return "LocalProvider"
+}
+
 // StartReloader 内部可以检查是否有配置的变更,如果有变更,则可以手动执行reloadFunc来重启插件
 func (lp *LocalProvider) StartReloader(reloadFunc func()) {
 	return
@@ -164,26 +194,31 @@ func (lp *LocalProvider) LoadConfig() (bool, error) {
 func (lp *LocalProvider) GetInputs() ([]string, error) {
 	lp.RLock()
 	defer lp.RUnlock()
-	return lp.inputNames, nil
+
+	inputs := make([]string, 0, len(lp.inputNames))
+	for _, input := range lp.inputNames {
+		inputs = append(inputs, input)
+	}
+	return inputs, nil
 }
 
-func (lp *LocalProvider) GetInputConfig(inputName string) ([]cfg.ConfigWithFormat, error) {
+func (lp *LocalProvider) GetInputConfig(inputKey string) ([]cfg.ConfigWithFormat, error) {
 	// 插件配置不在这个provider中
 	lp.RLock()
-	if !choice.Contains(inputName, lp.inputNames) {
+	if !choice.Contains(inputKey, lp.inputNames) {
 		lp.RUnlock()
 		return nil, nil
 	}
 	lp.RUnlock()
 
-	files, err := file.FilesUnder(path.Join(lp.configDir, inputFilePrefix+inputName))
+	files, err := file.FilesUnder(path.Join(lp.configDir, inputFilePrefix+inputKey))
 	if err != nil {
 		return nil, fmt.Errorf("failed to list files under: %s : %v", lp.configDir, err)
 	}
 
 	cwf := make([]cfg.ConfigWithFormat, 0, 1)
 	for _, f := range files {
-		c, err := file.ReadBytes(path.Join(lp.configDir, inputFilePrefix+inputName, f))
+		c, err := file.ReadBytes(path.Join(lp.configDir, inputFilePrefix+inputKey, f))
 		if err != nil {
 			return nil, err
 		}
@@ -203,10 +238,9 @@ type HttpRemoteProvider struct {
 	AuthUsername   string
 	AuthPassword   string
 	Timeout        int
-	ConfigFormat   cfg.ConfigFormat
 	ReloadInterval int
 
-	configMap map[string]string
+	configMap map[string]cfg.ConfigWithFormat
 	version   string
 }
 
@@ -214,8 +248,12 @@ type httpRemoteProviderResponse struct {
 	// version is signature/md5 of current Config, server side should deal with the Version calculate
 	Version string `json:"version"`
 
-	// ConfigMap (InputName -> ConfigContent), if version is identical, server side can set Config to nil
-	Config map[string]string `json:"config"`
+	// ConfigMap (InputName -> Config), if version is identical, server side can set Config to nil
+	Configs map[string]cfg.ConfigWithFormat `json:"configs"`
+}
+
+func (hrp *HttpRemoteProvider) Name() string {
+	return "HttpRemoteProvider"
 }
 
 func newHttpRemoteProvider(c *config.ConfigType) (*HttpRemoteProvider, error) {
@@ -229,7 +267,6 @@ func newHttpRemoteProvider(c *config.ConfigType) (*HttpRemoteProvider, error) {
 		AuthUsername:   c.HttpRemoteProviderConfig.AuthUsername,
 		AuthPassword:   c.HttpRemoteProviderConfig.AuthPassword,
 		Timeout:        c.HttpRemoteProviderConfig.Timeout,
-		ConfigFormat:   c.HttpRemoteProviderConfig.ConfigFormat,
 		ReloadInterval: c.HttpRemoteProviderConfig.ReloadInterval,
 	}
 	if err := httpRemoteProvider.check(); err != nil {
@@ -247,7 +284,7 @@ func (hrp *HttpRemoteProvider) check() error {
 		hrp.ReloadInterval = 120
 	}
 
-	if strings.HasPrefix(hrp.RemoteUrl, "http") {
+	if !strings.HasPrefix(hrp.RemoteUrl, "http") {
 		return fmt.Errorf("http remote provider: bad remote url config: %s", hrp.RemoteUrl)
 	}
 	return nil
@@ -314,19 +351,19 @@ func (hrp *HttpRemoteProvider) LoadConfig() (changed bool, err error) {
 		return
 	}
 	// if config is nil, may some error occurs in server side, ignore this instead of deleting all configs
-	if confResp.Config == nil {
+	if confResp.Configs == nil {
 		logger.Warning("http remote provider: received config is empty")
 		return
 	}
 
 	// delete empty entries
-	for k, v := range confResp.Config {
-		if len(v) == 0 {
-			delete(confResp.Config, k)
+	for k, v := range confResp.Configs {
+		if len(v.Config) == 0 {
+			delete(confResp.Configs, k)
 		}
 	}
 
-	news, updates, deletes := compareConfig(hrp.configMap, confResp.Config)
+	news, updates, deletes := compareConfig(hrp.configMap, confResp.Configs)
 	if len(news) > 0 {
 		logger.Info("http remote provider: new inputs ", news)
 	}
@@ -341,7 +378,7 @@ func (hrp *HttpRemoteProvider) LoadConfig() (changed bool, err error) {
 	if changed {
 		hrp.Lock()
 		defer hrp.Unlock()
-		hrp.configMap = confResp.Config
+		hrp.configMap = confResp.Configs
 		hrp.version = confResp.Version
 	}
 	return
@@ -377,30 +414,25 @@ func (hrp *HttpRemoteProvider) GetInputs() ([]string, error) {
 	return inputs, nil
 }
 
-func (hrp *HttpRemoteProvider) GetInputConfig(inputName string) ([]cfg.ConfigWithFormat, error) {
+func (hrp *HttpRemoteProvider) GetInputConfig(inputKey string) ([]cfg.ConfigWithFormat, error) {
 	hrp.RLock()
 	defer hrp.RUnlock()
 
-	if conf, has := hrp.configMap[inputName]; has {
-		return []cfg.ConfigWithFormat{
-			{
-				Format: hrp.ConfigFormat,
-				Config: conf,
-			},
-		}, nil
+	if conf, has := hrp.configMap[inputKey]; has {
+		return []cfg.ConfigWithFormat{conf}, nil
 	}
 	return nil, nil
 }
 
 // compareConfig 比较新旧两个配置的差异
-func compareConfig(cold, cnew map[string]string) (news, updates, deletes []string) {
+func compareConfig(cold, cnew map[string]cfg.ConfigWithFormat) (news, updates, deletes []string) {
 	news = make([]string, 0, len(cnew))
 	updates = make([]string, 0, len(cnew))
 	deletes = make([]string, 0, len(cnew))
 
 	for kold, vold := range cold {
 		if vnew, has := cnew[kold]; has {
-			if vold != vnew {
+			if vold.Config != vnew.Config || vold.Format != vnew.Format {
 				updates = append(updates, kold)
 			}
 		} else {
