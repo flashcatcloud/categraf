@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -196,6 +197,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 }
 
 func levelFilter(l string) level.Option {
+	l = strings.ToLower(l)
 	switch l {
 	case "debug":
 		return level.AllowDebug()
