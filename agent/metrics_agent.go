@@ -11,6 +11,7 @@ import (
 
 func (a *Agent) startMetricsAgent() error {
 	a.InputProvider.LoadConfig()
+	a.InputProvider.StartReloader()
 	names, err := a.InputProvider.GetInputs()
 	if err != nil {
 		return err
@@ -94,6 +95,7 @@ func (a *Agent) startMetricsAgent() error {
 }
 
 func (a *Agent) stopMetricsAgent() {
+	a.InputProvider.StopReloader()
 	for name := range a.InputReaders {
 		a.InputReaders[name].Stop()
 	}

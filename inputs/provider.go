@@ -1,6 +1,7 @@
 package inputs
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -44,7 +45,9 @@ type Provider interface {
 
 	// StartReloader Provider初始化后会调用此方法
 	// 可以根据需求实现定时加载配置的逻辑
-	StartReloader(reloadFunc func())
+	StartReloader()
+
+	StopReloader()
 
 	// LoadConfig 加载配置的方法，如果配置改变，返回true；提供给 StartReloader 以及 HUP信号的Reload使用
 	LoadConfig() (bool, error)
@@ -56,14 +59,14 @@ type Provider interface {
 	GetInputConfig(inputName string) ([]cfg.ConfigWithFormat, error)
 }
 
-func NewProvider(c *config.ConfigType) (Provider, error) {
+func NewProvider(c *config.ConfigType, reloadFunc func()) (Provider, error) {
 	log.Println("I! use input provider: ", c.Global.Providers)
 
 	providers := make([]Provider, 0, len(c.Global.Providers))
 	for _, p := range c.Global.Providers {
 		switch p {
 		case "HttpRemoteProvider":
-			provider, err := newHttpRemoteProvider(c)
+			provider, err := newHttpRemoteProvider(c, reloadFunc)
 			if err != nil {
 				return nil, err
 			}
@@ -90,9 +93,15 @@ func (pm *ProviderManager) Name() string {
 	return "ProviderManager"
 }
 
-func (pm *ProviderManager) StartReloader(reloadFunc func()) {
+func (pm *ProviderManager) StartReloader() {
 	for _, p := range pm.providers {
-		p.StartReloader(reloadFunc)
+		p.StartReloader()
+	}
+}
+
+func (pm *ProviderManager) StopReloader() {
+	for _, p := range pm.providers {
+		p.StopReloader()
 	}
 }
 
@@ -163,7 +172,11 @@ func (lp *LocalProvider) Name() string {
 }
 
 // StartReloader 内部可以检查是否有配置的变更,如果有变更,则可以手动执行reloadFunc来重启插件
-func (lp *LocalProvider) StartReloader(reloadFunc func()) {
+func (lp *LocalProvider) StartReloader() {
+	return
+}
+
+func (lp *LocalProvider) StopReloader() {
 	return
 }
 
@@ -227,12 +240,18 @@ func (lp *LocalProvider) GetInputConfig(inputKey string) ([]cfg.ConfigWithFormat
 type HttpRemoteProvider struct {
 	sync.RWMutex
 
-	RemoteUrl      string
-	Headers        map[string]string
-	AuthUsername   string
-	AuthPassword   string
+	RemoteUrl             string
+	Headers               map[string]string
+	AuthUsername          string
+	AuthPassword          string
+	TlsInsecureSkipVerify bool
+
 	Timeout        int
 	ReloadInterval int
+
+	client     *http.Client
+	ch         chan struct{}
+	reloadFunc func()
 
 	configMap map[string]cfg.ConfigWithFormat
 	version   string
@@ -250,18 +269,21 @@ func (hrp *HttpRemoteProvider) Name() string {
 	return "HttpRemoteProvider"
 }
 
-func newHttpRemoteProvider(c *config.ConfigType) (*HttpRemoteProvider, error) {
+func newHttpRemoteProvider(c *config.ConfigType, reloadFunc func()) (*HttpRemoteProvider, error) {
 	if c.HttpRemoteProviderConfig == nil {
 		return nil, fmt.Errorf("no http remote provider config found")
 	}
 
 	httpRemoteProvider := &HttpRemoteProvider{
-		RemoteUrl:      c.HttpRemoteProviderConfig.RemoteUrl,
-		Headers:        c.HttpRemoteProviderConfig.Headers,
-		AuthUsername:   c.HttpRemoteProviderConfig.AuthUsername,
-		AuthPassword:   c.HttpRemoteProviderConfig.AuthPassword,
-		Timeout:        c.HttpRemoteProviderConfig.Timeout,
-		ReloadInterval: c.HttpRemoteProviderConfig.ReloadInterval,
+		RemoteUrl:             c.HttpRemoteProviderConfig.RemoteUrl,
+		Headers:               c.HttpRemoteProviderConfig.Headers,
+		AuthUsername:          c.HttpRemoteProviderConfig.AuthUsername,
+		AuthPassword:          c.HttpRemoteProviderConfig.AuthPassword,
+		TlsInsecureSkipVerify: c.HttpRemoteProviderConfig.TlsInsecureSkipVerify,
+		Timeout:               c.HttpRemoteProviderConfig.Timeout,
+		ReloadInterval:        c.HttpRemoteProviderConfig.ReloadInterval,
+		ch:                    make(chan struct{}),
+		reloadFunc:            reloadFunc,
 	}
 	if err := httpRemoteProvider.check(); err != nil {
 		return nil, err
@@ -271,7 +293,7 @@ func newHttpRemoteProvider(c *config.ConfigType) (*HttpRemoteProvider, error) {
 
 func (hrp *HttpRemoteProvider) check() error {
 	if hrp.Timeout < 0 {
-		hrp.Timeout = 0
+		hrp.Timeout = 5
 	}
 
 	if hrp.ReloadInterval <= 0 {
@@ -281,18 +303,30 @@ func (hrp *HttpRemoteProvider) check() error {
 	if !strings.HasPrefix(hrp.RemoteUrl, "http") {
 		return fmt.Errorf("http remote provider: bad remote url config: %s", hrp.RemoteUrl)
 	}
+
+	if strings.HasSuffix(hrp.RemoteUrl, "https") && hrp.TlsInsecureSkipVerify {
+		hrp.client = &http.Client{
+			Timeout: time.Duration(hrp.Timeout) * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+	} else {
+		hrp.client = &http.Client{
+			Timeout: time.Duration(hrp.Timeout) * time.Second,
+		}
+	}
 	return nil
 }
 
 func (hrp *HttpRemoteProvider) doReq() (confResp *httpRemoteProviderResponse, err error) {
-	client := &http.Client{
-		Timeout: time.Duration(hrp.Timeout) * time.Second,
-	}
+
 	req, err := http.NewRequest("GET", hrp.RemoteUrl, nil)
 	if err != nil {
 		log.Println("E! http remote provider: build reload config request error", err)
 		return
 	}
+
 	for k, v := range hrp.Headers {
 		if k == "Host" {
 			req.Host = v
@@ -313,7 +347,7 @@ func (hrp *HttpRemoteProvider) doReq() (confResp *httpRemoteProviderResponse, er
 	q.Add("version", hrp.version)
 	req.URL.RawQuery = q.Encode()
 
-	resp, err := client.Do(req)
+	resp, err := hrp.client.Do(req)
 	if err != nil {
 		log.Println("E! http remote provider: request reload config error", err)
 		return
@@ -383,20 +417,28 @@ func (hrp *HttpRemoteProvider) LoadConfig() (changed bool, err error) {
 	return
 }
 
-func (hrp *HttpRemoteProvider) StartReloader(reloadFunc func()) {
+func (hrp *HttpRemoteProvider) StartReloader() {
 	go func() {
 		for {
-			time.Sleep(time.Duration(hrp.ReloadInterval) * time.Second)
-			changed, err := hrp.LoadConfig()
-			if err != nil {
-				continue
-			}
-			if changed {
-				reloadFunc()
+			select {
+			case <-time.After(time.Duration(hrp.ReloadInterval) * time.Second):
+				changed, err := hrp.LoadConfig()
+				if err != nil {
+					continue
+				}
+				if changed {
+					hrp.reloadFunc()
+				}
+			case <-hrp.ch:
+				return
 			}
 		}
 	}()
 	return
+}
+
+func (hrp *HttpRemoteProvider) StopReloader() {
+	hrp.ch <- struct{}{}
 }
 
 func (hrp *HttpRemoteProvider) GetInputs() ([]string, error) {

@@ -60,16 +60,16 @@ type Agent struct {
 }
 
 func NewAgent(filters map[string]struct{}) (*Agent, error) {
-	provider, err := inputs.NewProvider(config.Config)
-	if err != nil {
-		return nil, err
-	}
 	agent := &Agent{
 		InputFilters:  filters,
 		InputReaders:  make(map[string]*InputReader),
-		InputProvider: provider,
+		InputProvider: nil,
 	}
-	provider.StartReloader(agent.Reload)
+	provider, err := inputs.NewProvider(config.Config, agent.Reload)
+	if err != nil {
+		return nil, err
+	}
+	agent.InputProvider = provider
 	return agent, nil
 }
 

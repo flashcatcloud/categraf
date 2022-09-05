@@ -92,6 +92,9 @@ headers = {agent = "categraf"}
 basic_auth_user = ""
 basic_auth_pass = ""
 
+# tls InsecureSkipVerify
+tls_insecure_skip_verify = false
+
 # http timeout in seconds
 timeout = 5
 
