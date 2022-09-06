@@ -80,6 +80,15 @@ func NewProvider(c *config.ConfigType, reloadFunc func()) (Provider, error) {
 			providers = append(providers, provider)
 		}
 	}
+	// 不添加provider配置 则默认使用local
+	// 兼容老版本
+	if len(providers) == 0 {
+		provider, err := newLocalProvider(c)
+		if err != nil {
+			return nil, err
+		}
+		providers = append(providers, provider)
+	}
 	return &ProviderManager{
 		providers: providers,
 	}, nil
@@ -224,7 +233,7 @@ func (lp *LocalProvider) GetInputConfig(inputKey string) ([]cfg.ConfigWithFormat
 		return nil, fmt.Errorf("failed to list files under: %s : %v", lp.configDir, err)
 	}
 
-	cwf := make([]cfg.ConfigWithFormat, 0, 1)
+	cwf := make([]cfg.ConfigWithFormat, 0, len(files))
 	for _, f := range files {
 		c, err := file.ReadBytes(path.Join(lp.configDir, inputFilePrefix+inputKey, f))
 		if err != nil {
