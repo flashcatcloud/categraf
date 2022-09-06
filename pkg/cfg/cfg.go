@@ -3,8 +3,7 @@ package cfg
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"os"
+	"io/ioutil"
 	"path"
 	"strings"
 
@@ -35,15 +34,6 @@ func GuessFormat(fpath string) ConfigFormat {
 	return TomlFormat
 }
 
-func readFile(fname string) ([]byte, error) {
-	file, err := os.Open(fname)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	return io.ReadAll(file)
-}
-
 func LoadConfigByDir(configDir string, configPtr interface{}) error {
 	var (
 		tBuf, yBuf, jBuf []byte
@@ -60,7 +50,7 @@ func LoadConfigByDir(configDir string, configPtr interface{}) error {
 	}
 
 	for _, fpath := range files {
-		buf, err := readFile(path.Join(configDir, fpath))
+		buf, err := ioutil.ReadFile(path.Join(configDir, fpath))
 		if err != nil {
 			return err
 		}
