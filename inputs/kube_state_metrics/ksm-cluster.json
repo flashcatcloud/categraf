@@ -1,0 +1,1090 @@
+{
+  "name": "Kubernetes / Compute Resources / Cluster",
+  "tags": "",
+  "configs": {
+    "version": "2.0.0",
+    "links": [],
+    "var": [
+      {
+        "type": "query",
+        "name": "cluster",
+        "definition": "label_values(up{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\"}, cluster)",
+        "allOption": false,
+        "multi": false
+      }
+    ],
+    "panels": [
+      {
+        "version": "2.0.0",
+        "id": "677c76d5-d272-432b-af9e-4d7a088a491a",
+        "type": "row",
+        "name": "Headlines",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 0,
+          "i": "677c76d5-d272-432b-af9e-4d7a088a491a"
+        },
+        "panels": []
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "1 - sum(avg by (mode) (rate(node_cpu_seconds_total{job=\"node-exporter\", mode=~\"idle|iowait|steal\", cluster=\"$cluster\"}[5m])))"
+          }
+        ],
+        "name": "CPU Utilisation",
+        "links": [],
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "avg",
+          "valueField": "Value",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [],
+          "standardOptions": {
+            "util": "percentUnit"
+          }
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 3,
+          "w": 4,
+          "x": 0,
+          "y": 1,
+          "i": "4e5c3857-122a-4cb1-af44-ba59bb49c613"
+        },
+        "id": "4e5c3857-122a-4cb1-af44-ba59bb49c613"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(namespace_cpu:kube_pod_container_resource_requests:sum{cluster=\"$cluster\"}) / sum(kube_node_status_allocatable{job=\"kube-state-metrics\",resource=\"cpu\",cluster=\"$cluster\"})"
+          }
+        ],
+        "name": "CPU Requests Commitment",
+        "links": [],
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "avg",
+          "valueField": "Value",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [],
+          "standardOptions": {
+            "util": "percentUnit"
+          }
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 3,
+          "w": 4,
+          "x": 4,
+          "y": 1,
+          "i": "017c26eb-7cfe-4b17-9d14-83cda744f857"
+        },
+        "id": "017c26eb-7cfe-4b17-9d14-83cda744f857"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(namespace_cpu:kube_pod_container_resource_limits:sum{cluster=\"$cluster\"}) / sum(kube_node_status_allocatable{job=\"kube-state-metrics\",resource=\"cpu\",cluster=\"$cluster\"})"
+          }
+        ],
+        "name": "CPU Limits Commitment",
+        "links": [],
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "avg",
+          "valueField": "Value",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [],
+          "standardOptions": {
+            "util": "percentUnit"
+          }
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 3,
+          "w": 4,
+          "x": 8,
+          "y": 1,
+          "i": "194dd945-be43-4928-b7b1-36d16df1f5dc"
+        },
+        "id": "194dd945-be43-4928-b7b1-36d16df1f5dc"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "1 - sum(:node_memory_MemAvailable_bytes:sum{cluster=\"$cluster\"}) / sum(node_memory_MemTotal_bytes{job=\"node-exporter\",cluster=\"$cluster\"})"
+          }
+        ],
+        "name": "Memory Utilisation",
+        "links": [],
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "avg",
+          "valueField": "Value",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [],
+          "standardOptions": {
+            "util": "percentUnit"
+          }
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 3,
+          "w": 4,
+          "x": 12,
+          "y": 1,
+          "i": "6eca319a-12b0-41eb-a8d1-b96659867b28"
+        },
+        "id": "6eca319a-12b0-41eb-a8d1-b96659867b28"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(namespace_memory:kube_pod_container_resource_requests:sum{cluster=\"$cluster\"}) / sum(kube_node_status_allocatable{job=\"kube-state-metrics\",resource=\"memory\",cluster=\"$cluster\"})"
+          }
+        ],
+        "name": "Memory Requests Commitment",
+        "links": [],
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "avg",
+          "valueField": "Value",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [],
+          "standardOptions": {
+            "util": "percentUnit"
+          }
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 3,
+          "w": 4,
+          "x": 16,
+          "y": 1,
+          "i": "f814fef4-0e86-4f0c-ace1-d0e88124c75d"
+        },
+        "id": "f814fef4-0e86-4f0c-ace1-d0e88124c75d"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(namespace_memory:kube_pod_container_resource_limits:sum{cluster=\"$cluster\"}) / sum(kube_node_status_allocatable{job=\"kube-state-metrics\",resource=\"memory\",cluster=\"$cluster\"})"
+          }
+        ],
+        "name": "Memory Limits Commitment",
+        "links": [],
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "avg",
+          "valueField": "Value",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [],
+          "standardOptions": {
+            "util": "percentUnit"
+          }
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 3,
+          "w": 4,
+          "x": 20,
+          "y": 1,
+          "i": "89c3983a-b0ed-4d1f-b0c3-77278044d410"
+        },
+        "id": "89c3983a-b0ed-4d1f-b0c3-77278044d410"
+      },
+      {
+        "version": "2.0.0",
+        "id": "60cfb518-7c8b-4240-82d3-57c9de424a79",
+        "type": "row",
+        "name": "CPU",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 4,
+          "i": "60cfb518-7c8b-4240-82d3-57c9de424a79"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "15354cf3-bd85-4645-aa88-80d80d86d202",
+        "type": "timeseries",
+        "name": "CPU Usage",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 5,
+          "i": "15354cf3-bd85-4645-aa88-80d80d86d202"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\"}) by (namespace)",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "96979e18-6a17-4ac9-a3db-e5bdbce3d6ac",
+        "type": "row",
+        "name": "CPU Quota",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 12,
+          "i": "96979e18-6a17-4ac9-a3db-e5bdbce3d6ac"
+        },
+        "panels": []
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(kube_pod_owner{job=\"kube-state-metrics\", cluster=\"$cluster\"}) by (namespace)",
+            "legend": "Pods"
+          },
+          {
+            "refId": "B",
+            "expr": "count(avg(namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\"}) by (workload, namespace)) by (namespace)",
+            "legend": "Workloads"
+          },
+          {
+            "refId": "C",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\"}) by (namespace)",
+            "legend": "CPU Usage"
+          },
+          {
+            "refId": "D",
+            "expr": "sum(namespace_cpu:kube_pod_container_resource_requests:sum{cluster=\"$cluster\"}) by (namespace)",
+            "legend": "CPU Requests"
+          },
+          {
+            "refId": "E",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\"}) by (namespace) / sum(namespace_cpu:kube_pod_container_resource_requests:sum{cluster=\"$cluster\"}) by (namespace)",
+            "legend": "CPU Requests %"
+          },
+          {
+            "refId": "F",
+            "expr": "sum(namespace_cpu:kube_pod_container_resource_limits:sum{cluster=\"$cluster\"}) by (namespace)",
+            "legend": "CPU Limits"
+          },
+          {
+            "refId": "G",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\"}) by (namespace) / sum(namespace_cpu:kube_pod_container_resource_limits:sum{cluster=\"$cluster\"}) by (namespace)",
+            "legend": "CPU Limits %"
+          }
+        ],
+        "name": "CPU Quota",
+        "links": [],
+        "custom": {
+          "showHeader": true,
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "displayMode": "labelValuesToRows",
+          "sortColumn": "value",
+          "sortOrder": "descend",
+          "aggrDimension": "namespace"
+        },
+        "options": {
+          "standardOptions": {}
+        },
+        "overrides": [
+          {}
+        ],
+        "version": "2.0.0",
+        "type": "table",
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 13,
+          "i": "bae3bf41-83e9-43ce-8227-51350acb2b1e"
+        },
+        "id": "bae3bf41-83e9-43ce-8227-51350acb2b1e"
+      },
+      {
+        "version": "2.0.0",
+        "id": "8be48b43-e102-4ff0-bfcd-80f60f05aa30",
+        "type": "row",
+        "name": "Memory",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 20,
+          "i": "8be48b43-e102-4ff0-bfcd-80f60f05aa30"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "fdfa9c3b-0322-4ab8-b385-49bf98b199f6",
+        "type": "timeseries",
+        "name": "Memory Usage (w/o cache)",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 21,
+          "i": "fdfa9c3b-0322-4ab8-b385-49bf98b199f6"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(container_memory_rss{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", container!=\"\"}) by (namespace)",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "b54df283-085d-4984-9019-ebf8967bc0ca",
+        "type": "row",
+        "name": "Memory Requests",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 28,
+          "i": "b54df283-085d-4984-9019-ebf8967bc0ca"
+        },
+        "panels": []
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(kube_pod_owner{job=\"kube-state-metrics\", cluster=\"$cluster\"}) by (namespace)",
+            "legend": "Pods"
+          },
+          {
+            "refId": "B",
+            "expr": "count(avg(namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\"}) by (workload, namespace)) by (namespace)",
+            "legend": "Workloads"
+          },
+          {
+            "refId": "C",
+            "expr": "sum(container_memory_rss{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", container!=\"\"}) by (namespace)",
+            "legend": "Memory Usage"
+          },
+          {
+            "refId": "D",
+            "expr": "sum(namespace_memory:kube_pod_container_resource_requests:sum{cluster=\"$cluster\"}) by (namespace)",
+            "legend": "Memory Requests"
+          },
+          {
+            "refId": "E",
+            "expr": "sum(container_memory_rss{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", container!=\"\"}) by (namespace) / sum(namespace_memory:kube_pod_container_resource_requests:sum{cluster=\"$cluster\"}) by (namespace)",
+            "legend": "Memory Requests %"
+          },
+          {
+            "refId": "F",
+            "expr": "sum(namespace_memory:kube_pod_container_resource_limits:sum{cluster=\"$cluster\"}) by (namespace)",
+            "legend": "Memory Limits"
+          },
+          {
+            "refId": "G",
+            "expr": "sum(container_memory_rss{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", container!=\"\"}) by (namespace) / sum(namespace_memory:kube_pod_container_resource_limits:sum{cluster=\"$cluster\"}) by (namespace)",
+            "legend": "Memory Limits %"
+          }
+        ],
+        "name": "Requests by Namespace",
+        "links": [],
+        "custom": {
+          "showHeader": true,
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "displayMode": "labelValuesToRows",
+          "aggrDimension": "namespace"
+        },
+        "options": {
+          "standardOptions": {}
+        },
+        "overrides": [
+          {}
+        ],
+        "version": "2.0.0",
+        "type": "table",
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 29,
+          "i": "4028932a-3bdd-407d-8b4b-f61696de376e"
+        },
+        "id": "4028932a-3bdd-407d-8b4b-f61696de376e"
+      },
+      {
+        "version": "2.0.0",
+        "id": "6112b933-d884-4e28-a65d-3bcd2a076df2",
+        "type": "row",
+        "name": "Current Network Usage",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 36,
+          "i": "6112b933-d884-4e28-a65d-3bcd2a076df2"
+        },
+        "panels": []
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_receive_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "Current Receive Bandwidth"
+          },
+          {
+            "refId": "B",
+            "expr": "sum(irate(container_network_transmit_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "Current Transmit Bandwidth"
+          },
+          {
+            "refId": "C",
+            "expr": "sum(irate(container_network_receive_packets_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "Rate of Received Packets"
+          },
+          {
+            "refId": "D",
+            "expr": "sum(irate(container_network_transmit_packets_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "Rate of Transmitted Packets"
+          },
+          {
+            "refId": "E",
+            "expr": "sum(irate(container_network_receive_packets_dropped_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "Rate of Received Packets Dropped"
+          },
+          {
+            "refId": "F",
+            "expr": "sum(irate(container_network_transmit_packets_dropped_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "Rate of Transmitted Packets Dropped"
+          }
+        ],
+        "name": "Current Network Usage",
+        "links": [],
+        "custom": {
+          "showHeader": true,
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "displayMode": "labelValuesToRows",
+          "aggrDimension": "namespace"
+        },
+        "options": {
+          "standardOptions": {}
+        },
+        "overrides": [
+          {}
+        ],
+        "version": "2.0.0",
+        "type": "table",
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 37,
+          "i": "f921240c-e9a8-4a84-a74d-4b4bacfd2f31"
+        },
+        "id": "f921240c-e9a8-4a84-a74d-4b4bacfd2f31"
+      },
+      {
+        "version": "2.0.0",
+        "id": "2f3dab64-1aa6-4951-8953-f7fee0db2b66",
+        "type": "row",
+        "name": "Bandwidth",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 44,
+          "i": "2f3dab64-1aa6-4951-8953-f7fee0db2b66"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "a357b28c-b4c7-45e1-9e96-da4ce53a9aed",
+        "type": "timeseries",
+        "name": "Receive Bandwidth",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 45,
+          "i": "a357b28c-b4c7-45e1-9e96-da4ce53a9aed"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_receive_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "ee424a18-22bb-4a68-9e53-6eb7608c9d1d",
+        "type": "timeseries",
+        "name": "Transmit Bandwidth",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 45,
+          "i": "ee424a18-22bb-4a68-9e53-6eb7608c9d1d"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_transmit_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "57b0c4b3-c5e9-47df-8a98-e168bf0fbaeb",
+        "type": "row",
+        "name": "Average Container Bandwidth by Namespace",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 52,
+          "i": "57b0c4b3-c5e9-47df-8a98-e168bf0fbaeb"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "06f99c4f-0492-44a8-ac9f-4424a26a0a23",
+        "type": "timeseries",
+        "name": "Average Container Bandwidth by Namespace: Received",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 53,
+          "i": "06f99c4f-0492-44a8-ac9f-4424a26a0a23"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "avg(irate(container_network_receive_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "9be42475-87e8-4991-ae51-080ce87527b2",
+        "type": "timeseries",
+        "name": "Average Container Bandwidth by Namespace: Transmitted",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 53,
+          "i": "9be42475-87e8-4991-ae51-080ce87527b2"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "avg(irate(container_network_transmit_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "63e4e68b-9003-461c-9c10-1a08de7cd86e",
+        "type": "row",
+        "name": "Rate of Packets",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 60,
+          "i": "63e4e68b-9003-461c-9c10-1a08de7cd86e"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "1b60c478-5c21-4769-8155-477f512398ba",
+        "type": "timeseries",
+        "name": "Rate of Received Packets",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 61,
+          "i": "1b60c478-5c21-4769-8155-477f512398ba"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_receive_packets_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "84ae26c1-7680-4a45-8d48-8cf7892ff9e9",
+        "type": "timeseries",
+        "name": "Rate of Transmitted Packets",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 61,
+          "i": "84ae26c1-7680-4a45-8d48-8cf7892ff9e9"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_transmit_packets_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "b9600101-5506-46d4-9a10-0fb51b35eb5a",
+        "type": "row",
+        "name": "Rate of Packets Dropped",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 68,
+          "i": "b9600101-5506-46d4-9a10-0fb51b35eb5a"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "c941ffdd-c70c-464e-a57c-b13b4c5b4b0c",
+        "type": "timeseries",
+        "name": "Rate of Received Packets Dropped",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 69,
+          "i": "c941ffdd-c70c-464e-a57c-b13b4c5b4b0c"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_receive_packets_dropped_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "f875ba0d-82e3-45e4-989a-fec9f4e2a6da",
+        "type": "timeseries",
+        "name": "Rate of Transmitted Packets Dropped",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 69,
+          "i": "f875ba0d-82e3-45e4-989a-fec9f4e2a6da"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_transmit_packets_dropped_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=~\".+\"}[5m])) by (namespace)",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "d605d781-8263-4c9f-a5ee-d71bcf650367",
+        "type": "row",
+        "name": "Storage IO",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 76,
+          "i": "d605d781-8263-4c9f-a5ee-d71bcf650367"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "0dcd7122-afee-4c20-a00e-7479c9d16183",
+        "type": "timeseries",
+        "name": "IOPS(Reads+Writes)",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 77,
+          "i": "0dcd7122-afee-4c20-a00e-7479c9d16183"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "ceil(sum by(namespace) (rate(container_fs_reads_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", container!=\"\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", cluster=\"$cluster\", namespace!=\"\"}[5m]) + rate(container_fs_writes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", container!=\"\", cluster=\"$cluster\", namespace!=\"\"}[2m])))",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "58b21a07-2be5-44c0-8fe8-cd1d836575bb",
+        "type": "timeseries",
+        "name": "ThroughPut(Read+Write)",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 77,
+          "i": "58b21a07-2be5-44c0-8fe8-cd1d836575bb"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum by(namespace) (rate(container_fs_reads_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", container!=\"\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", cluster=\"$cluster\", namespace!=\"\"}[5m]) + rate(container_fs_writes_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", container!=\"\", cluster=\"$cluster\", namespace!=\"\"}[2m]))",
+            "legend": "{{namespace}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "ebe4dad1-7ae8-4e37-8208-b031c4df0aff",
+        "type": "row",
+        "name": "Storage IO - Distribution",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 84,
+          "i": "ebe4dad1-7ae8-4e37-8208-b031c4df0aff"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "068533d4-a364-4694-96e2-c2469c30de76",
+        "type": "timeseries",
+        "name": "Current Storage IO",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 85,
+          "i": "068533d4-a364-4694-96e2-c2469c30de76"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum by(namespace) (rate(container_fs_reads_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace!=\"\"}[5m]))",
+            "legend": ""
+          },
+          {
+            "refId": "B",
+            "expr": "sum by(namespace) (rate(container_fs_writes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace!=\"\"}[5m]))",
+            "legend": ""
+          },
+          {
+            "refId": "C",
+            "expr": "sum by(namespace) (rate(container_fs_reads_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace!=\"\"}[5m]) + rate(container_fs_writes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace!=\"\"}[2m]))",
+            "legend": ""
+          },
+          {
+            "refId": "D",
+            "expr": "sum by(namespace) (rate(container_fs_reads_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace!=\"\"}[5m]))",
+            "legend": ""
+          },
+          {
+            "refId": "E",
+            "expr": "sum by(namespace) (rate(container_fs_writes_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace!=\"\"}[5m]))",
+            "legend": ""
+          },
+          {
+            "refId": "F",
+            "expr": "sum by(namespace) (rate(container_fs_reads_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace!=\"\"}[5m]) + rate(container_fs_writes_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace!=\"\"}[2m]))",
+            "legend": ""
+          }
+        ],
+        "options": {},
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      }
+    ]
+  }
+}
