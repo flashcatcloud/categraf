@@ -61,7 +61,11 @@ type Provider interface {
 
 func NewProvider(c *config.ConfigType, reloadFunc func()) (Provider, error) {
 	log.Println("I! use input provider:", c.Global.Providers)
-
+	// 不添加provider配置 则默认使用local
+	// 兼容老版本
+	if len(c.Global.Providers) == 0 {
+		c.Global.Providers = append(c.Global.Providers, "local")
+	}
 	providers := make([]Provider, 0, len(c.Global.Providers))
 	for _, p := range c.Global.Providers {
 		name := strings.ToLower(p)
@@ -80,15 +84,7 @@ func NewProvider(c *config.ConfigType, reloadFunc func()) (Provider, error) {
 			providers = append(providers, provider)
 		}
 	}
-	// 不添加provider配置 则默认使用local
-	// 兼容老版本
-	if len(providers) == 0 {
-		provider, err := newLocalProvider(c)
-		if err != nil {
-			return nil, err
-		}
-		providers = append(providers, provider)
-	}
+
 	return &ProviderManager{
 		providers: providers,
 	}, nil
