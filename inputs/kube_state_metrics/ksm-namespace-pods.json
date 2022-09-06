@@ -1,0 +1,949 @@
+{
+  "name": "Kubernetes / Compute Resources / Namespace (Pods)",
+  "tags": "",
+  "configs": {
+    "version": "2.0.0",
+    "links": [],
+    "var": [
+      {
+        "type": "query",
+        "name": "cluster",
+        "definition": "label_values(up{job=\"kube-state-metrics\"}, cluster)",
+        "allOption": false,
+        "multi": false
+      },
+      {
+        "type": "query",
+        "name": "namespace",
+        "definition": "label_values(kube_namespace_status_phase{job=\"kube-state-metrics\", cluster=\"$cluster\"}, namespace)",
+        "allOption": false,
+        "multi": false
+      }
+    ],
+    "panels": [
+      {
+        "version": "2.0.0",
+        "id": "9b4d808f-ff8d-4ba1-ae70-4da0efeac30a",
+        "type": "row",
+        "name": "Headlines",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 0,
+          "i": "9b4d808f-ff8d-4ba1-ae70-4da0efeac30a"
+        },
+        "panels": []
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) / sum(kube_pod_container_resource_requests{job=\"kube-state-metrics\", cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"})"
+          }
+        ],
+        "name": "CPU Utilisation (from requests)",
+        "links": [],
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "avg",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [],
+          "standardOptions": {
+            "util": "percentUnit"
+          }
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 3,
+          "w": 6,
+          "x": 0,
+          "y": 1,
+          "i": "c7201437-ae2d-4b8b-bdd1-96b8f55f0aa9"
+        },
+        "id": "c7201437-ae2d-4b8b-bdd1-96b8f55f0aa9"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) / sum(kube_pod_container_resource_limits{job=\"kube-state-metrics\", cluster=\"$cluster\", namespace=\"$namespace\", resource=\"cpu\"})"
+          }
+        ],
+        "name": "CPU Utilisation (from limits)",
+        "links": [],
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "avg",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [],
+          "standardOptions": {
+            "util": "percentUnit"
+          }
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 3,
+          "w": 6,
+          "x": 6,
+          "y": 1,
+          "i": "6b6e7eda-4773-4a0f-aa81-064cb5e46b68"
+        },
+        "id": "6b6e7eda-4773-4a0f-aa81-064cb5e46b68"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(container_memory_working_set_bytes{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\", image!=\"\"}) / sum(kube_pod_container_resource_requests{job=\"kube-state-metrics\", cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"})"
+          }
+        ],
+        "name": "Memory Utilisation (from requests)",
+        "links": [],
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "avg",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [],
+          "standardOptions": {
+            "util": "percentUnit"
+          }
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 3,
+          "w": 6,
+          "x": 12,
+          "y": 1,
+          "i": "b051e9ae-40e7-4f91-b365-63e2558908bd"
+        },
+        "id": "b051e9ae-40e7-4f91-b365-63e2558908bd"
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(container_memory_working_set_bytes{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\", image!=\"\"}) / sum(kube_pod_container_resource_limits{job=\"kube-state-metrics\", cluster=\"$cluster\", namespace=\"$namespace\", resource=\"memory\"})"
+          }
+        ],
+        "name": "Memory Utilisation (from limits)",
+        "links": [],
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "avg",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [],
+          "standardOptions": {
+            "util": "percentUnit"
+          }
+        },
+        "version": "2.0.0",
+        "type": "stat",
+        "layout": {
+          "h": 3,
+          "w": 6,
+          "x": 18,
+          "y": 1,
+          "i": "fdd1b127-e195-4203-8be5-47958e4b0d6e"
+        },
+        "id": "fdd1b127-e195-4203-8be5-47958e4b0d6e"
+      },
+      {
+        "version": "2.0.0",
+        "id": "5169e581-bb25-48eb-8029-4f49ea8241b0",
+        "type": "row",
+        "name": "CPU Usage",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 4,
+          "i": "5169e581-bb25-48eb-8029-4f49ea8241b0"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "2b7db6b6-8500-478d-a48b-b77eeaaf8228",
+        "type": "timeseries",
+        "name": "CPU Usage",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 5,
+          "i": "2b7db6b6-8500-478d-a48b-b77eeaaf8228"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)",
+            "legend": "{{pod}}"
+          },
+          {
+            "refId": "B",
+            "expr": "scalar(kube_resourcequota{cluster=\"$cluster\", namespace=\"$namespace\", type=\"hard\",resource=\"requests.cpu\"})",
+            "legend": "quota - requests"
+          },
+          {
+            "refId": "C",
+            "expr": "scalar(kube_resourcequota{cluster=\"$cluster\", namespace=\"$namespace\", type=\"hard\",resource=\"limits.cpu\"})",
+            "legend": "quota - limits"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "f267f730-0f09-49ca-b6c5-323aab315804",
+        "type": "row",
+        "name": "CPU Quota",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 12,
+          "i": "f267f730-0f09-49ca-b6c5-323aab315804"
+        },
+        "panels": []
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)",
+            "legend": "CPU Usage"
+          },
+          {
+            "refId": "B",
+            "expr": "sum(cluster:namespace:pod_cpu:active:kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)",
+            "legend": "CPU Requests"
+          },
+          {
+            "refId": "C",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod) / sum(cluster:namespace:pod_cpu:active:kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)",
+            "legend": "CPU Requests %"
+          },
+          {
+            "refId": "D",
+            "expr": "sum(cluster:namespace:pod_cpu:active:kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)",
+            "legend": "CPU Limits\t"
+          },
+          {
+            "refId": "E",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod) / sum(cluster:namespace:pod_cpu:active:kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)",
+            "legend": "CPU Limits %"
+          }
+        ],
+        "name": "CPU Quota",
+        "links": [],
+        "custom": {
+          "showHeader": true,
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "displayMode": "labelValuesToRows",
+          "aggrDimension": "pod"
+        },
+        "options": {
+          "standardOptions": {}
+        },
+        "overrides": [
+          {}
+        ],
+        "version": "2.0.0",
+        "type": "table",
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 13,
+          "i": "417415c2-7380-41cf-b140-ba1c653e57eb"
+        },
+        "id": "417415c2-7380-41cf-b140-ba1c653e57eb"
+      },
+      {
+        "version": "2.0.0",
+        "id": "c3f5ddbc-a8c9-4af1-bd30-863ce56c4737",
+        "type": "row",
+        "name": "Memory Usage",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 20,
+          "i": "c3f5ddbc-a8c9-4af1-bd30-863ce56c4737"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "d97742f1-8c74-4063-b052-1e037ad7a7dc",
+        "type": "timeseries",
+        "name": "Memory Usage (w/o cache)",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 21,
+          "i": "d97742f1-8c74-4063-b052-1e037ad7a7dc"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(container_memory_working_set_bytes{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\", container!=\"\", image!=\"\"}) by (pod)",
+            "legend": "{{pod}}"
+          },
+          {
+            "refId": "B",
+            "expr": "scalar(kube_resourcequota{cluster=\"$cluster\", namespace=\"$namespace\", type=\"hard\",resource=\"requests.memory\"})",
+            "legend": "quota - requests"
+          },
+          {
+            "refId": "C",
+            "expr": "scalar(kube_resourcequota{cluster=\"$cluster\", namespace=\"$namespace\", type=\"hard\",resource=\"limits.memory\"})",
+            "legend": "quota - limits"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "aca85477-6126-4d4e-a399-71c9cd69ac4c",
+        "type": "row",
+        "name": "Memory Quota",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 28,
+          "i": "aca85477-6126-4d4e-a399-71c9cd69ac4c"
+        },
+        "panels": []
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(container_memory_working_set_bytes{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\", image!=\"\"}) by (pod)",
+            "legend": "Memory Usage"
+          },
+          {
+            "refId": "B",
+            "expr": "sum(cluster:namespace:pod_memory:active:kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)",
+            "legend": "Memory Requests"
+          },
+          {
+            "refId": "C",
+            "expr": "sum(container_memory_working_set_bytes{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\", image!=\"\"}) by (pod) / sum(cluster:namespace:pod_memory:active:kube_pod_container_resource_requests{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)",
+            "legend": "Memory Requests %"
+          },
+          {
+            "refId": "D",
+            "expr": "sum(cluster:namespace:pod_memory:active:kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)",
+            "legend": "Memory Limits"
+          },
+          {
+            "refId": "E",
+            "expr": "sum(container_memory_working_set_bytes{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\", image!=\"\"}) by (pod) / sum(cluster:namespace:pod_memory:active:kube_pod_container_resource_limits{cluster=\"$cluster\", namespace=\"$namespace\"}) by (pod)",
+            "legend": "Memory Limits %"
+          },
+          {
+            "refId": "F",
+            "expr": "sum(container_memory_rss{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\"}) by (pod)",
+            "legend": "Memory Usage (RSS)"
+          },
+          {
+            "refId": "G",
+            "expr": "sum(container_memory_cache{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\"}) by (pod)",
+            "legend": "Memory Usage (Cache)"
+          },
+          {
+            "refId": "H",
+            "expr": "sum(container_memory_swap{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\",container!=\"\"}) by (pod)",
+            "legend": "Memory Usage (Swap)"
+          }
+        ],
+        "name": "Memory Quota",
+        "links": [],
+        "custom": {
+          "showHeader": true,
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "displayMode": "labelValuesToRows",
+          "aggrDimension": "pod"
+        },
+        "options": {
+          "standardOptions": {}
+        },
+        "overrides": [
+          {}
+        ],
+        "version": "2.0.0",
+        "type": "table",
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 29,
+          "i": "15a5caf4-6b1a-42b1-ad6c-7b42dc062890"
+        },
+        "id": "15a5caf4-6b1a-42b1-ad6c-7b42dc062890"
+      },
+      {
+        "version": "2.0.0",
+        "id": "ffe47330-2983-4226-828d-b2c464dddd98",
+        "type": "row",
+        "name": "Current Network Usage",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 36,
+          "i": "ffe47330-2983-4226-828d-b2c464dddd98"
+        },
+        "panels": []
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_receive_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "Current Receive Bandwidth"
+          },
+          {
+            "refId": "B",
+            "expr": "sum(irate(container_network_transmit_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "Current Transmit Bandwidth"
+          },
+          {
+            "refId": "C",
+            "expr": "sum(irate(container_network_receive_packets_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "Rate of Received Packets"
+          },
+          {
+            "refId": "D",
+            "expr": "sum(irate(container_network_transmit_packets_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "Rate of Transmitted Packets"
+          },
+          {
+            "refId": "E",
+            "expr": "sum(irate(container_network_receive_packets_dropped_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "Rate of Received Packets Dropped"
+          },
+          {
+            "refId": "F",
+            "expr": "sum(irate(container_network_transmit_packets_dropped_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "Rate of Transmitted Packets Dropped"
+          }
+        ],
+        "name": "Current Network Usage",
+        "links": [],
+        "custom": {
+          "showHeader": true,
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "displayMode": "labelValuesToRows",
+          "aggrDimension": "pod"
+        },
+        "options": {
+          "standardOptions": {}
+        },
+        "overrides": [
+          {}
+        ],
+        "version": "2.0.0",
+        "type": "table",
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 37,
+          "i": "ddaa6921-6abc-4e48-8640-d8c4a92f2e96"
+        },
+        "id": "ddaa6921-6abc-4e48-8640-d8c4a92f2e96"
+      },
+      {
+        "version": "2.0.0",
+        "id": "5c0430a5-9257-4b89-a2f2-884559f94d6b",
+        "type": "row",
+        "name": "Bandwidth",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 44,
+          "i": "5c0430a5-9257-4b89-a2f2-884559f94d6b"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "f17a9a44-bc67-4440-8409-265bb0259fe9",
+        "type": "timeseries",
+        "name": "Receive Bandwidth",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 45,
+          "i": "f17a9a44-bc67-4440-8409-265bb0259fe9"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_receive_bytes_total{cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "{{pod}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "1881e2df-cf60-4eac-b5a0-ac085709605c",
+        "type": "timeseries",
+        "name": "Transmit Bandwidth",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 45,
+          "i": "1881e2df-cf60-4eac-b5a0-ac085709605c"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_transmit_bytes_total{cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "{{pod}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "87540f2e-810f-4c00-b89e-a1c96cfa6d2c",
+        "type": "row",
+        "name": "Rate of Packets",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 52,
+          "i": "87540f2e-810f-4c00-b89e-a1c96cfa6d2c"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "cf1c97a9-22e3-4f70-921f-b8ad7b19b4f3",
+        "type": "timeseries",
+        "name": "Rate of Received Packets",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 53,
+          "i": "cf1c97a9-22e3-4f70-921f-b8ad7b19b4f3"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_receive_packets_total{cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "{{pod}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "38030a28-f510-4ed5-9bb9-73a4dcd3cde9",
+        "type": "timeseries",
+        "name": "Rate of Transmitted Packets",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 53,
+          "i": "38030a28-f510-4ed5-9bb9-73a4dcd3cde9"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_transmit_packets_total{cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "{{pod}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "32d8aeaf-e11d-4abd-924a-18d9f448eb6c",
+        "type": "row",
+        "name": "Rate of Packets Dropped",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 60,
+          "i": "32d8aeaf-e11d-4abd-924a-18d9f448eb6c"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "dcb065a1-08d5-4a33-95d9-2a2b42d874a1",
+        "type": "timeseries",
+        "name": "Rate of Received Packets Dropped",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 61,
+          "i": "dcb065a1-08d5-4a33-95d9-2a2b42d874a1"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_receive_packets_dropped_total{cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "{{pod}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "9dffb6e9-7335-49d2-b2bb-79eb5c056e7b",
+        "type": "timeseries",
+        "name": "Rate of Transmitted Packets Dropped",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 61,
+          "i": "9dffb6e9-7335-49d2-b2bb-79eb5c056e7b"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(irate(container_network_transmit_packets_dropped_total{cluster=\"$cluster\", namespace=\"$namespace\"}[2m])) by (pod)",
+            "legend": "{{pod}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "1cc8e35e-39a7-4840-a99e-2598830cf88a",
+        "type": "row",
+        "name": "Storage IO",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 68,
+          "i": "1cc8e35e-39a7-4840-a99e-2598830cf88a"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "f3124cc7-bcde-4fee-a4d7-ac9ebb865893",
+        "type": "timeseries",
+        "name": "IOPS(Reads+Writes)",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 69,
+          "i": "f3124cc7-bcde-4fee-a4d7-ac9ebb865893"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "ceil(sum by(pod) (rate(container_fs_reads_total{container!=\"\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]) + rate(container_fs_writes_total{container!=\"\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m])))",
+            "legend": "{{pod}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "43f39ebf-97b5-440b-80ea-aff4b3b3fb17",
+        "type": "timeseries",
+        "name": "ThroughPut(Read+Write)",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 69,
+          "i": "43f39ebf-97b5-440b-80ea-aff4b3b3fb17"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum by(pod) (rate(container_fs_reads_bytes_total{container!=\"\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]) + rate(container_fs_writes_bytes_total{container!=\"\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]))",
+            "legend": "{{pod}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "629509e2-5cb3-4655-8082-24c4e5bea346",
+        "type": "row",
+        "name": "Storage IO - Distribution",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 76,
+          "i": "629509e2-5cb3-4655-8082-24c4e5bea346"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "5453a799-a491-4d24-97fe-3db9e2af9108",
+        "type": "timeseries",
+        "name": "Current Storage IO",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 77,
+          "i": "5453a799-a491-4d24-97fe-3db9e2af9108"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum by(pod) (rate(container_fs_reads_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]))",
+            "legend": ""
+          },
+          {
+            "refId": "B",
+            "expr": "sum by(pod) (rate(container_fs_writes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]))",
+            "legend": ""
+          },
+          {
+            "refId": "C",
+            "expr": "sum by(pod) (rate(container_fs_reads_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]) + rate(container_fs_writes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]))",
+            "legend": ""
+          },
+          {
+            "refId": "D",
+            "expr": "sum by(pod) (rate(container_fs_reads_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]))",
+            "legend": ""
+          },
+          {
+            "refId": "E",
+            "expr": "sum by(pod) (rate(container_fs_writes_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]))",
+            "legend": ""
+          },
+          {
+            "refId": "F",
+            "expr": "sum by(pod) (rate(container_fs_reads_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]) + rate(container_fs_writes_bytes_total{job=\"kubelet\", metrics_path=\"/metrics/cadvisor\", device=~\"mmcblk.p.+|nvme.+|rbd.+|sd.+|vd.+|xvd.+|dm-.+|dasd.+\", container!=\"\", cluster=\"$cluster\", namespace=\"$namespace\"}[2m]))",
+            "legend": ""
+          }
+        ],
+        "options": {},
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      }
+    ]
+  }
+}
