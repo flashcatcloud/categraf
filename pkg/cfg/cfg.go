@@ -1,7 +1,9 @@
 package cfg
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"path"
 	"strings"
 
@@ -33,6 +35,10 @@ func GuessFormat(fpath string) ConfigFormat {
 }
 
 func LoadConfigByDir(configDir string, configPtr interface{}) error {
+	var (
+		tBuf, yBuf, jBuf []byte
+	)
+
 	loaders := []multiconfig.Loader{
 		&multiconfig.TagLoader{},
 		&multiconfig.EnvironmentLoader{},
@@ -44,26 +50,41 @@ func LoadConfigByDir(configDir string, configPtr interface{}) error {
 	}
 
 	for _, fpath := range files {
-		if strings.HasSuffix(fpath, ".toml") {
-			loaders = append(loaders, &multiconfig.TOMLLoader{Path: path.Join(configDir, fpath)})
+		buf, err := ioutil.ReadFile(path.Join(configDir, fpath))
+		if err != nil {
+			return err
 		}
-		if strings.HasSuffix(fpath, ".json") {
-			loaders = append(loaders, &multiconfig.JSONLoader{Path: path.Join(configDir, fpath)})
+		switch {
+		case strings.HasSuffix(fpath, "toml"):
+			tBuf = append(tBuf, buf...)
+		case strings.HasSuffix(fpath, "json"):
+			jBuf = append(jBuf, buf...)
+		case strings.HasSuffix(fpath, "yaml") || strings.HasSuffix(fpath, "yml"):
+			yBuf = append(yBuf, buf...)
 		}
-		if strings.HasSuffix(fpath, ".yaml") || strings.HasSuffix(fpath, ".yml") {
-			loaders = append(loaders, &multiconfig.YAMLLoader{Path: path.Join(configDir, fpath)})
-		}
+	}
+
+	if len(tBuf) != 0 {
+		loaders = append(loaders, &multiconfig.TOMLLoader{Reader: bytes.NewReader(tBuf)})
+	}
+	if len(yBuf) != 0 {
+		loaders = append(loaders, &multiconfig.YAMLLoader{Reader: bytes.NewReader(yBuf)})
+	}
+	if len(jBuf) != 0 {
+		loaders = append(loaders, &multiconfig.JSONLoader{Reader: bytes.NewReader(jBuf)})
 	}
 
 	m := multiconfig.DefaultLoader{
 		Loader:    multiconfig.MultiLoader(loaders...),
 		Validator: multiconfig.MultiValidator(&multiconfig.RequiredValidator{}),
 	}
-
 	return m.Load(configPtr)
 }
 
 func LoadConfigs(configs []ConfigWithFormat, configPtr interface{}) error {
+	var (
+		tBuf, yBuf, jBuf []byte
+	)
 	loaders := []multiconfig.Loader{
 		&multiconfig.TagLoader{},
 		&multiconfig.EnvironmentLoader{},
@@ -71,12 +92,22 @@ func LoadConfigs(configs []ConfigWithFormat, configPtr interface{}) error {
 	for _, c := range configs {
 		switch c.Format {
 		case TomlFormat:
-			loaders = append(loaders, &multiconfig.TOMLLoader{Reader: strings.NewReader(c.Config)})
+			tBuf = append(tBuf, []byte(c.Config)...)
 		case YamlFormat:
-			loaders = append(loaders, &multiconfig.YAMLLoader{Reader: strings.NewReader(c.Config)})
+			yBuf = append(yBuf, []byte(c.Config)...)
 		case JsonFormat:
-			loaders = append(loaders, &multiconfig.JSONLoader{Reader: strings.NewReader(c.Config)})
+			jBuf = append(jBuf, []byte(c.Config)...)
 		}
+	}
+
+	if len(tBuf) != 0 {
+		loaders = append(loaders, &multiconfig.TOMLLoader{Reader: bytes.NewReader(tBuf)})
+	}
+	if len(yBuf) != 0 {
+		loaders = append(loaders, &multiconfig.YAMLLoader{Reader: bytes.NewReader(yBuf)})
+	}
+	if len(jBuf) != 0 {
+		loaders = append(loaders, &multiconfig.JSONLoader{Reader: bytes.NewReader(jBuf)})
 	}
 
 	m := multiconfig.DefaultLoader{
