@@ -1,4 +1,4 @@
-package rocketmq_diff
+package rocketmq_offset
 
 type TopicListData struct {
 	TopicList  []string `json:"topicList"`
