@@ -65,21 +65,21 @@ agents = [
 ## example collects the system uptime and interface variables.  Reference the
 ## full plugin documentation for configuration details.
 
-[[instances.field]]
+#[[instances.field]]
 #oid = "RFC1213-MIB::sysUpTime.0"
 #name = "uptime"
 
-[[instances.field]]
+#[[instances.field]]
 #oid = "RFC1213-MIB::sysName.0"
 #name = "source"
 #is_tag = true
 
-[[instances.table]]
+#[[instances.table]]
 #oid = "IF-MIB::ifTable"
 #name = "interface"
 #inherit_tags = ["source"]
 
-[[instances.table.field]]
+#[[instances.table.field]]
 #oid = "IF-MIB::ifDescr"
 #name = "ifDescr"
 #is_tag = true
