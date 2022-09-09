@@ -1,0 +1,1 @@
+forked from [telegraf/snmp](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/snmp)
