@@ -47,7 +47,7 @@ var (
 
 type Instance struct {
 	config.InstanceConfig
-	Ethdevice string `toml:"url"`
+	Ethdevice string `toml:"eth_device"`
 
 	EthHandle *pcap.Handle
 	LocalIP   string
@@ -58,6 +58,13 @@ func (ins *Instance) Init() error {
 		return types.ErrInstancesEmpty
 	}
 	ins.LocalIP = config.Config.Global.IP
+	// Open device
+	var err error
+	ins.EthHandle, err = pcap.OpenLive(ins.Ethdevice, snapshot_len, promiscuous, timeout)
+	if err != nil {
+		log.Fatal(err)
+		return types.ErrInstancesEmpty
+	}
 	go ins.arpStat()
 	fmt.Println("I! start arp stat")
 	return nil
@@ -71,16 +78,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 }
 
 func (ins *Instance) arpStat() {
-	// Open device
-	var err error
-	ins.EthHandle, err = pcap.OpenLive(ins.Ethdevice, snapshot_len, promiscuous, timeout)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
 	var filter string = "arp"
-	err = ins.EthHandle.SetBPFFilter(filter)
+	ins.EthHandle.SetBPFFilter(filter)
 
 	defer ins.EthHandle.Close()
 	// Use the handle as a packet source to process all packets
