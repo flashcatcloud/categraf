@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -42,7 +41,6 @@ var (
 	timeout      time.Duration = 30 * time.Second
 	reqARP       uint64        = 0
 	resARP       uint64        = 0
-	mutex        sync.Mutex
 )
 
 type Instance struct {
@@ -101,10 +99,6 @@ func (ins *Instance) arpStat() {
 					fmt.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
 
 					fmt.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
-					defer func() {
-						mutex.Unlock()
-					}()
-					mutex.Lock()
 					resARP++
 
 				}
@@ -121,10 +115,6 @@ func (ins *Instance) arpStat() {
 					fmt.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
 
 					fmt.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
-					defer func() {
-						mutex.Unlock()
-					}()
-					mutex.Lock()
 					reqARP++
 				}
 			}
