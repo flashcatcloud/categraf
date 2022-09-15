@@ -194,7 +194,7 @@ spec:
               apiVersion: v1
               fieldPath: status.hostIP
       - name: categraf
-        image: flashcatcloud/categraf:v0.2.11
+        image: flashcatcloud/categraf:latest
         command: ["/usr/bin/categraf"]
         args: ["-configs", "/opt/categraf/conf"]
         imagePullPolicy: IfNotPresent
