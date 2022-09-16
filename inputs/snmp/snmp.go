@@ -191,13 +191,13 @@ func (ins *Instance) Init() error {
 // Table holds the configuration for an SNMP table.
 type Table struct {
 	// Name will be the name of the measurement.
-	Name string
+	Name string `toml:"name"`
 
 	// Which tags to inherit from the top-level config.
-	InheritTags []string
+	InheritTags []string `toml:"inherit_tags"`
 
 	// Adds each row's table index as a tag.
-	IndexAsTag bool
+	IndexAsTag bool `toml:"index_as_tag"`
 
 	// Fields is the tags and values to look up.
 	Fields []Field `toml:"field"`
@@ -205,9 +205,9 @@ type Table struct {
 	// OID for automatic field population.
 	// If provided, init() will populate Fields with all the table columns of the
 	// given OID.
-	Oid string
+	Oid string `toml:"oid"`
 
-	initialized bool
+	initialized bool `toml:"initialized"`
 }
 
 // Init builds & initializes the nested fields.
@@ -277,42 +277,42 @@ func (t *Table) initBuild(tr Translator) error {
 // Field holds the configuration for a Field to look up.
 type Field struct {
 	// Name will be the name of the field.
-	Name string
+	Name string `toml:"name"`
 	// OID is prefix for this field. The plugin will perform a walk through all
 	// OIDs with this as their parent. For each value found, the plugin will strip
 	// off the OID prefix, and use the remainder as the index. For multiple fields
 	// to show up in the same row, they must share the same index.
-	Oid string
+	Oid string `toml:"oid"`
 	// OidIndexSuffix is the trailing sub-identifier on a table record OID that will be stripped off to get the record's index.
-	OidIndexSuffix string
+	OidIndexSuffix string `toml:"oid_index_suffix"`
 	// OidIndexLength specifies the length of the index in OID path segments. It can be used to remove sub-identifiers that vary in content or length.
-	OidIndexLength int
+	OidIndexLength int `toml:"oid_index_length"`
 	// IsTag controls whether this OID is output as a tag or a value.
-	IsTag bool
+	IsTag bool `toml:"is_tag"`
 	// Conversion controls any type conversion that is done on the value.
 	//  "float"/"float(0)" will convert the value into a float.
 	//  "float(X)" will convert the value into a float, and then move the decimal before Xth right-most digit.
 	//  "int" will conver the value into an integer.
 	//  "hwaddr" will convert a 6-byte string to a MAC address.
 	//  "ipaddr" will convert the value to an IPv4 or IPv6 address.
-	Conversion string
+	Conversion string `toml:"conversion"`
 	// Translate tells if the value of the field should be snmptranslated
-	Translate bool
+	Translate bool `toml:"translate"`
 	// Secondary index table allows to merge data from two tables with different index
 	//  that this filed will be used to join them. There can be only one secondary index table.
-	SecondaryIndexTable bool
+	SecondaryIndexTable bool `toml:"secondary_index_table"`
 	// This field is using secondary index, and will be later merged with primary index
 	//  using SecondaryIndexTable. SecondaryIndexTable and SecondaryIndexUse are exclusive.
-	SecondaryIndexUse bool
+	SecondaryIndexUse bool `toml:"secondary_index_use"`
 	// Controls if entries from secondary table should be added or not if joining
 	//  index is present or not. I set to true, means that join is outer, and
 	//  index is prepended with "Secondary." for missing values to avoid overlaping
 	//  indexes from both tables.
 	// Can be set per field or globally with SecondaryIndexTable, global true overrides
 	//  per field false.
-	SecondaryOuterJoin bool
+	SecondaryOuterJoin bool `toml:"secondary_outer_join"`
 
-	initialized bool
+	initialized bool `toml:"initialized"`
 }
 
 // init() converts OID names to numbers, and sets the .Name attribute if unset.
@@ -352,20 +352,20 @@ func (f *Field) init(tr Translator) error {
 // RTable is the resulting table built from a Table.
 type RTable struct {
 	// Name is the name of the field, copied from Table.Name.
-	Name string
+	Name string `toml:"name"`
 	// Time is the time the table was built.
-	Time time.Time
+	Time time.Time `toml:"time"`
 	// Rows are the rows that were found, one row for each table OID index found.
-	Rows []RTableRow
+	Rows []RTableRow `toml:"rows"`
 }
 
 // RTableRow is the resulting row containing all the OID values which shared
 // the same index.
 type RTableRow struct {
 	// Tags are all the Field values which had IsTag=true.
-	Tags map[string]string
+	Tags map[string]string `toml:"tags"`
 	// Fields are all the Field values which had IsTag=false.
-	Fields map[string]interface{}
+	Fields map[string]interface{} `toml:"fields"`
 }
 
 type walkError struct {
