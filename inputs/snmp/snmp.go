@@ -448,6 +448,10 @@ func (ins *Instance) gatherTable(slist *types.SampleList, gs snmpConnection, t T
 		return err
 	}
 
+	prefix := inputName
+	if len(rt.Name) != 0 {
+		prefix = inputName + "_" + rt.Name
+	}
 	for _, tr := range rt.Rows {
 		if !walk {
 			// top-level table. Add tags to topTags.
@@ -465,7 +469,7 @@ func (ins *Instance) gatherTable(slist *types.SampleList, gs snmpConnection, t T
 		if _, ok := tr.Tags[ins.AgentHostTag]; !ok {
 			tr.Tags[ins.AgentHostTag] = gs.Host()
 		}
-		slist.PushSamples(inputName+"_"+rt.Name, tr.Fields, tr.Tags)
+		slist.PushSamples(prefix, tr.Fields, tr.Tags)
 	}
 
 	return nil
