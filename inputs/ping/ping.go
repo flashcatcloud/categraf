@@ -154,6 +154,9 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 			log.Println("D! no packets received, target:", target)
 		}
 		fields["result_code"] = 1
+		fields["minimum_response_ms"] = float64(-1)
+		fields["average_response_ms"] = float64(-1)
+		fields["maximum_response_ms"] = float64(-1)
 		fields["percent_packet_loss"] = float64(100)
 		return
 	}
