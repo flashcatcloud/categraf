@@ -40,8 +40,6 @@ var (
 	snapshot_len int32         = 1024
 	promiscuous  bool          = false
 	timeout      time.Duration = 30 * time.Second
-	reqARP       uint64        = 0
-	resARP       uint64        = 0
 )
 
 type Instance struct {
@@ -50,6 +48,8 @@ type Instance struct {
 
 	EthHandle *pcap.Handle
 	LocalIP   string
+	reqARP    uint64
+	resARP    uint64
 }
 
 func (ins *Instance) GetInterfaceIpv4Addr(interfaceName string) (addr string, err error) {
@@ -97,8 +97,8 @@ func (ins *Instance) Init() error {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	tags := map[string]string{"sourceAddr": ins.LocalIP}
 	fields := make(map[string]interface{})
-	fields["request_num"] = reqARP
-	fields["response_num"] = resARP
+	fields["request_num"] = ins.reqARP
+	fields["response_num"] = ins.resARP
 	slist.PushSamples(inputName, fields, tags)
 }
 
@@ -126,7 +126,7 @@ func (ins *Instance) arpStat() {
 					fmt.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
 
 					fmt.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
-					resARP++
+					ins.resARP++
 
 				}
 
@@ -142,7 +142,7 @@ func (ins *Instance) arpStat() {
 					fmt.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
 
 					fmt.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
-					reqARP++
+					ins.reqARP++
 				}
 			}
 		}
