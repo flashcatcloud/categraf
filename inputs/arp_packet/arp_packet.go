@@ -123,7 +123,6 @@ func (ins *Instance) arpStat() {
 				dip = arp.DstProtAddress
 				if sourceAddr == ins.LocalIP {
 					log.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
-
 					log.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
 					ins.resARP++
 
@@ -137,9 +136,8 @@ func (ins *Instance) arpStat() {
 				sourceAddr := sip.String()
 				dip = arp.DstProtAddress
 				if sourceAddr == ins.LocalIP {
-					log.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
-
-					log.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
+					log.Println("ARPReq: SourceProtAddress:", sourceAddr, " mac:", macs)
+					log.Println("ARPReq: DstProtAddress:", dip.String(), " mac:", macd)
 					ins.reqARP++
 				}
 			}
