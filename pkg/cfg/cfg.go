@@ -65,6 +65,7 @@ func LoadConfigByDir(configDir string, configPtr interface{}) error {
 	}
 
 	if len(tBuf) != 0 {
+		tBuf = append(tBuf, []byte("\n\n")...)
 		loaders = append(loaders, &multiconfig.TOMLLoader{Reader: bytes.NewReader(tBuf)})
 	}
 	if len(yBuf) != 0 {
@@ -92,6 +93,7 @@ func LoadConfigs(configs []ConfigWithFormat, configPtr interface{}) error {
 	for _, c := range configs {
 		switch c.Format {
 		case TomlFormat:
+			tBuf = append(tBuf, []byte("\n\n")...)
 			tBuf = append(tBuf, []byte(c.Config)...)
 		case YamlFormat:
 			yBuf = append(yBuf, []byte(c.Config)...)
