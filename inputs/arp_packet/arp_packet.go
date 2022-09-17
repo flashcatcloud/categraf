@@ -36,20 +36,17 @@ func (r *ArpPacket) GetInstances() []inputs.Instance {
 	return ret
 }
 
-var (
-	snapshot_len int32         = 1024
-	promiscuous  bool          = false
-	timeout      time.Duration = 30 * time.Second
-)
-
 type Instance struct {
 	config.InstanceConfig
 	Ethdevice string `toml:"eth_device"`
 
-	EthHandle *pcap.Handle
-	LocalIP   string
-	reqARP    uint64
-	resARP    uint64
+	EthHandle    *pcap.Handle
+	LocalIP      string
+	reqARP       uint64
+	resARP       uint64
+	snapshot_len int32
+	promiscuous  bool
+	timeout      time.Duration
 }
 
 func (ins *Instance) GetInterfaceIpv4Addr(interfaceName string) (addr string, err error) {
@@ -81,17 +78,20 @@ func (ins *Instance) Init() error {
 	var err error
 	ins.LocalIP, err = ins.GetInterfaceIpv4Addr(ins.Ethdevice)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("E!", err)
 		return types.ErrInstancesEmpty
 	}
+	ins.snapshot_len = 1024
+	ins.promiscuous = false
+	ins.timeout = 30 * time.Second
 	// Open device
-	ins.EthHandle, err = pcap.OpenLive(ins.Ethdevice, snapshot_len, promiscuous, timeout)
+	ins.EthHandle, err = pcap.OpenLive(ins.Ethdevice, ins.snapshot_len, ins.promiscuous, ins.timeout)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("E!", err)
 		return types.ErrInstancesEmpty
 	}
 	go ins.arpStat()
-	fmt.Println("I! start arp stat")
+	log.Println("I! start arp stat")
 	return nil
 }
 func (ins *Instance) Gather(slist *types.SampleList) {
@@ -122,10 +122,9 @@ func (ins *Instance) arpStat() {
 				sourceAddr := sip.String()
 				dip = arp.DstProtAddress
 				if sourceAddr == ins.LocalIP {
-					fmt.Println("send res")
-					fmt.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
+					log.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
 
-					fmt.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
+					log.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
 					ins.resARP++
 
 				}
@@ -138,10 +137,9 @@ func (ins *Instance) arpStat() {
 				sourceAddr := sip.String()
 				dip = arp.DstProtAddress
 				if sourceAddr == ins.LocalIP {
-					fmt.Println("send req")
-					fmt.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
+					log.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
 
-					fmt.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
+					log.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
 					ins.reqARP++
 				}
 			}
