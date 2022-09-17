@@ -1,6 +1,7 @@
 package arp_packet
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -51,13 +52,39 @@ type Instance struct {
 	LocalIP   string
 }
 
+func (ins *Instance) GetInterfaceIpv4Addr(interfaceName string) (addr string, err error) {
+	var (
+		ief      *net.Interface
+		addrs    []net.Addr
+		ipv4Addr net.IP
+	)
+	if ief, err = net.InterfaceByName(interfaceName); err != nil { // get interface
+		return "", err
+	}
+	if addrs, err = ief.Addrs(); err != nil { // get addresses
+		return "", err
+	}
+	for _, addr := range addrs { // get ipv4 address
+		if ipv4Addr = addr.(*net.IPNet).IP.To4(); ipv4Addr != nil {
+			break
+		}
+	}
+	if ipv4Addr == nil {
+		return "", errors.New(fmt.Sprintf("interface %s don't have an ipv4 address\n", interfaceName))
+	}
+	return ipv4Addr.String(), nil
+}
 func (ins *Instance) Init() error {
 	if len(ins.Ethdevice) == 0 {
 		return types.ErrInstancesEmpty
 	}
-	ins.LocalIP = config.Config.Global.IP
-	// Open device
 	var err error
+	ins.LocalIP, err = ins.GetInterfaceIpv4Addr(ins.Ethdevice)
+	if err != nil {
+		log.Fatal(err)
+		return types.ErrInstancesEmpty
+	}
+	// Open device
 	ins.EthHandle, err = pcap.OpenLive(ins.Ethdevice, snapshot_len, promiscuous, timeout)
 	if err != nil {
 		log.Fatal(err)
