@@ -37,6 +37,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/ntp"
 	_ "flashcat.cloud/categraf/inputs/nvidia_smi"
 	_ "flashcat.cloud/categraf/inputs/oracle"
+	_ "flashcat.cloud/categraf/inputs/phpfpm"
 	_ "flashcat.cloud/categraf/inputs/ping"
 	_ "flashcat.cloud/categraf/inputs/processes"
 	_ "flashcat.cloud/categraf/inputs/procstat"
