@@ -1,0 +1,293 @@
+{
+  "name": "Kubernetes / Compute Resources / Node (Pods)",
+  "tags": "",
+  "configs": {
+    "version": "2.0.0",
+    "links": [],
+    "var": [
+      {
+        "type": "query",
+        "name": "cluster",
+        "definition": "label_values(up{job=\"kube-state-metrics\"}, cluster)",
+        "allOption": false,
+        "multi": false
+      },
+      {
+        "type": "query",
+        "name": "node",
+        "definition": "label_values(kube_node_info{cluster=\"$cluster\"}, node)",
+        "allOption": false,
+        "multi": true
+      }
+    ],
+    "panels": [
+      {
+        "version": "2.0.0",
+        "id": "d73adde8-c6af-4592-b47d-61aa44f58551",
+        "type": "row",
+        "name": "CPU Usage",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 0,
+          "i": "d73adde8-c6af-4592-b47d-61aa44f58551"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "381f4e4c-acdd-4f2e-85d6-c57ba32d7424",
+        "type": "timeseries",
+        "name": "CPU Usage",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 1,
+          "i": "381f4e4c-acdd-4f2e-85d6-c57ba32d7424"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(kube_node_status_capacity{cluster=\"$cluster\", node=~\"$node\", resource=\"cpu\"})",
+            "legend": "max capacity"
+          },
+          {
+            "refId": "B",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", node=~\"$node\"}) by (pod)",
+            "legend": "{{pod}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "b35bb009-0ef0-4cd9-8c4b-8847cca65934",
+        "type": "row",
+        "name": "CPU Quota",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 8,
+          "i": "b35bb009-0ef0-4cd9-8c4b-8847cca65934"
+        },
+        "panels": []
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", node=~\"$node\"}) by (pod)",
+            "legend": "CPU Usage"
+          },
+          {
+            "refId": "B",
+            "expr": "sum(cluster:namespace:pod_cpu:active:kube_pod_container_resource_requests{cluster=\"$cluster\", node=~\"$node\"}) by (pod)",
+            "legend": "CPU Requests"
+          },
+          {
+            "refId": "C",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", node=~\"$node\"}) by (pod) / sum(cluster:namespace:pod_cpu:active:kube_pod_container_resource_requests{cluster=\"$cluster\", node=~\"$node\"}) by (pod)",
+            "legend": "CPU Requests %"
+          },
+          {
+            "refId": "D",
+            "expr": "sum(cluster:namespace:pod_cpu:active:kube_pod_container_resource_limits{cluster=\"$cluster\", node=~\"$node\"}) by (pod)",
+            "legend": "CPU Limits"
+          },
+          {
+            "refId": "E",
+            "expr": "sum(node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate{cluster=\"$cluster\", node=~\"$node\"}) by (pod) / sum(cluster:namespace:pod_cpu:active:kube_pod_container_resource_limits{cluster=\"$cluster\", node=~\"$node\"}) by (pod)",
+            "legend": "CPU Limits %"
+          }
+        ],
+        "name": "CPU Quota",
+        "links": [],
+        "custom": {
+          "showHeader": true,
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "displayMode": "labelValuesToRows",
+          "aggrDimension": "pod"
+        },
+        "options": {
+          "standardOptions": {}
+        },
+        "overrides": [
+          {}
+        ],
+        "version": "2.0.0",
+        "type": "table",
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 9,
+          "i": "2d96965d-3115-41a4-a930-5c5304c8956d"
+        },
+        "id": "2d96965d-3115-41a4-a930-5c5304c8956d"
+      },
+      {
+        "version": "2.0.0",
+        "id": "d437c351-e756-4ae3-b9d1-7eeded42a25f",
+        "type": "row",
+        "name": "Memory Usage",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 16,
+          "i": "d437c351-e756-4ae3-b9d1-7eeded42a25f"
+        },
+        "panels": []
+      },
+      {
+        "version": "2.0.0",
+        "id": "954eb4f2-b353-452e-bf5c-360972532cad",
+        "type": "timeseries",
+        "name": "Memory Usage (w/o cache)",
+        "links": [],
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 17,
+          "i": "954eb4f2-b353-452e-bf5c-360972532cad"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(kube_node_status_capacity{cluster=\"$cluster\", node=~\"$node\", resource=\"memory\"})",
+            "legend": "max capacity"
+          },
+          {
+            "refId": "B",
+            "expr": "sum(node_namespace_pod_container:container_memory_working_set_bytes{cluster=\"$cluster\", node=~\"$node\", container!=\"\"}) by (pod)",
+            "legend": "{{pod}}"
+          }
+        ],
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          }
+        },
+        "custom": {
+          "version": "2.0.0",
+          "drawStyle": "lines",
+          "lineInterpolation": "linear",
+          "fillOpacity": 0.5,
+          "stack": "off"
+        }
+      },
+      {
+        "version": "2.0.0",
+        "id": "3710ce9f-5528-4266-b92a-e7635e5eea33",
+        "type": "row",
+        "name": "Memory Quota",
+        "collapsed": true,
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 24,
+          "i": "3710ce9f-5528-4266-b92a-e7635e5eea33"
+        },
+        "panels": []
+      },
+      {
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(node_namespace_pod_container:container_memory_working_set_bytes{cluster=\"$cluster\", node=~\"$node\",container!=\"\"}) by (pod)",
+            "legend": "Memory Usage"
+          },
+          {
+            "refId": "B",
+            "expr": "sum(cluster:namespace:pod_memory:active:kube_pod_container_resource_requests{cluster=\"$cluster\", node=~\"$node\"}) by (pod)",
+            "legend": "Memory Requests"
+          },
+          {
+            "refId": "C",
+            "expr": "sum(node_namespace_pod_container:container_memory_working_set_bytes{cluster=\"$cluster\", node=~\"$node\",container!=\"\"}) by (pod) / sum(cluster:namespace:pod_memory:active:kube_pod_container_resource_requests{cluster=\"$cluster\", node=~\"$node\"}) by (pod)",
+            "legend": "Memory Requests %"
+          },
+          {
+            "refId": "D",
+            "expr": "sum(cluster:namespace:pod_memory:active:kube_pod_container_resource_limits{cluster=\"$cluster\", node=~\"$node\"}) by (pod)",
+            "legend": "Memory Limits"
+          },
+          {
+            "refId": "E",
+            "expr": "sum(node_namespace_pod_container:container_memory_working_set_bytes{cluster=\"$cluster\", node=~\"$node\",container!=\"\"}) by (pod) / sum(cluster:namespace:pod_memory:active:kube_pod_container_resource_limits{cluster=\"$cluster\", node=~\"$node\"}) by (pod)",
+            "legend": "Memory Limits %"
+          },
+          {
+            "refId": "F",
+            "expr": "sum(node_namespace_pod_container:container_memory_rss{cluster=\"$cluster\", node=~\"$node\",container!=\"\"}) by (pod)",
+            "legend": "Memory Usage (RSS)"
+          },
+          {
+            "refId": "G",
+            "expr": "sum(node_namespace_pod_container:container_memory_cache{cluster=\"$cluster\", node=~\"$node\",container!=\"\"}) by (pod)",
+            "legend": "Memory Usage (Cache)"
+          },
+          {
+            "refId": "H",
+            "expr": "sum(node_namespace_pod_container:container_memory_swap{cluster=\"$cluster\", node=~\"$node\",container!=\"\"}) by (pod)",
+            "legend": "Memory Usage (Swap)"
+          }
+        ],
+        "name": "Memory Quota",
+        "links": [],
+        "custom": {
+          "showHeader": true,
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "displayMode": "labelValuesToRows",
+          "aggrDimension": "pod"
+        },
+        "options": {
+          "standardOptions": {}
+        },
+        "overrides": [
+          {}
+        ],
+        "version": "2.0.0",
+        "type": "table",
+        "layout": {
+          "h": 7,
+          "w": 24,
+          "x": 0,
+          "y": 25,
+          "i": "209513c8-bdc3-4a23-8697-255b74dec748"
+        },
+        "id": "209513c8-bdc3-4a23-8697-255b74dec748"
+      }
+    ]
+  }
+}

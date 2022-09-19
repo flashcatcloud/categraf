@@ -70,7 +70,11 @@ func main() {
 	go api.Start()
 	go agent.Report()
 
-	ag := agent.NewAgent(parseFilter(*inputFilters))
+	ag, err := agent.NewAgent(parseFilter(*inputFilters))
+	if err != nil {
+		fmt.Println("F! failed to init agent:", err)
+		os.Exit(-1)
+	}
 	runAgent(ag)
 }
 

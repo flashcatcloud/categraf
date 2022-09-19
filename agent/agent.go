@@ -3,6 +3,8 @@ package agent
 import (
 	"log"
 
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/traces"
 
 	// auto registry
@@ -14,6 +16,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/docker"
 	_ "flashcat.cloud/categraf/inputs/elasticsearch"
 	_ "flashcat.cloud/categraf/inputs/exec"
+	_ "flashcat.cloud/categraf/inputs/greenplum"
 	_ "flashcat.cloud/categraf/inputs/http_response"
 	_ "flashcat.cloud/categraf/inputs/ipvs"
 	_ "flashcat.cloud/categraf/inputs/jenkins"
@@ -31,6 +34,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/net"
 	_ "flashcat.cloud/categraf/inputs/net_response"
 	_ "flashcat.cloud/categraf/inputs/netstat"
+	_ "flashcat.cloud/categraf/inputs/netstat_filter"
 	_ "flashcat.cloud/categraf/inputs/nfsclient"
 	_ "flashcat.cloud/categraf/inputs/nginx"
 	_ "flashcat.cloud/categraf/inputs/nginx_upstream_check"
@@ -45,6 +49,8 @@ import (
 	_ "flashcat.cloud/categraf/inputs/rabbitmq"
 	_ "flashcat.cloud/categraf/inputs/redis"
 	_ "flashcat.cloud/categraf/inputs/redis_sentinel"
+	_ "flashcat.cloud/categraf/inputs/rocketmq_offset"
+	_ "flashcat.cloud/categraf/inputs/snmp"
 	_ "flashcat.cloud/categraf/inputs/switch_legacy"
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
@@ -55,13 +61,22 @@ type Agent struct {
 	InputFilters   map[string]struct{}
 	InputReaders   map[string]*InputReader
 	TraceCollector *traces.Collector
+	InputProvider  inputs.Provider
 }
 
-func NewAgent(filters map[string]struct{}) *Agent {
-	return &Agent{
+func NewAgent(filters map[string]struct{}) (*Agent, error) {
+	agent := &Agent{
 		InputFilters: filters,
 		InputReaders: make(map[string]*InputReader),
 	}
+
+	provider, err := inputs.NewProvider(config.Config, agent.Reload)
+	if err != nil {
+		return nil, err
+	}
+	agent.InputProvider = provider
+
+	return agent, nil
 }
 
 func (a *Agent) Start() {
