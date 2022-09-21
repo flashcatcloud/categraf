@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	Docker     = "docker"
-	Kubernetes = "kubernetes"
+	Docker              = "docker"
+	Kubernetes          = "kubernetes"
+	CollectContainerAll = "collect_container_all"
 )
 
 type (
@@ -69,11 +70,11 @@ func LogFrameSize() int {
 }
 
 func ValidatePodContainerID() bool {
-	return false
+	return true
 }
 
 func IsFeaturePresent(t string) bool {
-	return false
+	return true
 }
 
 func GetContainerCollectAll() bool {

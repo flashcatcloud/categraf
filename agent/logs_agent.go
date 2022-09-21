@@ -15,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/logs/auditor"
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/logs/diagnostic"
+	"flashcat.cloud/categraf/logs/input/docker"
 	"flashcat.cloud/categraf/logs/input/file"
 	"flashcat.cloud/categraf/logs/input/journald"
 	"flashcat.cloud/categraf/logs/input/listener"
@@ -57,12 +58,33 @@ func NewLogAgent(sources *logsconfig.LogSources, services *logService.Services, 
 
 	validatePodContainerID := coreconfig.ValidatePodContainerID()
 
+	containerLaunchables := []docker.Launchable{
+		{
+			IsAvailable: docker.IsAvailable,
+			Launcher: func() restart.Restartable {
+				return docker.NewDockerLauncher(
+					// time.Duration(coreConfig.Datadog.GetInt("logs_config.docker_client_read_timeout"))*time.Second,
+					time.Duration(30)*time.Second,
+					sources,
+					services,
+					pipelineProvider,
+					auditor,
+					// TODO
+					true,
+					true)
+			},
+		},
+	}
 	// setup the inputs
 	inputs := []restart.Restartable{
 		file.NewScanner(sources, coreconfig.OpenLogsLimit(), pipelineProvider, auditor,
 			file.DefaultSleepDuration, validatePodContainerID, time.Duration(time.Duration(coreconfig.FileScanPeriod())*time.Second)),
 		listener.NewLauncher(sources, coreconfig.LogFrameSize(), pipelineProvider),
 		journald.NewLauncher(sources, pipelineProvider, auditor),
+	}
+
+	if coreconfig.GetContainerCollectAll() {
+		inputs = append(inputs, docker.NewLauncher(containerLaunchables))
 	}
 
 	return &LogAgent{
@@ -148,7 +170,8 @@ const (
 func (a *Agent) startLogAgent() {
 	if coreconfig.Config == nil ||
 		!coreconfig.Config.Logs.Enable ||
-		len(coreconfig.Config.Logs.Items) == 0 {
+		(len(coreconfig.Config.Logs.Items) == 0 &&
+			coreconfig.Config.Logs.CollectContainerAll) {
 		return
 	}
 
@@ -172,6 +195,21 @@ func (a *Agent) startLogAgent() {
 	log.Println("I! Starting logs-agent...")
 	logAgent = NewLogAgent(sources, services, processingRules, endpoints)
 	logAgent.Start()
+
+	if coreconfig.GetContainerCollectAll() {
+		// collect container all
+		if coreconfig.Config.DebugMode {
+			log.Println("Adding ContainerCollectAll source to the Logs Agent")
+		}
+		dockersource := logsconfig.NewLogSource(coreconfig.CollectContainerAll,
+			&logsconfig.LogsConfig{
+				Type:    coreconfig.Docker,
+				Service: "docker",
+				Source:  "docker",
+			})
+		dockersource.SetSourceType(logsconfig.DockerSourceType)
+		sources.AddSource(dockersource)
+	}
 
 	// add source
 	for _, c := range coreconfig.Config.Logs.Items {
