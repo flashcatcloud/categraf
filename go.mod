@@ -108,6 +108,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cncf/xds/go v0.0.0-20220314180256-7f1daf1720fc // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/denisenkom/go-mssqldb v0.12.2 // indirect
 	github.com/dennwc/varint v1.0.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/digitalocean/godo v1.81.0 // indirect
@@ -151,6 +152,8 @@ require (
 	github.com/godror/knownpb v0.1.0 // indirect
 	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
+	github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe // indirect
+	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
