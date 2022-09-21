@@ -289,7 +289,7 @@ func newHTTPProvider(c *config.ConfigType, reloadFunc func()) (*HTTPProvider, er
 		ClientConfig:   c.HTTPProviderConfig.ClientConfig,
 		Timeout:        c.HTTPProviderConfig.Timeout,
 		ReloadInterval: c.HTTPProviderConfig.ReloadInterval,
-		stopCh:         make(chan struct{}),
+		stopCh:         make(chan struct{}, 1),
 		reloadFunc:     reloadFunc,
 	}
 
