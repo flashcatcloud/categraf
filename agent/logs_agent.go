@@ -71,7 +71,7 @@ func NewLogAgent(sources *logsconfig.LogSources, services *logService.Services, 
 					auditor,
 					// TODO
 					true,
-					true)
+					false)
 			},
 		},
 	}
@@ -84,6 +84,7 @@ func NewLogAgent(sources *logsconfig.LogSources, services *logService.Services, 
 	}
 
 	if coreconfig.GetContainerCollectAll() {
+		log.Println("collect docker logs...")
 		inputs = append(inputs, docker.NewLauncher(containerLaunchables))
 	}
 
@@ -171,7 +172,8 @@ func (a *Agent) startLogAgent() {
 	if coreconfig.Config == nil ||
 		!coreconfig.Config.Logs.Enable ||
 		(len(coreconfig.Config.Logs.Items) == 0 &&
-			coreconfig.Config.Logs.CollectContainerAll) {
+			!coreconfig.Config.Logs.CollectContainerAll) {
+		log.Println("there is no logs config, logs agent quiting")
 		return
 	}
 
@@ -207,9 +209,11 @@ func (a *Agent) startLogAgent() {
 				Service: "docker",
 				Source:  "docker",
 			})
-		dockersource.SetSourceType(logsconfig.DockerSourceType)
+		// dockersource.SetSourceType(logsconfig.DockerSourceType)
 		sources.AddSource(dockersource)
 	}
+
+	log.Println("DEBUG docker source add done, add file source")
 
 	// add source
 	for _, c := range coreconfig.Config.Logs.Items {

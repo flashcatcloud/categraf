@@ -75,10 +75,10 @@ func IsAvailable() (bool, *retry.Retrier) {
 
 // NewLauncher returns a new launcher
 func NewDockerLauncher(readTimeout time.Duration, sources *logsconfig.LogSources, services *service.Services, pipelineProvider pipeline.Provider, registry auditor.Registry, tailFromFile, forceTailingFromFile bool) *DockerLauncher {
-	// if _, err := dockerutil.GetDockerUtil(); err != nil {
-	// 	log.Errorf("DockerUtil not available, failed to create launcher", err)
-	// 	return nil
-	// }
+	if _, err := dockerutil.GetDockerUtil(); err != nil {
+		log.Println("DockerUtil not available, failed to create launcher", err)
+		return nil
+	}
 
 	launcher := &DockerLauncher{
 		pipelineProvider:       pipelineProvider,
@@ -141,9 +141,11 @@ func (l *DockerLauncher) Stop() {
 // run starts and stops new tailers when it receives a new source
 // or a new service which is mapped to a container.
 func (l *DockerLauncher) run() {
+	scanTicker := time.NewTicker(10 * time.Second)
 	for {
 		select {
 		case service := <-l.addedServices:
+			log.Printf("DEBUG, docker service add %v", service)
 			// detected a new container running on the host,
 			dockerutil, err := dockerutil.GetDockerUtil()
 			if err != nil {
@@ -155,6 +157,7 @@ func (l *DockerLauncher) run() {
 				log.Println("Could not find container with id: %v", err)
 				continue
 			}
+			log.Printf("DEBUG! dockerutil %v", dockerContainer)
 			container := NewContainer(dockerContainer, service)
 			source := container.FindSource(l.activeSources)
 			switch {
@@ -170,6 +173,7 @@ func (l *DockerLauncher) run() {
 		case source := <-l.addedSources:
 			// detected a new source that has been created either from a configuration file,
 			// a docker label or a pod annotation.
+			log.Printf("DEBUG! docker source add %v", source)
 			l.activeSources = append(l.activeSources, source)
 			pendingContainers := make(map[string]*Container)
 			for _, container := range l.pendingContainers {
@@ -184,6 +188,7 @@ func (l *DockerLauncher) run() {
 			// keep the containers that have not found any source yet for next iterations
 			l.pendingContainers = pendingContainers
 		case source := <-l.removedSources:
+			log.Printf("DEBUG docker source remove %v", source)
 			for i, src := range l.activeSources {
 				if src == source {
 					// no need to stop any tailer here, it will be stopped after receiving a
@@ -193,17 +198,27 @@ func (l *DockerLauncher) run() {
 				}
 			}
 		case service := <-l.removedServices:
+			log.Printf("DEBUG docker service remove", service)
 			// detected that a container has been stopped.
 			containerID := service.Identifier
 			l.stopTailer(containerID)
 			delete(l.pendingContainers, containerID)
 		case containerID := <-l.erroredContainerID:
+			log.Printf("DEBUG, error container %v ", containerID)
 			go l.restartTailer(containerID)
+
+		case <-scanTicker.C:
+			// check if there are new files to tail, tailers to stop and tailer to restart because of file rotation
+			l.scan()
 		case <-l.stop:
+			log.Printf("DEBUG, docker launcher stop")
 			// no docker container should be tailed anymore
 			return
 		}
 	}
+}
+func (l *DockerLauncher) scan() {
+
 }
 
 // overrideSource create a new source with the image short name if the source is ContainerCollectAll
@@ -370,6 +385,7 @@ func (l *DockerLauncher) startSocketTailer(container *Container, source *logscon
 		log.Println("Can't tail twice the same container: %v", ShortContainerID(containerID))
 		return
 	}
+	log.Println("DEBUG tail container %v from socket", ShortContainerID(containerID))
 	dockerutil, err := dockerutil.GetDockerUtil()
 	if err != nil {
 		log.Println("Could not use docker client, logs for container %s won’t be collected: %v", containerID, err)
