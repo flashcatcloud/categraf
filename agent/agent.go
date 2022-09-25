@@ -8,6 +8,7 @@ import (
 	"flashcat.cloud/categraf/traces"
 
 	// auto registry
+	_ "flashcat.cloud/categraf/inputs/arp_packet"
 	_ "flashcat.cloud/categraf/inputs/conntrack"
 	_ "flashcat.cloud/categraf/inputs/cpu"
 	_ "flashcat.cloud/categraf/inputs/disk"
