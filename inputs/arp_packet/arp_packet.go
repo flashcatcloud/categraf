@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -47,6 +48,8 @@ type Instance struct {
 	snapshot_len int32
 	promiscuous  bool
 	timeout      time.Duration
+
+	mutex sync.RWMutex
 }
 
 func (ins *Instance) GetInterfaceIpv4Addr(interfaceName string) (addr string, err error) {
@@ -97,8 +100,10 @@ func (ins *Instance) Init() error {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	tags := map[string]string{"sourceAddr": ins.LocalIP}
 	fields := make(map[string]interface{})
+	ins.mutex.RLock()
 	fields["request_num"] = ins.reqARP
 	fields["response_num"] = ins.resARP
+	ins.mutex.RUnlock()
 	slist.PushSamples(inputName, fields, tags)
 }
 
@@ -124,7 +129,9 @@ func (ins *Instance) arpStat() {
 				if sourceAddr == ins.LocalIP {
 					log.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
 					log.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
+					ins.mutex.Lock()
 					ins.resARP++
+					ins.mutex.Unlock()
 
 				}
 
@@ -138,7 +145,9 @@ func (ins *Instance) arpStat() {
 				if sourceAddr == ins.LocalIP {
 					log.Println("ARPReq: SourceProtAddress:", sourceAddr, " mac:", macs)
 					log.Println("ARPReq: DstProtAddress:", dip.String(), " mac:", macd)
+					ins.mutex.Lock()
 					ins.reqARP++
+					ins.mutex.Unlock()
 				}
 			}
 		}
