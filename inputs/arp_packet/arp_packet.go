@@ -127,8 +127,8 @@ func (ins *Instance) arpStat() {
 				sourceAddr := sip.String()
 				dip = arp.DstProtAddress
 				if sourceAddr == ins.LocalIP {
-					log.Println("ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
-					log.Println("ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
+					log.Println("I! ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
+					log.Println("I! ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
 					ins.mutex.Lock()
 					ins.resARP++
 					ins.mutex.Unlock()
@@ -143,8 +143,8 @@ func (ins *Instance) arpStat() {
 				sourceAddr := sip.String()
 				dip = arp.DstProtAddress
 				if sourceAddr == ins.LocalIP {
-					log.Println("ARPReq: SourceProtAddress:", sourceAddr, " mac:", macs)
-					log.Println("ARPReq: DstProtAddress:", dip.String(), " mac:", macd)
+					log.Println("I! ARPReq: SourceProtAddress:", sourceAddr, " mac:", macs)
+					log.Println("I! ARPReq: DstProtAddress:", dip.String(), " mac:", macd)
 					ins.mutex.Lock()
 					ins.reqARP++
 					ins.mutex.Unlock()
