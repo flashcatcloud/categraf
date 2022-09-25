@@ -70,7 +70,7 @@ func (ins *Instance) GetInterfaceIpv4Addr(interfaceName string) (addr string, er
 		}
 	}
 	if ipv4Addr == nil {
-		return "", errors.New(fmt.Sprintf("interface %s don't have an ipv4 address\n", interfaceName))
+		return "", errors.New(fmt.Sprintf("interface %s don't have an ipv4 address", interfaceName))
 	}
 	return ipv4Addr.String(), nil
 }
