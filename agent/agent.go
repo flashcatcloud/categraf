@@ -19,6 +19,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/greenplum"
 	_ "flashcat.cloud/categraf/inputs/http_response"
+	_ "flashcat.cloud/categraf/inputs/influxdb"
 	_ "flashcat.cloud/categraf/inputs/ipvs"
 	_ "flashcat.cloud/categraf/inputs/jenkins"
 	_ "flashcat.cloud/categraf/inputs/jolokia_agent"
