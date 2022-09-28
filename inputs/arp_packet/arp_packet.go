@@ -1,3 +1,6 @@
+//go:build arppacket
+// +build arppacket
+
 package arp_packet
 
 import (
