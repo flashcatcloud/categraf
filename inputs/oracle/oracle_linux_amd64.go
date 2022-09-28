@@ -68,7 +68,9 @@ func (o *Oracle) Drop() {
 func (o *Oracle) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(o.Instances))
 	for i := 0; i < len(o.Instances); i++ {
-		o.Instances[i].Metrics = append(o.Instances[i].Metrics, o.Metrics...)
+		if len(o.Instances[i].Metrics) < len(o.Metrics) {
+			o.Instances[i].Metrics = append(o.Instances[i].Metrics, o.Metrics...)
+		}
 		ret[i] = o.Instances[i]
 	}
 	return ret
