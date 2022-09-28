@@ -68,6 +68,7 @@ func (o *Oracle) Drop() {
 func (o *Oracle) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(o.Instances))
 	for i := 0; i < len(o.Instances); i++ {
+		o.Instances[i].Metrics = append(o.Instances[i].Metrics, o.Metrics...)
 		ret[i] = o.Instances[i]
 	}
 	return ret
@@ -117,12 +118,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	waitMetrics := new(sync.WaitGroup)
-
-	for i := 0; i < len(ins.Metrics); i++ {
-		m := ins.Metrics[i]
-		waitMetrics.Add(1)
-		go ins.scrapeMetric(waitMetrics, slist, m, tags)
-	}
 
 	for i := 0; i < len(ins.Metrics); i++ {
 		m := ins.Metrics[i]
