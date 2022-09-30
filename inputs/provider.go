@@ -231,6 +231,12 @@ func (lp *LocalProvider) GetInputConfig(inputKey string) ([]cfg.ConfigWithFormat
 
 	cwf := make([]cfg.ConfigWithFormat, 0, len(files))
 	for _, f := range files {
+		if !(strings.HasSuffix(f, ".yaml") ||
+			strings.HasSuffix(f, ".yml") ||
+			strings.HasSuffix(f, ".json") ||
+			strings.HasSuffix(f, ".toml")) {
+			continue
+		}
 		c, err := file.ReadBytes(path.Join(lp.configDir, inputFilePrefix+inputKey, f))
 		if err != nil {
 			return nil, err
