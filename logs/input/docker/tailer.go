@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	dockerutil "flashcat.cloud/categraf/logs/input/docker/util"
+	dockerutil "flashcat.cloud/categraf/logs/util/docker"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/decoder"

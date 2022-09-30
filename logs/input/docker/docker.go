@@ -7,6 +7,7 @@ package docker
 
 import (
 	"context"
+	"flashcat.cloud/categraf/logs/autodiscovery"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	coreConfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/auditor"
+	"flashcat.cloud/categraf/logs/autodiscovery/integration"
 	dockerutil "flashcat.cloud/categraf/logs/input/docker/util"
 	"flashcat.cloud/categraf/logs/pipeline"
 	"flashcat.cloud/categraf/logs/restart"
@@ -218,7 +220,22 @@ func (l *DockerLauncher) run() {
 	}
 }
 func (l *DockerLauncher) scan() {
+	pd, _ := NewDockerConfigProvider()
+	cfgs, err := pd.Collect(context.TODO())
+	if err != nil {
+		log.Println("E! scan container error: %s", err)
+		return
+	}
+	var resolvedConfigs []integration.Config
+	ac := autodiscovery.AutoConfig{}
 
+	for _, config := range cfgs {
+		config.Provider = pd.String()
+		rc := ac.ProcessNewConfig(config)
+		resolvedConfigs = append(resolvedConfigs, rc...)
+	}
+
+	// resolvedConfigs
 }
 
 // overrideSource create a new source with the image short name if the source is ContainerCollectAll

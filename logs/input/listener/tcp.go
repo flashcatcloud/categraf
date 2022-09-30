@@ -51,7 +51,7 @@ func NewTCPListener(pipelineProvider pipeline.Provider, source *logsconfig.LogSo
 	}
 }
 
-// Start starts the listener to accepts new incoming connections.
+// Start starts the listeners to accepts new incoming connections.
 func (l *TCPListener) Start() {
 	log.Printf("Starting TCP forwarder on port %d, with read buffer size: %d\n", l.source.Config.Port, l.frameSize)
 	err := l.startListener()
@@ -64,7 +64,7 @@ func (l *TCPListener) Start() {
 	go l.run()
 }
 
-// Stop stops the listener from accepting new connections and all the activer tailers.
+// Stop stops the listeners from accepting new connections and all the activer tailers.
 func (l *TCPListener) Stop() {
 	log.Printf("Stopping TCP forwarder on port %d\n", l.source.Config.Port)
 	l.mu.Lock()
@@ -92,12 +92,12 @@ func (l *TCPListener) run() {
 			case err != nil && isClosedConnError(err):
 				return
 			case err != nil:
-				// an error occurred, restart the listener.
-				log.Printf("Can't listen on port %d, restarting a listener: %v\n", l.source.Config.Port, err)
+				// an error occurred, restart the listeners.
+				log.Printf("Can't listen on port %d, restarting a listeners: %v\n", l.source.Config.Port, err)
 				l.listener.Close()
 				err := l.startListener()
 				if err != nil {
-					log.Printf("Can't restart listener on port %d: %v\n", l.source.Config.Port, err)
+					log.Printf("Can't restart listeners on port %d: %v\n", l.source.Config.Port, err)
 					l.source.Status.Error(err)
 					return
 				}

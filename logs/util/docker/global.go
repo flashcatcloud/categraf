@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-package util
+package docker
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/pkg/retry"
 )
 
@@ -90,5 +91,5 @@ type Config struct {
 	Blacklist []string
 
 	// internal use only
-	filter *Filter
+	filter *containers.Filter
 }

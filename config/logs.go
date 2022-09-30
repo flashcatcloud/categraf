@@ -80,3 +80,7 @@ func IsFeaturePresent(t string) bool {
 func GetContainerCollectAll() bool {
 	return Config.Logs.CollectContainerAll
 }
+
+func GetContainerExcludeStoppedAge() int {
+	return 22
+}

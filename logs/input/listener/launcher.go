@@ -32,7 +32,7 @@ func NewLauncher(sources *logsconfig.LogSources, frameSize int, pipelineProvider
 	}
 }
 
-// Start starts the listener.
+// Start starts the listeners.
 func (l *Launcher) Start() {
 	go l.run()
 }

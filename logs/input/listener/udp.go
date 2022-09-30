@@ -14,7 +14,7 @@ import (
 	"flashcat.cloud/categraf/logs/pipeline"
 )
 
-// The UDP listener is limited by the size of its read buffer,
+// The UDP listeners is limited by the size of its read buffer,
 // if the content of the message is bigger than the buffer length,
 // it will arbitrary be truncated.
 // For examples for |MSG| := |F1|F2|F3| where |F1| + |F2| > BUF_LEN and |F1| < BUF_LEN :

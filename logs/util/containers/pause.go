@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-package util
+package containers
 
 const containerNameLabel = "io.kubernetes.container.name"
 const podNameLabel = "io.kubernetes.pod.name"

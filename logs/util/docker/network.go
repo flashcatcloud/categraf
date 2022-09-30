@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-package util
+package docker
 
 import (
 	"context"
@@ -17,6 +17,9 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+
+	"flashcat.cloud/categraf/logs/util/containers"
+	"flashcat.cloud/categraf/logs/util/containers/providers"
 )
 
 type dockerNetwork struct {
@@ -46,10 +49,10 @@ func findDockerNetworks(containerID string, pid int, container types.Container) 
 	netMode := container.HostConfig.NetworkMode
 	// Check the known network modes that require specific handling.
 	// Other network modes will look at the docker NetworkSettings.
-	if netMode == HostNetworkMode {
+	if netMode == containers.HostNetworkMode {
 		log.Println("Container %s is in network host mode, its network metrics are for the whole host", containerID)
 		return []dockerNetwork{hostNetwork}
-	} else if netMode == NoneNetworkMode {
+	} else if netMode == containers.NoneNetworkMode {
 		log.Println("Container %s is in network mode 'none', we will collect metrics for the whole host", containerID)
 		return []dockerNetwork{hostNetwork}
 	} else if strings.HasPrefix(netMode, "container:") {
@@ -95,7 +98,7 @@ func findDockerNetworks(containerID string, pid int, container types.Container) 
 		interfaces[netName] = uint64(binary.LittleEndian.Uint32(ip.To4()))
 	}
 
-	destinations, err := ContainerImpl().DetectNetworkDestinations(pid)
+	destinations, err := providers.ContainerImpl().DetectNetworkDestinations(pid)
 	if err != nil {
 		log.Printf("Cannot list interfaces for container id %s: %s, skipping", containerID, err)
 		return nil
@@ -138,7 +141,7 @@ func resolveDockerNetworks(containerNetworks map[string][]dockerNetwork) {
 // To get this info in an optimal way, consider calling util.GetAgentNetworkMode	func GetContainerNetworkMode(cid string) (string, error) {
 // instead to benefit from the cache
 func GetAgentContainerNetworkMode(ctx context.Context) (string, error) {
-	agentCID, _ := ContainerImpl().GetAgentCID()
+	agentCID, _ := providers.ContainerImpl().GetAgentCID()
 	return GetContainerNetworkMode(ctx, agentCID)
 }
 
@@ -166,9 +169,9 @@ func GetContainerNetworkMode(ctx context.Context, cid string) (string, error) {
 		}
 		// In awsvpc mode, the attached container is an amazon ecs pause container
 		if co.Config != nil && strings.HasPrefix(co.Config.Image, ecsPauseContainerImage) {
-			return AwsvpcNetworkMode, nil
+			return containers.AwsvpcNetworkMode, nil
 		}
-		return UnknownNetworkMode, fmt.Errorf("unknown network mode: %s", mode)
+		return containers.UnknownNetworkMode, fmt.Errorf("unknown network mode: %s", mode)
 	}
 	return mode, nil
 }
@@ -183,17 +186,17 @@ func parseContainerNetworkMode(hostConfig *container.HostConfig) (string, error)
 	}
 	mode := string(hostConfig.NetworkMode)
 	switch mode {
-	case DefaultNetworkMode:
-		return DefaultNetworkMode, nil
-	case HostNetworkMode:
-		return HostNetworkMode, nil
-	case BridgeNetworkMode:
-		return BridgeNetworkMode, nil
-	case NoneNetworkMode:
-		return NoneNetworkMode, nil
+	case containers.DefaultNetworkMode:
+		return containers.DefaultNetworkMode, nil
+	case containers.HostNetworkMode:
+		return containers.HostNetworkMode, nil
+	case containers.BridgeNetworkMode:
+		return containers.BridgeNetworkMode, nil
+	case containers.NoneNetworkMode:
+		return containers.NoneNetworkMode, nil
 	}
 	if strings.HasPrefix(mode, containerModePrefix) {
 		return mode, nil
 	}
-	return UnknownNetworkMode, fmt.Errorf("unknown network mode: %s", mode)
+	return containers.UnknownNetworkMode, fmt.Errorf("unknown network mode: %s", mode)
 }

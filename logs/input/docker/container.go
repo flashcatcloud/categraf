@@ -12,7 +12,8 @@ import (
 	"strings"
 
 	// dockerUtil "github.com/DataDog/datadog-agent/pkg/util/docker"
-	dockerUtil "flashcat.cloud/categraf/logs/input/docker/util"
+	dockerUtil "flashcat.cloud/categraf/logs/util"
+	"flashcat.cloud/categraf/logs/util/containers"
 	"github.com/docker/docker/api/types"
 
 	config "flashcat.cloud/categraf/config/logs"
@@ -78,7 +79,7 @@ func (c *Container) getShortImageName(ctx context.Context) (string, error) {
 		log.Println("Could not resolve image name %s: %s", imageName, err)
 		return shortName, err
 	}
-	_, shortName, _, err = SplitImageName(imageName)
+	_, shortName, _, err = containers.SplitImageName(imageName)
 	if err != nil {
 		log.Println("Cannot parse image name: %v", err)
 	}

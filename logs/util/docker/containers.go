@@ -3,12 +3,11 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-package util
+package docker
 
 import (
 	"context"
 	"errors"
-	coreconfig "flashcat.cloud/categraf/config"
 	"fmt"
 	"io"
 	"log"
@@ -19,6 +18,10 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/go-connections/nat"
+
+	coreconfig "flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/logs/util/containers"
+	"flashcat.cloud/categraf/logs/util/containers/providers"
 )
 
 var healthRe = regexp.MustCompile(`\(health: (\w+)\)`)
@@ -31,8 +34,8 @@ type ContainerListConfig struct {
 
 // ListContainers gets a list of all containers on the current node using a mix of
 // the Docker APIs and cgroups stats. We attempt to limit syscalls where possible.
-func (d *DockerUtil) ListContainers(ctx context.Context, cfg *ContainerListConfig) ([]*Container, error) {
-	err := ContainerImpl().Prefetch()
+func (d *DockerUtil) ListContainers(ctx context.Context, cfg *ContainerListConfig) ([]*containers.Container, error) {
+	err := providers.ContainerImpl().Prefetch()
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch container metrics: %s", err)
 	}
@@ -43,7 +46,7 @@ func (d *DockerUtil) ListContainers(ctx context.Context, cfg *ContainerListConfi
 	}
 
 	for _, container := range cList {
-		if container.State != ContainerRunningState || container.Excluded || !ContainerImpl().ContainerExists(container.ID) {
+		if container.State != containers.ContainerRunningState || container.Excluded || !providers.ContainerImpl().ContainerExists(container.ID) {
 			continue
 		}
 
@@ -75,15 +78,15 @@ func (d *DockerUtil) ListContainers(ctx context.Context, cfg *ContainerListConfi
 			for p := range inspect.Config.ExposedPorts {
 				exposedPorts = append(exposedPorts, p)
 			}
-			if networkMode == HostNetworkMode {
+			if networkMode == containers.HostNetworkMode {
 				ips := GetDockerHostIPs()
 				if len(ips) == 0 {
 					log.Printf("Failed to get host IPs. Container %s will be missing network info: %s", container.Name, err)
 					continue
 				}
-				ipAddr := []NetworkAddress{}
+				ipAddr := []containers.NetworkAddress{}
 				for _, ip := range ips {
-					ipAddr = append(ipAddr, NetworkAddress{
+					ipAddr = append(ipAddr, containers.NetworkAddress{
 						IP: net.ParseIP(ip),
 					})
 				}
@@ -97,14 +100,14 @@ func (d *DockerUtil) ListContainers(ctx context.Context, cfg *ContainerListConfi
 
 // UpdateContainerMetrics updates cgroup / network performance metrics for
 // a provided list of Container objects
-func (d *DockerUtil) UpdateContainerMetrics(cList []*Container) error {
-	err := ContainerImpl().Prefetch()
+func (d *DockerUtil) UpdateContainerMetrics(cList []*containers.Container) error {
+	err := providers.ContainerImpl().Prefetch()
 	if err != nil {
 		return fmt.Errorf("could not fetch container metrics: %s", err)
 	}
 
 	for _, ctn := range cList {
-		if ctn == nil || ctn.State != ContainerRunningState || ctn.Excluded || !ContainerImpl().ContainerExists(ctn.ID) {
+		if ctn == nil || ctn.State != containers.ContainerRunningState || ctn.Excluded || !providers.ContainerImpl().ContainerExists(ctn.ID) {
 			continue
 		}
 	}
@@ -113,9 +116,9 @@ func (d *DockerUtil) UpdateContainerMetrics(cList []*Container) error {
 }
 
 // getContainerMetrics calls a ContainerImplementation, caller should always call Prefetch() before
-func (d *DockerUtil) getContainerDetails(ctn *Container) {
+func (d *DockerUtil) getContainerDetails(ctn *containers.Container) {
 	var err error
-	ctn.StartedAt, err = ContainerImpl().GetContainerStartTime(ctn.ID)
+	ctn.StartedAt, err = providers.ContainerImpl().GetContainerStartTime(ctn.ID)
 	if err != nil {
 		log.Printf("ContainerImplementation cannot get StartTime for container %s, err: %s", ctn.ID[:12], err)
 		return
@@ -127,7 +130,7 @@ func (d *DockerUtil) ContainerLogs(ctx context.Context, container string, option
 }
 
 // dockerContainers returns the running container list from the docker API
-func (d *DockerUtil) dockerContainers(ctx context.Context, cfg *ContainerListConfig) ([]*Container, error) {
+func (d *DockerUtil) dockerContainers(ctx context.Context, cfg *ContainerListConfig) ([]*containers.Container, error) {
 	if cfg == nil {
 		return nil, errors.New("configuration is nil")
 	}
@@ -137,9 +140,9 @@ func (d *DockerUtil) dockerContainers(ctx context.Context, cfg *ContainerListCon
 	if err != nil {
 		return nil, fmt.Errorf("error listing containers: %s", err)
 	}
-	ret := make([]*Container, 0, len(cList))
+	ret := make([]*containers.Container, 0, len(cList))
 	for _, c := range cList {
-		if d.cfg.CollectNetwork && c.State == ContainerRunningState {
+		if d.cfg.CollectNetwork && c.State == containers.ContainerRunningState {
 			// FIXME: We might need to invalidate this cache if a containers networks are changed live.
 			d.Lock()
 			if _, ok := d.networkMappings[c.ID]; !ok {
@@ -159,14 +162,14 @@ func (d *DockerUtil) dockerContainers(ctx context.Context, cfg *ContainerListCon
 			log.Printf("Can't resolve image name %s: %s", c.Image, err)
 		}
 
-		pauseContainerExcluded := IsPauseContainer(c.Labels)
+		pauseContainerExcluded := containers.IsPauseContainer(c.Labels)
 		excluded := pauseContainerExcluded || d.cfg.filter.IsExcluded(c.Names[0], image, c.Labels["io.kubernetes.pod.namespace"])
 		if excluded && !cfg.FlagExcluded {
 			continue
 		}
 
 		entityID := ContainerIDToTaggerEntityName(c.ID)
-		container := &Container{
+		container := &containers.Container{
 			Type:        "Docker",
 			ID:          c.ID,
 			EntityID:    entityID,
@@ -219,9 +222,9 @@ func parseContainerHealth(status string) string {
 
 // parseContainerNetworkAddresses converts docker ports
 // and network settings into a list of NetworkAddress
-func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Port, netSettings *types.SummaryNetworkSettings, container string) []NetworkAddress {
-	addrList := []NetworkAddress{}
-	tempAddrList := []NetworkAddress{}
+func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Port, netSettings *types.SummaryNetworkSettings, container string) []containers.NetworkAddress {
+	addrList := []containers.NetworkAddress{}
+	tempAddrList := []containers.NetworkAddress{}
 	if netSettings == nil || len(netSettings.Networks) == 0 {
 		log.Println("No network settings available from docker")
 		return addrList
@@ -233,14 +236,14 @@ func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Po
 				log.Println("Unable to parse IP: %v for container: %s", port.IP, container)
 				continue
 			}
-			addrList = append(addrList, NetworkAddress{
+			addrList = append(addrList, containers.NetworkAddress{
 				IP:       IP,                   // Host IP, since the port is exposed
 				Port:     int(port.PublicPort), // Exposed port
 				Protocol: port.Type,
 			})
 		}
 		// Cache container ports
-		tempAddrList = append(tempAddrList, NetworkAddress{
+		tempAddrList = append(tempAddrList, containers.NetworkAddress{
 			Port:     int(port.PrivatePort),
 			Protocol: port.Type,
 		})
@@ -258,7 +261,7 @@ func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Po
 		}
 		for _, addr := range tempAddrList {
 			// Add IP to the cached and not exposed ports
-			addrList = append(addrList, NetworkAddress{
+			addrList = append(addrList, containers.NetworkAddress{
 				IP:       IP,
 				Port:     addr.Port,
 				Protocol: addr.Protocol,
@@ -313,7 +316,7 @@ func (d *DockerUtil) cleanupCaches(containers []types.Container) {
 
 var missingIP = net.ParseIP("0.0.0.0")
 
-func isMissingIP(addrs []NetworkAddress) bool {
+func isMissingIP(addrs []containers.NetworkAddress) bool {
 	for _, addr := range addrs {
 		if addr.IP.Equal(missingIP) {
 			return true
@@ -322,12 +325,12 @@ func isMissingIP(addrs []NetworkAddress) bool {
 	return false
 }
 
-func correctMissingIPs(addrs []NetworkAddress, hostIPs []string) []NetworkAddress {
+func correctMissingIPs(addrs []containers.NetworkAddress, hostIPs []string) []containers.NetworkAddress {
 	if len(hostIPs) == 0 {
 		return addrs // cannot detect host list, will return the addresses as is
 	}
 
-	var correctedAddrs []NetworkAddress
+	var correctedAddrs []containers.NetworkAddress
 
 	for _, addr := range addrs {
 		if addr.IP.Equal(missingIP) {
@@ -344,8 +347,8 @@ func correctMissingIPs(addrs []NetworkAddress, hostIPs []string) []NetworkAddres
 }
 
 // crossIPsWithPorts returns the product of a list of IP addresses and a list of ports
-func crossIPsWithPorts(addrs []NetworkAddress, ports []nat.Port) []NetworkAddress {
-	res := make([]NetworkAddress, len(addrs)*len(ports))
+func crossIPsWithPorts(addrs []containers.NetworkAddress, ports []nat.Port) []containers.NetworkAddress {
+	res := make([]containers.NetworkAddress, len(addrs)*len(ports))
 	c := 0
 
 	for _, addr := range addrs {
@@ -353,7 +356,7 @@ func crossIPsWithPorts(addrs []NetworkAddress, ports []nat.Port) []NetworkAddres
 			res = append(res, addr)
 		}
 		for _, port := range ports {
-			res[c] = NetworkAddress{
+			res[c] = containers.NetworkAddress{
 				IP:       addr.IP,
 				Port:     port.Int(),
 				Protocol: port.Proto(),

@@ -3,10 +3,12 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-package util
+package docker
 
 import (
 	"errors"
+
+	"flashcat.cloud/categraf/logs/util/containers"
 )
 
 var (
@@ -26,10 +28,10 @@ var (
 
 // ContainerIDToEntityName returns a prefixed entity name from a container ID
 func ContainerIDToEntityName(cid string) string {
-	return BuildEntityName(RuntimeNameDocker, cid)
+	return containers.BuildEntityName(containers.RuntimeNameDocker, cid)
 }
 
 // ContainerIDToTaggerEntityName returns a prefixed entity name from a container ID
 func ContainerIDToTaggerEntityName(cid string) string {
-	return BuildTaggerEntityName(cid)
+	return containers.BuildTaggerEntityName(cid)
 }

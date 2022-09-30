@@ -3,7 +3,7 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-package util
+package docker
 
 import (
 	"context"
@@ -19,6 +19,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 
+	"flashcat.cloud/categraf/logs/util/containers/providers"
 	"flashcat.cloud/categraf/pkg/cache"
 	"flashcat.cloud/categraf/pkg/retry"
 )
@@ -61,11 +62,6 @@ func (d *DockerUtil) init() error {
 		// TODO: bind them to config entries if relevant
 		CollectNetwork: true,
 		CacheDuration:  10 * time.Second,
-	}
-
-	cfg.filter, err = GetSharedMetricFilter()
-	if err != nil {
-		return err
 	}
 
 	d.cfg = cfg
@@ -268,7 +264,7 @@ func (d *DockerUtil) InspectNoCache(ctx context.Context, id string, withSize boo
 
 // InspectSelf returns the inspect content of the container the current agent is running in
 func (d *DockerUtil) InspectSelf(ctx context.Context) (types.ContainerJSON, error) {
-	cID, err := ContainerImpl().GetAgentCID()
+	cID, err := providers.ContainerImpl().GetAgentCID()
 	if err != nil {
 		return types.ContainerJSON{}, err
 	}

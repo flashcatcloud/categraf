@@ -3,18 +3,20 @@
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
 
-package util
+package providers
 
 import (
 	"log"
+
+	"flashcat.cloud/categraf/logs/util/containers"
 )
 
 // ContainerImpl without implementation
 // Implementations should call Register() in their init()
-var containerImpl ContainerImplementation
+var containerImpl containers.ContainerImplementation
 
 // ContainerImpl returns the ContainerImplementation
-func ContainerImpl() ContainerImplementation {
+func ContainerImpl() containers.ContainerImplementation {
 	if containerImpl == nil {
 		panic("Trying to get nil ContainerInterface")
 	}
@@ -23,7 +25,7 @@ func ContainerImpl() ContainerImplementation {
 }
 
 // Register allows to set a ContainerImplementation
-func Register(impl ContainerImplementation) {
+func Register(impl containers.ContainerImplementation) {
 	if containerImpl == nil {
 		containerImpl = impl
 	} else {

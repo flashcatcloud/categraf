@@ -1,0 +1,183 @@
+// Unless explicitly stated otherwise all files in this repository are licensed
+// under the Apache License Version 2.0.
+// This product includes software developed at Datadog (https://www.datadoghq.com/).
+// Copyright 2016-present Datadog, Inc.
+
+package autodiscovery
+
+import (
+	"sync"
+
+	"flashcat.cloud/categraf/logs/autodiscovery/integration"
+	"flashcat.cloud/categraf/logs/autodiscovery/listeners"
+)
+
+// store holds useful mappings for the AD
+type store struct {
+	serviceToConfigs  map[string][]integration.Config
+	serviceToTagsHash map[string]string
+	templateToConfigs map[string][]integration.Config
+	loadedConfigs     map[string]integration.Config
+	nameToJMXMetrics  map[string][]byte
+	adIDToServices    map[string]map[string]bool
+	entityToService   map[string]listeners.Service
+	templateCache     *TemplateCache
+	m                 sync.RWMutex
+}
+
+// newStore creates a store
+func newStore() *store {
+	s := store{
+		serviceToConfigs:  make(map[string][]integration.Config),
+		serviceToTagsHash: make(map[string]string),
+		templateToConfigs: make(map[string][]integration.Config),
+		loadedConfigs:     make(map[string]integration.Config),
+		nameToJMXMetrics:  make(map[string][]byte),
+		adIDToServices:    make(map[string]map[string]bool),
+		entityToService:   make(map[string]listeners.Service),
+		templateCache:     NewTemplateCache(),
+	}
+
+	return &s
+}
+
+// removeConfigsForService removes a config for a specified service, returning
+// the configs that were removed
+func (s *store) removeConfigsForService(serviceEntity string) []integration.Config {
+	s.m.Lock()
+	defer s.m.Unlock()
+	removed := s.serviceToConfigs[serviceEntity]
+	delete(s.serviceToConfigs, serviceEntity)
+	return removed
+}
+
+// addConfigForService adds a config for a specified service
+func (s *store) addConfigForService(serviceEntity string, config integration.Config) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	existingConfigs, found := s.serviceToConfigs[serviceEntity]
+	if found {
+		s.serviceToConfigs[serviceEntity] = append(existingConfigs, config)
+	} else {
+		s.serviceToConfigs[serviceEntity] = []integration.Config{config}
+	}
+}
+
+// removeConfigsForTemplate removes all configs for a specified template, returning
+// those configs
+func (s *store) removeConfigsForTemplate(templateDigest string) []integration.Config {
+	s.m.Lock()
+	defer s.m.Unlock()
+	removed := s.templateToConfigs[templateDigest]
+	delete(s.templateToConfigs, templateDigest)
+	return removed
+}
+
+// addConfigForTemplate adds a config for a specified template
+func (s *store) addConfigForTemplate(templateDigest string, config integration.Config) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.templateToConfigs[templateDigest] = append(s.templateToConfigs[templateDigest], config)
+}
+
+// getTagsHashForService return the tags hash for a specified service
+func (s *store) getTagsHashForService(serviceEntity string) string {
+	s.m.RLock()
+	defer s.m.RUnlock()
+	return s.serviceToTagsHash[serviceEntity]
+}
+
+// removeTagsHashForService removes the tags hash for a specified service
+func (s *store) removeTagsHashForService(serviceEntity string) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	delete(s.serviceToTagsHash, serviceEntity)
+}
+
+// setTagsHashForService set the tags hash for a specified service
+func (s *store) setTagsHashForService(serviceEntity string, hash string) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.serviceToTagsHash[serviceEntity] = hash
+}
+
+// setLoadedConfig stores a resolved config by its digest
+func (s *store) setLoadedConfig(config integration.Config) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.loadedConfigs[config.Digest()] = config
+}
+
+// removeLoadedConfig removes a loaded config by its digest
+func (s *store) removeLoadedConfig(config integration.Config) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	delete(s.loadedConfigs, config.Digest())
+}
+
+// mapOverLoadedConfigs calls the given function with the map of all
+// loaded configs.  This is done with the config store locked, so
+// callers should perform minimal work within f.
+func (s *store) mapOverLoadedConfigs(f func(map[string]integration.Config)) {
+	s.m.RLock()
+	defer s.m.RUnlock()
+	f(s.loadedConfigs)
+}
+
+// setJMXMetricsForConfigName stores the jmx metrics config for a config name
+func (s *store) setJMXMetricsForConfigName(config string, metrics []byte) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.nameToJMXMetrics[config] = metrics
+}
+
+// getJMXMetricsForConfigName returns the stored JMX metrics for a config name
+func (s *store) getJMXMetricsForConfigName(config string) []byte {
+	s.m.RLock()
+	defer s.m.RUnlock()
+	return s.nameToJMXMetrics[config]
+}
+
+func (s *store) getServices() []listeners.Service {
+	s.m.Lock()
+	defer s.m.Unlock()
+	services := []listeners.Service{}
+	for _, service := range s.entityToService {
+		services = append(services, service)
+	}
+	return services
+}
+
+func (s *store) setServiceForEntity(svc listeners.Service, entity string) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.entityToService[entity] = svc
+}
+
+func (s *store) getServiceForEntity(entity string) listeners.Service {
+	s.m.Lock()
+	defer s.m.Unlock()
+	return s.entityToService[entity]
+}
+
+func (s *store) removeServiceForEntity(entity string) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	delete(s.entityToService, entity)
+}
+
+func (s *store) setADIDForServices(adID string, serviceEntity string) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	if s.adIDToServices[adID] == nil {
+		s.adIDToServices[adID] = make(map[string]bool)
+	}
+	s.adIDToServices[adID][serviceEntity] = true
+}
+
+func (s *store) getServiceEntitiesForADID(adID string) (map[string]bool, bool) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	services, found := s.adIDToServices[adID]
+	return services, found
+}
