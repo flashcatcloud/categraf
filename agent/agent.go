@@ -58,6 +58,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/switch_legacy"
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
+	_ "flashcat.cloud/categraf/inputs/vsphere"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
 )
 
