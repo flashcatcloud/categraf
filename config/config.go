@@ -170,7 +170,7 @@ func GetInterval() time.Duration {
 
 // Get preferred outbound ip of this machine
 func GetOutboundIP() (net.IP, error) {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
+	conn, err := net.Dial("udp", "223.5.5.5:80")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get outbound ip: %v", err)
 	}
