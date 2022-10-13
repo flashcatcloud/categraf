@@ -10,9 +10,7 @@
   ##   See https://github.com/denisenkom/go-mssqldb for detailed connection
   ##   parameters, in particular, tls connections can be created like so:
   ##   "encrypt=true;certificate=<cert>;hostNameInCertificate=<SqlServer host fqdn>"
-  servers = [
-    "Server=192.168.1.10;Port=1433;User Id=<user>;Password=<pw>;app name=categraf;log=1;",
-  ]
+  # servers = [ ]
 
   ## Authentication method
   ## valid methods: "connection_string", "AAD"
