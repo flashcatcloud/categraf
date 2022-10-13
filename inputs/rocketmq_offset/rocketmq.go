@@ -10,7 +10,6 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/pkg/choice"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -78,7 +77,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	for i := range topicNameArray {
 		var topicName = topicNameArray[i]
-		isContain := choice.Contains(topicName, ins.IgnoredTopics)
+		var isContain = false
+		for _, ignoredTopics := range ins.IgnoredTopics {
+			if strings.Contains(topicName, ignoredTopics) {
+				isContain = true
+				break
+			}
+		}
 		if isContain {
 			continue
 		}
