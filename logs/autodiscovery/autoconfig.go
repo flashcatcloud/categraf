@@ -14,18 +14,15 @@ import (
 	"sync/atomic"
 	"time"
 
+	"flashcat.cloud/categraf/logs/autodiscovery/configresolver"
 	"flashcat.cloud/categraf/logs/autodiscovery/integration"
-	"github.com/DataDog/datadog-agent/pkg/autodiscovery/configresolver"
-	"github.com/DataDog/datadog-agent/pkg/autodiscovery/listeners"
-	"github.com/DataDog/datadog-agent/pkg/autodiscovery/providers"
-	"github.com/DataDog/datadog-agent/pkg/autodiscovery/scheduler"
-	"github.com/DataDog/datadog-agent/pkg/collector/check"
-	"github.com/DataDog/datadog-agent/pkg/config"
-	"github.com/DataDog/datadog-agent/pkg/secrets"
-	"github.com/DataDog/datadog-agent/pkg/status/health"
-	"github.com/DataDog/datadog-agent/pkg/tagger"
-	"github.com/DataDog/datadog-agent/pkg/util/containers"
-	"github.com/DataDog/datadog-agent/pkg/util/retry"
+	"flashcat.cloud/categraf/logs/autodiscovery/listeners"
+	"flashcat.cloud/categraf/logs/autodiscovery/providers"
+	"flashcat.cloud/categraf/logs/autodiscovery/scheduler"
+	"flashcat.cloud/categraf/logs/secrets"
+	"flashcat.cloud/categraf/logs/tagger"
+	"flashcat.cloud/categraf/logs/util/containers"
+	"flashcat.cloud/categraf/pkg/retry"
 )
 
 var (
@@ -64,7 +61,6 @@ type AutoConfig struct {
 	listenerRetryStop  chan struct{}
 	scheduler          *scheduler.MetaScheduler
 	listenerStop       chan struct{}
-	healthListening    *health.Handle
 	newService         chan listeners.Service
 	delService         chan listeners.Service
 	store              *store
@@ -80,7 +76,6 @@ func NewAutoConfig(scheduler *scheduler.MetaScheduler) *AutoConfig {
 		listenerCandidates: make(map[string]listeners.ServiceListenerFactory),
 		listenerRetryStop:  nil, // We'll open it if needed
 		listenerStop:       make(chan struct{}),
-		healthListening:    health.RegisterLiveness("ad-servicelistening"),
 		newService:         make(chan listeners.Service),
 		delService:         make(chan listeners.Service),
 		store:              newStore(),
@@ -103,12 +98,8 @@ func (ac *AutoConfig) serviceListening() {
 	for {
 		select {
 		case <-ac.listenerStop:
-			ac.healthListening.Deregister() //nolint:errcheck
 			cancel()
 			return
-		case healthDeadline := <-ac.healthListening.C:
-			cancel()
-			ctx, cancel = context.WithDeadline(context.Background(), healthDeadline)
 		case svc := <-ac.newService:
 			ac.processNewService(ctx, svc)
 		case svc := <-ac.delService:
@@ -224,38 +215,13 @@ func (ac *AutoConfig) GetAllConfigs() []integration.Config {
 			log.Printf("Unexpected error returned when collecting configurations from provider %v: %v", pd.provider, err)
 		}
 
-		if fileConfPd, ok := pd.provider.(*providers.FileConfigProvider); ok {
-			var goodConfs []integration.Config
-			for _, cfg := range cfgs {
-				// JMX checks can have 2 YAML files: one containing the metrics to collect, one containing the
-				// instance configuration
-				// If the file provider finds any of these metric YAMLs, we store them in a map for future access
-				if cfg.MetricConfig != nil {
-					// We don't want to save metric files, it's enough to store them in the map
-					ac.store.setJMXMetricsForConfigName(cfg.Name, cfg.MetricConfig)
-					continue
-				}
-
-				goodConfs = append(goodConfs, cfg)
-
-				// Clear any old errors if a valid config file is found
-				errorStats.removeConfigError(cfg.Name)
-			}
-
-			// Grab any errors that occurred when reading the YAML file
-			for name, e := range fileConfPd.Errors {
-				errorStats.setConfigError(name, e)
-			}
-
-			cfgs = goodConfs
-		}
 		// Store all raw configs in the provider
 		pd.configs = cfgs
 
 		// resolve configs if needed
 		for _, config := range cfgs {
 			config.Provider = pd.provider.String()
-			rc := ac.processNewConfig(config)
+			rc := ac.ProcessNewConfig(config)
 			resolvedConfigs = append(resolvedConfigs, rc...)
 		}
 	}
@@ -278,14 +244,14 @@ func (ac *AutoConfig) ProcessNewConfig(config integration.Config) []integration.
 	var configs []integration.Config
 
 	// add default metrics to collect to JMX checks
-	if check.CollectDefaultMetrics(config) {
-		metrics := ac.store.getJMXMetricsForConfigName(config.Name)
-		if len(metrics) == 0 {
-			log.Printf("%s doesn't have an additional metric configuration file: not collecting default metrics", config.Name)
-		} else if err := config.AddMetrics(metrics); err != nil {
-			log.Printf("Unable to add default metrics to collect to %s check: %s", config.Name, err)
-		}
-	}
+	// if check.CollectDefaultMetrics(config) {
+	// 	metrics := ac.store.getJMXMetricsForConfigName(config.Name)
+	// 	if len(metrics) == 0 {
+	// 		log.Printf("%s doesn't have an additional metric configuration file: not collecting default metrics", config.Name)
+	// 	} else if err := config.AddMetrics(metrics); err != nil {
+	// 		log.Printf("Unable to add default metrics to collect to %s check: %s", config.Name, err)
+	// 	}
+	// }
 
 	if config.IsTemplate() {
 		// store the template in the cache in any case
@@ -318,10 +284,15 @@ func (ac *AutoConfig) ProcessNewConfig(config integration.Config) []integration.
 	return configs
 }
 
+// Listeners helps unmarshalling `listeners` config param
+type Listeners struct {
+	Name string `mapstructure:"name"`
+}
+
 // AddListeners tries to initialise the listeners listed in the given configs. A first
 // try is done synchronously. If a listeners fails with a ErrWillRetry, the initialization
 // will be re-triggered later until success or ErrPermaFail.
-func (ac *AutoConfig) AddListeners(listenerConfigs []config.Listeners) {
+func (ac *AutoConfig) AddListeners(listenerConfigs []Listeners) {
 	ac.addListenerCandidates(listenerConfigs)
 	remaining := ac.initListenerCandidates()
 	if remaining == false {
@@ -337,7 +308,7 @@ func (ac *AutoConfig) AddListeners(listenerConfigs []config.Listeners) {
 	}
 }
 
-func (ac *AutoConfig) addListenerCandidates(listenerConfigs []config.Listeners) {
+func (ac *AutoConfig) addListenerCandidates(listenerConfigs []Listeners) {
 	ac.m.Lock()
 	defer ac.m.Unlock()
 
@@ -455,7 +426,7 @@ func (ac *AutoConfig) removeConfigTemplates(configs []integration.Config) {
 			// Remove template from the cache
 			err := ac.store.templateCache.Del(c)
 			if err != nil {
-				log.Debugf("Could not delete template: %v", err)
+				log.Printf("Could not delete template: %v", err)
 			}
 		}
 	}
@@ -483,14 +454,14 @@ func (ac *AutoConfig) resolveTemplate(tpl integration.Config) []integration.Conf
 		if !found {
 			s := fmt.Sprintf("No service found with this AD identifier: %s", id)
 			errorStats.setResolveWarning(tpl.Name, s)
-			log.Debugf(s)
+			log.Printf(s)
 			continue
 		}
 
 		for serviceID := range serviceIds {
 			svc := ac.store.getServiceForEntity(serviceID)
 			if svc == nil {
-				log.Warnf("Service %s was removed before we could resolve its config", serviceID)
+				log.Printf("Service %s was removed before we could resolve its config", serviceID)
 				continue
 			}
 			resolvedConfig, err := ac.resolveTemplateForService(tpl, svc)
@@ -517,12 +488,12 @@ func (ac *AutoConfig) resolveTemplateForService(tpl integration.Config, svc list
 	if err != nil {
 		newErr := fmt.Errorf("error resolving template %s for service %s: %v", tpl.Name, svc.GetEntity(), err)
 		errorStats.setResolveWarning(tpl.Name, newErr.Error())
-		return tpl, log.Warn(newErr)
+		return tpl, newErr
 	}
 	resolvedConfig, err := decryptConfig(config)
 	if err != nil {
 		newErr := fmt.Errorf("error decrypting secrets in config %s for service %s: %v", config.Name, svc.GetEntity(), err)
-		return config, log.Warn(newErr)
+		return config, newErr
 	}
 	ac.store.setLoadedConfig(resolvedConfig)
 	ac.store.addConfigForService(svc.GetEntity(), resolvedConfig)
@@ -540,7 +511,7 @@ func (ac *AutoConfig) resolveTemplateForService(tpl integration.Config, svc list
 // callers should perform minimal work within f.
 func (ac *AutoConfig) MapOverLoadedConfigs(f func(map[string]integration.Config)) {
 	if ac == nil || ac.store == nil {
-		log.Error("Autoconfig store not initialized")
+		log.Println("Autoconfig store not initialized")
 		f(map[string]integration.Config{})
 		return
 	}
@@ -590,7 +561,7 @@ func (ac *AutoConfig) processNewService(ctx context.Context, svc listeners.Servi
 	var templates []integration.Config
 	ADIdentifiers, err := svc.GetADIdentifiers(ctx)
 	if err != nil {
-		log.Errorf("Failed to get AD identifiers for service %s, it will not be monitored - %s", svc.GetEntity(), err)
+		log.Printf("Failed to get AD identifiers for service %s, it will not be monitored - %s", svc.GetEntity(), err)
 		return
 	}
 	for _, adID := range ADIdentifiers {
@@ -598,7 +569,7 @@ func (ac *AutoConfig) processNewService(ctx context.Context, svc listeners.Servi
 		ac.store.setADIDForServices(adID, svc.GetEntity())
 		tpls, err := ac.store.templateCache.Get(adID)
 		if err != nil {
-			log.Debugf("Unable to fetch templates from the cache: %v", err)
+			log.Printf("Unable to fetch templates from the cache: %v", err)
 		}
 		templates = append(templates, tpls...)
 	}
@@ -616,12 +587,11 @@ func (ac *AutoConfig) processNewService(ctx context.Context, svc listeners.Servi
 	// FIXME: schedule new services as well
 	ac.schedule([]integration.Config{
 		{
-			LogsConfig:      []byte{},
-			Entity:          svc.GetEntity(),
-			TaggerEntity:    svc.GetTaggerEntity(),
-			CreationTime:    svc.GetCreationTime(),
-			MetricsExcluded: svc.HasFilter(containers.MetricsFilter),
-			LogsExcluded:    svc.HasFilter(containers.LogsFilter),
+			LogsConfig:   []byte{},
+			Entity:       svc.GetEntity(),
+			TaggerEntity: svc.GetTaggerEntity(),
+			CreationTime: svc.GetCreationTime(),
+			LogsExcluded: svc.HasFilter(containers.LogsFilter),
 		},
 	})
 
@@ -636,12 +606,11 @@ func (ac *AutoConfig) processDelService(svc listeners.Service) {
 	// FIXME: unschedule remove services as well
 	ac.unschedule([]integration.Config{
 		{
-			LogsConfig:      []byte{},
-			Entity:          svc.GetEntity(),
-			TaggerEntity:    svc.GetTaggerEntity(),
-			CreationTime:    svc.GetCreationTime(),
-			MetricsExcluded: svc.HasFilter(containers.MetricsFilter),
-			LogsExcluded:    svc.HasFilter(containers.LogsFilter),
+			LogsConfig:   []byte{},
+			Entity:       svc.GetEntity(),
+			TaggerEntity: svc.GetTaggerEntity(),
+			CreationTime: svc.GetCreationTime(),
+			LogsExcluded: svc.HasFilter(containers.LogsFilter),
 		},
 	})
 }
@@ -656,86 +625,4 @@ func (ac *AutoConfig) GetAutodiscoveryErrors() map[string]map[string]providers.E
 		}
 	}
 	return errors
-}
-
-func (ac *AutoConfig) GetAllConfigs() []integration.Config {
-	var resolvedConfigs []integration.Config
-
-	for _, pd := range ac.providers {
-		cfgs, err := pd.provider.Collect(context.TODO())
-		if err != nil {
-			log.Printf("Unexpected error returned when collecting configurations from provider %v: %v", pd.provider, err)
-		}
-
-		if fileConfPd, ok := pd.provider.(*providers.FileConfigProvider); ok {
-			var goodConfs []integration.Config
-			for _, cfg := range cfgs {
-				// JMX checks can have 2 YAML files: one containing the metrics to collect, one containing the
-				// instance configuration
-				// If the file provider finds any of these metric YAMLs, we store them in a map for future access
-				if cfg.MetricConfig != nil {
-					// We don't want to save metric files, it's enough to store them in the map
-					ac.store.setJMXMetricsForConfigName(cfg.Name, cfg.MetricConfig)
-					continue
-				}
-
-				goodConfs = append(goodConfs, cfg)
-
-				// Clear any old errors if a valid config file is found
-				errorStats.removeConfigError(cfg.Name)
-			}
-
-			// Grab any errors that occurred when reading the YAML file
-			for name, e := range fileConfPd.Errors {
-				errorStats.setConfigError(name, e)
-			}
-
-			cfgs = goodConfs
-		}
-		// Store all raw configs in the provider
-		pd.configs = cfgs
-
-		// resolve configs if needed
-		for _, config := range cfgs {
-			config.Provider = pd.provider.String()
-			rc := ac.processNewConfig(config)
-			resolvedConfigs = append(resolvedConfigs, rc...)
-		}
-	}
-
-	return resolvedConfigs
-}
-
-func processNewConfig(config integration.Config) []integration.Config {
-	var configs []integration.Config
-	//
-	// if config.IsTemplate() {
-	// 	// store the template in the cache in any case
-	// 	if err := templateCache.Set(config); err != nil {
-	// 		log.Printf("Unable to store Check configuration in the cache: %s", err)
-	// 	}
-	//
-	// 	// try to resolve the template
-	// 	resolvedConfigs := resolveTemplate(config)
-	// 	if len(resolvedConfigs) == 0 {
-	// 		e := fmt.Sprintf("Can't resolve the template for %s at this moment.", config.Name)
-	// 		errorStats.setResolveWarning(config.Name, e)
-	// 		log.Debug(e)
-	// 		return configs
-	// 	}
-	//
-	// 	return resolvedConfigs
-	// }
-
-	// decrypt and store non-template config in AC as well
-	config, err := decryptConfig(config)
-	if err != nil {
-		log.Printf("Dropping conf for '%s': %s", config.Name, err.Error())
-		return configs
-	}
-	configs = append(configs, config)
-
-	ac.store.setLoadedConfig(config)
-
-	return configs
 }

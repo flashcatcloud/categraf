@@ -18,10 +18,10 @@ import (
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/auditor"
 	"flashcat.cloud/categraf/logs/autodiscovery/integration"
-	dockerutil "flashcat.cloud/categraf/logs/input/docker/util"
 	"flashcat.cloud/categraf/logs/pipeline"
 	"flashcat.cloud/categraf/logs/restart"
 	"flashcat.cloud/categraf/logs/service"
+	dockerutil "flashcat.cloud/categraf/logs/util/docker"
 	"flashcat.cloud/categraf/pkg/retry"
 )
 
@@ -143,7 +143,6 @@ func (l *DockerLauncher) Stop() {
 // run starts and stops new tailers when it receives a new source
 // or a new service which is mapped to a container.
 func (l *DockerLauncher) run() {
-	scanTicker := time.NewTicker(10 * time.Second)
 	for {
 		select {
 		case service := <-l.addedServices:
@@ -209,9 +208,6 @@ func (l *DockerLauncher) run() {
 			log.Printf("DEBUG, error container %v ", containerID)
 			go l.restartTailer(containerID)
 
-		case <-scanTicker.C:
-			// check if there are new files to tail, tailers to stop and tailer to restart because of file rotation
-			l.scan()
 		case <-l.stop:
 			log.Printf("DEBUG, docker launcher stop")
 			// no docker container should be tailed anymore
