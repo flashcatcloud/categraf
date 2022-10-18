@@ -17,10 +17,9 @@ Categraf is one-stop telemetry collector for nightingale / prometheus / m3db / v
 
 ## Links
 
-- [QuickStart](https://www.gitlink.org.cn/flashcat/categraf/wiki/QuickStart)
+- [QuickStart](https://flashcat.cloud/blog/monitor-agent-categraf-introduction/)
 - [FAQ](https://www.gitlink.org.cn/flashcat/categraf/wiki/FAQ)
 - [Github Releases](https://github.com/flashcatcloud/categraf/releases)
-- [Gitlink Releases](https://www.gitlink.org.cn/flashcat/categraf/releases)
 
 ## Build
 
