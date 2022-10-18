@@ -266,11 +266,13 @@ func (l *Launcher) getSource(pod *kubelet.Pod, container kubelet.ContainerStatus
 			cfg = &logsconfig.LogsConfig{
 				Source:  logsSource,
 				Service: standardService,
+				Tags:    buildTags(pod, container),
 			}
 		} else {
 			cfg = &logsconfig.LogsConfig{
 				Source:  logsSource,
 				Service: logsSource,
+				Tags:    buildTags(pod, container),
 			}
 		}
 	}
@@ -285,6 +287,22 @@ func (l *Launcher) getSource(pod *kubelet.Pod, container kubelet.ContainerStatus
 	}
 
 	return logsconfig.NewLogSource(l.getSourceName(pod, container), cfg), nil
+}
+
+func buildTags(pod *kubelet.Pod, container kubelet.ContainerStatus) []string {
+	tags := []string{
+		fmt.Sprintf("kubernetes.namespace_name:%s", pod.Metadata.Namespace),
+		fmt.Sprintf("kubernetes.pod_id:%s", pod.Metadata.UID),
+		fmt.Sprintf("kubernetes.pod_name:%s", pod.Metadata.Name),
+		fmt.Sprintf("kubernetes.host:%s", pod.Spec.NodeName),
+	}
+	for k, v := range pod.Metadata.Labels {
+		tags = append(tags, fmt.Sprintf("kubernetes.labels.%s:%s", k, v))
+	}
+	for k, v := range pod.Metadata.Annotations {
+		tags = append(tags, fmt.Sprintf("kubernetes.annotations.%s:%s", k, v))
+	}
+	return tags
 }
 
 // getTaggerEntityID builds an entity ID from a kubernetes container ID
