@@ -5,6 +5,7 @@ import (
 	logService "flashcat.cloud/categraf/logs/service"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/logs/util/kubernetes/kubelet"
@@ -14,6 +15,8 @@ type (
 	Scanner struct {
 		kubelet  kubelet.KubeUtilInterface
 		services *logService.Services
+		actives  map[string]struct{}
+		mux      sync.Mutex
 	}
 )
 
@@ -46,12 +49,38 @@ func (s *Scanner) Scan() {
 				log.Printf("get local pod list error %s", err)
 				return
 			}
+			fetched := make(map[string]struct{})
 			for _, pod := range pods {
 				for _, container := range pod.Status.GetAllContainers() {
-					svc := logService.NewService("docker", strings.TrimPrefix(container.ID, "docker://"), logService.After)
+					fetched[container.ID] = struct{}{}
+				}
+			}
+			for id := range fetched {
+				if !s.Contains(id) {
+					svc := logService.NewService("docker", strings.TrimPrefix(id, "docker://"), logService.After)
 					s.services.AddService(svc)
+				}
+			}
+
+			old := s.actives
+			s.SetActives(fetched)
+			for id := range old {
+				if !s.Contains(id) {
+					svc := logService.NewService("docker", strings.TrimPrefix(id, "docker://"), logService.After)
+					s.services.RemoveService(svc)
 				}
 			}
 		}
 	}
+}
+
+func (s *Scanner) SetActives(ids map[string]struct{}) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+	s.actives = ids
+}
+
+func (s *Scanner) Contains(id string) bool {
+	_, ok := s.actives[id]
+	return ok
 }
