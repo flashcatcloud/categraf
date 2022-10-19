@@ -153,7 +153,7 @@ func (p *MultiLineParser) run() {
 func (p *MultiLineParser) process(input *DecodedInput) {
 	content, status, timestamp, partial, err := p.parser.Parse(input.content)
 	if err != nil {
-		log.Println(err)
+		log.Println(err, string(input.content))
 	}
 	// track the raw data length and the timestamp so that the agent tails
 	// from the right place at restart
