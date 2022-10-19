@@ -70,6 +70,13 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		endpoint.RecoveryInterval,
 		endpoint.RecoveryReset,
 	)
+
+	if coreconfig.Config.Logs.Config == nil {
+		coreconfig.Config.Logs.Config = sarama.NewConfig()
+		coreconfig.Config.Logs.Producer.Partitioner = sarama.NewRandomPartitioner
+		coreconfig.Config.Logs.Producer.Return.Successes = true
+	}
+
 	brokers := strings.Split(endpoint.Addr, ",")
 	c, err := sarama.NewSyncProducer(brokers, coreconfig.Config.Logs.Config)
 	if err != nil {
