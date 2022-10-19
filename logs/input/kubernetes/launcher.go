@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
@@ -23,9 +24,12 @@ import (
 )
 
 const (
-	basePath      = "/var/log/pods"
 	anyLogFile    = "*.log"
 	anyV19LogFile = "%s_*.log"
+)
+
+var (
+	basePath = "/var/log/pods"
 )
 
 var errCollectAllDisabled = fmt.Errorf("%s disabled", logsconfig.ContainerCollectAll)
@@ -82,14 +86,6 @@ func NewLauncher(sources *logsconfig.LogSources, services *service.Services, col
 	launcher.addedServices = services.GetAllAddedServices()
 	launcher.removedServices = services.GetAllRemovedServices()
 	return launcher
-}
-
-func isIntegrationAvailable() bool {
-	if _, err := os.Stat(basePath); err != nil {
-		return false
-	}
-
-	return true
 }
 
 // Start starts the launcher
@@ -280,6 +276,9 @@ func (l *Launcher) getSource(pod *kubelet.Pod, container kubelet.ContainerStatus
 		cfg.Service = standardService
 	}
 	cfg.Type = logsconfig.FileType
+	if v := os.Getenv("HOST_MOUNT_PREFIX"); v != "" && !strings.HasPrefix(basePath, v) {
+		basePath = filepath.Join(v, basePath)
+	}
 	cfg.Path = l.getPath(basePath, pod, container)
 	cfg.Identifier = kubelet.TrimRuntimeFromCID(container.ID)
 	if err := cfg.Validate(); err != nil {
