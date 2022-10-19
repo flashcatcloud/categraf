@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"flashcat.cloud/categraf/logs/auditor"
@@ -50,6 +51,10 @@ func NewLogAgent(sources *logsconfig.LogSources, services *logService.Services, 
 	// We pass the health handle to the auditor because it's the end of the pipeline and the most
 	// critical part. Arguably it could also be plugged to the destination.
 	auditorTTL := time.Duration(23) * time.Hour
+	_, err := os.Stat(coreconfig.GetLogRunPath())
+	if os.IsNotExist(err) {
+		os.MkdirAll(coreconfig.GetLogRunPath(), 0755)
+	}
 	auditor := auditor.New(coreconfig.GetLogRunPath(), auditor.DefaultRegistryFilename, auditorTTL)
 	destinationsCtx := client.NewDestinationsContext()
 	diagnosticMessageReceiver := diagnostic.NewBufferedMessageReceiver()
