@@ -29,11 +29,18 @@ type (
 		GlobalProcessingRules []*logsconfig.ProcessingRule `json:"processing_rules" toml:"processing_rules"`
 		Items                 []*logsconfig.LogsConfig     `json:"items" toml:"items"`
 		KafkaConfig
+		KubeConfig
 	}
 	KafkaConfig struct {
 		Topic   string   `json:"topic" toml:"topic"`
 		Brokers []string `json:"brokers" toml:"brokers"`
 		*sarama.Config
+	}
+	KubeConfig struct {
+		KubeletHTTPPort  int    `json:"kubernetes_http_kubelet_port" toml:"kubernetes_http_kubelet_port"`
+		KubeletHTTPSPort int    `json:"kubernetes_https_kubelet_port" toml:"kubernetes_https_kubelet_port"`
+		KubeletTokenPath string `json:"kubelet_auth_token_path" toml:"kubelet_auth_token_path"`
+		KubeletCAPath    string `json:"kubelet_client_ca" toml:"kubelet_client_ca"`
 	}
 )
 

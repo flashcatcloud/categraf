@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/util/kubernetes"
 )
 
@@ -139,16 +140,16 @@ func getKubeletClient(ctx context.Context) (*kubeletClient, error) {
 	var err error
 
 	kubeletTimeout := 30 * time.Second
-	kubeletProxyEnabled := false // ("eks_fargate")
-	kubeletHost := ""            // ("kubernetes_kubelet_host")
-	kubeletHTTPSPort := 10250    // ("kubernetes_https_kubelet_port")
-	kubeletHTTPPort := 10255     // ("kubernetes_http_kubelet_port")
+	kubeletProxyEnabled := false                                // ("eks_fargate")
+	kubeletHost := "127.0.0.1"                                  // ("kubernetes_kubelet_host")
+	kubeletHTTPSPort := coreconfig.Config.Logs.KubeletHTTPSPort // ("kubernetes_https_kubelet_port")
+	kubeletHTTPPort := coreconfig.Config.Logs.KubeletHTTPPort   // ("kubernetes_http_kubelet_port")
 	kubeletTLSVerify := false
-	kubeletCAPath := kubernetes.DefaultServiceAccountCAPath       // ("kubelet_client_ca")
-	kubeletTokenPath := kubernetes.DefaultServiceAccountTokenPath // ("kubelet_auth_token_path")
-	kubeletClientCertPath := ""                                   // ("kubelet_client_crt")
-	kubeletClientKeyPath := ""                                    // ("kubelet_client_key")
-	kubeletNodeName := ""                                         // ("kubernetes_kubelet_nodename")
+	kubeletCAPath := coreconfig.Config.Logs.KubeletCAPath       // ("kubelet_client_ca")
+	kubeletTokenPath := coreconfig.Config.Logs.KubeletTokenPath // ("kubelet_auth_token_path")
+	kubeletClientCertPath := ""                                 // ("kubelet_client_crt")
+	kubeletClientKeyPath := ""                                  // ("kubelet_client_key")
+	kubeletNodeName := ""                                       // ("kubernetes_kubelet_nodename")
 	var kubeletPathPrefix string
 	var kubeletToken string
 
@@ -162,6 +163,21 @@ func getKubeletClient(ctx context.Context) (*kubeletClient, error) {
 		if err != nil {
 			return nil, fmt.Errorf("kubelet token defined (%s) but unable to read, err: %w", kubeletTokenPath, err)
 		}
+	}
+	if coreconfig.Config.Logs.KubeletHTTPSPort == 0 {
+		kubeletHTTPSPort = 10250
+	}
+
+	if coreconfig.Config.Logs.KubeletHTTPPort == 0 {
+		kubeletHTTPPort = 10255
+	}
+
+	if kubeletTokenPath == "" {
+		kubeletTokenPath = kubernetes.DefaultServiceAccountTokenPath
+	}
+
+	if kubeletCAPath == "" {
+		kubeletCAPath = kubernetes.DefaultServiceAccountCAPath
 	}
 
 	clientConfig := kubeletClientConfig{
