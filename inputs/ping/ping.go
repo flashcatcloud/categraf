@@ -30,6 +30,7 @@ type Instance struct {
 	Interface    string   `toml:"interface"`     // ping -I/-S <INTERFACE/SRC_ADDR>
 	IPv6         bool     `toml:"ipv6"`          // Whether to resolve addresses using ipv6 or not.
 	Size         *int     `toml:"size"`          // Packet size
+	Conc         int      `toml:"concurrency"`   // max concurrency coroutine
 
 	calcInterval  time.Duration
 	calcTimeout   time.Duration
@@ -43,6 +44,10 @@ func (ins *Instance) Init() error {
 
 	if ins.Count < 1 {
 		ins.Count = 1
+	}
+
+	if ins.Conc < 10 {
+		ins.Conc = 50
 	}
 
 	if ins.PingInterval < 0.2 {
@@ -103,11 +108,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	wg := new(sync.WaitGroup)
+	ch := make(chan struct{}, ins.Conc)
 	for _, target := range ins.Targets {
+		ch <- struct{}{}
 		wg.Add(1)
 		go func(target string) {
 			defer wg.Done()
 			ins.gather(slist, target)
+			<-ch
 		}(target)
 	}
 	wg.Wait()
