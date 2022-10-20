@@ -68,6 +68,9 @@ func (ins *Instance) gatherBinlog(slist *types.SampleList, db *sql.DB, globalTag
 	slist.PushSample(inputName, "binlog_size_bytes", size, tags)
 	slist.PushSample(inputName, "binlog_file_count", count, tags)
 
+	if count == 0 || len(strings.Split(filename, ".")) < 2 {
+		return
+	}
 	value, err := strconv.ParseFloat(strings.Split(filename, ".")[1], 64)
 	if err == nil {
 		slist.PushSample(inputName, "binlog_file_number", value, tags)
