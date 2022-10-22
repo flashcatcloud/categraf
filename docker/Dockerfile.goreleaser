@@ -1,9 +1,6 @@
-FROM --platform=$BUILDPLATFORM ubuntu:22.10
+FROM --platform=$TARGETPLATFORM ubuntu:22.10
 
-RUN echo 'hosts: files dns' >> /etc/nsswitch.conf
-
-RUN set -ex && \
-    mkdir -p /usr/bin /etc/categraf
+COPY docker/nsswitch.conf /etc/nsswitch.conf
 
 COPY categraf  /usr/bin/categraf
 
