@@ -80,7 +80,7 @@ archives:
 
 release:
   github:
-    owner: flashcatcloud
+    owner: kongfei605
     name: categraf
   name_template: "v{{ .Version }}"
 
