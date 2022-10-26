@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 
@@ -29,13 +28,6 @@ var (
 	interval     = flag.Int64("interval", 0, "Global interval(unit:Second)")
 	showVersion  = flag.Bool("version", false, "Show version.")
 	inputFilters = flag.String("inputs", "", "e.g. cpu:mem:system")
-
-	flagWinSvcName      = flag.String("win-service-name", "categraf", "Set windows service name")
-	flagWinSvcDesc      = flag.String("win-service-desc", "Categraf", "Set windows service description")
-	flagWinSvcInstall   = flag.Bool("win-service-install", false, "Install windows service")
-	flagWinSvcUninstall = flag.Bool("win-service-uninstall", false, "Uninstall windows service")
-	flagWinSvcStart     = flag.Bool("win-service-start", false, "Start windows service")
-	flagWinSvcStop      = flag.Bool("win-service-stop", false, "Stop windows service")
 )
 
 func init() {
@@ -57,7 +49,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	doWinsvc()
+	doOSsvc()
 	printEnv()
 
 	// init configs
@@ -131,42 +123,4 @@ func parseFilter(filterStr string) map[string]struct{} {
 		filtermap[filters[i]] = struct{}{}
 	}
 	return filtermap
-}
-
-func doWinsvc() {
-	// install service
-	if *flagWinSvcInstall && runtime.GOOS == "windows" {
-		if err := winsvc.InstallService(appPath, *flagWinSvcName, *flagWinSvcDesc); err != nil {
-			log.Fatalln("F! failed to install service:", *flagWinSvcName, "error:", err)
-		}
-		fmt.Println("done")
-		os.Exit(0)
-	}
-
-	// uninstall service
-	if *flagWinSvcUninstall && runtime.GOOS == "windows" {
-		if err := winsvc.RemoveService(*flagWinSvcName); err != nil {
-			log.Fatalln("F! failed to uninstall service:", *flagWinSvcName, "error:", err)
-		}
-		fmt.Println("done")
-		os.Exit(0)
-	}
-
-	// start service
-	if *flagWinSvcStart && runtime.GOOS == "windows" {
-		if err := winsvc.StartService(*flagWinSvcName); err != nil {
-			log.Fatalln("F! failed to start service:", *flagWinSvcName, "error:", err)
-		}
-		fmt.Println("done")
-		os.Exit(0)
-	}
-
-	// stop service
-	if *flagWinSvcStop && runtime.GOOS == "windows" {
-		if err := winsvc.StopService(*flagWinSvcName); err != nil {
-			log.Fatalln("F! failed to stop service:", *flagWinSvcName, "error:", err)
-		}
-		fmt.Println("done")
-		os.Exit(0)
-	}
 }
