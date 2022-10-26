@@ -44,6 +44,13 @@ type Instance struct {
 	RocketMQConsoleIPAndPort string   `toml:"rocketmq_console_ip_port"`
 }
 
+func (ins *Instance) Init() error {
+	if len(ins.RocketMQConsoleIPAndPort) == 0 {
+		return types.ErrInstancesEmpty
+	}
+	return nil
+}
+
 func (ins *Instance) Gather(slist *types.SampleList) {
 	//获取rocketmq集群中的topicNameList
 	topicNameArray := GetTopicNameList(ins.RocketMQConsoleIPAndPort)

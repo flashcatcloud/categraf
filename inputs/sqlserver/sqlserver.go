@@ -93,12 +93,13 @@ type scanner interface {
 // Start initialize a list of connection pools
 func (s *Instance) Init() error {
 	if len(s.Servers) == 0 {
-		log.Println("W! Server list is empty.")
 		return types.ErrInstancesEmpty
 	}
+
 	if s.AuthMethod == "" {
 		s.AuthMethod = "connection_string"
 	}
+
 	if err := s.initQueries(); err != nil {
 		log.Println("E! initQueries err:", err)
 		return err
