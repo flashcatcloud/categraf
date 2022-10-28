@@ -22,7 +22,6 @@ import (
 
 const (
 	inputName                = "postgresql"
-	defaultPingDataBytesSize = 56
 )
 
 type Postgresql struct {
