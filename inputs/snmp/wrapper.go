@@ -30,9 +30,13 @@ func (gs GosnmpWrapper) Walk(oid string, fn gosnmp.WalkFunc) error {
 }
 
 func NewWrapper(s ClientConfig) (GosnmpWrapper, error) {
-	gs := GosnmpWrapper{&gosnmp.GoSNMP{}}
+	gs := GosnmpWrapper{&gosnmp.GoSNMP{
+		Timeout: 5 * time.Second,
+	}}
 
-	gs.Timeout = time.Duration(s.Timeout)
+	if s.Timeout != 0 {
+		gs.Timeout = time.Duration(s.Timeout)
+	}
 
 	gs.Retries = s.Retries
 
