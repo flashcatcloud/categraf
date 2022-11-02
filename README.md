@@ -87,4 +87,4 @@ Categraf is developed on the basis of Telegraf, Exporters and the OpenTelemetry.
 
 ## Community
 
-![](doc/laqun.jpeg)
+<img src="doc/laqun.jpeg" alt="categraf contact" width="240" />
