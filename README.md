@@ -78,7 +78,7 @@ see detail [here](https://github.com/flashcatcloud/categraf/blob/main/prometheus
 
 ## Plugin
 
-plugin list: [https://github.com/flashcatcloud/categraf/tree/main/inputs](https://github.com/flashcatcloud/categraf/tree/main/inputs)
+plugin list and document: [https://github.com/flashcatcloud/categraf/tree/main/inputs](https://github.com/flashcatcloud/categraf/tree/main/inputs) 
 
 
 ## Thanks
