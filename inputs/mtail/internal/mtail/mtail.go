@@ -20,9 +20,7 @@ import (
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime"
 	"flashcat.cloud/categraf/inputs/mtail/internal/tailer"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/version"
 )
 
 // Server contains the state of the main mtail program.
@@ -78,11 +76,6 @@ func (m *Server) initExporter() (err error) {
 	}
 	m.reg.MustRegister(m.e)
 
-	// Create mtail_build_info metric.
-	version.Branch = "main"
-	version.Version = m.buildInfo.Version
-	version.Revision = ""
-	m.reg.MustRegister(version.NewCollector("mtail"))
 	return nil
 }
 
@@ -175,25 +168,6 @@ func New(ctx context.Context, store *metrics.Store, options ...Option) (*Server,
 	}
 	m.rOpts = append(m.rOpts, runtime.PrometheusRegisterer(m.reg))
 
-	// TODO(jaq): Should these move to initExporter?
-	expvarDescs := map[string]*prometheus.Desc{
-		// internal/tailer/file.go
-		"log_errors_total":    prometheus.NewDesc("log_errors_total", "number of IO errors encountered per log file", []string{"logfile"}, nil),
-		"log_rotations_total": prometheus.NewDesc("log_rotations_total", "number of log rotation events per log file", []string{"logfile"}, nil),
-		"log_truncates_total": prometheus.NewDesc("log_truncates_total", "number of log truncation events log file", []string{"logfile"}, nil),
-		"log_lines_total":     prometheus.NewDesc("log_lines_total", "number of lines read per log file", []string{"logfile"}, nil),
-		// internal/runtime/loader.go
-		"lines_total":               prometheus.NewDesc("lines_total", "number of lines received by the program loader", nil, nil),
-		"prog_loads_total":          prometheus.NewDesc("prog_loads_total", "number of program load events by program source filename", []string{"prog"}, nil),
-		"prog_load_errors_total":    prometheus.NewDesc("prog_load_errors_total", "number of errors encountered when loading per program source filename", []string{"prog"}, nil),
-		"prog_runtime_errors_total": prometheus.NewDesc("prog_runtime_errors_total", "number of errors encountered when executing programs per source filename", []string{"prog"}, nil),
-	}
-	// m.reg.MustRegister(
-	// collectors.NewGoCollector(),
-	// collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	// Prefix all expvar metrics with 'mtail_'
-	prometheus.WrapRegistererWithPrefix("mtail_", m.reg).MustRegister(
-		collectors.NewExpvarCollector(expvarDescs))
 	if err := m.SetOption(options...); err != nil {
 		return nil, err
 	}
