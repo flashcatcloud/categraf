@@ -166,7 +166,6 @@ func New(ctx context.Context, store *metrics.Store, options ...Option) (*Server,
 		// are not fully specified at startup.
 		reg: prometheus.NewRegistry(),
 	}
-	m.rOpts = append(m.rOpts, runtime.PrometheusRegisterer(m.reg))
 
 	if err := m.SetOption(options...); err != nil {
 		return nil, err
