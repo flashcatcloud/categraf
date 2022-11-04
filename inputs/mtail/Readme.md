@@ -244,7 +244,7 @@ histogram http_latency buckets 1, 2, 4, 8
 }
 ```
 
-日志提取的时间，一定要主要时区问题，有一个参数 `override_timezone` 可以控制时区选择，否则默认使用UTC转换。
+日志提取的时间，一定要注意时区问题，有一个参数 `override_timezone` 可以控制时区选择，否则默认使用UTC转换。
 比如我启动时指定 `override_timezone=Asia/Shanghai`, 这个时候日志提取的时间会当做东八区时间 转换为timestamp， 然后再从timestamp转换为各时区时间时 就没有问题了,如图。
 ![timestamp](./timestamp.png)
 如果不带 `override_timezone=Asia/Shanghai`, 则默认将`Aug 22 15:34:32` 当做UTC时间，转换为timestamp。 这样再转换为本地时间时，会多了8个小时, 如图。
