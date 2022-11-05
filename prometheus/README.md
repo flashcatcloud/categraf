@@ -6,7 +6,7 @@ For more details, see the official docs:
 
 ## Configuration
 
-An [example](../conf/in_cluster_scrape.yaml) to scrape kube-apiserver and core-dns metrics .
+An [example](../k8s/in_cluster_scrape.yaml) to scrape kube-apiserver and core-dns metrics .
 more examples click [here](https://github.com/prometheus/prometheus/tree/main/documentation/examples)
 
 
