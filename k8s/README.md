@@ -36,12 +36,12 @@ Make sure that `deployment.yaml` always appears with `etcd-service.yaml` and `de
 
 # dashboards show
 ___
-![apiserver-dashboards](images/apiserver-dash.jpg)
+![apiserver-dashboards](https://cdn.jsdelivr.net/gh/flashcatcloud/categraf@main/k8s/images/apiserver-dash.jpg)
 ___
-![controller-dashboards](images/cm-dash.jpg)
+![controller-dashboards](https://cdn.jsdelivr.net/gh/flashcatcloud/categraf@main/k8s/images/cm-dash.jpg)
 ___
-![scheduler-dashboards](images/scheduler-dash.jpg)
+![scheduler-dashboards](https://cdn.jsdelivr.net/gh/flashcatcloud/categraf@main/k8s/images/scheduler-dash.jpg)
 ___
-![etcd-dashboards](images/etcd-dash.jpg)
+![etcd-dashboards](https://cdn.jsdelivr.net/gh/flashcatcloud/categraf@main/k8s/images/etcd-dash.jpg)
 ___
-![coredns-dashboards](images/coredns-dash.jpg)
+![coredns-dashboards](https://cdn.jsdelivr.net/gh/flashcatcloud/categraf@main/k8s/images/coredns-dash.jpg)
