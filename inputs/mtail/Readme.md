@@ -160,8 +160,6 @@ counter line_total by logfile,env
 获取到的metrics中会添加上`env=production`的label 如下：
 ```python
 # metrics
-# HELP line_total defined at test.mtail:2:9-18
-# TYPE line_total counter
 line_total{env="production",logfile="/path/to/xxxx.log",prog="test.mtail"} 4 1661165941788
 ```
 
@@ -203,8 +201,6 @@ nonzero_positives++
 
 默认emit_metric_timestamp="false" （注意是字符串）
 ```
-# HELP http_latency defined at histo.mtail:1:11-22
-# TYPE http_latency histogram
 http_latency_bucket{prog="histo.mtail",le="1"} 0
 http_latency_bucket{prog="histo.mtail",le="2"} 0
 http_latency_bucket{prog="histo.mtail",le="4"} 0
@@ -216,8 +212,6 @@ http_latency_count{prog="histo.mtail"} 0
 
 参数 emit_metric_timestamp="true" (注意是字符串)
 ```
-# HELP http_latency defined at histo.mtail:1:11-22
-# TYPE http_latency histogram
 http_latency_bucket{prog="histo.mtail",le="1"} 1 1661152917471
 http_latency_bucket{prog="histo.mtail",le="2"} 2 1661152917471
 http_latency_bucket{prog="histo.mtail",le="4"} 2 1661152917471
