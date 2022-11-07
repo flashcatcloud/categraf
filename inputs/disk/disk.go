@@ -43,7 +43,7 @@ func (s *DiskStats) Gather(slist *types.SampleList) {
 		}
 
 		if len(s.IgnoreMountPoints) > 0 {
-			if choice.Contains(du.Path, s.IgnoreMountPoints) {
+			if choice.ContainsPrefix(du.Path, s.IgnoreMountPoints) {
 				continue
 			}
 		}
