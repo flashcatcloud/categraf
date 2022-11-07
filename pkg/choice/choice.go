@@ -20,7 +20,7 @@ func Contains(choice string, choices []string) bool {
 // Contains return true if the choice in the list of choices.
 func ContainsPrefix(choice string, choices []string) bool {
 	for _, item := range choices {
-		if strings.HasPrefix(item, choice) {
+		if strings.HasPrefix(choice, item) {
 			return true
 		}
 	}
