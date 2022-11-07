@@ -24,7 +24,7 @@ import (
 const inputName = `mtail`
 const description = ` extract internal monitoring data from application logs`
 
-// Snmp holds the configuration for the plugin.
+// MTail holds the configuration for the plugin.
 type MTail struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
