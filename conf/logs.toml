@@ -25,7 +25,7 @@ frame_size = 9000
 ##
 collect_container_all = true
   ## glog processing rules
-  [[logs.Processing_rules]]
+  # [[logs.Processing_rules]]
   ## single log configure
   [[logs.items]]
   ## file/journald/tcp/udp

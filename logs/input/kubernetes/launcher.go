@@ -258,17 +258,20 @@ func (l *Launcher) getSource(pod *kubelet.Pod, container kubelet.ContainerStatus
 		} else {
 			logsSource = shortImageName
 		}
+		topic := pod.Metadata.Annotations["logs.topic"]
 		if standardService != "" {
 			cfg = &logsconfig.LogsConfig{
 				Source:  logsSource,
 				Service: standardService,
 				Tags:    buildTags(pod, container),
+				Topic:   topic,
 			}
 		} else {
 			cfg = &logsconfig.LogsConfig{
 				Source:  logsSource,
 				Service: logsSource,
 				Tags:    buildTags(pod, container),
+				Topic:   topic,
 			}
 		}
 	}
