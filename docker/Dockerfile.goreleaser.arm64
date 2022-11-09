@@ -1,7 +1,5 @@
 FROM --platform=$TARGETPLATFORM ubuntu:22.10
 
-RUN  apt-get install -y tzdata
-
 COPY docker/nsswitch.conf /etc/nsswitch.conf
 
 COPY categraf  /usr/bin/categraf
