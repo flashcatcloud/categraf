@@ -29,6 +29,7 @@ type jsonPayload struct {
 	Service   string `json:"fcservice"`
 	Source    string `json:"fcsource"`
 	Tags      string `json:"fctags"`
+	Topic     string `json:"topic"`
 }
 
 // Encode encodes a message into a JSON byte array.
@@ -45,5 +46,6 @@ func (j *jsonEncoder) Encode(msg *message.Message, redactedMsg []byte) ([]byte, 
 		Service:   msg.Origin.Service(),
 		Source:    msg.Origin.Source(),
 		Tags:      msg.Origin.TagsToString(),
+		Topic:     msg.Origin.LogSource.Config.Topic,
 	})
 }
