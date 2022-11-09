@@ -2,7 +2,6 @@ package kafka
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Shopify/sarama"
+	json "github.com/mailru/easyjson"
 
 	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
