@@ -3,11 +3,13 @@ package kafka
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/Shopify/sarama"
+	json "github.com/mailru/easyjson"
 
 	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
@@ -135,8 +137,16 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 	if err != nil {
 		return err
 	}
-
-	err = NewBuilder().WithMessage(d.apiKey, encodedPayload).WithTopic(d.topic).Send(d.client)
+	topic := d.topic
+	data := &Data{}
+	err = json.Unmarshal(payload, data)
+	if err != nil {
+		log.Println("E! get topic from payload, ", err)
+	}
+	if data.Topic != "" {
+		topic = data.Topic
+	}
+	err = NewBuilder().WithMessage(d.apiKey, encodedPayload).WithTopic(topic).Send(d.client)
 	if err != nil {
 		if ctx.Err() == context.Canceled {
 			return ctx.Err()
