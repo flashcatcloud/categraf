@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -713,6 +714,7 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 	}
 
 	var d int
+	floatRegex := regexp.MustCompile(`[+\-]?(?:(?:0|[1-9]\d*)(?:\.\d*)?|\.\d+)(?:\d[eE][+\-]?\d+)?`)
 	if _, err := fmt.Sscanf(conv, "float(%d)", &d); err == nil || conv == "float" {
 		switch vt := v.(type) {
 		case float32:
@@ -740,15 +742,25 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 		case uint64:
 			v = float64(vt) / math.Pow10(d)
 		case []byte:
-			vf, _ := strconv.ParseFloat(string(vt), 64)
-			v = vf / math.Pow10(d)
+			str := floatRegex.FindAllString(string(vt), -1)
+			if len(str) > 0 {
+				vf, _ := strconv.ParseFloat(str[0], 64)
+				v = vf / math.Pow10(d)
+			} else {
+				v = 0
+			}
 		case string:
-			vf, _ := strconv.ParseFloat(vt, 64)
-			v = vf / math.Pow10(d)
+			str := floatRegex.FindAllString(vt, -1)
+			if len(str) > 0 {
+				vf, _ := strconv.ParseFloat(str[0], 64)
+				v = vf / math.Pow10(d)
+			} else {
+				v = 0
+			}
 		}
 		return v, nil
 	}
-
+	intReg := regexp.MustCompile("[0-9]+")
 	if conv == "int" {
 		switch vt := v.(type) {
 		case float32:
@@ -776,9 +788,19 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 		case uint64:
 			v = int64(vt)
 		case []byte:
-			v, _ = strconv.ParseInt(string(vt), 10, 64)
+			str := intReg.FindAllString(string(vt), -1)
+			if len(str) > 0 {
+				v, _ = strconv.ParseInt(str[0], 10, 64)
+			} else {
+				v = 0
+			}
 		case string:
-			v, _ = strconv.ParseInt(vt, 10, 64)
+			str := intReg.FindAllString(vt, -1)
+			if len(str) > 0 {
+				v, _ = strconv.ParseInt(str[0], 10, 64)
+			} else {
+				v = 0
+			}
 		}
 		return v, nil
 	}
