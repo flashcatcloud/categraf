@@ -43,11 +43,11 @@ func NewSample(prefix, metric string, value interface{}, labels ...map[string]st
 	return s
 }
 
-func (item *Sample) ConvertTimeSeries(precision string) prompb.TimeSeries {
+func (item *Sample) ConvertTimeSeries(precision string) *prompb.TimeSeries {
 	value, err := conv.ToFloat64(item.Value)
 	if err != nil {
 		// If the Labels is empty, it means it is abnormal data
-		return prompb.TimeSeries{}
+		return nil
 	}
 
 	pt := prompb.TimeSeries{}
@@ -75,5 +75,5 @@ func (item *Sample) ConvertTimeSeries(precision string) prompb.TimeSeries {
 		})
 	}
 
-	return pt
+	return &pt
 }

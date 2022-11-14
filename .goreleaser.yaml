@@ -131,7 +131,7 @@ dockers:
     goarch: arm64
     ids:
       - linux-arm64
-    dockerfile: docker/Dockerfile.goreleaser
+    dockerfile: docker/Dockerfile.goreleaser.arm64
     extra_files:
       - docker/entrypoint.sh
       - docker/nsswitch.conf
