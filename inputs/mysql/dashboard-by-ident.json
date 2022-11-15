@@ -1,6 +1,7 @@
 {
     "name": "MySQL Overview by ident",
     "tags": "",
+    "ident": "",
     "configs": {
         "var": [
             {
@@ -1337,13 +1338,66 @@
                 "type": "timeseries",
                 "layout": {
                     "h": 4,
-                    "w": 12,
+                    "w": 6,
                     "x": 12,
                     "y": 51,
                     "i": "33c8d0e1-03a3-4a3f-8b20-7b5b6373bdb0",
                     "isResizable": true
                 },
                 "id": "3f8ba45a-a9bc-4420-980d-382c2638cda0"
+            },
+            {
+                "type": "timeseries",
+                "id": "c98ff938-5076-4217-bb0f-e082f34cc6bb",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 18,
+                    "y": 51,
+                    "i": "c5b892ee-bc0d-4fe9-b57d-7132c329752d",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "mysql_global_status_buffer_pool_pages_utilization{ident=~\"$ident\"}",
+                        "legend": "{{ident}} {{address}}"
+                    }
+                ],
+                "name": "Buffer Pool Pages Utilization %",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             }
         ]
     }
