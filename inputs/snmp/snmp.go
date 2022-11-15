@@ -703,6 +703,31 @@ func (ins *Instance) getConnection(idx int) (snmpConnection, error) {
 	return gs, nil
 }
 
+func fieldNonStandardConvertInt64(v string) int64 {
+	lowerV := strings.ToLower(v)
+
+	if strings.HasSuffix(lowerV, "g") || strings.HasSuffix(lowerV, "gb") {
+		v64, _ := strconv.ParseInt(lowerV[0:strings.LastIndex(lowerV, "g")], 10, 64)
+		v64 = v64 * 1024 * 1024 * 1024
+		return v64
+	} else if strings.HasSuffix(lowerV, "t") || strings.HasSuffix(lowerV, "tb") {
+		v64, _ := strconv.ParseInt(lowerV[0:strings.LastIndex(lowerV, "t")], 10, 64)
+		v64 = v64 * 1024 * 1024 * 1024 * 1024
+		return v64
+	} else if strings.HasSuffix(lowerV, "m") || strings.HasSuffix(lowerV, "mb") {
+		v64, _ := strconv.ParseInt(lowerV[0:strings.LastIndex(lowerV, "m")], 10, 64)
+		v64 = v64 * 1024 * 1024
+		return v64
+	} else if strings.HasSuffix(lowerV, "k") || strings.HasSuffix(lowerV, "kb") {
+		v64, _ := strconv.ParseInt(lowerV[0:strings.LastIndex(lowerV, "m")], 10, 64)
+		v64 = v64 * 1024
+		return v64
+	} else {
+		v64, _ := strconv.ParseInt(lowerV, 10, 64)
+		return v64
+	}
+}
+
 // fieldConvert converts from any type according to the conv specification
 func fieldConvert(conv string, v interface{}) (interface{}, error) {
 	if conv == "" {
@@ -776,9 +801,9 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 		case uint64:
 			v = int64(vt)
 		case []byte:
-			v, _ = strconv.ParseInt(string(vt), 10, 64)
+			v = fieldNonStandardConvertInt64(string(vt))
 		case string:
-			v, _ = strconv.ParseInt(vt, 10, 64)
+			v = fieldNonStandardConvertInt64(vt)
 		}
 		return v, nil
 	}
