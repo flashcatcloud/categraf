@@ -320,6 +320,18 @@
                 "id": "458753cc-a6d0-4afc-bf5e-54585dc5990c"
             },
             {
+                "type": "timeseries",
+                "id": "ebf01aad-c07b-4541-9891-bb3d5a7175a6",
+                "layout": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 6,
+                    "y": 8,
+                    "i": "13bf0230-db47-4338-9b32-8e15af8915e4",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
                 "targets": [
                     {
                         "expr": "mysql_global_status_threads_connected{ident=~\"$ident\"}/mysql_global_variables_max_connections{ident=~\"$ident\"}",
@@ -336,26 +348,31 @@
                     "legend": {
                         "displayMode": "hidden"
                     },
-                    "standardOptions": {},
-                    "thresholds": {}
+                    "standardOptions": {
+                        "util": "percentUnit"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.05,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 6,
-                    "y": 8,
-                    "i": "13bf0230-db47-4338-9b32-8e15af8915e4",
-                    "isResizable": true
-                },
-                "id": "ebf01aad-c07b-4541-9891-bb3d5a7175a6"
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
                 "targets": [
@@ -834,9 +851,21 @@
                 "id": "01970b88-417a-4c75-9bd0-33eb017a7264"
             },
             {
+                "type": "timeseries",
+                "id": "958eae25-8c2a-4886-962f-eb12d57bd594",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 18,
+                    "y": 28,
+                    "i": "64603263-1433-4041-9078-65ca95e09932",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
                 "targets": [
                     {
-                        "expr": "rate(mysql_global_status_commands_total{ident=~\"$ident\", command=~\"commit|rollback\"}[1d])",
+                        "expr": "rate(mysql_global_status_commands_total{ident=~\"$ident\", command=~\"commit|rollback\"}[10m])",
                         "legend": "{{ident}} {{address}} {{command}}"
                     }
                 ],
@@ -853,25 +882,28 @@
                     "standardOptions": {
                         "decimals": 2
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.2,
-                    "stack": "noraml"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 18,
-                    "y": 28,
-                    "i": "64603263-1433-4041-9078-65ca95e09932",
-                    "isResizable": true
-                },
-                "id": "958eae25-8c2a-4886-962f-eb12d57bd594"
+                    "gradientMode": "none",
+                    "stack": "noraml",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
                 "targets": [
