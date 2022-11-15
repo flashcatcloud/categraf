@@ -79,7 +79,7 @@ func (ins *Instance) gatherGlobalStatus(slist *types.SampleList, db *sql.DB, glo
 				switch match[2] {
 				case "data", "free", "misc", "old", "total", "dirty":
 					// Innodb buffer pool pages by state.
-					slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_pages", floatVal, tags, map[string]string{"state": match[2]}))
+					slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_pages_"+match[2], floatVal, tags))
 				default:
 					// Innodb buffer pool page state changes.
 					slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_page_changes_total", floatVal, tags, map[string]string{"operation": match[2]}))
