@@ -2,6 +2,7 @@ package writer
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"sort"
@@ -60,6 +61,11 @@ func postSeries(samples []*types.Sample) {
 	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < count; i++ {
 		item := samples[i].ConvertTimeSeries(config.Config.Global.Precision)
+
+		if config.Config.WriterOpt.PrintSample {
+			log.Println("D! post timeserie:", item.String())
+		}
+
 		if item == nil || len(item.Labels) == 0 {
 			continue
 		}

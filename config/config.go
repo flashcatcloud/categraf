@@ -31,8 +31,9 @@ type Global struct {
 }
 
 type WriterOpt struct {
-	Batch    int `toml:"batch"`
-	ChanSize int `toml:"chan_size"`
+	Batch       int  `toml:"batch"`
+	ChanSize    int  `toml:"chan_size"`
+	PrintSample bool `toml:"print_sample"`
 }
 
 type WriterOption struct {
