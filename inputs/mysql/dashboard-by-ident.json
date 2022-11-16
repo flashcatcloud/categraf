@@ -1,6 +1,7 @@
 {
     "name": "MySQL Overview by ident",
     "tags": "",
+    "ident": "",
     "configs": {
         "var": [
             {
@@ -319,6 +320,18 @@
                 "id": "458753cc-a6d0-4afc-bf5e-54585dc5990c"
             },
             {
+                "type": "timeseries",
+                "id": "ebf01aad-c07b-4541-9891-bb3d5a7175a6",
+                "layout": {
+                    "h": 5,
+                    "w": 6,
+                    "x": 6,
+                    "y": 8,
+                    "i": "13bf0230-db47-4338-9b32-8e15af8915e4",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
                 "targets": [
                     {
                         "expr": "mysql_global_status_threads_connected{ident=~\"$ident\"}/mysql_global_variables_max_connections{ident=~\"$ident\"}",
@@ -335,26 +348,31 @@
                     "legend": {
                         "displayMode": "hidden"
                     },
-                    "standardOptions": {},
-                    "thresholds": {}
+                    "standardOptions": {
+                        "util": "percentUnit"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.05,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 5,
-                    "w": 6,
-                    "x": 6,
-                    "y": 8,
-                    "i": "13bf0230-db47-4338-9b32-8e15af8915e4",
-                    "isResizable": true
-                },
-                "id": "ebf01aad-c07b-4541-9891-bb3d5a7175a6"
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
                 "targets": [
@@ -833,9 +851,21 @@
                 "id": "01970b88-417a-4c75-9bd0-33eb017a7264"
             },
             {
+                "type": "timeseries",
+                "id": "958eae25-8c2a-4886-962f-eb12d57bd594",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 18,
+                    "y": 28,
+                    "i": "64603263-1433-4041-9078-65ca95e09932",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
                 "targets": [
                     {
-                        "expr": "rate(mysql_global_status_commands_total{ident=~\"$ident\", command=~\"commit|rollback\"}[1d])",
+                        "expr": "rate(mysql_global_status_commands_total{ident=~\"$ident\", command=~\"commit|rollback\"}[10m])",
                         "legend": "{{ident}} {{address}} {{command}}"
                     }
                 ],
@@ -852,25 +882,28 @@
                     "standardOptions": {
                         "decimals": 2
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.2,
-                    "stack": "noraml"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 4,
-                    "w": 6,
-                    "x": 18,
-                    "y": 28,
-                    "i": "64603263-1433-4041-9078-65ca95e09932",
-                    "isResizable": true
-                },
-                "id": "958eae25-8c2a-4886-962f-eb12d57bd594"
+                    "gradientMode": "none",
+                    "stack": "noraml",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
                 "targets": [
@@ -1337,13 +1370,66 @@
                 "type": "timeseries",
                 "layout": {
                     "h": 4,
-                    "w": 12,
+                    "w": 6,
                     "x": 12,
                     "y": 51,
                     "i": "33c8d0e1-03a3-4a3f-8b20-7b5b6373bdb0",
                     "isResizable": true
                 },
                 "id": "3f8ba45a-a9bc-4420-980d-382c2638cda0"
+            },
+            {
+                "type": "timeseries",
+                "id": "c98ff938-5076-4217-bb0f-e082f34cc6bb",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 18,
+                    "y": 51,
+                    "i": "c5b892ee-bc0d-4fe9-b57d-7132c329752d",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "mysql_global_status_buffer_pool_pages_utilization{ident=~\"$ident\"}",
+                        "legend": "{{ident}} {{address}}"
+                    }
+                ],
+                "name": "Buffer Pool Pages Utilization %",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             }
         ]
     }

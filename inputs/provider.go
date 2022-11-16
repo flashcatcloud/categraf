@@ -231,6 +231,12 @@ func (lp *LocalProvider) GetInputConfig(inputKey string) ([]cfg.ConfigWithFormat
 
 	cwf := make([]cfg.ConfigWithFormat, 0, len(files))
 	for _, f := range files {
+		if !(strings.HasSuffix(f, ".yaml") ||
+			strings.HasSuffix(f, ".yml") ||
+			strings.HasSuffix(f, ".json") ||
+			strings.HasSuffix(f, ".toml")) {
+			continue
+		}
 		c, err := file.ReadBytes(path.Join(lp.configDir, inputFilePrefix+inputKey, f))
 		if err != nil {
 			return nil, err
@@ -289,7 +295,7 @@ func newHTTPProvider(c *config.ConfigType, reloadFunc func()) (*HTTPProvider, er
 		ClientConfig:   c.HTTPProviderConfig.ClientConfig,
 		Timeout:        c.HTTPProviderConfig.Timeout,
 		ReloadInterval: c.HTTPProviderConfig.ReloadInterval,
-		stopCh:         make(chan struct{}),
+		stopCh:         make(chan struct{}, 1),
 		reloadFunc:     reloadFunc,
 	}
 

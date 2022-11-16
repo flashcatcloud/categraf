@@ -2,12 +2,25 @@
 // plugin options that must be one of several values.
 package choice
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Contains return true if the choice in the list of choices.
 func Contains(choice string, choices []string) bool {
 	for _, item := range choices {
 		if item == choice {
+			return true
+		}
+	}
+	return false
+}
+
+// Contains return true if the choice in the list of choices.
+func ContainsPrefix(choice string, choices []string) bool {
+	for _, item := range choices {
+		if strings.HasPrefix(choice, item) {
 			return true
 		}
 	}

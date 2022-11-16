@@ -3,7 +3,6 @@ package cfg
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"path"
 	"strings"
 
@@ -36,7 +35,7 @@ func GuessFormat(fpath string) ConfigFormat {
 
 func LoadConfigByDir(configDir string, configPtr interface{}) error {
 	var (
-		tBuf, yBuf, jBuf []byte
+		tBuf []byte
 	)
 
 	loaders := []multiconfig.Loader{
@@ -48,30 +47,25 @@ func LoadConfigByDir(configDir string, configPtr interface{}) error {
 	if err != nil {
 		return fmt.Errorf("failed to list files under: %s : %v", configDir, err)
 	}
-
+	s := NewFileScanner()
 	for _, fpath := range files {
-		buf, err := ioutil.ReadFile(path.Join(configDir, fpath))
-		if err != nil {
-			return err
-		}
 		switch {
-		case strings.HasSuffix(fpath, "toml"):
-			tBuf = append(tBuf, buf...)
-		case strings.HasSuffix(fpath, "json"):
-			jBuf = append(jBuf, buf...)
-		case strings.HasSuffix(fpath, "yaml") || strings.HasSuffix(fpath, "yml"):
-			yBuf = append(yBuf, buf...)
+		case strings.HasSuffix(fpath, ".toml"):
+			s.Read(path.Join(configDir, fpath))
+			tBuf = append(tBuf, s.Data()...)
+			tBuf = append(tBuf, []byte("\n")...)
+		case strings.HasSuffix(fpath, ".json"):
+			loaders = append(loaders, &multiconfig.JSONLoader{Path: path.Join(configDir, fpath)})
+		case strings.HasSuffix(fpath, ".yaml") || strings.HasSuffix(fpath, ".yml"):
+			loaders = append(loaders, &multiconfig.YAMLLoader{Path: path.Join(configDir, fpath)})
+		}
+		if s.Err() != nil {
+			return s.Err()
 		}
 	}
 
 	if len(tBuf) != 0 {
 		loaders = append(loaders, &multiconfig.TOMLLoader{Reader: bytes.NewReader(tBuf)})
-	}
-	if len(yBuf) != 0 {
-		loaders = append(loaders, &multiconfig.YAMLLoader{Reader: bytes.NewReader(yBuf)})
-	}
-	if len(jBuf) != 0 {
-		loaders = append(loaders, &multiconfig.JSONLoader{Reader: bytes.NewReader(jBuf)})
 	}
 
 	m := multiconfig.DefaultLoader{
@@ -92,6 +86,7 @@ func LoadConfigs(configs []ConfigWithFormat, configPtr interface{}) error {
 	for _, c := range configs {
 		switch c.Format {
 		case TomlFormat:
+			tBuf = append(tBuf, []byte("\n\n")...)
 			tBuf = append(tBuf, []byte(c.Config)...)
 		case YamlFormat:
 			yBuf = append(yBuf, []byte(c.Config)...)

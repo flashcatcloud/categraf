@@ -67,6 +67,17 @@ archives:
   - id: categraf
     builds:
       - linux-amd64-cgo
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}-with-oracle-plugin"
+    wrap_in_directory: true
+    files:
+      - conf/*
+  - id: categraf-common
+    builds:
+      - linux-amd64
       - linux-arm64
       - windows
     format: tar.gz
@@ -94,6 +105,7 @@ dockers:
     dockerfile: docker/Dockerfile.goreleaser
     extra_files:
       - docker/entrypoint.sh
+      - docker/nsswitch.conf
       - conf/config.toml
       - conf/logs.toml
       - conf/input.cpu/cpu.toml
@@ -119,9 +131,10 @@ dockers:
     goarch: arm64
     ids:
       - linux-arm64
-    dockerfile: docker/Dockerfile.goreleaser
+    dockerfile: docker/Dockerfile.goreleaser.arm64
     extra_files:
       - docker/entrypoint.sh
+      - docker/nsswitch.conf
       - conf/config.toml
       - conf/logs.toml
       - conf/input.cpu/cpu.toml

@@ -177,9 +177,15 @@ func (p *Provider) searchFiles(pattern string, source *logsconfig.LogSource) ([]
 		}
 	}
 
-	for _, path := range paths {
-		if excludedPaths[path] == 0 {
-			files = append(files, NewFile(path, source, true))
+	for i, path := range paths {
+		if v := os.Getenv("HOST_MOUNT_PREFIX"); v != "" {
+			p, err := os.Readlink(path)
+			if err == nil {
+				paths[i] = filepath.Join(v, p)
+			}
+		}
+		if excludedPaths[path] == 0 || excludedPaths[paths[i]] == 0 {
+			files = append(files, NewFile(paths[i], source, true))
 		}
 	}
 	return files, nil

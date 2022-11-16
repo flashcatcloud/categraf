@@ -71,9 +71,11 @@ func NewDecoderFromSourceWithPattern(source *logsconfig.LogSource, multiLinePatt
 	var matcher decoder.EndLineMatcher
 	switch source.GetSourceType() {
 	// TODO
-	// case logsconfig.KubernetesSourceType:
-	//	lineParser = kubernetes.Parser
-	//	matcher = &decoder.NewLineMatcher{}
+	case logsconfig.KubernetesSourceType:
+		// lineParser = kubernetes.Parser
+		// matcher = &decoder.NewLineMatcher{}
+		lineParser = parser.NoopParser
+		matcher = &decoder.NewLineMatcher{}
 	// case logsconfig.DockerSourceType:
 	//  lineParser = docker.JSONParser
 	//  matcher = &decoder.NewLineMatcher{}

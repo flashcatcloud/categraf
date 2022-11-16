@@ -1,7 +1,7 @@
 # # collect interval
 # interval = 15
 
- [[instances]]
+[[instances]]
 # rocketmq_console_ip_port=
 # ignored_topics=[]
 

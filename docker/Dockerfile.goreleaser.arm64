@@ -1,0 +1,11 @@
+FROM --platform=$TARGETPLATFORM ubuntu:22.10
+
+COPY docker/nsswitch.conf /etc/nsswitch.conf
+
+COPY categraf  /usr/bin/categraf
+
+COPY docker/entrypoint.sh /entrypoint.sh
+
+COPY conf /etc/categraf/conf
+
+CMD ["/entrypoint.sh"]

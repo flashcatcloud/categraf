@@ -3,11 +3,13 @@ package kafka
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/Shopify/sarama"
+	json "github.com/mailru/easyjson"
 
 	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
@@ -70,6 +72,13 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		endpoint.RecoveryInterval,
 		endpoint.RecoveryReset,
 	)
+
+	if coreconfig.Config.Logs.Config == nil {
+		coreconfig.Config.Logs.Config = sarama.NewConfig()
+		coreconfig.Config.Logs.Producer.Partitioner = sarama.NewRandomPartitioner
+		coreconfig.Config.Logs.Producer.Return.Successes = true
+	}
+
 	brokers := strings.Split(endpoint.Addr, ",")
 	c, err := sarama.NewSyncProducer(brokers, coreconfig.Config.Logs.Config)
 	if err != nil {
@@ -128,8 +137,16 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 	if err != nil {
 		return err
 	}
-
-	err = NewBuilder().WithMessage(d.apiKey, encodedPayload).WithTopic(d.topic).Send(d.client)
+	topic := d.topic
+	data := &Data{}
+	err = json.Unmarshal(payload, data)
+	if err != nil {
+		log.Println("E! get topic from payload, ", err)
+	}
+	if data.Topic != "" {
+		topic = data.Topic
+	}
+	err = NewBuilder().WithMessage(d.apiKey, encodedPayload).WithTopic(topic).Send(d.client)
 	if err != nil {
 		if ctx.Err() == context.Canceled {
 			return ctx.Err()

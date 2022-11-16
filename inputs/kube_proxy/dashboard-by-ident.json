@@ -1,0 +1,610 @@
+{
+    "name": "Kubernetes / Proxy",
+    "tags": "",
+    "ident": "",
+    "configs": {
+        "version": "2.0.0",
+        "links": [],
+        "var": [
+            {
+                "name": "ident",
+                "type": "query",
+                "definition": "label_values(kubeproxy_sync_proxy_rules_iptables_restore_failures_total, ident)",
+                "reg": "",
+                "multi": true,
+                "allOption": true,
+                "allValue": ".*"
+            }
+        ],
+        "panels": [
+            {
+                "version": "2.0.0",
+                "id": "c0305f2f-68a1-4e60-9713-4d83f9cfd98c",
+                "type": "stat",
+                "name": "Up",
+                "links": [],
+                "layout": {
+                    "h": 5,
+                    "w": 4,
+                    "x": 0,
+                    "y": 0,
+                    "i": "c0305f2f-68a1-4e60-9713-4d83f9cfd98c",
+                    "isResizable": true
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(up{job=\"kube-proxy\"})",
+                        "legend": ""
+                    }
+                ],
+                "options": {},
+                "custom": {
+                    "version": "2.0.0",
+                    "textMode": "value",
+                    "colorMode": "value"
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "54bd34da-ea68-441d-ac6f-cd74b2130e14",
+                "layout": {
+                    "h": 5,
+                    "w": 10,
+                    "x": 4,
+                    "y": 0,
+                    "i": "54bd34da-ea68-441d-ac6f-cd74b2130e14",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(rate(kubeproxy_sync_proxy_rules_duration_seconds_count{job=\"kube-proxy\", ident=~\"$ident\"}[5m]))",
+                        "legend": "rate"
+                    }
+                ],
+                "name": "Rules Sync Rate",
+                "links": [],
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "20979f64-9057-4645-9328-3f4d1eb5e90f",
+                "layout": {
+                    "h": 5,
+                    "w": 10,
+                    "x": 14,
+                    "y": 0,
+                    "i": "20979f64-9057-4645-9328-3f4d1eb5e90f",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "histogram_quantile(0.99,rate(kubeproxy_sync_proxy_rules_duration_seconds_bucket{job=\"kube-proxy\", ident=~\"$ident\"}[5m]))",
+                        "legend": "{{ident}}"
+                    }
+                ],
+                "name": "Rule Sync Latency 99th Quantile",
+                "links": [],
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "seconds"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "e15d3349-b056-4df2-a6a2-52ddc7bed913",
+                "layout": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 0,
+                    "y": 5,
+                    "i": "e15d3349-b056-4df2-a6a2-52ddc7bed913",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(rate(kubeproxy_network_programming_duration_seconds_count{job=\"kube-proxy\", ident=~\"$ident\"}[5m]))",
+                        "legend": "rate"
+                    }
+                ],
+                "name": "Network Programming Rate",
+                "links": [],
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "4d63cd62-3e4f-489a-87cc-fea18ee9e4fe",
+                "layout": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 12,
+                    "y": 5,
+                    "i": "4d63cd62-3e4f-489a-87cc-fea18ee9e4fe",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "histogram_quantile(0.99, sum(rate(kubeproxy_network_programming_duration_seconds_bucket{job=\"kube-proxy\", ident=~\"$ident\"}[5m])) by (ident, le))",
+                        "legend": "{{ident}}"
+                    }
+                ],
+                "name": "Network Programming Latency 99th Quantile",
+                "links": [],
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "8ddc5ec1-4ccb-421c-9976-1a3c0cd416b8",
+                "layout": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 0,
+                    "y": 10,
+                    "i": "8ddc5ec1-4ccb-421c-9976-1a3c0cd416b8",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(rate(rest_client_requests_total{job=\"kube-proxy\", ident=~\"$ident\",code=~\"2..\"}[5m]))",
+                        "legend": "2xx"
+                    },
+                    {
+                        "refId": "B",
+                        "expr": "sum(rate(rest_client_requests_total{job=\"kube-proxy\", ident=~\"$ident\",code=~\"3..\"}[5m]))",
+                        "legend": "3xx"
+                    },
+                    {
+                        "refId": "C",
+                        "expr": "sum(rate(rest_client_requests_total{job=\"kube-proxy\", ident=~\"$ident\",code=~\"4..\"}[5m]))",
+                        "legend": "4xx"
+                    },
+                    {
+                        "refId": "D",
+                        "expr": "sum(rate(rest_client_requests_total{job=\"kube-proxy\", ident=~\"$ident\",code=~\"5..\"}[5m]))",
+                        "legend": "5xx"
+                    }
+                ],
+                "name": "Kube API Request Rate",
+                "links": [],
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "ed034ce6-e6ec-4b5b-ad81-660d087c5cf9",
+                "layout": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 12,
+                    "y": 10,
+                    "i": "ed034ce6-e6ec-4b5b-ad81-660d087c5cf9",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{job=\"kube-proxy\",ident=~\"$ident\",verb=\"POST\"}[5m])) by (verb, url, le))",
+                        "legend": "{{verb}} {{url}}"
+                    }
+                ],
+                "name": "Post Request Latency 99th Quantile",
+                "links": [],
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "f40ae278-17d1-45e3-848a-06f14ad0423d",
+                "layout": {
+                    "h": 5,
+                    "w": 24,
+                    "x": 0,
+                    "y": 15,
+                    "i": "f40ae278-17d1-45e3-848a-06f14ad0423d",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "histogram_quantile(0.99, sum(rate(rest_client_request_duration_seconds_bucket{job=\"kube-proxy\", ident=~\"$ident\", verb=\"GET\"}[5m])) by (verb, url, le))",
+                        "legend": "{{verb}} {{url}}"
+                    }
+                ],
+                "name": "Get Request Latency 99th Quantile",
+                "links": [],
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "none"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "047b27f1-7ff9-43ff-bc94-396688422071",
+                "layout": {
+                    "h": 5,
+                    "w": 8,
+                    "x": 0,
+                    "y": 20,
+                    "i": "047b27f1-7ff9-43ff-bc94-396688422071",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "process_resident_memory_bytes{job=\"kube-proxy\",ident=~\"$ident\"}",
+                        "legend": "{{ident}}"
+                    }
+                ],
+                "name": "Memory",
+                "links": [],
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "bytesIEC",
+                        "decimals": 1
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "5103d5ee-2245-45be-ad70-f5410dd02544",
+                "layout": {
+                    "h": 5,
+                    "w": 8,
+                    "x": 8,
+                    "y": 20,
+                    "i": "5103d5ee-2245-45be-ad70-f5410dd02544",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "rate(process_cpu_seconds_total{job=\"kube-proxy\",ident=~\"$ident\"}[5m])",
+                        "legend": "{{ident}}"
+                    }
+                ],
+                "name": "CPU usage",
+                "links": [],
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "1d15c866-c83b-408b-98e7-e26ada5e7cfc",
+                "layout": {
+                    "h": 5,
+                    "w": 8,
+                    "x": 16,
+                    "y": 20,
+                    "i": "1d15c866-c83b-408b-98e7-e26ada5e7cfc",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "go_goroutines{job=\"kube-proxy\",ident=~\"$ident\"}",
+                        "legend": "{{ident}}"
+                    }
+                ],
+                "name": "Goroutines",
+                "links": [],
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            }
+        ]
+    }
+}

@@ -239,7 +239,7 @@ func (ins *Instance) gatherUptime(slist *types.SampleList, procs map[PID]Process
 		v, err := procs[pid].CreateTime() // returns epoch in ms
 		if err == nil {
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "uptime", value, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample(inputName, "uptime", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
 			if value == -1 {
 				value = v

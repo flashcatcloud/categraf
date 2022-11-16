@@ -1,7 +1,7 @@
 ## Categraf
 
 <a href="https://github.com/flashcatcloud/categraf">
-  <img src="doc/categraf.png" alt="categraf, one-stop telemetry collector" width="80" />
+  <img src="https://cdn.jsdelivr.net/gh/flashcatcloud/categraf@main/doc/categraf.png" alt="categraf, one-stop telemetry collector" width="80" />
 </a>
 
 [![Powered By Flashcat](https://img.shields.io/badge/Powered%20By-Flashcat-blueviolet)](https://flashcat.cloud/)
@@ -17,10 +17,9 @@ Categraf is one-stop telemetry collector for nightingale / prometheus / m3db / v
 
 ## Links
 
-- [QuickStart](https://www.gitlink.org.cn/flashcat/categraf/wiki/QuickStart)
+- [QuickStart](https://flashcat.cloud/blog/monitor-agent-categraf-introduction/)
 - [FAQ](https://www.gitlink.org.cn/flashcat/categraf/wiki/FAQ)
 - [Github Releases](https://github.com/flashcatcloud/categraf/releases)
-- [Gitlink Releases](https://www.gitlink.org.cn/flashcat/categraf/releases)
 
 ## Build
 
@@ -79,7 +78,7 @@ see detail [here](https://github.com/flashcatcloud/categraf/blob/main/prometheus
 
 ## Plugin
 
-plugin list: [https://github.com/flashcatcloud/categraf/tree/main/inputs](https://github.com/flashcatcloud/categraf/tree/main/inputs)
+plugin list and document: [https://github.com/flashcatcloud/categraf/tree/main/inputs](https://github.com/flashcatcloud/categraf/tree/main/inputs) 
 
 
 ## Thanks
@@ -88,4 +87,4 @@ Categraf is developed on the basis of Telegraf, Exporters and the OpenTelemetry.
 
 ## Community
 
-![](doc/laqun.jpeg)
+<img src="https://cdn.jsdelivr.net/gh/flashcatcloud/categraf@main/doc/laqun.jpeg" alt="categraf contact" width="240" />

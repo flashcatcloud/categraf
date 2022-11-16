@@ -21,14 +21,14 @@ func (ins *Instance) gatherEngineInnodbStatusCompute(slist *types.SampleList, db
 		pageUtil = pageUsed / cache["innodb_buffer_pool_pages_total"] * 100
 	}
 
-	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes", byteUsed, tags, map[string]string{"state": "used"}))
-	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes", byteData, tags, map[string]string{"state": "data"}))
-	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes", byteFree, tags, map[string]string{"state": "free"}))
-	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes", byteTotal, tags, map[string]string{"state": "total"}))
-	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes", byteDirty, tags, map[string]string{"state": "dirty"}))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes_used", byteUsed, tags))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes_data", byteData, tags))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes_free", byteFree, tags))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes_total", byteTotal, tags))
+	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_bytes_dirty", byteDirty, tags))
 	slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_pages_utilization", pageUtil, tags))
 
 	if ins.ExtraInnodbMetrics {
-		slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_pages", pageUsed, tags, map[string]string{"state": "used"}))
+		slist.PushFront(types.NewSample(inputName, "global_status_buffer_pool_pages_used", pageUsed, tags))
 	}
 }

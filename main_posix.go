@@ -11,3 +11,7 @@ func runAgent(ag *agent.Agent) {
 	ag.Start()
 	handleSignal(ag)
 }
+
+func doOSsvc() {
+
+}
