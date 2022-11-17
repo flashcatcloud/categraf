@@ -6,6 +6,8 @@
 package message
 
 import (
+	"encoding/json"
+	"log"
 	"strings"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
@@ -57,6 +59,29 @@ func (o *Origin) TagsPayload() []byte {
 		tagsPayload = []byte{}
 	}
 	return tagsPayload
+}
+
+func (o *Origin) TagsToJsonString() string {
+	tagsMap := make(map[string]string)
+	tags := append(o.tags, o.LogSource.Config.Tags...)
+	for _, tag := range tags {
+		pair := strings.FieldsFunc(tag, func(r rune) bool {
+			return r == '=' || r == ':'
+		})
+		if len(pair) == 2 {
+			tagsMap[pair[0]] = pair[1]
+		}
+	}
+	ret := ""
+	if len(tagsMap) != 0 {
+		data, err := json.Marshal(tagsMap)
+		if err != nil {
+			log.Println("marshal tags error:", err)
+			return ret
+		}
+		ret = string(data)
+	}
+	return ret
 }
 
 // TagsToString encodes tags to a single string, in a comma separated format
