@@ -62,7 +62,7 @@ func postSeries(samples []*types.Sample) {
 	for i := 0; i < count; i++ {
 		item := samples[i].ConvertTimeSeries(config.Config.Global.Precision)
 
-		if config.Config.WriterOpt.PrintSample {
+		if config.Config.DebugMode {
 			log.Println("D! post timeserie:", item.String())
 		}
 
