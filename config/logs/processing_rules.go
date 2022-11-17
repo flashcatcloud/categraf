@@ -21,10 +21,10 @@ const (
 // ProcessingRule defines an exclusion or a masking rule to
 // be applied on log lines
 type ProcessingRule struct {
-	Type               string
-	Name               string
+	Type               string `mapstructure:"type" json:"type"`
+	Name               string `mapstructure:"name" json:"name"`
 	ReplacePlaceholder string `mapstructure:"replace_placeholder" json:"replace_placeholder"`
-	Pattern            string
+	Pattern            string `mapstructure:"pattern" json:"pattern"`
 	// TODO: should be moved out
 	Regex       *regexp.Regexp
 	Placeholder []byte

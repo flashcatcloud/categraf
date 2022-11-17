@@ -45,7 +45,7 @@ func (j *jsonEncoder) Encode(msg *message.Message, redactedMsg []byte) ([]byte, 
 		Hostname:  msg.GetHostname(),
 		Service:   msg.Origin.Service(),
 		Source:    msg.Origin.Source(),
-		Tags:      msg.Origin.TagsToString(),
+		Tags:      msg.Origin.TagsToJsonString(),
 		Topic:     msg.Origin.LogSource.Config.Topic,
 	})
 }

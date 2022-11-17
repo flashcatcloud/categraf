@@ -7,6 +7,7 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -24,8 +25,11 @@ import (
 )
 
 const (
-	anyLogFile    = "*.log"
-	anyV19LogFile = "%s_*.log"
+	anyLogFile             = "*.log"
+	anyV19LogFile          = "%s_*.log"
+	AnnotationRuleKey      = "categraf/logs.stdout.processing_rules"
+	AnnotationTopicKey     = "categraf/logs.stdout.topic"
+	AnnotationTagPrefixKey = "categraf/tags.prefix"
 )
 
 var (
@@ -258,20 +262,30 @@ func (l *Launcher) getSource(pod *kubelet.Pod, container kubelet.ContainerStatus
 		} else {
 			logsSource = shortImageName
 		}
-		topic := pod.Metadata.Annotations["logs.topic"]
+		rules := make([]*logsconfig.ProcessingRule, 0)
+		ruleStr, ok := pod.Metadata.Annotations[AnnotationRuleKey]
+		if ok {
+			err = json.Unmarshal([]byte(ruleStr), &rules)
+			if err != nil {
+				log.Printf("pod rule %s unmarshal error %s", ruleStr, err)
+			}
+		}
+		topic := pod.Metadata.Annotations[AnnotationTopicKey]
 		if standardService != "" {
 			cfg = &logsconfig.LogsConfig{
-				Source:  logsSource,
-				Service: standardService,
-				Tags:    buildTags(pod, container),
-				Topic:   topic,
+				Source:          logsSource,
+				Service:         standardService,
+				Tags:            buildTags(pod, container),
+				Topic:           topic,
+				ProcessingRules: rules,
 			}
 		} else {
 			cfg = &logsconfig.LogsConfig{
-				Source:  logsSource,
-				Service: logsSource,
-				Tags:    buildTags(pod, container),
-				Topic:   topic,
+				Source:          logsSource,
+				Service:         logsSource,
+				Tags:            buildTags(pod, container),
+				Topic:           topic,
+				ProcessingRules: rules,
 			}
 		}
 	}
@@ -293,16 +307,32 @@ func (l *Launcher) getSource(pod *kubelet.Pod, container kubelet.ContainerStatus
 
 func buildTags(pod *kubelet.Pod, container kubelet.ContainerStatus) []string {
 	tags := []string{
-		fmt.Sprintf("kubernetes.namespace_name:%s", pod.Metadata.Namespace),
-		fmt.Sprintf("kubernetes.pod_id:%s", pod.Metadata.UID),
-		fmt.Sprintf("kubernetes.pod_name:%s", pod.Metadata.Name),
-		fmt.Sprintf("kubernetes.host:%s", pod.Spec.NodeName),
+		fmt.Sprintf("kubernetes.namespace_name=%s", pod.Metadata.Namespace),
+		fmt.Sprintf("kubernetes.pod_id=%s", pod.Metadata.UID),
+		fmt.Sprintf("kubernetes.pod_name=%s", pod.Metadata.Name),
+		fmt.Sprintf("kubernetes.host=%s", pod.Spec.NodeName),
+		fmt.Sprintf("kubernetes.host=%s", pod.Spec.NodeName),
+		fmt.Sprintf("kubernetes.container_id=%s", container.ID),
+		fmt.Sprintf("kubernetes.container_name=%s", container.Name),
+		fmt.Sprintf("kubernetes.container_image=%s", container.Image),
+		fmt.Sprintf("kubernetes.container_hash=%s", container.ImageID),
 	}
-	for k, v := range pod.Metadata.Labels {
-		tags = append(tags, fmt.Sprintf("kubernetes.labels.%s:%s", k, v))
+	prefixStr, ok := pod.Metadata.Annotations[AnnotationTagPrefixKey]
+	if !ok {
+		return tags
 	}
-	for k, v := range pod.Metadata.Annotations {
-		tags = append(tags, fmt.Sprintf("kubernetes.annotations.%s:%s", k, v))
+	prefixes := strings.Split(prefixStr, ",")
+	for _, prefix := range prefixes {
+		for k, v := range pod.Metadata.Labels {
+			if strings.HasPrefix(k, prefix) {
+				tags = append(tags, fmt.Sprintf("kubernetes.labels.%s:%s", k, v))
+			}
+		}
+		for k, v := range pod.Metadata.Annotations {
+			if strings.HasPrefix(k, prefix) {
+				tags = append(tags, fmt.Sprintf("kubernetes.annotations.%s:%s", k, v))
+			}
+		}
 	}
 	return tags
 }
