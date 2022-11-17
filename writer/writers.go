@@ -55,16 +55,16 @@ func postSeries(samples []*types.Sample) {
 	if config.Config.TestMode {
 		printTestMetrics(samples)
 		return
+	} else {
+		if config.Config.DebugMode {
+			printTestMetrics(samples)
+		}
 	}
 
 	count := len(samples)
 	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < count; i++ {
 		item := samples[i].ConvertTimeSeries(config.Config.Global.Precision)
-
-		if config.Config.DebugMode {
-			log.Println("D! post timeserie:", item.String())
-		}
 
 		if item == nil || len(item.Labels) == 0 {
 			continue
