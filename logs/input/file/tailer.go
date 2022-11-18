@@ -20,6 +20,7 @@ import (
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/decoder"
+	"flashcat.cloud/categraf/logs/input/kubernetes"
 	"flashcat.cloud/categraf/logs/message"
 	"flashcat.cloud/categraf/logs/parser"
 	"flashcat.cloud/categraf/logs/tag"
@@ -72,9 +73,7 @@ func NewDecoderFromSourceWithPattern(source *logsconfig.LogSource, multiLinePatt
 	switch source.GetSourceType() {
 	// TODO
 	case logsconfig.KubernetesSourceType:
-		// lineParser = kubernetes.Parser
-		// matcher = &decoder.NewLineMatcher{}
-		lineParser = parser.NoopParser
+		lineParser = kubernetes.JSONParser
 		matcher = &decoder.NewLineMatcher{}
 	// case logsconfig.DockerSourceType:
 	//  lineParser = docker.JSONParser
