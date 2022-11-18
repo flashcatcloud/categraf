@@ -54,6 +54,10 @@ func postSeries(samples []*types.Sample) {
 	if config.Config.TestMode {
 		printTestMetrics(samples)
 		return
+	} else {
+		if config.Config.DebugMode {
+			printTestMetrics(samples)
+		}
 	}
 
 	count := len(samples)

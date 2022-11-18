@@ -299,7 +299,7 @@ func (ins *Instance) cpustat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip s
 
 type ChIfStat struct {
 	IP          string
-	UseTime     int64
+	UseTime     time.Duration
 	IfStatsList []sw.IfStats
 }
 
@@ -338,6 +338,8 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 		}
 
 		stats := chifstat.IfStatsList
+		slist.PushFront(types.NewSample(inputName, "ifstat_use_time_sec", chifstat.UseTime.Seconds(), map[string]string{ins.parent.SwitchIdLabel: ins.parent.MappingIP(ip)}))
+
 		for i := 0; i < len(stats); i++ {
 			ifStat := stats[i]
 
@@ -586,6 +588,7 @@ func (ins *Instance) ifstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip st
 		result.Set(ip, &ChIfStat{
 			IP:          ip,
 			IfStatsList: ifList,
+			UseTime:     time.Since(start),
 		})
 	}
 }
