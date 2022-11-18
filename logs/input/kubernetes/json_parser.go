@@ -51,7 +51,7 @@ func (p *jsonParser) Parse(data []byte) ([]byte, string, string, bool, error) {
 
 	content := []byte(log.Log)
 	length := len(content)
-	partial := true
+	partial := false
 	if length > 0 {
 		if log.Log[length-1] == '\n' {
 			content = content[:length-1]
