@@ -5,9 +5,9 @@
 [[instances]]
   ##  vCenter URLs to be monitored. These three lines must be uncommented
   ## and edited for the plugin to work.
-  vcenter = "https://vcenter.local/sdk"
-  username = "user@corp.local"
-  password = "secret"
+  #vcenter = "https://vcenter.local/sdk"
+  #username = "user@corp.local"
+  #password = "secret"
 
   ## VMs
   ## Typical VM metrics (if omitted or empty, all metrics are collected)
