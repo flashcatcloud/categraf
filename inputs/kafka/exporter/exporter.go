@@ -201,8 +201,10 @@ func New(logger log.Logger, opts Options, topicFilter, groupFilter string) (*Exp
 
 	if opts.UseZooKeeperLag {
 		zookeeperClient, err = kazoo.NewKazoo(opts.UriZookeeper, nil)
-		level.Error(logger).Log("msg", "Error connecting to ZooKeeper", "err", err.Error())
-		return nil, err
+		if err != nil {
+			level.Error(logger).Log("msg", "Error connecting to ZooKeeper", "err", err.Error())
+			return nil, err
+		}
 	}
 
 	interval, err := time.ParseDuration(opts.MetadataRefreshInterval)
