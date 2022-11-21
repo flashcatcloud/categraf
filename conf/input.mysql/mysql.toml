@@ -36,6 +36,14 @@
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = true
 
+#[[instances.queries]]
+# mesurement = "lock_wait"
+# metric_fields = [ "total" ]
+# timeout = "3s"
+# request = '''
+#SELECT count(*) as total FROM information_schema.innodb_trx WHERE trx_state='LOCK WAIT'
+#'''
+
 # [[instances.queries]]
 # mesurement = "users"
 # metric_fields = [ "total" ]
