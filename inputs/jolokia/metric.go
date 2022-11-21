@@ -5,14 +5,14 @@ import "strings"
 // A MetricConfig represents a TOML form of
 // a Metric with some optional fields.
 type MetricConfig struct {
-	Name           string
-	Mbean          string
-	Paths          []string
-	FieldName      *string
-	FieldPrefix    *string
-	FieldSeparator *string
-	TagPrefix      *string
-	TagKeys        []string
+	Name           string   `toml:"name"`
+	Mbean          string   `toml:"mbean"`
+	Paths          []string `toml:"paths"`
+	FieldName      *string  `toml:"field_name"`
+	FieldPrefix    *string  `toml:"field_prefix"`
+	FieldSeparator *string  `toml:"field_separator"`
+	TagPrefix      *string  `toml:"tag_prefix"`
+	TagKeys        []string `toml:"tag_keys"`
 }
 
 // A Metric represents a specification for a
