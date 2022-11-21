@@ -7,11 +7,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/toolkits/pkg/file"
 	"io"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/toolkits/pkg/file"
 )
 
 // Copyright 2022 The Prometheus Authors
