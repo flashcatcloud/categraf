@@ -769,7 +769,7 @@ func (e *Exporter) initializeMetrics() {
 
 	up := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "up"),
-		"Wether Kafka is up.",
+		"Whether Kafka is up.",
 		nil, labels,
 	)
 
