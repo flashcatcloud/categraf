@@ -2,7 +2,6 @@ package netstat
 
 import (
 	"log"
-	"runtime"
 	"syscall"
 
 	"flashcat.cloud/categraf/config"
@@ -76,15 +75,15 @@ func (s *NetStats) Gather(slist *types.SampleList) {
 }
 
 func (s *NetStats) gatherExt(slist *types.SampleList) {
-	if runtime.GOOS != "linux" {
-		return
-	}
 	if !(s.TcpExt && s.IpExt) {
 		return
 	}
 	tags := map[string]string{}
 	proc := Proc{PID: 0, fs: "/proc"}
 	n, err := proc.Netstat()
+	if n == nil {
+		return
+	}
 	if err != nil {
 		log.Println("E! failed to get ext metrics:", err)
 		return
