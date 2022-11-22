@@ -5,10 +5,13 @@ package netstat
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
+
+	"github.com/toolkits/pkg/file"
 )
 
 // Copyright 2022 The Prometheus Authors
@@ -28,7 +31,7 @@ func (p Proc) Netstat() (*ProcNetstat, error) {
 	filename := p.path("net/netstat")
 	data, err := file.ReadBytes(filename)
 	if err != nil {
-		return ProcNetstat{PID: p.PID}, err
+		return nil, err
 	}
 	procNetstat, err := parseNetstat(bytes.NewReader(data), filename)
 	procNetstat.PID = p.PID
