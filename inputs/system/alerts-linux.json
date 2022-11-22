@@ -95,7 +95,7 @@
       "severity": 2,
       "disabled": 0,
       "prom_for_duration": 60,
-      "prom_ql": "mem_available_percent < 25",
+      "prom_ql": "mem_used_percent > 90",
       "prom_eval_interval": 15,
       "enable_stime": "00:00",
       "enable_etime": "23:59",

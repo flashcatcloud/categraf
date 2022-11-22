@@ -26,6 +26,7 @@ const (
 )
 
 type PromDesc struct {
+	up                                       *prometheus.Desc
 	clusterBrokers                           *prometheus.Desc
 	topicPartitions                          *prometheus.Desc
 	topicCurrentOffset                       *prometheus.Desc
@@ -200,6 +201,10 @@ func New(logger log.Logger, opts Options, topicFilter, groupFilter string) (*Exp
 
 	if opts.UseZooKeeperLag {
 		zookeeperClient, err = kazoo.NewKazoo(opts.UriZookeeper, nil)
+		if err != nil {
+			level.Error(logger).Log("msg", "Error connecting to ZooKeeper", "err", err.Error())
+			return nil, err
+		}
 	}
 
 	interval, err := time.ParseDuration(opts.MetadataRefreshInterval)
@@ -259,6 +264,7 @@ func (e *Exporter) fetchOffsetVersion() int16 {
 // Describe describes all the metrics ever exported by the Kafka exporter. It
 // implements prometheus.Collector.
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
+	ch <- e.promDesc.up
 	ch <- e.promDesc.clusterBrokers
 	ch <- e.promDesc.topicCurrentOffset
 	ch <- e.promDesc.topicOldestOffset
@@ -345,11 +351,18 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) {
 		e.nextMetadataRefresh = now.Add(e.metadataRefreshInterval)
 	}
 
+	var value float64
+	defer func() {
+		ch <- prometheus.MustNewConstMetric(e.promDesc.up, prometheus.GaugeValue, value)
+	}()
+
 	topics, err := e.client.Topics()
 	if err != nil {
 		level.Error(e.logger).Log("msg", "Error getting topics: %s. Skipping metric generation", "err", err.Error())
 		return
 	}
+
+	value = 1
 
 	level.Info(e.logger).Log("msg", "Generating topic metrics")
 	for _, topic := range topics {
@@ -754,6 +767,12 @@ func (e *Exporter) initializeMetrics() {
 		}
 	}
 
+	up := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "up"),
+		"Whether Kafka is up.",
+		nil, labels,
+	)
+
 	clusterBrokers := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "brokers"),
 		"Number of Brokers in the Kafka Cluster.",
@@ -861,6 +880,7 @@ func (e *Exporter) initializeMetrics() {
 	)
 
 	e.promDesc = &PromDesc{
+		up:                                       up,
 		clusterBrokers:                           clusterBrokers,
 		topicPartitions:                          topicPartitions,
 		topicCurrentOffset:                       topicCurrentOffset,

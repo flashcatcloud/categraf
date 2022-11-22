@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -190,6 +191,10 @@ func (ins *Instance) Init() error {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
+	defer func(begun time.Time) {
+		slist.PushSample(inputName, "scrape_use_seconds", time.Since(begun).Seconds())
+	}(time.Now())
+
 	err := inputs.Collect(ins.e, slist)
 	if err != nil {
 		log.Println("E! failed to collect metrics:", err)
