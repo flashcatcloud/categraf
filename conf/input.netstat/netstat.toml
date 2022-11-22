@@ -1,2 +1,5 @@
 # # collect interval
 # interval = 15
+
+tcp_ext = false
+ip_ext = false
