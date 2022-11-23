@@ -46,7 +46,7 @@ password = "s3cret"
 # interval_times = 1
 
 # important! use global unique string to specify instance
-# labels = { instance="192.168.1.2:8080", url="-" }d
+# labels = { instance="192.168.1.2:8080", url="-" }
 
 ## Optional TLS Config
 # use_tls = false
