@@ -37,9 +37,11 @@ func (g *Gatherer) Gather(client *Client, slist *types.SampleList) error {
 	requests := makeReadRequests(g.metrics)
 	responses, err := client.read(requests)
 	if err != nil {
+		slist.PushSample("jolokia", "up", 0, tags)
 		return err
 	}
 
+	slist.PushSample("jolokia", "up", 1, tags)
 	g.gatherResponses(responses, tags, slist)
 	return nil
 }
