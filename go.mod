@@ -84,8 +84,8 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.12.0 // indirect
 )
-require github.com/vmware/govmomi v0.29.0 // indirect
 
+require github.com/vmware/govmomi v0.29.0
 
 replace gopkg.in/yaml.v2 => github.com/rfratto/go-yaml v0.0.0-20211119180816-77389c3526dc
 
