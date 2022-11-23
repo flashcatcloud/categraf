@@ -7,6 +7,21 @@ tomcat 采集器，是读取 tomcat 的管理侧接口 `/manager/status/all` 这
 <user username="tomcat" password="s3cret" roles="manager-gui" />
 ```
 
+此外，还需要注释文件**webapps/manager/META-INF/context.xml**的以下内容，
+```xml
+  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+         allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" />
+```
+
+否则 tomcat 会报以下错误，导致 tomcat 采集器无法采集到数据。
+
+```html
+403 Access Denied
+You are not authorized to view this page.
+
+By default the Manager is only accessible from a browser running on the same machine as Tomcat. If you wish to modify this restriction, you'll need to edit the Manager's context.xml file.
+```
+
 ## Configuration
 
 配置文件在 `conf/input.tomcat/tomcat.toml`
