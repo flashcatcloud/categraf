@@ -71,7 +71,7 @@ func (ins *Instance) Init() error {
 	if ins.LogRuntimeErrors != "false" {
 		ins.logRuntimeErrors = true
 	}
-	if ins.EmitProgLabel != "false" {
+	if ins.EmitProgLabel == "true" {
 		ins.emitProgLabel = true
 	}
 	if ins.PollLogInterval == 0 {
