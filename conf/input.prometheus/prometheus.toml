@@ -3,7 +3,7 @@
 
 [[instances]]
 urls = [
-#     "http://localhost:9104/metrics"
+     "http://localhost:19000/metrics"
 ]
 
 url_label_key = "instance"
