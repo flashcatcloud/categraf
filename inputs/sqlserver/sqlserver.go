@@ -3,6 +3,7 @@ package sqlserver
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"fmt"
 	"log"
@@ -196,10 +197,43 @@ func (s *Instance) initQueries() error {
 
 // Gather collect data from SQL Server
 func (s *Instance) Gather(slist *types.SampleList) {
+	begun := time.Now()
+
+	// scrape use seconds
+	defer func(begun time.Time) {
+		use := time.Since(begun).Seconds()
+		tags := map[string]string{}
+		for i, _ := range s.pools {
+			connectionString := s.Servers[i]
+			serverName, databaseName := getConnectionIdentifiers(connectionString)
+			tags["serverName"] = serverName
+			tags["databaseName"] = databaseName
+		}
+		slist.PushSample(inputName, "scrape_use_seconds", use, tags)
+	}(begun)
+
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	var healthMetrics = make(map[string]*HealthMetric)
+	tags := map[string]string{}
 	for i, pool := range s.pools {
+		wg.Add(1)
+		query_up := Query{ScriptName: "SQLServerUp", Script: sqlServerUp, ResultByRow: false}
+		go func(pool *sql.DB, query Query, serverIndex int) {
+			defer wg.Done()
+			connectionString := s.Servers[serverIndex]
+			serverName, databaseName := getConnectionIdentifiers(connectionString)
+			tags["serverName"] = serverName
+			tags["databaseName"] = databaseName
+			rows, err := pool.Query(query.Script)
+			if err != nil {
+				slist.PushSample(inputName, "up", 0, tags)
+			} else {
+				slist.PushSample(inputName, "up", 1, tags)
+				defer rows.Close()
+			}
+		}(pool, query_up, i)
+
 		for _, query := range s.queries {
 			wg.Add(1)
 			go func(pool *sql.DB, query Query, serverIndex int) {

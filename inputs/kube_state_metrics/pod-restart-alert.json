@@ -1,0 +1,36 @@
+[
+  {
+    "cate": "prometheus",
+    "name": "pod发生了重启",
+    "note": "",
+    "prod": "",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 2,
+    "disabled": 0,
+    "prom_for_duration": 15,
+    "prom_ql": "(sum(kube_pod_container_status_last_terminated_reason{reason=~\"Error|OOMKilled\"}) by (namespace,pod,container) >0)  * on(namespace,pod,container)  sum(increase(kube_pod_container_status_restarts_total) >0) by(namespace,pod,container)",
+    "prom_eval_interval": 15,
+    "enable_stime": "00:00",
+    "enable_etime": "23:59",
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 0,
+    "notify_channels": [],
+    "notify_repeat_step": 0,
+    "notify_max_number": 1,
+    "recover_duration": 30,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": []
+  }
+]

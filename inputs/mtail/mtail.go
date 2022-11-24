@@ -39,9 +39,9 @@ type Instance struct {
 	IgnoreFileRegPattern string        `toml:"ignore_filename_regex_pattern"`
 	OverrideTimeZone     string        `toml:"override_timezone"`
 	EmitProgLabel        string        `toml:"emit_prog_label"`
-	emitProgLabel        bool          `toml:"emit_prog_label"`
+	emitProgLabel        bool          `toml:"-"`
 	EmitMetricTimestamp  string        `toml:"emit_metric_timestamp"`
-	emitMetricTimestamp  bool          `toml:"emit_metric_timestamp"`
+	emitMetricTimestamp  bool          `toml:"-"`
 	PollInterval         time.Duration `toml:"poll_interval"`
 	PollLogInterval      time.Duration `toml:"poll_log_interval"`
 	MetricPushInterval   time.Duration `toml:"metric_push_interval"`
@@ -71,7 +71,7 @@ func (ins *Instance) Init() error {
 	if ins.LogRuntimeErrors != "false" {
 		ins.logRuntimeErrors = true
 	}
-	if ins.EmitProgLabel != "false" {
+	if ins.EmitProgLabel == "true" {
 		ins.emitProgLabel = true
 	}
 	if ins.PollLogInterval == 0 {
@@ -125,7 +125,7 @@ func (ins *Instance) Init() error {
 	if ins.sysLogUseCurrentYear {
 		opts = append(opts, mtail.SyslogUseCurrentYear)
 	}
-	if ins.emitProgLabel {
+	if !ins.emitProgLabel {
 		opts = append(opts, mtail.OmitProgLabel)
 	}
 	if ins.emitMetricTimestamp {
