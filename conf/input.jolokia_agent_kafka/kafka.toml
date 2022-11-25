@@ -29,6 +29,7 @@ metrics_drop = [
 ]
   
 urls = ["http://localhost:8090/jolokia"]
+labels = { cluster = "kafka-cluster-demo" }
 
 # OfflinePartitionsCount
 [[instances.metric]]
