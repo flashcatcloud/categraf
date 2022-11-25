@@ -21,6 +21,12 @@ import (
 
 const inputFilePrefix = "input."
 
+type InputOperation interface {
+	RegisterInput(string, []cfg.ConfigWithFormat)
+	DeregisterInput(string)
+	ReregisterInput(string, []cfg.ConfigWithFormat)
+}
+
 // FormatInputName providerName + '.' + inputKey
 func FormatInputName(provider, inputKey string) string {
 	return provider + "." + inputKey
@@ -59,7 +65,7 @@ type Provider interface {
 	GetInputConfig(inputName string) ([]cfg.ConfigWithFormat, error)
 }
 
-func NewProvider(c *config.ConfigType, reloadFunc func()) (Provider, error) {
+func NewProvider(c *config.ConfigType, op InputOperation) (Provider, error) {
 	log.Println("I! use input provider:", c.Global.Providers)
 	// 不添加provider配置 则默认使用local
 	// 兼容老版本
@@ -71,7 +77,7 @@ func NewProvider(c *config.ConfigType, reloadFunc func()) (Provider, error) {
 		name := strings.ToLower(p)
 		switch name {
 		case "http":
-			provider, err := newHTTPProvider(c, reloadFunc)
+			provider, err := newHTTPProvider(c, op)
 			if err != nil {
 				return nil, err
 			}
@@ -115,7 +121,7 @@ func (pm *ProviderManager) LoadConfig() (bool, error) {
 	for _, p := range pm.providers {
 		_, err := p.LoadConfig()
 		if err != nil {
-			log.Printf("E! provider manager, LoadConfig of %s err: %s\n", p.Name(), err)
+			log.Printf("E! provider manager, LoadConfig of %s err: %s", p.Name(), err)
 		}
 	}
 	return false, nil
@@ -127,7 +133,7 @@ func (pm *ProviderManager) GetInputs() ([]string, error) {
 	for _, p := range pm.providers {
 		pInputs, err := p.GetInputs()
 		if err != nil {
-			log.Printf("E! provider manager, GetInputs of %s error: %v, skip\n", p.Name(), err)
+			log.Printf("E! provider manager, GetInputs of %s error: %v, skip", p.Name(), err)
 			continue
 		}
 		for _, inputKey := range pInputs {
@@ -150,7 +156,7 @@ func (pm *ProviderManager) GetInputConfig(inputName string) ([]cfg.ConfigWithFor
 
 		pcwf, err := p.GetInputConfig(inputKey)
 		if err != nil {
-			log.Printf("E! provider manager, failed to get config of %s from %s, error: %s\n", inputName, p.Name(), err)
+			log.Printf("E! provider manager, failed to get config of %s from %s, error: %s", inputName, p.Name(), err)
 			continue
 		}
 
@@ -262,12 +268,16 @@ type HTTPProvider struct {
 	ReloadInterval int
 
 	tls.ClientConfig
-	client     *http.Client
-	stopCh     chan struct{}
-	reloadFunc func()
+	client *http.Client
+	stopCh chan struct{}
+	op     InputOperation
 
 	configMap map[string]cfg.ConfigWithFormat
 	version   string
+
+	compareNewsCache    []string
+	compareUpdatesCache []string
+	compareDeletesCache []string
 }
 
 type httpProviderResponse struct {
@@ -282,7 +292,7 @@ func (hrp *HTTPProvider) Name() string {
 	return "http"
 }
 
-func newHTTPProvider(c *config.ConfigType, reloadFunc func()) (*HTTPProvider, error) {
+func newHTTPProvider(c *config.ConfigType, op InputOperation) (*HTTPProvider, error) {
 	if c.HTTPProviderConfig == nil {
 		return nil, fmt.Errorf("no http provider config found")
 	}
@@ -296,7 +306,7 @@ func newHTTPProvider(c *config.ConfigType, reloadFunc func()) (*HTTPProvider, er
 		Timeout:        c.HTTPProviderConfig.Timeout,
 		ReloadInterval: c.HTTPProviderConfig.ReloadInterval,
 		stopCh:         make(chan struct{}, 1),
-		reloadFunc:     reloadFunc,
+		op:             op,
 	}
 
 	if err := provider.check(); err != nil {
@@ -387,6 +397,7 @@ func (hrp *HTTPProvider) LoadConfig() (bool, error) {
 
 	confResp, err := hrp.doReq()
 	if err != nil {
+		log.Printf("W! http provider: request remote err: [%+v]", err)
 		return false, err
 	}
 
@@ -408,20 +419,8 @@ func (hrp *HTTPProvider) LoadConfig() (bool, error) {
 		}
 	}
 
-	news, updates, deletes := compareConfig(hrp.configMap, confResp.Configs)
-	if len(news) > 0 {
-		log.Println("I! http provider: new inputs:", news)
-	}
-
-	if len(updates) > 0 {
-		log.Println("I! http provider: updated inputs:", updates)
-	}
-
-	if len(deletes) > 0 {
-		log.Println("I! http provider: deleted inputs:", deletes)
-	}
-
-	changed := len(news)+len(updates)+len(deletes) > 0
+	hrp.compareNewsCache, hrp.compareUpdatesCache, hrp.compareDeletesCache = compareConfig(hrp.configMap, confResp.Configs)
+	changed := len(hrp.compareNewsCache)+len(hrp.compareUpdatesCache)+len(hrp.compareDeletesCache) > 0
 	if changed {
 		hrp.Lock()
 		defer hrp.Unlock()
@@ -442,7 +441,26 @@ func (hrp *HTTPProvider) StartReloader() {
 					continue
 				}
 				if changed {
-					hrp.reloadFunc()
+					if len(hrp.compareNewsCache) > 0 {
+						log.Println("I! http provider: new inputs:", hrp.compareNewsCache)
+						for _, newInput := range hrp.compareNewsCache {
+							hrp.op.RegisterInput(FormatInputName(hrp.Name(), newInput), []cfg.ConfigWithFormat{hrp.configMap[newInput]})
+						}
+					}
+
+					if len(hrp.compareUpdatesCache) > 0 {
+						log.Println("I! http provider: updated inputs:", hrp.compareUpdatesCache)
+						for _, updatedInput := range hrp.compareUpdatesCache {
+							hrp.op.ReregisterInput(FormatInputName(hrp.Name(), updatedInput), []cfg.ConfigWithFormat{hrp.configMap[updatedInput]})
+						}
+					}
+
+					if len(hrp.compareDeletesCache) > 0 {
+						log.Println("I! http provider: deleted inputs:", hrp.compareDeletesCache)
+						for _, deletedInput := range hrp.compareDeletesCache {
+							hrp.op.DeregisterInput(FormatInputName(hrp.Name(), deletedInput))
+						}
+					}
 				}
 			case <-hrp.stopCh:
 				return

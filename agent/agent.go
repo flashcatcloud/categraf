@@ -75,13 +75,23 @@ func NewAgent(filters map[string]struct{}) (*Agent, error) {
 		InputReaders: make(map[string]*InputReader),
 	}
 
-	provider, err := inputs.NewProvider(config.Config, agent.Reload)
+	provider, err := inputs.NewProvider(config.Config, agent)
 	if err != nil {
 		return nil, err
 	}
 	agent.InputProvider = provider
 
 	return agent, nil
+}
+
+func (a *Agent) FilterPass(inputKey string) bool {
+	if len(a.InputFilters) > 0 {
+		// do filter
+		if _, has := a.InputFilters[inputKey]; !has {
+			return false
+		}
+	}
+	return true
 }
 
 func (a *Agent) Start() {

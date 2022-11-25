@@ -1,8 +1,8 @@
 package agent
 
 import (
+	"errors"
 	"log"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -10,12 +10,11 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/house"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/pkg/runtimex"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
 )
-
-var metricReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "'", "_", "\"", "_")
 
 type InputReader struct {
 	inputName  string
@@ -25,13 +24,84 @@ type InputReader struct {
 	waitGroup  sync.WaitGroup
 }
 
-func (a *Agent) StartInputReader(name string, in inputs.Input) {
-	reader := NewInputReader(name, in)
+func (a *Agent) RegisterInput(name string, configs []cfg.ConfigWithFormat) {
+	_, inputKey := inputs.ParseInputName(name)
+	if !a.FilterPass(inputKey) {
+		return
+	}
+
+	creator, has := inputs.InputCreators[inputKey]
+	if !has {
+		log.Println("E! input:", name, "not supported")
+		return
+	}
+
+	// construct input instance
+	input := creator()
+
+	err := cfg.LoadConfigs(configs, input)
+	if err != nil {
+		log.Println("E! failed to load configuration of plugin:", name, "error:", err)
+		return
+	}
+
+	if err = input.InitInternalConfig(); err != nil {
+		log.Println("E! failed to init input:", name, "error:", err)
+		return
+	}
+
+	if err = inputs.MayInit(input); err != nil {
+		if !errors.Is(err, types.ErrInstancesEmpty) {
+			log.Println("E! failed to init input:", name, "error:", err)
+		}
+		return
+	}
+
+	instances := inputs.MayGetInstances(input)
+	if instances != nil {
+		empty := true
+		for i := 0; i < len(instances); i++ {
+			if err := instances[i].InitInternalConfig(); err != nil {
+				log.Println("E! failed to init input:", name, "error:", err)
+				continue
+			}
+
+			if err := inputs.MayInit(instances[i]); err != nil {
+				if !errors.Is(err, types.ErrInstancesEmpty) {
+					log.Println("E! failed to init input:", name, "error:", err)
+				}
+				continue
+			}
+			empty = false
+		}
+
+		if empty {
+			return
+		}
+	}
+
+	reader := newInputReader(name, input)
 	go reader.startInput()
 	a.InputReaders[name] = reader
+	log.Println("I! input:", name, "started")
 }
 
-func NewInputReader(inputName string, in inputs.Input) *InputReader {
+func (a *Agent) DeregisterInput(name string) {
+	if reader, has := a.InputReaders[name]; has {
+		reader.Stop()
+		delete(a.InputReaders, name)
+		log.Println("I! input:", name, "stopped")
+	} else {
+		log.Printf("W! dereigster input name [%s] not found", name)
+	}
+}
+
+func (a *Agent) ReregisterInput(name string, configs []cfg.ConfigWithFormat) {
+	a.DeregisterInput(name)
+	a.RegisterInput(name, configs)
+}
+
+func newInputReader(inputName string, in inputs.Input) *InputReader {
 	return &InputReader{
 		inputName: inputName,
 		input:     in,
