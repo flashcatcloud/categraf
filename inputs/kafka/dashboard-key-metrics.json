@@ -513,7 +513,7 @@
                     "h": 1,
                     "w": 24,
                     "x": 0,
-                    "y": 25,
+                    "y": 1,
                     "i": "e96c5cf7-59b4-40e4-9863-2465d5986510",
                     "isResizable": false
                 }
@@ -525,7 +525,7 @@
                     "h": 3,
                     "w": 6,
                     "x": 0,
-                    "y": 26,
+                    "y": 2,
                     "i": "d38cd5a2-0bd4-4129-b67c-3ad42a83a91e",
                     "isResizable": true
                 },
@@ -591,7 +591,7 @@
                     "h": 3,
                     "w": 6,
                     "x": 6,
-                    "y": 26,
+                    "y": 2,
                     "i": "7d22d6b8-2146-4219-8ed6-1e94ca304e62",
                     "isResizable": true
                 },
@@ -648,7 +648,7 @@
                     "h": 3,
                     "w": 6,
                     "x": 12,
-                    "y": 26,
+                    "y": 2,
                     "i": "1156797c-1a5f-41ad-b7c1-971ea4e43eaa",
                     "isResizable": true
                 },
@@ -705,7 +705,7 @@
                     "h": 3,
                     "w": 6,
                     "x": 18,
-                    "y": 26,
+                    "y": 2,
                     "i": "fa7927aa-2baf-4d68-aab8-54aa9a8f5059",
                     "isResizable": true
                 },
@@ -762,7 +762,7 @@
                     "h": 4,
                     "w": 24,
                     "x": 0,
-                    "y": 29,
+                    "y": 5,
                     "i": "775febde-62d3-4407-a685-4a64feab46da",
                     "isResizable": true
                 },
@@ -829,6 +829,60 @@
                         }
                     }
                 ]
+            },
+            {
+                "type": "timeseries",
+                "id": "c287e48a-e977-4713-b018-7029d7caa567",
+                "layout": {
+                    "h": 4,
+                    "w": 24,
+                    "x": 0,
+                    "y": 9,
+                    "i": "c287e48a-e977-4713-b018-7029d7caa567",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(kafka_consumer_lag_millis{cluster=\"$cluster\"}) by (consumergroup, topic, partition)"
+                    }
+                ],
+                "name": "Topic数据预计还需消费多久",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "milliseconds"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    },
+                    "lineInterpolation": "smooth"
+                }
             }
         ],
         "version": "2.0.0",
