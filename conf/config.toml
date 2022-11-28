@@ -22,6 +22,8 @@ interval = 15
 # input provider settings; optional: local / http
 providers = ["local"]
 
+disable_usage_report = true
+
 # [global.labels]
 # region = "shanghai"
 # env = "localhost"
