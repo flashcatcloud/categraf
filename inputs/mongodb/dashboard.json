@@ -5,13 +5,14 @@
         "var": [
             {
                 "name": "instance",
-                "definition": "label_values(mongodb_up,instance)"
+                "type": "query",
+                "definition": "label_values(mongodb_ss_uptime,instance)"
             }
         ],
         "version": "2.0.0",
         "panels": [
             {
-                "id": "dd7882d6-9502-4a76-845a-efdbcdb25466",
+                "id": "939298f2-b21f-4e2f-9142-c10946cc4032",
                 "type": "row",
                 "name": "Basic Info",
                 "layout": {
@@ -19,20 +20,27 @@
                     "w": 24,
                     "x": 0,
                     "y": 0,
-                    "i": "dd7882d6-9502-4a76-845a-efdbcdb25466",
+                    "i": "939298f2-b21f-4e2f-9142-c10946cc4032",
                     "isResizable": false
-                }
+                },
+                "collapsed": true
             },
             {
+                "type": "stat",
+                "id": "91970d24-3f04-4424-a1ed-73e7d28f5706",
+                "layout": {
+                    "h": 7,
+                    "w": 6,
+                    "x": 0,
+                    "y": 1,
+                    "i": "91970d24-3f04-4424-a1ed-73e7d28f5706",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_up{instance=\"$instance\"}",
-                        "time": {
-                            "num": 1,
-                            "unit": "hour",
-                            "description": "小时"
-                        }
+                        "expr": "mongodb_up{instance=\"$instance\"}"
                     }
                 ],
                 "name": "Up",
@@ -41,56 +49,54 @@
                     "textMode": "value",
                     "colorMode": "value",
                     "calc": "lastNotNull",
+                    "valueField": "Value",
                     "colSpan": 1,
                     "textSize": {}
                 },
                 "options": {
                     "valueMappings": [
                         {
-                            "type": "range",
+                            "type": "special",
                             "match": {
-                                "from": 1
+                                "from": 1,
+                                "special": 1
                             },
                             "result": {
-                                "color": "#53b503"
-                            }
-                        },
-                        {
-                            "type": "range",
-                            "match": {
-                                "special": null,
-                                "from": 0,
-                                "to": 1
-                            },
-                            "result": {
-                                "color": "#e70d0d"
+                                "color": "#53b503",
+                                "text": "UP"
                             }
                         }
                     ],
-                    "standardOptions": {}
-                },
-                "version": "2.0.0",
+                    "standardOptions": {
+                        "util": "none"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
                 "type": "stat",
+                "id": "c7b52e8e-b417-4c61-a15e-e2f186fccd67",
                 "layout": {
                     "h": 7,
                     "w": 6,
-                    "x": 0,
+                    "x": 6,
                     "y": 1,
-                    "i": "8ab8a2a8-9545-4e58-b9ba-34d68408fdda",
+                    "i": "c7b52e8e-b417-4c61-a15e-e2f186fccd67",
                     "isResizable": true
                 },
-                "id": "8ab8a2a8-9545-4e58-b9ba-34d68408fdda"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_ss_uptime{instance='$instance'}",
-                        "time": {
-                            "num": 1,
-                            "unit": "hour",
-                            "description": "小时"
-                        }
+                        "expr": "mongodb_ss_uptime{instance=\"$instance\"}"
                     }
                 ],
                 "name": "Uptime",
@@ -99,6 +105,7 @@
                     "textMode": "value",
                     "colorMode": "value",
                     "calc": "lastNotNull",
+                    "valueField": "Value",
                     "colSpan": 1,
                     "textSize": {
                         "title": null
@@ -127,31 +134,35 @@
                     ],
                     "standardOptions": {
                         "util": "humantimeSeconds"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
                     }
-                },
-                "version": "2.0.0",
-                "type": "stat",
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "8446dded-9e11-4ee9-bdad-769b193ddf3e",
                 "layout": {
                     "h": 7,
                     "w": 6,
-                    "x": 6,
+                    "x": 12,
                     "y": 1,
-                    "i": "7ac43abc-bb8f-4af1-9c62-f24e9c467390",
+                    "i": "8446dded-9e11-4ee9-bdad-769b193ddf3e",
                     "isResizable": true
                 },
-                "id": "7ac43abc-bb8f-4af1-9c62-f24e9c467390"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_ss_mem_resident{instance='$instance'} * 1024 * 1024",
-                        "legend": "resident"
-                    },
-                    {
-                        "expr": "mongodb_ss_mem_virtual{instance='$instance'} * 1024 * 1024",
-                        "refId": "B",
-                        "legend": "virtual"
+                        "expr": "mongodb_ss_mem_resident{cluster='$cluster'} * 1024 * 1024",
+                        "legend": "{{type}}"
                     }
                 ],
                 "name": "Memory",
@@ -167,32 +178,46 @@
                     "standardOptions": {
                         "util": "bytesIEC"
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "3eda28e7-2480-4ddc-b346-89ced1c33034",
                 "layout": {
                     "h": 7,
                     "w": 6,
-                    "x": 12,
+                    "x": 18,
                     "y": 1,
-                    "i": "0bffd1e3-ca5b-46a8-b7ba-c04c4db74b62",
+                    "i": "3eda28e7-2480-4ddc-b346-89ced1c33034",
                     "isResizable": true
                 },
-                "id": "0bffd1e3-ca5b-46a8-b7ba-c04c4db74b62"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
                         "expr": "rate(mongodb_ss_extra_info_page_faults{instance=\"$instance\"}[5m])",
-                        "legend": "total"
+                        "legend": "{{type}}"
                     }
                 ],
                 "name": "Page Faults",
@@ -209,31 +234,45 @@
                         "util": "none",
                         "decimals": null
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "528d0485-f947-470d-95f3-59eae157ebb6",
                 "layout": {
                     "h": 7,
                     "w": 6,
-                    "x": 18,
-                    "y": 1,
-                    "i": "7d00bb33-1018-4af1-a498-17cd8b517f2f",
+                    "x": 0,
+                    "y": 8,
+                    "i": "528d0485-f947-470d-95f3-59eae157ebb6",
                     "isResizable": true
                 },
-                "id": "7d00bb33-1018-4af1-a498-17cd8b517f2f"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_ss_network_bytesOut{instance='$instance'}[5m])",
+                        "expr": "rate(mongodb_ss_network_bytesOut{cluster='$cluster'}[5m])",
                         "legend": "bytesOut"
                     },
                     {
@@ -255,32 +294,46 @@
                     "standardOptions": {
                         "util": "bytesSI"
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "067e97c3-4e57-447f-a9dc-a49627b6ce18",
                 "layout": {
                     "h": 7,
                     "w": 6,
-                    "x": 0,
+                    "x": 6,
                     "y": 8,
-                    "i": "3efb0ec7-7ebf-4d0c-b6a0-b498ada6b4a5",
+                    "i": "067e97c3-4e57-447f-a9dc-a49627b6ce18",
                     "isResizable": true
                 },
-                "id": "3efb0ec7-7ebf-4d0c-b6a0-b498ada6b4a5"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
                         "expr": "mongodb_ss_connections{instance=\"$instance\", conn_type=\"current\"}",
-                        "legend": "current"
+                        "legend": "Connections"
                     }
                 ],
                 "name": "Connections",
@@ -294,27 +347,41 @@
                         "displayMode": "hidden"
                     },
                     "standardOptions": {},
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "9e9b7356-cf0e-4e5f-95f5-00258c576bf4",
                 "layout": {
                     "h": 7,
                     "w": 6,
-                    "x": 6,
+                    "x": 12,
                     "y": 8,
-                    "i": "f55e9333-9e0d-4eb0-82e1-0adc38e34316",
+                    "i": "9e9b7356-cf0e-4e5f-95f5-00258c576bf4",
                     "isResizable": true
                 },
-                "id": "f55e9333-9e0d-4eb0-82e1-0adc38e34316"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
@@ -333,27 +400,41 @@
                         "displayMode": "hidden"
                     },
                     "standardOptions": {},
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "2698f0f8-a76a-499b-99cf-30504f0f4db6",
                 "layout": {
                     "h": 7,
                     "w": 6,
-                    "x": 12,
+                    "x": 18,
                     "y": 8,
-                    "i": "14b7339c-07bd-4798-b127-7db7117bc664",
+                    "i": "2698f0f8-a76a-499b-99cf-30504f0f4db6",
                     "isResizable": true
                 },
-                "id": "14b7339c-07bd-4798-b127-7db7117bc664"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
@@ -372,28 +453,31 @@
                         "displayMode": "hidden"
                     },
                     "standardOptions": {},
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 18,
-                    "y": 8,
-                    "i": "5dc13288-5642-494f-b60b-d12ee568d5bd",
-                    "isResizable": true
-                },
-                "id": "5dc13288-5642-494f-b60b-d12ee568d5bd"
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
-                "id": "39584c81-90e3-4a89-982a-4881429e5091",
+                "id": "2bdb8cc9-92f4-449e-8f70-a4c470a21604",
                 "type": "row",
                 "name": "Operation Info",
                 "layout": {
@@ -401,24 +485,36 @@
                     "w": 24,
                     "x": 0,
                     "y": 15,
-                    "i": "39584c81-90e3-4a89-982a-4881429e5091",
+                    "i": "2bdb8cc9-92f4-449e-8f70-a4c470a21604",
                     "isResizable": false
-                }
+                },
+                "collapsed": true
             },
             {
+                "type": "timeseries",
+                "id": "c2819508-95e7-4c63-aeae-ce19f92469cd",
+                "layout": {
+                    "h": 7,
+                    "w": 12,
+                    "x": 0,
+                    "y": 16,
+                    "i": "c2819508-95e7-4c63-aeae-ce19f92469cd",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_ss_opcounters{instance=\"$instance\", type!=\"command\"}[5m])",
+                        "expr": "rate(mongodb_ss_opcounters{instance=\"$instance\", legacy_op_type!=\"command\"}[5m])",
                         "legend": "{{legacy_op_type}}"
                     },
                     {
-                        "expr": "rate(mongodb_ss_opcountersRepl{instance=\"$instance\", type!~\"(command|query|getmore)\"}[5m]) ",
+                        "expr": "rate(mongodb_ss_opcountersRepl{instance=\"$instance\", legacy_op_type!~\"(command|query|getmore)\"}[5m]) or \nrate(mongodb_ss_opcountersRepl{instance=\"$instance\", legacy_op_type!~\"(command|query|getmore)\"}[5m])",
                         "refId": "B",
                         "legend": "repl_{{legacy_op_type}}"
                     },
                     {
-                        "expr": "rate(mongodb_ss_metrics_ttl_deletedDocuments{instance=\"$instance\"}[5m]) ",
+                        "expr": "rate(mongodb_ss_metrics_ttl_deletedDocuments{instance=\"$instance\"}[5m]) or \nrate(mongodb_ss_metrics_ttl_deletedDocuments{instance=\"$instance\"}[5m])",
                         "refId": "C",
                         "legend": "ttl_delete"
                     }
@@ -434,32 +530,46 @@
                         "displayMode": "hidden"
                     },
                     "standardOptions": {},
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "7030d97a-d69f-4916-a415-ec57503ab1ed",
                 "layout": {
                     "h": 7,
                     "w": 12,
-                    "x": 0,
+                    "x": 12,
                     "y": 16,
-                    "i": "cbce4c2b-c215-4aab-a093-7ae95472ef1f",
+                    "i": "7030d97a-d69f-4916-a415-ec57503ab1ed",
                     "isResizable": true
                 },
-                "id": "cbce4c2b-c215-4aab-a093-7ae95472ef1f"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_ss_metrics_document{instance=\"$instance\"}[5m])",
-                        "legend": "{{doc_op_type}}"
+                        "expr": "rate(mongodb_ss_metric_document{instance=\"$instance\"}[5m])",
+                        "legend": ""
                     }
                 ],
                 "name": "Document Operations",
@@ -473,31 +583,45 @@
                         "displayMode": "hidden"
                     },
                     "standardOptions": {},
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 7,
-                    "w": 12,
-                    "x": 12,
-                    "y": 16,
-                    "i": "e4db591b-b434-4687-b7f0-a467ef5f6cc1",
-                    "isResizable": true
-                },
-                "id": "e4db591b-b434-4687-b7f0-a467ef5f6cc1"
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
+                "type": "timeseries",
+                "id": "1c3b73d5-c25c-449f-995d-26acc9c621e1",
+                "layout": {
+                    "h": 7,
+                    "w": 8,
+                    "x": 0,
+                    "y": 23,
+                    "i": "1c3b73d5-c25c-449f-995d-26acc9c621e1",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_ss_opLatencies_latency{instance='$instance'}[5m]) / rate(mongodb_ss_opLatencies_ops{instance='$instance'}[5m]) / 1000",
+                        "expr": "rate(mongodb_ss_opLatencies_latency{cluster='$cluster'}[5m]) / rate(mongodb_ss_opLatencies_latency{cluster='$cluster'}[5m]) / 1000",
                         "legend": "{{op_type}}"
                     }
                 ],
@@ -514,27 +638,41 @@
                     "standardOptions": {
                         "util": "milliseconds"
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "e642183c-8ba2-4f60-abc6-c65de49e7577",
                 "layout": {
                     "h": 7,
                     "w": 8,
-                    "x": 0,
+                    "x": 8,
                     "y": 23,
-                    "i": "32ca2e82-a2ad-4095-a352-9cd985b5dddc",
+                    "i": "e642183c-8ba2-4f60-abc6-c65de49e7577",
                     "isResizable": true
                 },
-                "id": "32ca2e82-a2ad-4095-a352-9cd985b5dddc"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
@@ -560,27 +698,41 @@
                     "standardOptions": {
                         "util": "percentUnit"
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "8b5a4f44-3291-4822-ab73-f56be6c62674",
                 "layout": {
                     "h": 7,
                     "w": 8,
-                    "x": 8,
+                    "x": 16,
                     "y": 23,
-                    "i": "98e954e5-943b-46ee-ad47-bb41c408be36",
+                    "i": "8b5a4f44-3291-4822-ab73-f56be6c62674",
                     "isResizable": true
                 },
-                "id": "98e954e5-943b-46ee-ad47-bb41c408be36"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
@@ -599,28 +751,31 @@
                         "displayMode": "hidden"
                     },
                     "standardOptions": {},
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 7,
-                    "w": 8,
-                    "x": 16,
-                    "y": 23,
-                    "i": "bc58e613-7770-42b8-86e2-3248cfe8e28e",
-                    "isResizable": true
-                },
-                "id": "bc58e613-7770-42b8-86e2-3248cfe8e28e"
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
-                "id": "96898c4d-9df7-43dd-886e-66640bacb9f2",
+                "id": "06946b19-94b4-4f72-bd87-70f87989257d",
                 "type": "row",
                 "name": "Cache Info",
                 "layout": {
@@ -628,41 +783,44 @@
                     "w": 24,
                     "x": 0,
                     "y": 30,
-                    "i": "96898c4d-9df7-43dd-886e-66640bacb9f2",
+                    "i": "06946b19-94b4-4f72-bd87-70f87989257d",
                     "isResizable": false
-                }
+                },
+                "collapsed": true,
+                "panels": []
             },
             {
+                "type": "timeseries",
+                "id": "bb0ae571-43a1-430b-8f63-256f6f1ebee6",
+                "layout": {
+                    "h": 7,
+                    "w": 6,
+                    "x": 0,
+                    "y": 31,
+                    "i": "bb0ae571-43a1-430b-8f63-256f6f1ebee6",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_ss_wt_cache_bytes_currently_in_the_cache{instance='$instance'}",
-                        "legend": "currently_in_the_cache"
+                        "expr": "mongodb_ss_wt_cache_bytes_currently_in_the_cache{cluster='$cluster'}",
+                        "legend": "total"
                     },
                     {
-                        "expr": "mongodb_ss_wt_cache_bytes_dirty_in_the_cache_cumulative{instance='$instance'}",
-                        "refId": "E",
-                        "legend": "dirty_in_the_cache_cumulative"
-                    },
-                    {
-                        "expr": "mongodb_ss_wt_cache_bytes_allocated_for_updates{instance='$instance'}",
+                        "expr": "mongodb_ss_wt_cache_tracked_dirty_bytes_in_the_cache{cluster='$cluster'}",
                         "refId": "B",
-                        "legend": "allocated_for_updates"
+                        "legend": "dirty"
                     },
                     {
-                        "expr": "mongodb_ss_wt_cache_bytes_belonging_to_the_history_store_table_in_the_cache{instance='$instance'}",
-                        "refId": "D",
-                        "legend": "belonging_to_the_history_store_table_in_the_cache"
-                    },
-                    {
-                        "expr": "mongodb_ss_wt_cache_bytes_belonging_to_page_images_in_the_cache{instance='$instance'}",
+                        "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_internal_pages_in_the_cache{cluster='$cluster'}",
                         "refId": "C",
-                        "legend": "belonging_to_page_images_in_the_cache"
+                        "legend": "internal_pages"
                     },
                     {
-                        "expr": "mongodb_ss_wt_cache_bytes_not_belonging_to_page_images_in_the_cache{instance='$instance'}",
-                        "refId": "F",
-                        "legend": "not_belonging_to_page_images_in_the_cache"
+                        "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_leaf_pages_in_the_cache{cluster='$cluster'}",
+                        "refId": "D",
+                        "legend": "leaf_pages"
                     }
                 ],
                 "name": "Cache Size",
@@ -678,37 +836,51 @@
                     "standardOptions": {
                         "util": "bytesIEC"
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "f1ffd169-2a1a-42bc-9647-0e6621be0fef",
                 "layout": {
                     "h": 7,
                     "w": 6,
-                    "x": 0,
+                    "x": 6,
                     "y": 31,
-                    "i": "074ec28a-6760-480f-8ae3-9b7a6ed37e45",
+                    "i": "f1ffd169-2a1a-42bc-9647-0e6621be0fef",
                     "isResizable": true
                 },
-                "id": "074ec28a-6760-480f-8ae3-9b7a6ed37e45"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_ss_wt_cache_bytes_read_into_cache{instance='$instance'}[5m])",
-                        "legend": "read_into_cache"
+                        "expr": "rate(mongodb_ss_wt_cache_bytes_read_into_cache{cluster='$cluster'}[5m])",
+                        "legend": "read"
                     },
                     {
-                        "expr": "rate(mongodb_ss_wt_cache_bytes_written_from_cache{instance='$instance'}[5m])",
+                        "expr": "rate(mongodb_ss_wt_cache_bytes_written_from_cache{cluster='$cluster'}[5m])",
                         "refId": "B",
-                        "legend": "written_from_cache"
+                        "legend": "written"
                     }
                 ],
                 "name": "Cache I/O",
@@ -724,31 +896,45 @@
                     "standardOptions": {
                         "util": "bytesSI"
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "43ee140d-ae6d-474a-9892-fa4743d7f97e",
                 "layout": {
                     "h": 7,
                     "w": 6,
-                    "x": 6,
+                    "x": 12,
                     "y": 31,
-                    "i": "67b2e881-9949-4b04-a654-4e78c9e773af",
+                    "i": "43ee140d-ae6d-474a-9892-fa4743d7f97e",
                     "isResizable": true
                 },
-                "id": "67b2e881-9949-4b04-a654-4e78c9e773af"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "100 * sum(mongodb_ss_wt_cache_tracked_dirty_pages_in_the_cache{instance='$instance'}) / sum(mongodb_ss_wt_cache_pages_read_into_cache{instance='$instance'} + mongodb_ss_wt_cache_pages_written_from_cache{instance='$instance'})",
+                        "expr": "100 * sum(mongodb_ss_wt_cache_tracked_dirty_pages_in_the_cache{cluster='$cluster'}) / sum(mongodb_ss_wt_cache_pages_currently_held_in_the_cache{cluster='$cluster'})",
                         "legend": "dirty rate"
                     }
                 ],
@@ -765,31 +951,45 @@
                     "standardOptions": {
                         "util": "percent"
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "1a22c31a-859a-400c-af2a-ae83c308d0f2",
                 "layout": {
                     "h": 7,
                     "w": 6,
-                    "x": 12,
+                    "x": 18,
                     "y": 31,
-                    "i": "3a8b5e4e-510e-4302-a1b0-f124277b2621",
+                    "i": "1a22c31a-859a-400c-af2a-ae83c308d0f2",
                     "isResizable": true
                 },
-                "id": "3a8b5e4e-510e-4302-a1b0-f124277b2621"
-            },
-            {
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_mongod_wiredtiger_cache_evicted_total{instance='$instance'}[5m])",
+                        "expr": "rate(mongodb_mongod_wiredtiger_cache_evicted_total{cluster='$cluster'}[5m])",
                         "legend": "evicted pages"
                     }
                 ],
@@ -804,44 +1004,59 @@
                         "displayMode": "hidden"
                     },
                     "standardOptions": {},
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 18,
-                    "y": 31,
-                    "i": "8a61ef96-f386-4c58-b574-8cb2d968a8bb",
-                    "isResizable": true
-                },
-                "id": "8a61ef96-f386-4c58-b574-8cb2d968a8bb"
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
-                "id": "f72662cc-92dd-4112-a5ca-987d7c82766d",
+                "id": "b0016f4a-c565-4276-a08d-bacdf94b6b5a",
                 "type": "row",
                 "name": "ReplSet Info",
                 "layout": {
                     "h": 1,
                     "w": 24,
                     "x": 0,
-                    "y": 38,
-                    "i": "f72662cc-92dd-4112-a5ca-987d7c82766d",
+                    "y": 45,
+                    "i": "b0016f4a-c565-4276-a08d-bacdf94b6b5a",
                     "isResizable": false
-                }
+                },
+                "collapsed": true
             },
             {
+                "type": "stat",
+                "id": "6187ceee-7c25-43f2-be1b-c44ad612ab52",
+                "layout": {
+                    "h": 7,
+                    "w": 12,
+                    "x": 0,
+                    "y": 46,
+                    "i": "6187ceee-7c25-43f2-be1b-c44ad612ab52",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "time() - max(mongodb_rs_members_electionDate)/1000"
+                        "expr": "time() - mongodb_mongod_replset_member_election_date"
                     }
                 ],
                 "name": "Replset Election",
@@ -850,6 +1065,7 @@
                     "textMode": "value",
                     "colorMode": "value",
                     "calc": "lastNotNull",
+                    "valueField": "Value",
                     "colSpan": 1,
                     "textSize": {}
                 },
@@ -877,26 +1093,24 @@
                     "standardOptions": {
                         "util": "seconds",
                         "decimals": 1
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
                     }
-                },
-                "version": "2.0.0",
-                "type": "stat",
-                "layout": {
-                    "h": 7,
-                    "w": 12,
-                    "x": 0,
-                    "y": 39,
-                    "i": "84df3245-a7fb-4aed-9879-adabbe60abec",
-                    "isResizable": true
-                },
-                "id": "84df3245-a7fb-4aed-9879-adabbe60abec"
+                }
             },
             {
                 "targets": [
                     {
                         "refId": "A",
                         "expr": "mongodb_mongod_replset_member_replication_lag{instance=\"$instance\"}",
-                        "legend": "{{name}}"
+                        "legend": "lag"
                     }
                 ],
                 "name": "Replset Lag Seconds",
@@ -926,11 +1140,11 @@
                     "h": 7,
                     "w": 12,
                     "x": 12,
-                    "y": 39,
-                    "i": "33453bc0-6b09-4299-8d3c-bd955d72ffee",
+                    "y": 46,
+                    "i": "f73fd0cd-ecbe-41f0-a2dc-4e02f7eaef1c",
                     "isResizable": true
                 },
-                "id": "33453bc0-6b09-4299-8d3c-bd955d72ffee"
+                "id": "f73fd0cd-ecbe-41f0-a2dc-4e02f7eaef1c"
             }
         ]
     }
