@@ -8,7 +8,15 @@ import (
 	"flashcat.cloud/categraf/traces"
 )
 
-func (a *Agent) startTracesAgent() (err error) {
+type TracesAgent struct {
+	TraceCollector *traces.Collector
+}
+
+func NewTracesAgent() AgentModule {
+	return &TracesAgent{}
+}
+
+func (ta *TracesAgent) Start() (err error) {
 	if config.Config.Traces == nil || !config.Config.Traces.Enable {
 		return nil
 	}
@@ -29,16 +37,16 @@ func (a *Agent) startTracesAgent() (err error) {
 		return err
 	}
 
-	a.TraceCollector = col
+	ta.TraceCollector = col
 	return nil
 }
 
-func (a *Agent) stopTracesAgent() (err error) {
+func (ta *TracesAgent) Stop() (err error) {
 	if config.Config.Traces == nil || !config.Config.Traces.Enable {
 		return nil
 	}
 
-	if a.TraceCollector == nil {
+	if ta.TraceCollector == nil {
 		return nil
 	}
 
@@ -48,5 +56,5 @@ func (a *Agent) stopTracesAgent() (err error) {
 		}
 	}()
 
-	return a.TraceCollector.Shutdown(context.Background())
+	return ta.TraceCollector.Shutdown(context.Background())
 }

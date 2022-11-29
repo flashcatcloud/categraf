@@ -1,3 +1,5 @@
+//go:build !no_prometheus
+
 package prometheus
 
 import (
