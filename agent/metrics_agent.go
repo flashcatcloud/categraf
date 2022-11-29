@@ -98,7 +98,9 @@ func (ma *MetricsAgent) FilterPass(inputKey string) bool {
 }
 
 func (ma *MetricsAgent) Start() error {
-	ma.InputProvider.LoadConfig()
+	if _, err := ma.InputProvider.LoadConfig(); err != nil {
+		log.Println("E! input provider load config get err: ", err)
+	}
 	ma.InputProvider.StartReloader()
 
 	names, err := ma.InputProvider.GetInputs()
