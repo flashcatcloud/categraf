@@ -8,14 +8,11 @@ package agent
 import (
 	"context"
 	"errors"
-
 	"fmt"
 	"log"
 	"os"
 	"time"
 
-	coreconfig "flashcat.cloud/categraf/config"
-	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/auditor"
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/logs/diagnostic"
@@ -26,8 +23,11 @@ import (
 	"flashcat.cloud/categraf/logs/input/listener"
 	"flashcat.cloud/categraf/logs/pipeline"
 	"flashcat.cloud/categraf/logs/restart"
-	logService "flashcat.cloud/categraf/logs/service"
 	"flashcat.cloud/categraf/logs/status"
+
+	coreconfig "flashcat.cloud/categraf/config"
+	logsconfig "flashcat.cloud/categraf/config/logs"
+	logService "flashcat.cloud/categraf/logs/service"
 )
 
 const (
