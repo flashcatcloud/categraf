@@ -60,9 +60,10 @@ type HTTP struct {
 
 type ConfigType struct {
 	// from console args
-	ConfigDir string
-	DebugMode bool
-	TestMode  bool
+	ConfigDir    string
+	DebugMode    bool
+	TestMode     bool
+	InputFilters string
 
 	DisableUsageReport bool `toml:"disable_usage_report"`
 
@@ -81,16 +82,17 @@ type ConfigType struct {
 
 var Config *ConfigType
 
-func InitConfig(configDir string, debugMode, testMode bool, interval int64) error {
+func InitConfig(configDir string, debugMode, testMode bool, interval int64, inputFilters string) error {
 	configFile := path.Join(configDir, "config.toml")
 	if !file.IsExist(configFile) {
 		return fmt.Errorf("configuration file(%s) not found", configFile)
 	}
 
 	Config = &ConfigType{
-		ConfigDir: configDir,
-		DebugMode: debugMode,
-		TestMode:  testMode,
+		ConfigDir:    configDir,
+		DebugMode:    debugMode,
+		TestMode:     testMode,
+		InputFilters: inputFilters,
 	}
 
 	if err := cfg.LoadConfigByDir(configDir, Config); err != nil {
