@@ -58,6 +58,13 @@ type HTTP struct {
 	IdleTimeout  int    `toml:"idle_timeout"`
 }
 
+type IbexConfig struct {
+	Enable   bool
+	Interval Duration `toml:"interval"`
+	MetaDir  string   `toml:"metaDir"`
+	Servers  []string `toml:"servers"`
+}
+
 type ConfigType struct {
 	// from console args
 	ConfigDir    string
@@ -76,6 +83,7 @@ type ConfigType struct {
 	Traces       *traces.Config `toml:"traces"`
 	HTTP         *HTTP          `toml:"http"`
 	Prometheus   *Prometheus    `toml:"prometheus"`
+	Ibex         *IbexConfig    `toml:"ibex"`
 
 	HTTPProviderConfig *HTTPProviderConfig `toml:"http_provider"`
 }
