@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
+	
 	"flag"
+	"flashcat.cloud/categraf/ibex"
 	"fmt"
 	"log"
 	"os"
@@ -61,6 +64,11 @@ func main() {
 
 	go api.Start()
 	go agent.Report()
+	
+	// ibex agent
+	if config.Config.Ibex.Enable {
+		go ibex.Heartbeat(context.Background(), config.Config.Ibex)
+	}
 
 	ag, err := agent.NewAgent(parseFilter(*inputFilters))
 	if err != nil {
