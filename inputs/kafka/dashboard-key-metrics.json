@@ -23,7 +23,7 @@
                 "type": "row",
                 "id": "c4bcd0cd-35c7-4027-9182-b7ef7e3e7e9b",
                 "name": "JVM",
-                "collapsed": false,
+                "collapsed": true,
                 "layout": {
                     "h": 1,
                     "w": 24,
@@ -32,477 +32,530 @@
                     "i": "c4bcd0cd-35c7-4027-9182-b7ef7e3e7e9b",
                     "isResizable": false
                 },
-                "panels": [
+                "panels": []
+            },
+            {
+                "type": "stat",
+                "id": "5eaac4e8-2c56-4333-a5c4-92dcc15f4245",
+                "layout": {
+                    "h": 4,
+                    "w": 5,
+                    "x": 0,
+                    "y": 1,
+                    "i": "5eaac4e8-2c56-4333-a5c4-92dcc15f4245",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
                     {
-                        "type": "stat",
-                        "id": "5eaac4e8-2c56-4333-a5c4-92dcc15f4245",
-                        "layout": {
-                            "h": 4,
-                            "w": 5,
-                            "x": 0,
-                            "y": 1,
-                            "i": "5eaac4e8-2c56-4333-a5c4-92dcc15f4245",
-                            "isResizable": true
-                        },
-                        "version": "2.0.0",
-                        "datasourceCate": "prometheus",
-                        "targets": [
-                            {
-                                "refId": "A",
-                                "expr": "min(kafka_java_runtime_Uptime)/1000"
-                            }
-                        ],
-                        "name": "Uptime",
-                        "custom": {
-                            "textMode": "valueAndName",
-                            "colorMode": "value",
-                            "calc": "lastNotNull",
-                            "valueField": "Value",
-                            "colSpan": 1,
-                            "textSize": {}
-                        },
-                        "options": {
-                            "standardOptions": {
-                                "util": "seconds",
-                                "decimals": 1
-                            },
-                            "thresholds": {
-                                "steps": [
-                                    {
-                                        "color": "#ff656b",
-                                        "value": null,
-                                        "type": "base"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        "type": "timeseries",
-                        "id": "fb2237ad-73a0-4946-ae7d-a41cef5837eb",
-                        "layout": {
-                            "h": 4,
-                            "w": 13,
-                            "x": 5,
-                            "y": 1,
-                            "i": "fb2237ad-73a0-4946-ae7d-a41cef5837eb",
-                            "isResizable": true
-                        },
-                        "version": "2.0.0",
-                        "datasourceCate": "prometheus",
-                        "targets": [
-                            {
-                                "refId": "A",
-                                "expr": "kafka_java_memory_HeapMemoryUsage_used",
-                                "legend": "{{ident}}"
-                            }
-                        ],
-                        "name": "HeapMemoryUsage(Bytes)",
-                        "options": {
-                            "tooltip": {
-                                "mode": "all",
-                                "sort": "desc"
-                            },
-                            "legend": {
-                                "displayMode": "list",
-                                "placement": "right"
-                            },
-                            "standardOptions": {
-                                "util": "bytesSI"
-                            },
-                            "thresholds": {
-                                "steps": [
-                                    {
-                                        "color": "#634CD9",
-                                        "value": null,
-                                        "type": "base"
-                                    }
-                                ]
-                            }
-                        },
-                        "custom": {
-                            "drawStyle": "lines",
-                            "lineInterpolation": "smooth",
-                            "spanNulls": false,
-                            "lineWidth": 1,
-                            "fillOpacity": 0.5,
-                            "gradientMode": "none",
-                            "stack": "off",
-                            "scaleDistribution": {
-                                "type": "linear"
-                            }
-                        }
-                    },
-                    {
-                        "type": "timeseries",
-                        "id": "88b13c6c-a2ea-4f50-8ebd-1e717bf7555c",
-                        "layout": {
-                            "h": 4,
-                            "w": 6,
-                            "x": 18,
-                            "y": 1,
-                            "i": "88b13c6c-a2ea-4f50-8ebd-1e717bf7555c",
-                            "isResizable": true
-                        },
-                        "version": "2.0.0",
-                        "datasourceCate": "prometheus",
-                        "targets": [
-                            {
-                                "refId": "A",
-                                "expr": "irate(kafka_java_garbage_collector_CollectionCount{name=~\"G1 Young Generation\"}[1m])",
-                                "legend": "{{ident}} {{name}}"
-                            }
-                        ],
-                        "name": "GC Rate(G1 Young)",
-                        "options": {
-                            "tooltip": {
-                                "mode": "all",
-                                "sort": "desc"
-                            },
-                            "legend": {
-                                "displayMode": "hidden"
-                            },
-                            "standardOptions": {},
-                            "thresholds": {
-                                "steps": [
-                                    {
-                                        "color": "#634CD9",
-                                        "value": null,
-                                        "type": "base"
-                                    }
-                                ]
-                            }
-                        },
-                        "custom": {
-                            "drawStyle": "bars",
-                            "spanNulls": false,
-                            "lineWidth": 1,
-                            "fillOpacity": 0.86,
-                            "gradientMode": "none",
-                            "stack": "off",
-                            "scaleDistribution": {
-                                "type": "linear"
-                            }
-                        }
-                    },
-                    {
-                        "type": "stat",
-                        "id": "aacbced4-a9bf-4b5b-af46-76ab3138ad4b",
-                        "layout": {
-                            "h": 4,
-                            "w": 5,
-                            "x": 0,
-                            "y": 5,
-                            "i": "1dc52f07-18bf-4f76-b646-c053eb1a5b16",
-                            "isResizable": true
-                        },
-                        "version": "2.0.0",
-                        "datasourceCate": "prometheus",
-                        "targets": [
-                            {
-                                "refId": "A",
-                                "expr": "sum(kafka_java_threading_ThreadCount)"
-                            }
-                        ],
-                        "name": "Threads Sum",
-                        "custom": {
-                            "textMode": "valueAndName",
-                            "colorMode": "value",
-                            "calc": "lastNotNull",
-                            "valueField": "Value",
-                            "colSpan": 1,
-                            "textSize": {}
-                        },
-                        "options": {
-                            "standardOptions": {
-                                "decimals": 1
-                            },
-                            "thresholds": {
-                                "steps": [
-                                    {
-                                        "color": "#ff656b",
-                                        "value": null,
-                                        "type": "base"
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        "type": "timeseries",
-                        "id": "4d3ead94-edc5-4f0b-8b03-03da7bcfaaf8",
-                        "layout": {
-                            "h": 4,
-                            "w": 13,
-                            "x": 5,
-                            "y": 5,
-                            "i": "fd4b0661-3ebc-4d8a-a800-3d4434216078",
-                            "isResizable": true
-                        },
-                        "version": "2.0.0",
-                        "datasourceCate": "prometheus",
-                        "targets": [
-                            {
-                                "refId": "A",
-                                "expr": "kafka_java_memory_pool_Usage_used",
-                                "legend": "{{ident}} {{name}}"
-                            }
-                        ],
-                        "name": "MemoryPoolUsage(Bytes)",
-                        "options": {
-                            "tooltip": {
-                                "mode": "all",
-                                "sort": "desc"
-                            },
-                            "legend": {
-                                "displayMode": "list",
-                                "placement": "right"
-                            },
-                            "standardOptions": {
-                                "util": "bytesSI"
-                            },
-                            "thresholds": {
-                                "steps": [
-                                    {
-                                        "color": "#634CD9",
-                                        "value": null,
-                                        "type": "base"
-                                    }
-                                ]
-                            }
-                        },
-                        "custom": {
-                            "drawStyle": "lines",
-                            "lineInterpolation": "smooth",
-                            "spanNulls": false,
-                            "lineWidth": 1,
-                            "fillOpacity": 0.5,
-                            "gradientMode": "none",
-                            "stack": "off",
-                            "scaleDistribution": {
-                                "type": "linear"
-                            }
-                        }
-                    },
-                    {
-                        "type": "timeseries",
-                        "id": "44f19d1a-2845-4698-bd47-c573c4d06fa0",
-                        "layout": {
-                            "h": 4,
-                            "w": 6,
-                            "x": 18,
-                            "y": 5,
-                            "i": "9107bc1a-50f9-4a7c-9eec-56231a38e33d",
-                            "isResizable": true
-                        },
-                        "version": "2.0.0",
-                        "datasourceCate": "prometheus",
-                        "targets": [
-                            {
-                                "refId": "A",
-                                "expr": "irate(kafka_java_garbage_collector_CollectionCount{name=~\"G1 Old Generation\"}[1m])",
-                                "legend": "{{ident}} {{name}}"
-                            }
-                        ],
-                        "name": "GC Rate(G1 Old)",
-                        "description": "Full GC",
-                        "options": {
-                            "tooltip": {
-                                "mode": "all",
-                                "sort": "desc"
-                            },
-                            "legend": {
-                                "displayMode": "hidden"
-                            },
-                            "standardOptions": {},
-                            "thresholds": {
-                                "steps": [
-                                    {
-                                        "color": "#634CD9",
-                                        "value": null,
-                                        "type": "base"
-                                    }
-                                ]
-                            }
-                        },
-                        "custom": {
-                            "drawStyle": "bars",
-                            "spanNulls": false,
-                            "lineWidth": 1,
-                            "fillOpacity": 0.86,
-                            "gradientMode": "none",
-                            "stack": "off",
-                            "scaleDistribution": {
-                                "type": "linear"
-                            }
-                        }
-                    },
-                    {
-                        "type": "timeseries",
-                        "id": "46d331a7-bc42-44b1-8d3a-348f10823728",
-                        "layout": {
-                            "h": 4,
-                            "w": 12,
-                            "x": 0,
-                            "y": 9,
-                            "i": "46d331a7-bc42-44b1-8d3a-348f10823728",
-                            "isResizable": true
-                        },
-                        "version": "2.0.0",
-                        "datasourceCate": "prometheus",
-                        "targets": [
-                            {
-                                "refId": "A",
-                                "expr": "kafka_java_last_garbage_collection_LastGcInfo_duration",
-                                "legend": "{{ident}}"
-                            }
-                        ],
-                        "name": "LastGC Use MS",
-                        "options": {
-                            "tooltip": {
-                                "mode": "all",
-                                "sort": "desc"
-                            },
-                            "legend": {
-                                "displayMode": "hidden"
-                            },
-                            "standardOptions": {
-                                "util": "milliseconds"
-                            },
-                            "thresholds": {
-                                "steps": [
-                                    {
-                                        "color": "#634CD9",
-                                        "value": null,
-                                        "type": "base"
-                                    }
-                                ]
-                            }
-                        },
-                        "custom": {
-                            "drawStyle": "lines",
-                            "lineInterpolation": "smooth",
-                            "spanNulls": false,
-                            "lineWidth": 1,
-                            "fillOpacity": 0.5,
-                            "gradientMode": "none",
-                            "stack": "off",
-                            "scaleDistribution": {
-                                "type": "linear"
-                            }
-                        }
-                    },
-                    {
-                        "type": "timeseries",
-                        "id": "d62f4fa7-633b-40a6-961d-b9f254e83803",
-                        "layout": {
-                            "h": 4,
-                            "w": 6,
-                            "x": 12,
-                            "y": 9,
-                            "i": "b1c5a28e-43b0-49bf-a675-4b7275d8d628",
-                            "isResizable": true
-                        },
-                        "version": "2.0.0",
-                        "datasourceCate": "prometheus",
-                        "targets": [
-                            {
-                                "refId": "A",
-                                "expr": "irate(kafka_java_garbage_collector_CollectionTime{name=\"G1 Young Generation\"}[1m])",
-                                "legend": "{{ident}}"
-                            }
-                        ],
-                        "name": "YoungGC Use MS/Second",
-                        "options": {
-                            "tooltip": {
-                                "mode": "all",
-                                "sort": "desc"
-                            },
-                            "legend": {
-                                "displayMode": "hidden"
-                            },
-                            "standardOptions": {
-                                "util": "milliseconds"
-                            },
-                            "thresholds": {
-                                "steps": [
-                                    {
-                                        "color": "#634CD9",
-                                        "value": null,
-                                        "type": "base"
-                                    }
-                                ]
-                            }
-                        },
-                        "custom": {
-                            "drawStyle": "lines",
-                            "lineInterpolation": "smooth",
-                            "spanNulls": false,
-                            "lineWidth": 1,
-                            "fillOpacity": 0.5,
-                            "gradientMode": "none",
-                            "stack": "off",
-                            "scaleDistribution": {
-                                "type": "linear"
-                            }
-                        }
-                    },
-                    {
-                        "type": "timeseries",
-                        "id": "b779e28f-d1c7-417b-b611-12d6a075821e",
-                        "layout": {
-                            "h": 4,
-                            "w": 6,
-                            "x": 18,
-                            "y": 9,
-                            "i": "d7bae98f-3d4c-4ca7-a9b9-02856fb4ca37",
-                            "isResizable": true
-                        },
-                        "version": "2.0.0",
-                        "datasourceCate": "prometheus",
-                        "targets": [
-                            {
-                                "refId": "A",
-                                "expr": "irate(kafka_java_garbage_collector_CollectionTime{name=\"G1 Old Generation\"}[1m])",
-                                "legend": "{{ident}}"
-                            }
-                        ],
-                        "name": "FullGC Use MS/Second",
-                        "options": {
-                            "tooltip": {
-                                "mode": "all",
-                                "sort": "desc"
-                            },
-                            "legend": {
-                                "displayMode": "hidden"
-                            },
-                            "standardOptions": {
-                                "util": "milliseconds"
-                            },
-                            "thresholds": {
-                                "steps": [
-                                    {
-                                        "color": "#634CD9",
-                                        "value": null,
-                                        "type": "base"
-                                    }
-                                ]
-                            }
-                        },
-                        "custom": {
-                            "drawStyle": "lines",
-                            "lineInterpolation": "smooth",
-                            "spanNulls": false,
-                            "lineWidth": 1,
-                            "fillOpacity": 0.5,
-                            "gradientMode": "none",
-                            "stack": "off",
-                            "scaleDistribution": {
-                                "type": "linear"
-                            }
-                        }
+                        "refId": "A",
+                        "expr": "min(kafka_java_runtime_Uptime{cluster=\"$cluster\", ident=~\"$ident\"})/1000"
                     }
-                ]
+                ],
+                "name": "Uptime",
+                "custom": {
+                    "textMode": "valueAndName",
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "valueField": "Value",
+                    "colSpan": 1,
+                    "textSize": {}
+                },
+                "options": {
+                    "standardOptions": {
+                        "util": "seconds",
+                        "decimals": 1
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#ff656b",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "fb2237ad-73a0-4946-ae7d-a41cef5837eb",
+                "layout": {
+                    "h": 4,
+                    "w": 7,
+                    "x": 5,
+                    "y": 1,
+                    "i": "fb2237ad-73a0-4946-ae7d-a41cef5837eb",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "kafka_java_memory_HeapMemoryUsage_used{cluster=\"$cluster\", ident=~\"$ident\"}",
+                        "legend": "{{ident}}"
+                    }
+                ],
+                "name": "HeapMemoryUsage(Bytes)",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "bytesSI"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "85ac40ad-f88f-41fd-9ee1-7fe87e45bfbe",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 1,
+                    "i": "c06f6d11-5625-4958-b0a5-c265d28bdcfc",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "kafka_java_memory_HeapMemoryUsage_used{cluster=\"$cluster\", ident=~\"$ident\"}/kafka_java_memory_HeapMemoryUsage_max{cluster=\"$cluster\", ident=~\"$ident\"}",
+                        "legend": "{{ident}}"
+                    }
+                ],
+                "name": "HeapMemoryUsage(%)",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "percentUnit",
+                        "decimals": 1
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "88b13c6c-a2ea-4f50-8ebd-1e717bf7555c",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 18,
+                    "y": 1,
+                    "i": "88b13c6c-a2ea-4f50-8ebd-1e717bf7555c",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "irate(kafka_java_garbage_collector_CollectionCount{cluster=\"$cluster\", ident=~\"$ident\", name=~\"G1 Young Generation\"}[1m])",
+                        "legend": "{{ident}} {{name}}"
+                    }
+                ],
+                "name": "GC Rate(G1 Young)",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "bars",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.86,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "stat",
+                "id": "aacbced4-a9bf-4b5b-af46-76ab3138ad4b",
+                "layout": {
+                    "h": 4,
+                    "w": 5,
+                    "x": 0,
+                    "y": 5,
+                    "i": "1dc52f07-18bf-4f76-b646-c053eb1a5b16",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "sum(kafka_java_threading_ThreadCount{cluster=\"$cluster\", ident=~\"$ident\"})"
+                    }
+                ],
+                "name": "Threads Sum",
+                "custom": {
+                    "textMode": "valueAndName",
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "valueField": "Value",
+                    "colSpan": 1,
+                    "textSize": {}
+                },
+                "options": {
+                    "standardOptions": {
+                        "decimals": 1
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#ff656b",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "4d3ead94-edc5-4f0b-8b03-03da7bcfaaf8",
+                "layout": {
+                    "h": 4,
+                    "w": 13,
+                    "x": 5,
+                    "y": 5,
+                    "i": "fd4b0661-3ebc-4d8a-a800-3d4434216078",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "kafka_java_memory_pool_Usage_used{cluster=\"$cluster\", ident=~\"$ident\"}",
+                        "legend": "{{ident}} {{name}}"
+                    }
+                ],
+                "name": "MemoryPoolUsage(Bytes)",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "bytesSI"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "44f19d1a-2845-4698-bd47-c573c4d06fa0",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 18,
+                    "y": 5,
+                    "i": "9107bc1a-50f9-4a7c-9eec-56231a38e33d",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "irate(kafka_java_garbage_collector_CollectionCount{cluster=\"$cluster\", ident=~\"$ident\", name=~\"G1 Old Generation\"}[1m])",
+                        "legend": "{{ident}} {{name}}"
+                    }
+                ],
+                "name": "GC Rate(G1 Old)",
+                "description": "Full GC",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "bars",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.86,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "46d331a7-bc42-44b1-8d3a-348f10823728",
+                "layout": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 0,
+                    "y": 9,
+                    "i": "46d331a7-bc42-44b1-8d3a-348f10823728",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "kafka_java_last_garbage_collection_LastGcInfo_duration{cluster=\"$cluster\", ident=~\"$ident\"}",
+                        "legend": "{{ident}}"
+                    }
+                ],
+                "name": "LastGC Use MS",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "milliseconds"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "d62f4fa7-633b-40a6-961d-b9f254e83803",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 9,
+                    "i": "b1c5a28e-43b0-49bf-a675-4b7275d8d628",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "irate(kafka_java_garbage_collector_CollectionTime{cluster=\"$cluster\", ident=~\"$ident\", name=\"G1 Young Generation\"}[1m])",
+                        "legend": "{{ident}}"
+                    }
+                ],
+                "name": "YoungGC Use MS/Second",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "milliseconds"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
+                "type": "timeseries",
+                "id": "b779e28f-d1c7-417b-b611-12d6a075821e",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 18,
+                    "y": 9,
+                    "i": "d7bae98f-3d4c-4ca7-a9b9-02856fb4ca37",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "irate(kafka_java_garbage_collector_CollectionTime{cluster=\"$cluster\", ident=~\"$ident\", name=\"G1 Old Generation\"}[1m])",
+                        "legend": "{{ident}}"
+                    }
+                ],
+                "name": "FullGC Use MS/Second",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "milliseconds"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
                 "type": "row",
@@ -513,7 +566,7 @@
                     "h": 1,
                     "w": 24,
                     "x": 0,
-                    "y": 1,
+                    "y": 13,
                     "i": "e96c5cf7-59b4-40e4-9863-2465d5986510",
                     "isResizable": false
                 }
@@ -525,7 +578,7 @@
                     "h": 3,
                     "w": 6,
                     "x": 0,
-                    "y": 2,
+                    "y": 14,
                     "i": "d38cd5a2-0bd4-4129-b67c-3ad42a83a91e",
                     "isResizable": true
                 },
@@ -591,7 +644,7 @@
                     "h": 3,
                     "w": 6,
                     "x": 6,
-                    "y": 2,
+                    "y": 14,
                     "i": "7d22d6b8-2146-4219-8ed6-1e94ca304e62",
                     "isResizable": true
                 },
@@ -648,7 +701,7 @@
                     "h": 3,
                     "w": 6,
                     "x": 12,
-                    "y": 2,
+                    "y": 14,
                     "i": "1156797c-1a5f-41ad-b7c1-971ea4e43eaa",
                     "isResizable": true
                 },
@@ -705,7 +758,7 @@
                     "h": 3,
                     "w": 6,
                     "x": 18,
-                    "y": 2,
+                    "y": 14,
                     "i": "fa7927aa-2baf-4d68-aab8-54aa9a8f5059",
                     "isResizable": true
                 },
@@ -762,7 +815,7 @@
                     "h": 4,
                     "w": 24,
                     "x": 0,
-                    "y": 5,
+                    "y": 17,
                     "i": "775febde-62d3-4407-a685-4a64feab46da",
                     "isResizable": true
                 },
@@ -780,17 +833,17 @@
                         "legend": "主分区数量"
                     },
                     {
-                        "expr": "irate(kafka_topic_BytesInPerSec_Count{cluster=\"$cluster\", ident=~\"$ident\"}[5m])",
+                        "expr": "sum(irate(kafka_topic_BytesInPerSec_Count{cluster=\"$cluster\", ident=~\"$ident\"}[5m])) by (ident)",
                         "refId": "C",
                         "legend": "入方向字节/秒"
                     },
                     {
-                        "expr": "irate(kafka_topic_BytesOutPerSec_Count{cluster=\"$cluster\", ident=~\"$ident\"}[5m])",
+                        "expr": "sum(irate(kafka_topic_BytesOutPerSec_Count{cluster=\"$cluster\", ident=~\"$ident\"}[5m])) by (ident)",
                         "refId": "D",
                         "legend": "出方向字节/秒"
                     },
                     {
-                        "expr": "irate(kafka_topics_MessagesInPerSec_Count{cluster=\"$cluster\", ident=~\"$ident\"}[5m])",
+                        "expr": "sum(irate(kafka_topics_MessagesInPerSec_Count{cluster=\"$cluster\", ident=~\"$ident\"}[5m])) by (ident)",
                         "refId": "E",
                         "legend": "入消息/秒"
                     }
@@ -837,7 +890,7 @@
                     "h": 4,
                     "w": 24,
                     "x": 0,
-                    "y": 9,
+                    "y": 21,
                     "i": "c287e48a-e977-4713-b018-7029d7caa567",
                     "isResizable": true
                 },
@@ -846,7 +899,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "sum(kafka_consumer_lag_millis{cluster=\"$cluster\"}) by (consumergroup, topic, partition)"
+                        "expr": "sum(kafka_consumer_lag_millis{cluster=\"$cluster\", ident=~\"$ident\"}) by (consumergroup, topic, partition)"
                     }
                 ],
                 "name": "Topic数据预计还需消费多久",
@@ -859,7 +912,8 @@
                         "displayMode": "hidden"
                     },
                     "standardOptions": {
-                        "util": "milliseconds"
+                        "util": "milliseconds",
+                        "decimals": 1
                     },
                     "thresholds": {
                         "steps": [
@@ -873,6 +927,7 @@
                 },
                 "custom": {
                     "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
                     "spanNulls": false,
                     "lineWidth": 1,
                     "fillOpacity": 0.5,
@@ -880,8 +935,7 @@
                     "stack": "off",
                     "scaleDistribution": {
                         "type": "linear"
-                    },
-                    "lineInterpolation": "smooth"
+                    }
                 }
             }
         ],
