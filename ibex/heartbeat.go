@@ -68,3 +68,6 @@ func mapKeys(m map[int64]struct{}) []int64 {
 	}
 	return lst
 }
+
+func Stop() {
+}

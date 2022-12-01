@@ -21,6 +21,7 @@ func NewAgent() (*Agent, error) {
 			NewTracesAgent(),
 			NewLogsAgent(),
 			NewPrometheusAgent(),
+			NewIbexAgent(),
 		},
 	}
 	for _, ag := range agent.agents {
