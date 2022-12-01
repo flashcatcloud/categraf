@@ -30,14 +30,25 @@ import (
 	logService "flashcat.cloud/categraf/logs/service"
 )
 
-// LogAgent represents the data pipeline that collects, decodes,
+const (
+	intakeTrackType         = "logs"
+	AgentJSONIntakeProtocol = "agent-json"
+	invalidProcessingRules  = "invalid_global_processing_rules"
+)
+
+// LogsAgent represents the data pipeline that collects, decodes,
 // processes and sends logs to the backend
 // + ------------------------------------------------------ +
 // |                                                        |
 // | Collector -> Decoder -> Processor -> Sender -> Auditor |
 // |                                                        |
 // + ------------------------------------------------------ +
-type LogAgent struct {
+type LogsAgent struct {
+	sources         *logsconfig.LogSources
+	services        *logService.Services
+	processingRules []*logsconfig.ProcessingRule
+	endpoints       *logsconfig.Endpoints
+
 	auditor                   auditor.Auditor
 	destinationsCtx           *client.DestinationsContext
 	pipelineProvider          pipeline.Provider
@@ -45,13 +56,38 @@ type LogAgent struct {
 	diagnosticMessageReceiver *diagnostic.BufferedMessageReceiver
 }
 
-// NewAgent returns a new Logs LogAgent
-func NewLogAgent(sources *logsconfig.LogSources, services *logService.Services, processingRules []*logsconfig.ProcessingRule, endpoints *logsconfig.Endpoints) *LogAgent {
+// NewLogsAgent returns a new Logs LogsAgent
+func NewLogsAgent() AgentModule {
+	if coreconfig.Config == nil ||
+		!coreconfig.Config.Logs.Enable ||
+		(len(coreconfig.Config.Logs.Items) == 0 && coreconfig.Config.Logs.CollectContainerAll == false) {
+		return nil
+	}
+
+	endpoints, err := BuildEndpoints(intakeTrackType, AgentJSONIntakeProtocol, logsconfig.DefaultIntakeOrigin)
+	if err != nil {
+		message := fmt.Sprintf("Invalid endpoints: %v", err)
+		status.AddGlobalError("invalid endpoints", message)
+		log.Println("E!", errors.New(message))
+		return nil
+	}
+	processingRules, err := GlobalProcessingRules()
+	if err != nil {
+		message := fmt.Sprintf("Invalid processing rules: %v", err)
+		status.AddGlobalError(invalidProcessingRules, message)
+		log.Println("E!", errors.New(message))
+		return nil
+	}
+
+	sources := logsconfig.NewLogSources()
+	services := logService.NewServices()
+	log.Println("I! Starting logs-agent...")
+
 	// setup the auditor
 	// We pass the health handle to the auditor because it's the end of the pipeline and the most
 	// critical part. Arguably it could also be plugged to the destination.
 	auditorTTL := time.Duration(23) * time.Hour
-	_, err := os.Stat(coreconfig.GetLogRunPath())
+	_, err = os.Stat(coreconfig.GetLogRunPath())
 	if os.IsNotExist(err) {
 		os.MkdirAll(coreconfig.GetLogRunPath(), 0755)
 	}
@@ -85,7 +121,11 @@ func NewLogAgent(sources *logsconfig.LogSources, services *logService.Services, 
 		inputs = append(inputs, container.NewLauncher(containerLaunchables))
 	}
 
-	return &LogAgent{
+	return &LogsAgent{
+		sources:                   sources,
+		services:                  services,
+		processingRules:           processingRules,
+		endpoints:                 endpoints,
 		auditor:                   auditor,
 		destinationsCtx:           destinationsCtx,
 		pipelineProvider:          pipelineProvider,
@@ -94,9 +134,42 @@ func NewLogAgent(sources *logsconfig.LogSources, services *logService.Services, 
 	}
 }
 
-// Start starts all the elements of the data pipeline
+func (la *LogsAgent) Start() error {
+	la.startInner()
+	if coreconfig.GetContainerCollectAll() {
+		// collect container all
+		if coreconfig.Config.DebugMode {
+			log.Println("Adding ContainerCollectAll source to the Logs Agent")
+		}
+		kubesource := logsconfig.NewLogSource(logsconfig.ContainerCollectAll,
+			&logsconfig.LogsConfig{
+				Type:    coreconfig.Kubernetes,
+				Service: "docker",
+				Source:  "docker",
+			})
+		la.sources.AddSource(kubesource)
+		go kubernetes.NewScanner(la.services).Scan()
+	}
+
+	// add source
+	for _, c := range coreconfig.Config.Logs.Items {
+		if c == nil {
+			continue
+		}
+		source := logsconfig.NewLogSource(c.Name, c)
+		if err := c.Validate(); err != nil {
+			log.Println("W! Invalid logs configuration:", err)
+			source.Status.Error(err)
+			continue
+		}
+		la.sources.AddSource(source)
+	}
+	return nil
+}
+
+// startInner starts all the elements of the data pipeline
 // in the right order to prevent data loss
-func (a *LogAgent) Start() {
+func (a *LogsAgent) startInner() {
 	starter := restart.NewStarter(a.destinationsCtx, a.auditor, a.pipelineProvider, a.diagnosticMessageReceiver)
 	for _, input := range a.inputs {
 		starter.Add(input)
@@ -104,14 +177,14 @@ func (a *LogAgent) Start() {
 	starter.Start()
 }
 
-// Flush flushes synchronously the pipelines managed by the Logs LogAgent.
-func (a *LogAgent) Flush(ctx context.Context) {
+// Flush flushes synchronously the pipelines managed by the Logs LogsAgent.
+func (a *LogsAgent) Flush(ctx context.Context) {
 	a.pipelineProvider.Flush(ctx)
 }
 
 // Stop stops all the elements of the data pipeline
 // in the right order to prevent data loss
-func (a *LogAgent) Stop() {
+func (a *LogsAgent) Stop() error {
 	inputs := restart.NewParallelStopper()
 	for _, input := range a.inputs {
 		inputs.Add(input)
@@ -150,87 +223,10 @@ func (a *LogAgent) Stop() {
 		select {
 		case <-c:
 		case <-timeout.C:
-			log.Println("W! Force close of the Logs LogAgent, dumping the Go routines.")
+			log.Println("W! Force close of the Logs LogsAgent, dumping the Go routines.")
 		}
 	}
-}
-
-var (
-	logAgent *LogAgent
-)
-
-const (
-	intakeTrackType         = "logs"
-	AgentJSONIntakeProtocol = "agent-json"
-	invalidProcessingRules  = "invalid_global_processing_rules"
-)
-
-func (a *Agent) startLogAgent() {
-	if coreconfig.Config == nil ||
-		!coreconfig.Config.Logs.Enable ||
-		(len(coreconfig.Config.Logs.Items) == 0 && coreconfig.Config.Logs.CollectContainerAll == false) {
-		return
-	}
-
-	endpoints, err := BuildEndpoints(intakeTrackType, AgentJSONIntakeProtocol, logsconfig.DefaultIntakeOrigin)
-	if err != nil {
-		message := fmt.Sprintf("Invalid endpoints: %v", err)
-		status.AddGlobalError("invalid endpoints", message)
-		log.Println("E!", errors.New(message))
-		return
-	}
-	processingRules, err := GlobalProcessingRules()
-	if err != nil {
-		message := fmt.Sprintf("Invalid processing rules: %v", err)
-		status.AddGlobalError(invalidProcessingRules, message)
-		log.Println("E!", errors.New(message))
-		return
-	}
-
-	sources := logsconfig.NewLogSources()
-	services := logService.NewServices()
-	log.Println("I! Starting logs-agent...")
-	logAgent = NewLogAgent(sources, services, processingRules, endpoints)
-	logAgent.Start()
-
-	if coreconfig.GetContainerCollectAll() {
-		// collect container all
-		if coreconfig.Config.DebugMode {
-			log.Println("Adding ContainerCollectAll source to the Logs Agent")
-		}
-		kubesource := logsconfig.NewLogSource(logsconfig.ContainerCollectAll,
-			&logsconfig.LogsConfig{
-				Type:    coreconfig.Kubernetes,
-				Service: "docker",
-				Source:  "docker",
-			})
-		sources.AddSource(kubesource)
-		go kubernetes.NewScanner(services).Scan()
-	}
-
-	// add source
-	for _, c := range coreconfig.Config.Logs.Items {
-		if c == nil {
-			continue
-		}
-		source := logsconfig.NewLogSource(c.Name, c)
-		if err := c.Validate(); err != nil {
-			log.Println("W! Invalid logs configuration:", err)
-			source.Status.Error(err)
-			continue
-		}
-		sources.AddSource(source)
-	}
-}
-
-func (a *Agent) stopLogAgent() {
-	if logAgent != nil {
-		logAgent.Stop()
-	}
-}
-
-func GetContainerColloectAll() bool {
-	return false
+	return nil
 }
 
 // GlobalProcessingRules returns the global processing rules to apply to all logs.
