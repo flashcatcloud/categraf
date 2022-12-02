@@ -1,6 +1,7 @@
 {
     "name": "ElasticSearch by Categraf",
     "tags": "",
+    "ident": "",
     "configs": {
         "var": [
             {
@@ -18,17 +19,30 @@
         ],
         "panels": [
             {
+                "type": "stat",
+                "id": "f70f4198-dec2-40c0-97d9-6986c7001e73",
+                "layout": {
+                    "h": 3,
+                    "w": 4,
+                    "x": 0,
+                    "y": 0,
+                    "i": "f70f4198-dec2-40c0-97d9-6986c7001e73",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
                 "targets": [
                     {
                         "refId": "A",
                         "expr": "min(elasticsearch_cluster_health_status_code{cluster=\"$cluster\"})"
                     }
                 ],
-                "name": "Cluster Status",
+                "name": "",
                 "custom": {
                     "textMode": "valueAndName",
                     "colorMode": "background",
                     "calc": "lastNotNull",
+                    "valueField": "Value",
                     "colSpan": 1,
                     "textSize": {}
                 },
@@ -74,19 +88,17 @@
                             }
                         }
                     ],
-                    "standardOptions": {}
-                },
-                "version": "2.0.0",
-                "type": "stat",
-                "layout": {
-                    "h": 3,
-                    "w": 4,
-                    "x": 0,
-                    "y": 0,
-                    "i": "f70f4198-dec2-40c0-97d9-6986c7001e73",
-                    "isResizable": true
-                },
-                "id": "f70f4198-dec2-40c0-97d9-6986c7001e73"
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                }
             },
             {
                 "targets": [
@@ -376,6 +388,18 @@
                 "id": "15882e6f-0585-4035-bfb6-71cb9caaa0a8"
             },
             {
+                "type": "timeseries",
+                "id": "8adbc8e4-f630-4a25-98e3-ee03dec92011",
+                "layout": {
+                    "h": 4,
+                    "w": 12,
+                    "x": 12,
+                    "y": 4,
+                    "i": "d05d16d0-022d-49f8-9b55-2388c4cbb2b1",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
                 "targets": [
                     {
                         "refId": "A",
@@ -393,25 +417,28 @@
                         "displayMode": "hidden"
                     },
                     "standardOptions": {},
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.04,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
-                "type": "timeseries",
-                "layout": {
-                    "h": 4,
-                    "w": 12,
-                    "x": 12,
-                    "y": 4,
-                    "i": "d05d16d0-022d-49f8-9b55-2388c4cbb2b1",
-                    "isResizable": true
-                },
-                "id": "8adbc8e4-f630-4a25-98e3-ee03dec92011"
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
                 "type": "row",
@@ -710,14 +737,26 @@
                 "id": "5c361278-8a94-4b16-afdd-e6def804b9ff"
             },
             {
+                "type": "timeseries",
+                "id": "ff81d109-79e5-4909-8765-857a75cebf17",
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 0,
+                    "y": 17,
+                    "i": "5105f1dc-26cb-4818-a04d-90f2e5803da2",
+                    "isResizable": true
+                },
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "{__name__=~\"elasticsearch_jvm_mem_pools_.*\", cluster=\"$cluster\", node_host=~\"$node_host\"}",
+                        "expr": "{__name__=~\"elasticsearch_jvm_mem_pools_young_used_in_bytes\", cluster=\"$cluster\", node_host=~\"$node_host\"}",
                         "legend": "{{__name__}} {{node_name}}"
                     }
                 ],
-                "name": "Mem pools",
+                "name": "Yong Used(Bytes)",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -730,25 +769,84 @@
                         "util": "bytesIEC",
                         "decimals": 1
                     },
-                    "thresholds": {}
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
                 },
                 "custom": {
                     "drawStyle": "lines",
                     "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
                     "fillOpacity": 0.5,
-                    "stack": "off"
-                },
-                "version": "2.0.0",
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
+            },
+            {
                 "type": "timeseries",
+                "id": "d7c76456-8f34-4e1b-843b-9d174bbdfcee",
                 "layout": {
                     "h": 4,
-                    "w": 12,
-                    "x": 0,
+                    "w": 6,
+                    "x": 6,
                     "y": 17,
-                    "i": "5105f1dc-26cb-4818-a04d-90f2e5803da2",
+                    "i": "86841663-2a17-4858-a9e1-13c296b3bb76",
                     "isResizable": true
                 },
-                "id": "ff81d109-79e5-4909-8765-857a75cebf17"
+                "version": "2.0.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "{__name__=~\"elasticsearch_jvm_mem_pools_old_used_in_bytes\", cluster=\"$cluster\", node_host=~\"$node_host\"}",
+                        "legend": "{{__name__}} {{node_name}}"
+                    }
+                ],
+                "name": "Old Used(Bytes)",
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "hidden"
+                    },
+                    "standardOptions": {
+                        "util": "bytesIEC",
+                        "decimals": 1
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#634CD9",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.5,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                }
             },
             {
                 "targets": [
