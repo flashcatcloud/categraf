@@ -3,7 +3,6 @@
 package agent
 
 import (
-	"context"
 	"log"
 
 	coreconfig "flashcat.cloud/categraf/config"
@@ -24,8 +23,8 @@ func (ia *IbexAgent) Start() error {
 		log.Println("I! ibex agent disabled!")
 		return nil
 	}
-	go ibex.Heartbeat(context.Background(), coreconfig.Config.Ibex)
-	log.Println("I! ibex agent started!")
+
+	go ibex.Start()
 	return nil
 }
 
@@ -36,6 +35,5 @@ func (ia *IbexAgent) Stop() error {
 		return nil
 	}
 	ibex.Stop()
-	log.Println("I! ibex agent stopped!")
 	return nil
 }
