@@ -2,15 +2,19 @@ package ibex
 
 import (
 	"context"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/ibex/client"
 	"flashcat.cloud/categraf/ibex/types"
-	"log"
-	"time"
 )
 
-func Heartbeat(ctx context.Context, ib *config.IbexConfig) {
-	log.Println("I! Start rolling request Server.Report.")
+func heartbeatCron(ctx context.Context, ib *config.IbexConfig) {
+	log.Println("I! ibex agent start rolling request Server.Report.")
 	interval := time.Duration(ib.Interval)
 	for {
 		select {
@@ -67,4 +71,30 @@ func mapKeys(m map[int64]struct{}) []int64 {
 		lst = append(lst, k)
 	}
 	return lst
+}
+
+func Start() {
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	ctx, cancel := context.WithCancel(context.Background())
+	go heartbeatCron(ctx, config.Config.Ibex)
+
+EXIT:
+	for {
+		sig := <-sc
+		log.Println("I! ibex agent received signal:", sig.String())
+		switch sig {
+		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
+			break EXIT
+		case syscall.SIGHUP:
+			break EXIT
+		default:
+			break EXIT
+		}
+	}
+
+	cancel()
+}
+
+func Stop() {
 }
