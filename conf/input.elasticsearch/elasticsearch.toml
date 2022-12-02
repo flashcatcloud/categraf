@@ -15,12 +15,10 @@
 servers = []
 
 ## Timeout for HTTP requests to the elastic search server(s)
-http_timeout = "5s"
+http_timeout = "10s"
 
-## When local is true (the default), the node will read only its own stats.
-## Set local to false when you want to read the node stats from all nodes
-## of the cluster.
-local = true
+# either /_nodes/stats or /_nodes/_local/stats depending on this setting
+local = false
 
 ## Set cluster_health to true when you want to obtain cluster health stats
 cluster_health = true
