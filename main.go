@@ -12,7 +12,6 @@ import (
 	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/house"
 	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/writer"
 	"github.com/chai2010/winsvc"
@@ -72,10 +71,6 @@ func main() {
 func initWriters() {
 	if err := writer.InitWriters(); err != nil {
 		log.Fatalln("F! failed to init writer:", err)
-	}
-
-	if err := house.InitMetricsHouse(); err != nil {
-		log.Fatalln("F! failed to init metricshouse:", err)
 	}
 }
 

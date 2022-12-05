@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/house"
 	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
@@ -65,7 +64,6 @@ func pushgateway(c *gin.Context) {
 		}
 
 		writer.PushQueue(samples[i])
-		house.MetricsHouse.Push(samples[i])
 	}
 
 	c.String(200, "forwarding...")
