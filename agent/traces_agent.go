@@ -1,3 +1,5 @@
+//go:build !no_traces
+
 package agent
 
 import (

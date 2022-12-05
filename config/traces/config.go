@@ -1,3 +1,5 @@
+//go:build !no_traces
+
 package traces
 
 import (
@@ -15,11 +17,12 @@ import (
 )
 
 // Config defines the OpenTelemetry Collector configuration.
-//   Enable:     enable tracing or not.
-//   UnParsed:   loaded as map[string]interface{} from the raw config file.
-//   Parsed:     retrieved and validated from the UnParsed contents.
-//   Factories:  struct holds in a single type all component factories that can be handled by the Config.
-//               We only create the needed factories as default, if you need more, import and init these by components.go
+//
+//	Enable:     enable tracing or not.
+//	UnParsed:   loaded as map[string]interface{} from the raw config file.
+//	Parsed:     retrieved and validated from the UnParsed contents.
+//	Factories:  struct holds in a single type all component factories that can be handled by the Config.
+//	            We only create the needed factories as default, if you need more, import and init these by components.go
 type Config struct {
 	Enable    bool                   `toml:"enable"  yaml:"enable"  json:"enable"`
 	UnParsed  map[string]interface{} `toml:",inline" yaml:",inline" json:",inline"`
