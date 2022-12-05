@@ -75,15 +75,14 @@ type ConfigType struct {
 	DisableUsageReport bool `toml:"disable_usage_report"`
 
 	// from config.toml
-	Global       Global         `toml:"global"`
-	WriterOpt    WriterOpt      `toml:"writer_opt"`
-	Writers      []WriterOption `toml:"writers"`
-	Logs         Logs           `toml:"logs"`
-	MetricsHouse MetricsHouse   `toml:"metricshouse"`
-	Traces       *traces.Config `toml:"traces"`
-	HTTP         *HTTP          `toml:"http"`
-	Prometheus   *Prometheus    `toml:"prometheus"`
-	Ibex         *IbexConfig    `toml:"ibex"`
+	Global     Global         `toml:"global"`
+	WriterOpt  WriterOpt      `toml:"writer_opt"`
+	Writers    []WriterOption `toml:"writers"`
+	Logs       Logs           `toml:"logs"`
+	Traces     *traces.Config `toml:"traces"`
+	HTTP       *HTTP          `toml:"http"`
+	Prometheus *Prometheus    `toml:"prometheus"`
+	Ibex       *IbexConfig    `toml:"ibex"`
 
 	HTTPProviderConfig *HTTPProviderConfig `toml:"http_provider"`
 }
