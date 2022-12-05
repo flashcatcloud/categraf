@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/house"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/runtimex"
 	"flashcat.cloud/categraf/types"
@@ -112,6 +111,5 @@ func (r *InputReader) forward(slist *types.SampleList) {
 	arr := slist.PopBackAll()
 	for i := 0; i < len(arr); i++ {
 		writer.PushQueue(arr[i])
-		house.MetricsHouse.Push(arr[i])
 	}
 }
