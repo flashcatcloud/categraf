@@ -2,20 +2,11 @@ package house
 
 import (
 	"encoding/json"
-	"strings"
-	"time"
-
 	"flashcat.cloud/categraf/types"
+	"strings"
 )
 
 var labelReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "/", "_")
-
-type Sample struct {
-	Timestamp time.Time `json:"timestamp"`
-	Metric    string    `json:"metric"`
-	Tags      string    `json:"tags"`
-	Value     float64   `json:"value"`
-}
 
 func convertTags(s *types.Sample) string {
 	tags := make(map[string]string)

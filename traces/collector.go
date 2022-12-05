@@ -1,3 +1,5 @@
+//go:build !no_traces
+
 package traces
 
 import (
@@ -13,8 +15,9 @@ import (
 // Collector simply wrapped the OpenTelemetry Collector, which means you can get a full support
 // for recving data from and exporting to popular trace vendors (eg. Jaeger or Zipkin).
 // For more details, see the official docs:
-//     https://opentelemetry.io/docs/collector/getting-started
-//     https://github.com/open-telemetry/opentelemetry-collector
+//
+//	https://opentelemetry.io/docs/collector/getting-started
+//	https://github.com/open-telemetry/opentelemetry-collector
 type Collector struct {
 	srv *service
 	cfg *traces.Config
