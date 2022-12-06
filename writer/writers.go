@@ -1,13 +1,15 @@
 package writer
 
 import (
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/types"
 	"fmt"
-	"github.com/prometheus/prometheus/prompb"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/prometheus/prometheus/prompb"
+
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/types"
 )
 
 // Writers manage all writers and metric queue
