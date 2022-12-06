@@ -6,10 +6,13 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 )
 
+// MetricQueue is a queue for prometheus metrics
+// It will flush metrics to writers when queue is full
+// or flush metrics every 100ms
 type MetricQueue struct {
 	queue         chan *prompb.TimeSeries
 	batch         int
-	flushCallBack func([]prompb.TimeSeries)
+	flushCallback func([]prompb.TimeSeries)
 }
 
 func newMetricQueue(batch int, flushCallback func([]prompb.TimeSeries)) MetricQueue {
@@ -19,7 +22,7 @@ func newMetricQueue(batch int, flushCallback func([]prompb.TimeSeries)) MetricQu
 	return MetricQueue{
 		queue:         make(chan *prompb.TimeSeries, batch),
 		batch:         batch,
-		flushCallBack: flushCallback,
+		flushCallback: flushCallback,
 	}
 }
 
@@ -38,7 +41,7 @@ func (mq *MetricQueue) LoopRead() {
 		case item, open := <-mq.queue:
 			if !open {
 				// queue closed, post remaining series
-				mq.flushCallBack(series)
+				mq.flushCallback(series)
 				return
 			}
 
@@ -49,14 +52,14 @@ func (mq *MetricQueue) LoopRead() {
 			series = append(series, *item)
 			count++
 			if count >= mq.batch {
-				mq.flushCallBack(series)
+				mq.flushCallback(series)
 				count = 0
 				// reset series slice, do not release memory
 				series = series[:0]
 			}
 		default:
 			if len(series) > 0 {
-				mq.flushCallBack(series)
+				mq.flushCallback(series)
 				count = 0
 				// reset series slice, do not release memory
 				series = series[:0]
