@@ -3,36 +3,42 @@ package writer
 import (
 	"time"
 
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/types"
+	"github.com/prometheus/prometheus/prompb"
 )
 
-var queue chan *types.Sample
-
-func PushQueue(s *types.Sample) {
-	queue <- s
+type MetricQueue struct {
+	queue         chan *prompb.TimeSeries
+	batch         int
+	flushCallBack func([]prompb.TimeSeries)
 }
 
-func initQueue() {
-	queue = make(chan *types.Sample, config.Config.WriterOpt.ChanSize)
-	go readQueue(queue)
-}
-
-func readQueue(queue chan *types.Sample) {
-	batch := config.Config.WriterOpt.Batch
+func newMetricQueue(batch int, flushCallback func([]prompb.TimeSeries)) MetricQueue {
 	if batch <= 0 {
 		batch = 2000
 	}
+	return MetricQueue{
+		queue:         make(chan *prompb.TimeSeries, batch),
+		batch:         batch,
+		flushCallBack: flushCallback,
+	}
+}
 
-	series := make([]*types.Sample, 0, batch)
+func (mq *MetricQueue) Push(s *prompb.TimeSeries) {
+	if s == nil {
+		return
+	}
+	mq.queue <- s
+}
 
+func (mq *MetricQueue) LoopRead() {
+	series := make([]prompb.TimeSeries, 0, mq.batch)
 	var count int
-
 	for {
 		select {
-		case item, open := <-queue:
+		case item, open := <-mq.queue:
 			if !open {
-				// queue closed
+				// queue closed, post remaining series
+				mq.flushCallBack(series)
 				return
 			}
 
@@ -40,17 +46,17 @@ func readQueue(queue chan *types.Sample) {
 				continue
 			}
 
-			series = append(series, item)
+			series = append(series, *item)
 			count++
-			if count >= batch {
-				postSeries(series)
+			if count >= mq.batch {
+				mq.flushCallBack(series)
 				count = 0
 				// reset series slice, do not release memory
 				series = series[:0]
 			}
 		default:
 			if len(series) > 0 {
-				postSeries(series)
+				mq.flushCallBack(series)
 				count = 0
 				// reset series slice, do not release memory
 				series = series[:0]

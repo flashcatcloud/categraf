@@ -209,6 +209,6 @@ func openFalcon(c *gin.Context) {
 		log.Println("falcon forwarder error, message:", string(bytes))
 	}
 
-	writer.PostTimeSeries(series)
+	writer.WriteTimeSeries(series)
 	c.String(200, "succ:%d fail:%d message:%s", succ, fail, msg)
 }

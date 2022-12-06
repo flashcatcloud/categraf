@@ -15,9 +15,15 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 )
 
-var Writers = make(map[string]WriterType)
+type Writers struct {
+	writerMap map[string]WriterType
+	queue     MetricQueue
+}
+
+var writers Writers
 
 func InitWriters() error {
+	writerMap := map[string]WriterType{}
 	opts := config.Config.Writers
 	for i := 0; i < len(opts); i++ {
 		cli, err := api.NewClient(api.Config{
@@ -41,78 +47,74 @@ func InitWriters() error {
 			Opts:   opts[i],
 			Client: cli,
 		}
-
-		Writers[opts[i].Url] = writer
+		writerMap[opts[i].Url] = writer
 	}
 
-	initQueue()
+	writers = Writers{
+		writerMap: writerMap,
+		queue:     newMetricQueue(config.Config.WriterOpt.ChanSize, WriteTimeSeries),
+	}
 
+	go writers.queue.LoopRead()
 	return nil
 }
 
-func postSeries(samples []*types.Sample) {
-	if config.Config.TestMode {
-		printTestMetrics(samples)
+func WriteSample(sample *types.Sample) {
+	if sample == nil {
 		return
-	} else {
-		if config.Config.DebugMode {
-			printTestMetrics(samples)
-		}
+	}
+	if config.Config.TestMode {
+		printTestMetric(sample)
+		return
+	}
+	if config.Config.DebugMode {
+		printTestMetric(sample)
 	}
 
-	count := len(samples)
-	series := make([]prompb.TimeSeries, 0, count)
-	for i := 0; i < count; i++ {
-		item := samples[i].ConvertTimeSeries(config.Config.Global.Precision)
-		if item == nil || len(item.Labels) == 0 {
-			continue
-		}
-
-		series = append(series, *item)
+	item := sample.ConvertTimeSeries(config.Config.Global.Precision)
+	if item == nil || len(item.Labels) == 0 {
+		return
 	}
-
-	PostTimeSeries(series)
+	writers.queue.Push(item)
 }
 
-func PostTimeSeries(timeSeries []prompb.TimeSeries) {
+func WriteTimeSeries(timeSeries []prompb.TimeSeries) {
 	if len(timeSeries) == 0 {
 		return
 	}
 
 	wg := sync.WaitGroup{}
-	for key := range Writers {
+	for key := range writers.writerMap {
 		wg.Add(1)
 		go func(key string) {
 			defer wg.Done()
-			Writers[key].Write(timeSeries)
+			writers.writerMap[key].Write(timeSeries)
 		}(key)
 	}
 	wg.Wait()
 }
 
-func printTestMetrics(samples []*types.Sample) {
-	for i := 0; i < len(samples); i++ {
-		var sb strings.Builder
+func printTestMetric(sample *types.Sample) {
+	var sb strings.Builder
 
-		sb.WriteString(samples[i].Timestamp.Format("15:04:05"))
-		sb.WriteString(" ")
-		sb.WriteString(samples[i].Metric)
+	sb.WriteString(sample.Timestamp.Format("15:04:05"))
+	sb.WriteString(" ")
+	sb.WriteString(sample.Metric)
 
-		arr := make([]string, 0, len(samples[i].Labels))
-		for key, val := range samples[i].Labels {
-			arr = append(arr, fmt.Sprintf("%s=%v", key, val))
-		}
-
-		sort.Strings(arr)
-
-		for _, pair := range arr {
-			sb.WriteString(" ")
-			sb.WriteString(pair)
-		}
-
-		sb.WriteString(" ")
-		sb.WriteString(fmt.Sprint(samples[i].Value))
-
-		fmt.Println(sb.String())
+	arr := make([]string, 0, len(sample.Labels))
+	for key, val := range sample.Labels {
+		arr = append(arr, fmt.Sprintf("%s=%v", key, val))
 	}
+
+	sort.Strings(arr)
+
+	for _, pair := range arr {
+		sb.WriteString(" ")
+		sb.WriteString(pair)
+	}
+
+	sb.WriteString(" ")
+	sb.WriteString(fmt.Sprint(sample.Value))
+
+	fmt.Println(sb.String())
 }
