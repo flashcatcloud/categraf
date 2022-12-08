@@ -1,70 +1,111 @@
 package writer
 
 import (
-	"time"
+	"container/list"
+	"sync"
 
 	"github.com/prometheus/prometheus/prompb"
 )
 
-// MetricQueue is a queue for prometheus metrics
-// It will flush metrics to writers when queue is full
-// or flush metrics every 100ms
-type MetricQueue struct {
-	queue         chan *prompb.TimeSeries
-	batch         int
-	flushCallback func([]prompb.TimeSeries)
+type SafeList struct {
+	sync.RWMutex
+	L *list.List
 }
 
-func newMetricQueue(batch int, flushCallback func([]prompb.TimeSeries)) MetricQueue {
-	if batch <= 0 {
-		batch = 2000
-	}
-	return MetricQueue{
-		queue:         make(chan *prompb.TimeSeries, batch),
-		batch:         batch,
-		flushCallback: flushCallback,
-	}
+func NewSafeList() *SafeList {
+	return &SafeList{L: list.New()}
 }
 
-func (mq *MetricQueue) Push(s *prompb.TimeSeries) {
-	if s == nil {
-		return
-	}
-	mq.queue <- s
+func (sl *SafeList) PushFront(v interface{}) *list.Element {
+	sl.Lock()
+	e := sl.L.PushFront(v)
+	sl.Unlock()
+	return e
 }
 
-func (mq *MetricQueue) LoopRead() {
-	series := make([]prompb.TimeSeries, 0, mq.batch)
-	var count int
-	for {
-		select {
-		case item, open := <-mq.queue:
-			if !open {
-				// queue closed, post remaining series
-				mq.flushCallback(series)
-				return
-			}
+func (sl *SafeList) PushFrontBatch(vs []interface{}) {
+	sl.Lock()
+	for _, item := range vs {
+		sl.L.PushFront(item)
+	}
+	sl.Unlock()
+}
 
-			if item == nil {
-				continue
-			}
+func (sl *SafeList) PopBack(max int) []*prompb.TimeSeries {
+	sl.Lock()
 
-			series = append(series, *item)
-			count++
-			if count >= mq.batch {
-				mq.flushCallback(series)
-				count = 0
-				// reset series slice, do not release memory
-				series = series[:0]
-			}
-		default:
-			if len(series) > 0 {
-				mq.flushCallback(series)
-				count = 0
-				// reset series slice, do not release memory
-				series = series[:0]
-			}
-			time.Sleep(time.Millisecond * 100)
+	count := sl.L.Len()
+	if count == 0 {
+		sl.Unlock()
+		return []*prompb.TimeSeries{}
+	}
+
+	if count > max {
+		count = max
+	}
+
+	items := make([]*prompb.TimeSeries, 0, count)
+	for i := 0; i < count; i++ {
+		item := sl.L.Remove(sl.L.Back())
+		sample, ok := item.(*prompb.TimeSeries)
+		if ok {
+			items = append(items, sample)
 		}
 	}
+
+	sl.Unlock()
+	return items
+}
+
+func (sl *SafeList) RemoveAll() {
+	sl.Lock()
+	sl.L.Init()
+	sl.Unlock()
+}
+
+func (sl *SafeList) Len() int {
+	sl.RLock()
+	size := sl.L.Len()
+	sl.RUnlock()
+	return size
+}
+
+// SafeList with Limited Size
+type SafeListLimited struct {
+	maxSize int
+	SL      *SafeList
+}
+
+func NewSafeListLimited(maxSize int) *SafeListLimited {
+	return &SafeListLimited{SL: NewSafeList(), maxSize: maxSize}
+}
+
+func (sll *SafeListLimited) PopBack(max int) []*prompb.TimeSeries {
+	return sll.SL.PopBack(max)
+}
+
+func (sll *SafeListLimited) PushFront(v interface{}) bool {
+	if sll.SL.Len() >= sll.maxSize {
+		return false
+	}
+
+	sll.SL.PushFront(v)
+	return true
+}
+
+func (sll *SafeListLimited) PushFrontBatch(vs []interface{}) bool {
+	if sll.SL.Len() >= sll.maxSize {
+		return false
+	}
+
+	sll.SL.PushFrontBatch(vs)
+	return true
+}
+
+func (sll *SafeListLimited) RemoveAll() {
+	sll.SL.RemoveAll()
+}
+
+func (sll *SafeListLimited) Len() int {
+	return sll.SL.Len()
 }

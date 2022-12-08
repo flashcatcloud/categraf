@@ -16,13 +16,13 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 )
 
-type WriterType struct {
+type Writer struct {
 	Opts   config.WriterOption
 	Client api.Client
 }
 
-// newWriteType creates a new WriterType from config.WriterOption
-func newWriteType(opt config.WriterOption) (*WriterType, error) {
+// newWrite creates a new Writer from config.WriterOption
+func newWrite(opt config.WriterOption) (Writer, error) {
 	cli, err := api.NewClient(api.Config{
 		Address: opt.Url,
 		RoundTripper: &http.Transport{
@@ -37,16 +37,16 @@ func newWriteType(opt config.WriterOption) (*WriterType, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return Writer{}, err
 	}
 
-	return &WriterType{
+	return Writer{
 		Opts:   opt,
 		Client: cli,
 	}, nil
 }
 
-func (w WriterType) Write(items []prompb.TimeSeries) {
+func (w Writer) Write(items []prompb.TimeSeries) {
 	if len(items) == 0 {
 		return
 	}
@@ -67,7 +67,7 @@ func (w WriterType) Write(items []prompb.TimeSeries) {
 	}
 }
 
-func (w WriterType) post(req []byte) error {
+func (w Writer) post(req []byte) error {
 	httpReq, err := http.NewRequest("POST", w.Opts.Url, bytes.NewReader(req))
 	if err != nil {
 		log.Println("W! create remote write request got error:", err)

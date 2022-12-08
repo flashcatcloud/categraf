@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/prometheus/prometheus/prompb"
 
@@ -14,29 +15,47 @@ import (
 
 // Writers manage all writers and metric queue
 type Writers struct {
-	writerMap map[string]WriterType
-	queue     MetricQueue
+	writerMap map[string]Writer
+	queue     *SafeListLimited
 }
 
 var writers Writers
 
 func InitWriters() error {
-	writerMap := map[string]WriterType{}
+	writerMap := map[string]Writer{}
 	opts := config.Config.Writers
 	for _, opt := range opts {
-		writer, err := newWriteType(opt)
+		writer, err := newWrite(opt)
 		if err != nil {
 			return err
 		}
-		writerMap[opt.Url] = *writer
-	}
-	writers = Writers{
-		writerMap: writerMap,
-		queue:     newMetricQueue(config.Config.WriterOpt.ChanSize, WriteTimeSeries),
+		writerMap[opt.Url] = writer
 	}
 
-	go writers.queue.LoopRead()
+	writers = Writers{
+		writerMap: writerMap,
+		queue:     NewSafeListLimited(config.Config.WriterOpt.ChanSize),
+	}
+
+	go writers.LoopRead()
 	return nil
+}
+
+func (ws Writers) LoopRead() {
+	for {
+		series := ws.queue.PopBack(config.Config.WriterOpt.Batch)
+		if len(series) == 0 {
+			time.Sleep(time.Millisecond * 400)
+			continue
+		}
+
+		items := make([]prompb.TimeSeries, len(series))
+		for i := 0; i < len(series); i++ {
+			items[i] = *series[i]
+		}
+
+		WriteTimeSeries(items)
+	}
 }
 
 // WriteSample convert sample to prompb.TimeSeries and write to queue
@@ -56,7 +75,7 @@ func WriteSample(sample *types.Sample) {
 	if item == nil || len(item.Labels) == 0 {
 		return
 	}
-	writers.queue.Push(item)
+	writers.queue.PushFront(item)
 }
 
 // WriteTimeSeries write prompb.TimeSeries to all writers
