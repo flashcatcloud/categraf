@@ -1,3 +1,5 @@
+//go:build !no_logs
+
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
@@ -202,9 +204,9 @@ func (d *DockerUtil) dockerContainers(ctx context.Context, cfg *ContainerListCon
 }
 
 // Parse the health out of a container status. The format is either:
-//  - 'Up 5 seconds (health: starting)'
-//  - 'Up 18 hours (unhealthy)'
-//  - 'Up about an hour'
+//   - 'Up 5 seconds (health: starting)'
+//   - 'Up 18 hours (unhealthy)'
+//   - 'Up about an hour'
 func parseContainerHealth(status string) string {
 	// Avoid allocations in most cases by just checking for '('
 	if strings.Index(status, "unhealthy") >= 0 {

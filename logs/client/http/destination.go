@@ -1,3 +1,5 @@
+//go:build !no_logs
+
 package http
 
 import (

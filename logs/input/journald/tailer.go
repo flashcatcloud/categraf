@@ -1,10 +1,9 @@
+//go:build !no_logs && systemd
+
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License Version 2.0.
 // This product includes software developed at Datadog (https://www.datadoghq.com/).
 // Copyright 2016-present Datadog, Inc.
-
-//go:build systemd
-// +build systemd
 
 package journald
 
@@ -185,20 +184,20 @@ func (t *Tailer) toMessage(entry *sdjournal.JournalEntry) *message.Message {
 // getContent returns all the fields of the entry as a json-string,
 // remapping "MESSAGE" into "message" and bundling all the other keys in a "journald" attribute.
 // ex:
-// * journal-entry:
-//  {
-//    "MESSAGE": "foo",
-//    "_SYSTEMD_UNIT": "foo",
-//    ...
-//  }
-// * message-content:
-//  {
-//    "message": "foo",
-//    "journald": {
-//      "_SYSTEMD_UNIT": "foo",
-//      ...
-//    }
-//  }
+//   - journal-entry:
+//     {
+//     "MESSAGE": "foo",
+//     "_SYSTEMD_UNIT": "foo",
+//     ...
+//     }
+//   - message-content:
+//     {
+//     "message": "foo",
+//     "journald": {
+//     "_SYSTEMD_UNIT": "foo",
+//     ...
+//     }
+//     }
 func (t *Tailer) getContent(entry *sdjournal.JournalEntry) []byte {
 	payload := make(map[string]interface{})
 	fields := entry.Fields
