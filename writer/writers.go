@@ -25,7 +25,7 @@ func InitWriters() error {
 	writerMap := map[string]Writer{}
 	opts := config.Config.Writers
 	for _, opt := range opts {
-		writer, err := newWrite(opt)
+		writer, err := newWriter(opt)
 		if err != nil {
 			return err
 		}

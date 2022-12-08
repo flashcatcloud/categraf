@@ -21,8 +21,8 @@ type Writer struct {
 	Client api.Client
 }
 
-// newWrite creates a new Writer from config.WriterOption
-func newWrite(opt config.WriterOption) (Writer, error) {
+// newWriter creates a new Writer from config.WriterOption
+func newWriter(opt config.WriterOption) (Writer, error) {
 	cli, err := api.NewClient(api.Config{
 		Address: opt.Url,
 		RoundTripper: &http.Transport{

@@ -15,48 +15,28 @@ type TracesAgent struct {
 }
 
 func NewTracesAgent() AgentModule {
-	return &TracesAgent{}
+	if config.Config.Traces == nil || !config.Config.Traces.Enable {
+		log.Println("I! traces agent disabled!")
+		return nil
+	}
+	col, err := traces.New(config.Config.Traces)
+	if err != nil {
+		log.Println("E! failed to create traces agent:", err)
+		return nil
+	}
+	if col == nil {
+		log.Println("E! failed to create traces agent, collector is nil")
+		return nil
+	}
+	return &TracesAgent{
+		TraceCollector: col,
+	}
 }
 
 func (ta *TracesAgent) Start() (err error) {
-	if config.Config.Traces == nil || !config.Config.Traces.Enable {
-		return nil
-	}
-
-	defer func() {
-		if err != nil {
-			log.Println("E! failed to start tracing agent:", err)
-		}
-	}()
-
-	col, err := traces.New(config.Config.Traces)
-	if err != nil {
-		return err
-	}
-
-	err = col.Run(context.Background())
-	if err != nil {
-		return err
-	}
-
-	ta.TraceCollector = col
-	return nil
+	return ta.TraceCollector.Run(context.Background())
 }
 
 func (ta *TracesAgent) Stop() (err error) {
-	if config.Config.Traces == nil || !config.Config.Traces.Enable {
-		return nil
-	}
-
-	if ta.TraceCollector == nil {
-		return nil
-	}
-
-	defer func() {
-		if err != nil {
-			log.Println("E! failed to stop tracing agent:", err)
-		}
-	}()
-
 	return ta.TraceCollector.Shutdown(context.Background())
 }

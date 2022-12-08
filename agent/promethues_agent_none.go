@@ -6,7 +6,7 @@ type PrometheusAgent struct {
 }
 
 func NewPrometheusAgent() AgentModule {
-	return &PrometheusAgent{}
+	return nil
 }
 
 func (pa *PrometheusAgent) Start() error {
