@@ -29,10 +29,8 @@ disable_usage_report = true
 # env = "localhost"
 
 [writer_opt]
-# default: 2000
-batch = 2000
-# channel(as queue) size
-chan_size = 10000
+batch = 1000
+chan_size = 1000000
 
 [[writers]]
 url = "http://127.0.0.1:19000/prometheus/v1/write"

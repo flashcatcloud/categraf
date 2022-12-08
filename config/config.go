@@ -111,7 +111,11 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 	}
 
 	if Config.WriterOpt.ChanSize <= 0 {
-		Config.WriterOpt.ChanSize = 10000
+		Config.WriterOpt.ChanSize = 1000000
+	}
+
+	if Config.WriterOpt.Batch <= 0 {
+		Config.WriterOpt.Batch = 1000
 	}
 
 	if err := Config.fillIP(); err != nil {
