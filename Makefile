@@ -23,6 +23,10 @@ build-enterprise:
 	echo "Building version $(GIT_VERSION)"
 	go build --tags "enterprise" -ldflags $(LDFLAGS) -o $(APP)
 
+build-pure:
+	echo "Building version $(GIT_VERSION)"
+	go build --tags "no_prometheus no_traces" -ldflags $(LDFLAGS) -o $(APP)
+
 build-linux:
 	echo "Building version $(GIT_VERSION) for linux"
 	GOOS=linux GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP)
