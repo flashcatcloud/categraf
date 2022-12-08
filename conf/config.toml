@@ -58,7 +58,7 @@ print_access = false
 run_mode = "release"
 
 [ibex]
-  enable = true
+  enable = false
   ## ibex flush interval
   interval = "1000ms"
   ## n9e ibex server rpc address
