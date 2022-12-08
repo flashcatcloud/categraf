@@ -110,6 +110,6 @@ func (r *InputReader) forward(slist *types.SampleList) {
 	}
 	arr := slist.PopBackAll()
 	for i := 0; i < len(arr); i++ {
-		writer.PushQueue(arr[i])
+		writer.WriteSample(arr[i])
 	}
 }

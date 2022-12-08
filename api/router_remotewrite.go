@@ -49,7 +49,7 @@ func remoteWrite(c *gin.Context) {
 		}
 	}
 
-	writer.PostTimeSeries(req.Timeseries)
+	writer.WriteTimeSeries(req.Timeseries)
 	c.String(200, "forwarding...")
 }
 

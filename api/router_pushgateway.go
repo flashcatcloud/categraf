@@ -63,7 +63,7 @@ func pushgateway(c *gin.Context) {
 			samples[i].Labels[agentHostnameLabelKey] = config.Config.GetHostname()
 		}
 
-		writer.PushQueue(samples[i])
+		writer.WriteSample(samples[i])
 	}
 
 	c.String(200, "forwarding...")
