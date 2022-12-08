@@ -59,6 +59,7 @@ func (ws Writers) LoopRead() {
 }
 
 // WriteSample convert sample to prompb.TimeSeries and write to queue
+// Note: Use WriteSamples for batch write for better performance
 func WriteSample(sample *types.Sample) {
 	if sample == nil {
 		return
@@ -78,6 +79,30 @@ func WriteSample(sample *types.Sample) {
 	writers.queue.PushFront(item)
 }
 
+// WriteSamples convert samples to []prompb.TimeSeries and batch write to queue
+func WriteSamples(samples []*types.Sample) {
+	if len(samples) == 0 {
+		return
+	}
+	if config.Config.TestMode {
+		printTestMetrics(samples)
+		return
+	}
+	if config.Config.DebugMode {
+		printTestMetrics(samples)
+	}
+
+	items := make([]interface{}, len(samples))
+	for _, sample := range samples {
+		item := sample.ConvertTimeSeries(config.Config.Global.Precision)
+		if item == nil || len(item.Labels) == 0 {
+			continue
+		}
+		items = append(items, *item)
+	}
+	writers.queue.PushFrontBatch(items)
+}
+
 // WriteTimeSeries write prompb.TimeSeries to all writers
 func WriteTimeSeries(timeSeries []prompb.TimeSeries) {
 	if len(timeSeries) == 0 {
@@ -93,6 +118,12 @@ func WriteTimeSeries(timeSeries []prompb.TimeSeries) {
 		}(key)
 	}
 	wg.Wait()
+}
+
+func printTestMetrics(samples []*types.Sample) {
+	for _, sample := range samples {
+		printTestMetric(sample)
+	}
 }
 
 // printTestMetric print metric to stdout, only used in debug/test mode
