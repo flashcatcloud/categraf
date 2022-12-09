@@ -1,3 +1,5 @@
+//go:build !no_ibex
+
 package ibex
 
 import (

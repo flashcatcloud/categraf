@@ -1,3 +1,5 @@
+//go:build !no_logs
+
 package logs
 
 import (
@@ -13,14 +15,14 @@ import (
 // InfoProvider can be extended/implemented for more complex data.
 //
 // When implementing InfoProvider - be aware of the 2 ways it is used by the status page:
-// 1. when a single message is returned, the statuspage will display a single line:
-//	    InfoKey(): Info()[0]
+//  1. when a single message is returned, the statuspage will display a single line:
+//     InfoKey(): Info()[0]
 //
-// 2. when multiple messages are returned, the status page will display an indented list:
-//      InfoKey():
-//        Info()[0]
-//        Info()[1]
-//        Info()[n]
+//  2. when multiple messages are returned, the status page will display an indented list:
+//     InfoKey():
+//     Info()[0]
+//     Info()[1]
+//     Info()[n]
 //
 // InfoKey only needs to be unique per source, and should be human readable.
 type InfoProvider interface {

@@ -1,5 +1,4 @@
-//go:build !windows
-// +build !windows
+//go:build !no_ibex && !windows
 
 package ibex
 

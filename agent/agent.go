@@ -9,6 +9,9 @@ type Agent struct {
 	agents []AgentModule
 }
 
+// AgentModule is the interface for agent modules
+// Use NewXXXAgent() to create a new agent module
+// if the agent module is not needed, return nil
 type AgentModule interface {
 	Start() error
 	Stop() error
@@ -35,13 +38,13 @@ func NewAgent() (*Agent, error) {
 func (a *Agent) Start() {
 	log.Println("I! agent starting")
 	for _, agent := range a.agents {
-		if agent != nil {
-			err := agent.Start()
-			if err != nil {
-				log.Printf("E! start [%T] err: [%+v]", agent, err)
-			} else {
-				log.Printf("I! [%T] started", agent)
-			}
+		if agent == nil {
+			continue
+		}
+		if err := agent.Start(); err != nil {
+			log.Printf("E! start [%T] err: [%+v]", agent, err)
+		} else {
+			log.Printf("I! [%T] started", agent)
 		}
 	}
 	log.Println("I! agent started")
@@ -50,13 +53,13 @@ func (a *Agent) Start() {
 func (a *Agent) Stop() {
 	log.Println("I! agent stopping")
 	for _, agent := range a.agents {
-		if agent != nil {
-			err := agent.Stop()
-			if err != nil {
-				log.Printf("E! stop [%T] err: [%+v]", agent, err)
-			} else {
-				log.Printf("I! [%T] stopped", agent)
-			}
+		if agent == nil {
+			continue
+		}
+		if err := agent.Stop(); err != nil {
+			log.Printf("E! stop [%T] err: [%+v]", agent, err)
+		} else {
+			log.Printf("I! [%T] stopped", agent)
 		}
 	}
 	log.Println("I! agent stopped")

@@ -6,7 +6,7 @@ type TracesAgent struct {
 }
 
 func NewTracesAgent() AgentModule {
-	return &TracesAgent{}
+	return nil
 }
 
 func (ta *TracesAgent) Start() (err error) {

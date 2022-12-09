@@ -13,17 +13,16 @@ type IbexAgent struct {
 }
 
 func NewIbexAgent() AgentModule {
-	return &IbexAgent{}
-}
-
-func (ia *IbexAgent) Start() error {
 	if coreconfig.Config == nil ||
 		coreconfig.Config.Ibex == nil ||
 		!coreconfig.Config.Ibex.Enable {
 		log.Println("I! ibex agent disabled!")
 		return nil
 	}
+	return &IbexAgent{}
+}
 
+func (ia *IbexAgent) Start() error {
 	go ibex.Start()
 	return nil
 }
