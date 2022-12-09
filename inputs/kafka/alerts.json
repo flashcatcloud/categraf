@@ -44,7 +44,7 @@
       "severity": 2,
       "disabled": 1,
       "prom_for_duration": 60,
-      "prom_ql": "kafka_consumer_lag_millis / 1000 > 300",
+      "prom_ql": "max(kafka_consumer_lag_millis) by (topic, consumergroup)  / 1000 > 300",
       "prom_eval_interval": 15,
       "enable_stime": "00:00",
       "enable_etime": "23:59",

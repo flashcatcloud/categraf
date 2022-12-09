@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
-	"github.com/gin-gonic/gin"
 )
 
 func pushgateway(c *gin.Context) {
@@ -63,8 +64,7 @@ func pushgateway(c *gin.Context) {
 			samples[i].Labels[agentHostnameLabelKey] = config.Config.GetHostname()
 		}
 
-		writer.WriteSample(samples[i])
 	}
-
+	writer.WriteSamples(samples)
 	c.String(200, "forwarding...")
 }
