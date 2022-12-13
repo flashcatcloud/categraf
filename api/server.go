@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/aop"
-	"github.com/gin-gonic/gin"
 )
 
 func Start() {

@@ -4,9 +4,10 @@ import (
 	"strings"
 	"time"
 
-	"flashcat.cloud/categraf/pkg/conv"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
+
+	"flashcat.cloud/categraf/pkg/conv"
 )
 
 type Sample struct {

@@ -10,13 +10,13 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/matttproud/golang_protobuf_extensions/pbutil"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/common/expfmt"
+
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/prom"
 	"flashcat.cloud/categraf/types"
-	"github.com/matttproud/golang_protobuf_extensions/pbutil"
-	"github.com/prometheus/common/expfmt"
-
-	dto "github.com/prometheus/client_model/go"
 )
 
 type Parser struct {
@@ -35,6 +35,10 @@ func NewParser(namePrefix string, defaultTags map[string]string, header http.Hea
 		IgnoreMetricsFilter:   ignoreMetricsFilter,
 		IgnoreLabelKeysFilter: ignoreLabelKeysFilter,
 	}
+}
+
+func EmptyParser() *Parser {
+	return &Parser{}
 }
 
 func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
@@ -97,12 +101,15 @@ func (p *Parser) HandleSummary(m *dto.Metric, tags map[string]string, metricName
 	if !strings.HasPrefix(metricName, p.NamePrefix) {
 		namePrefix = p.NamePrefix
 	}
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags))
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags))
+
+	samples := make([]*types.Sample, 0, len(m.GetSummary().Quantile)+2)
+	samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags))
+	samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags))
 
 	for _, q := range m.GetSummary().Quantile {
-		slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
+		samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "quantile"), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
 	}
+	slist.PushFrontBatch(samples)
 }
 
 func (p *Parser) HandleHistogram(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
@@ -110,15 +117,18 @@ func (p *Parser) HandleHistogram(m *dto.Metric, tags map[string]string, metricNa
 	if !strings.HasPrefix(metricName, p.NamePrefix) {
 		namePrefix = p.NamePrefix
 	}
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags))
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags))
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
+
+	samples := make([]*types.Sample, 0, len(m.GetHistogram().Bucket)+3)
+	samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags))
+	samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags))
+	samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
 
 	for _, b := range m.GetHistogram().Bucket {
 		le := fmt.Sprint(b.GetUpperBound())
 		value := float64(b.GetCumulativeCount())
-		slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}))
+		samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}))
 	}
+	slist.PushFrontBatch(samples)
 }
 
 func (p *Parser) handleGaugeCounter(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
@@ -129,7 +139,6 @@ func (p *Parser) handleGaugeCounter(m *dto.Metric, tags map[string]string, metri
 		} else {
 			slist.PushFront(types.NewSample("", prom.BuildMetric("", metric, ""), value, tags))
 		}
-
 	}
 }
 

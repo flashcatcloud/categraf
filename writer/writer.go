@@ -9,11 +9,12 @@ import (
 	"net/http"
 	"time"
 
-	"flashcat.cloud/categraf/config"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/prometheus/prompb"
+
+	"flashcat.cloud/categraf/config"
 )
 
 type Writer struct {

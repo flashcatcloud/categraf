@@ -1,5 +1,4 @@
 //go:build windows
-// +build windows
 
 package main
 
@@ -46,7 +45,7 @@ func runAgent(ag *agent.Agent) {
 
 func doOSsvc() {
 	// install service
-	if *flagWinSvcInstall && runtime.GOOS == "windows" {
+	if *flagWinSvcInstall {
 		if err := winsvc.InstallService(appPath, *flagWinSvcName, *flagWinSvcDesc); err != nil {
 			log.Fatalln("F! failed to install service:", *flagWinSvcName, "error:", err)
 		}
@@ -55,7 +54,7 @@ func doOSsvc() {
 	}
 
 	// uninstall service
-	if *flagWinSvcUninstall && runtime.GOOS == "windows" {
+	if *flagWinSvcUninstall {
 		if err := winsvc.RemoveService(*flagWinSvcName); err != nil {
 			log.Fatalln("F! failed to uninstall service:", *flagWinSvcName, "error:", err)
 		}
@@ -64,7 +63,7 @@ func doOSsvc() {
 	}
 
 	// start service
-	if *flagWinSvcStart && runtime.GOOS == "windows" {
+	if *flagWinSvcStart {
 		if err := winsvc.StartService(*flagWinSvcName); err != nil {
 			log.Fatalln("F! failed to start service:", *flagWinSvcName, "error:", err)
 		}

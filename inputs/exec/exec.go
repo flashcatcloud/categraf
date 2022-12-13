@@ -63,7 +63,7 @@ func (ins *Instance) Init() error {
 	} else if ins.DataFormat == "falcon" {
 		ins.parser = falcon.NewParser()
 	} else if strings.HasPrefix(ins.DataFormat, "prom") {
-		ins.parser = prometheus.NewParser("", map[string]string{}, nil, nil, nil)
+		ins.parser = prometheus.EmptyParser()
 	} else {
 		return fmt.Errorf("data_format(%s) not supported", ins.DataFormat)
 	}

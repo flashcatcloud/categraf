@@ -4,16 +4,16 @@ import (
 	"errors"
 	"log"
 
-	"flashcat.cloud/categraf/types"
 	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 
 	pp "flashcat.cloud/categraf/parser/prometheus"
-	dto "github.com/prometheus/client_model/go"
+	"flashcat.cloud/categraf/types"
 )
 
 const capMetricChan = 1000
 
-var parser = new(pp.Parser)
+var parser = pp.EmptyParser()
 
 func Collect(e prometheus.Collector, slist *types.SampleList, constLabels ...map[string]string) error {
 	if e == nil {
