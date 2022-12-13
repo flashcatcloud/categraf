@@ -32,9 +32,9 @@ func (sl *SafeList[T]) PushFrontN(vs []T) {
 
 func (sl *SafeList[T]) PopBack() *T {
 	sl.Lock()
+	defer sl.Unlock()
 	if elem := sl.L.Back(); elem != nil {
 		item := sl.L.Remove(elem)
-		sl.Unlock()
 		v, ok := item.(T)
 		if !ok {
 			return nil
@@ -72,9 +72,9 @@ func (sl *SafeList[T]) PopBackN(n int) []T {
 
 func (sl *SafeList[T]) PopBackAll() []T {
 	sl.Lock()
+	defer sl.Unlock()
 	count := sl.L.Len()
 	if count == 0 {
-		sl.Unlock()
 		return nil
 	}
 
@@ -86,8 +86,6 @@ func (sl *SafeList[T]) PopBackAll() []T {
 			items = append(items, item)
 		}
 	}
-
-	sl.Unlock()
 	return items
 }
 
