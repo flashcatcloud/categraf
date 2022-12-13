@@ -16,7 +16,7 @@ import (
 // Writers manage all writers and metric queue
 type Writers struct {
 	writerMap map[string]Writer
-	queue     *SafeListLimited
+	queue     *types.SafeListLimited[*prompb.TimeSeries]
 }
 
 var writers Writers
@@ -34,7 +34,7 @@ func InitWriters() error {
 
 	writers = Writers{
 		writerMap: writerMap,
-		queue:     NewSafeListLimited(config.Config.WriterOpt.ChanSize),
+		queue:     types.NewSafeListLimited[*prompb.TimeSeries](config.Config.WriterOpt.ChanSize),
 	}
 
 	go writers.LoopRead()
@@ -43,7 +43,7 @@ func InitWriters() error {
 
 func (ws Writers) LoopRead() {
 	for {
-		series := ws.queue.PopBack(config.Config.WriterOpt.Batch)
+		series := ws.queue.PopBackN(config.Config.WriterOpt.Batch)
 		if len(series) == 0 {
 			time.Sleep(time.Millisecond * 400)
 			continue
@@ -92,15 +92,15 @@ func WriteSamples(samples []*types.Sample) {
 		printTestMetrics(samples)
 	}
 
-	items := make([]interface{}, len(samples))
+	items := make([]*prompb.TimeSeries, len(samples))
 	for _, sample := range samples {
 		item := sample.ConvertTimeSeries(config.Config.Global.Precision)
 		if item == nil || len(item.Labels) == 0 {
 			continue
 		}
-		items = append(items, *item)
+		items = append(items, item)
 	}
-	writers.queue.PushFrontBatch(items)
+	writers.queue.PushFrontN(items)
 }
 
 // WriteTimeSeries write prompb.TimeSeries to all writers
