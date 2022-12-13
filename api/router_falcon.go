@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/writer"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
+
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/writer"
 )
 
 type FalconMetric struct {

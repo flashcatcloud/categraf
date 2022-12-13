@@ -24,7 +24,7 @@ func pushgateway(c *gin.Context) {
 		return
 	}
 
-	parser := prometheus.NewParser("", map[string]string{}, nil, nil, nil)
+	parser := prometheus.EmptyParser()
 	slist := types.NewSampleList()
 	if err = parser.Parse(bs, slist); err != nil {
 		c.String(http.StatusBadRequest, err.Error())

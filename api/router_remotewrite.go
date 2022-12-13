@@ -3,10 +3,11 @@ package api
 import (
 	"net/http"
 
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/writer"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/prometheus/prompb"
+
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/writer"
 )
 
 func remoteWrite(c *gin.Context) {

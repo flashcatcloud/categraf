@@ -256,6 +256,8 @@ func (lp *LocalProvider) GetInputConfig(inputKey string) ([]cfg.ConfigWithFormat
 	return cwf, nil
 }
 
+// HTTPProvider provider a mechanism to get config from remote http server at a fixed interval
+// If input config is changed, the provider will reload the input without reload whole agent
 type HTTPProvider struct {
 	sync.RWMutex
 

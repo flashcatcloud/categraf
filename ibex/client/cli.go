@@ -7,15 +7,17 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net"
 	"net/rpc"
 	"reflect"
 	"time"
 
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/ibex/types"
 	"github.com/toolkits/pkg/net/gobrpc"
 	"github.com/ugorji/go/codec"
+
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/ibex/types"
 )
 
 var cli *gobrpc.RPCClient
@@ -29,7 +31,7 @@ func getCli() *gobrpc.RPCClient {
 	var (
 		address  string
 		client   *rpc.Client
-		duration int64 = 999999999999
+		duration int64 = math.MaxInt64
 	)
 
 	// auto close other slow server
