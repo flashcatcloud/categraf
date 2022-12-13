@@ -109,7 +109,7 @@ func (p *Parser) HandleSummary(m *dto.Metric, tags map[string]string, metricName
 	for _, q := range m.GetSummary().Quantile {
 		samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "quantile"), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
 	}
-	slist.PushFrontBatch(samples)
+	slist.PushFrontN(samples)
 }
 
 func (p *Parser) HandleHistogram(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
@@ -128,7 +128,7 @@ func (p *Parser) HandleHistogram(m *dto.Metric, tags map[string]string, metricNa
 		value := float64(b.GetCumulativeCount())
 		samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}))
 	}
-	slist.PushFrontBatch(samples)
+	slist.PushFrontN(samples)
 }
 
 func (p *Parser) handleGaugeCounter(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
