@@ -43,6 +43,10 @@ build-mac:
 	echo "Building version $(GIT_VERSION) for mac"
 	GOOS=darwin GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).mac
 
+build-mac-arm:
+	echo "Building version $(GIT_VERSION) for mac"
+	GOOS=darwin GOARCH=arm64 go build -ldflags $(LDFLAGS) -o $(APP).mac
+
 build-image: build-linux
 	echo "Building image flashcatcloud/categraf:$(TAG)"
 	cp -rf conf/config.toml conf/logs.toml conf/input.cpu conf/input.disk conf/input.diskio conf/input.docker conf/input.kernel conf/input.kernel_vmstat conf/input.linux_sysctl_fs conf/input.mem conf/input.net conf/input.netstat conf/input.processes conf/input.system docker/conf/ && cp -f categraf docker/ && cd docker && docker build -t flashcatcloud/categraf:$(TAG) .
