@@ -46,7 +46,7 @@ func (sl *SafeList[T]) PopBack() *T {
 
 func (sl *SafeList[T]) PopBackN(n int) []T {
 	sl.Lock()
-	sl.Unlock()
+	defer sl.Unlock()
 
 	count := sl.L.Len()
 	if count == 0 {
