@@ -92,7 +92,7 @@ func WriteSamples(samples []*types.Sample) {
 		printTestMetrics(samples)
 	}
 
-	items := make([]*prompb.TimeSeries, len(samples))
+	items := make([]*prompb.TimeSeries, 0, len(samples))
 	for _, sample := range samples {
 		item := sample.ConvertTimeSeries(config.Config.Global.Precision)
 		if item == nil || len(item.Labels) == 0 {

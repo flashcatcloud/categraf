@@ -46,11 +46,11 @@ func (sl *SafeList[T]) PopBack() *T {
 
 func (sl *SafeList[T]) PopBackN(n int) []T {
 	sl.Lock()
+	defer sl.Unlock()
 
 	count := sl.L.Len()
 	if count == 0 {
-		sl.Unlock()
-		return []T{}
+		return nil
 	}
 
 	if count > n {
@@ -59,14 +59,12 @@ func (sl *SafeList[T]) PopBackN(n int) []T {
 
 	items := make([]T, 0, count)
 	for i := 0; i < count; i++ {
-		item := sl.L.Remove(sl.L.Back())
-		item, ok := item.(T)
+		data := sl.L.Remove(sl.L.Back())
+		item, ok := data.(T)
 		if ok {
 			items = append(items, item)
 		}
 	}
-
-	sl.Unlock()
 	return items
 }
 
@@ -80,8 +78,8 @@ func (sl *SafeList[T]) PopBackAll() []T {
 
 	items := make([]T, 0, count)
 	for i := 0; i < count; i++ {
-		item := sl.L.Remove(sl.L.Back())
-		item, ok := item.(T)
+		data := sl.L.Remove(sl.L.Back())
+		item, ok := data.(T)
 		if ok {
 			items = append(items, item)
 		}

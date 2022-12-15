@@ -35,6 +35,14 @@ go build
 tar zcvf categraf.tar.gz categraf conf
 ```
 
+for mac user, use gnu-tar instead
+
+use system tar tool will cause err ` F! failed to init config: failed to load configs of dir: ./conf err:toml: line 1: files cannot contain NULL bytes; probably using UTF-16; TOML files must be UTF-8`
+
+```shell
+brew install gnu-tar
+gtar zcvf categraf.tar.gz categraf conf
+```
 
 ## Run
 
