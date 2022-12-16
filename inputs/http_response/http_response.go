@@ -230,9 +230,7 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	// If an error in returned, it means we are dealing with a network error, as
 	// HTTP error codes do not generate errors in the net/http library
 	if err != nil {
-		if config.Config.DebugMode {
-			log.Println("D! network error while polling:", target, "error:", err)
-		}
+		log.Println("E! network error while polling:", target, "error:", err)
 
 		// metric: result_code
 		fields["result_code"] = ConnectionFailed
@@ -280,12 +278,14 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 
 	if len(ins.ExpectResponseSubstring) > 0 {
 		if !strings.Contains(string(bs), ins.ExpectResponseSubstring) {
+			log.Println("E! body mismatch, response body:", string(bs))
 			fields["result_code"] = BodyMismatch
 		}
 	}
 
 	if ins.ExpectResponseStatusCode != nil {
 		if *ins.ExpectResponseStatusCode != resp.StatusCode {
+			log.Println("E! status code mismatch, response stats code:", resp.StatusCode)
 			fields["result_code"] = CodeMismatch
 		}
 	}
