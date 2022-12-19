@@ -1,6 +1,15 @@
 # # collect interval
 # interval = 15
 
+# [[queries]]
+# mesurement = "users"
+# metric_fields = [ "total" ]
+# label_fields = [ "service" ]
+# timeout = "3s"
+# request = '''
+# select 'n9e' as service, count(*) as total from n9e_v5.users
+# '''
+
 [[instances]]
 # address = "127.0.0.1:3306"
 # username = "root"

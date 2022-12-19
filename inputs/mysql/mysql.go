@@ -33,7 +33,8 @@ type Instance struct {
 	Parameters     string `toml:"parameters"`
 	TimeoutSeconds int64  `toml:"timeout_seconds"`
 
-	Queries []QueryConfig `toml:"queries"`
+	Queries       []QueryConfig `toml:"queries"`
+	GlobalQueries []QueryConfig `toml:"-"`
 
 	ExtraStatusMetrics              bool `toml:"extra_status_metrics"`
 	ExtraInnodbMetrics              bool `toml:"extra_innodb_metrics"`
@@ -149,7 +150,8 @@ func (ins *Instance) InitValidMetrics() {
 
 type MySQL struct {
 	config.PluginConfig
-	Instances []*Instance `toml:"instances"`
+	Instances []*Instance   `toml:"instances"`
+	Queries   []QueryConfig `toml:"queries"`
 }
 
 func init() {
@@ -161,6 +163,7 @@ func init() {
 func (m *MySQL) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(m.Instances))
 	for i := 0; i < len(m.Instances); i++ {
+		m.Instances[i].GlobalQueries = m.Queries
 		ret[i] = m.Instances[i]
 	}
 	return ret

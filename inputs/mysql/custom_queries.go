@@ -21,6 +21,11 @@ func (ins *Instance) gatherCustomQueries(slist *types.SampleList, db *sql.DB, gl
 		wg.Add(1)
 		go ins.gatherOneQuery(slist, db, globalTags, wg, ins.Queries[i])
 	}
+
+	for i := 0; i < len(ins.GlobalQueries); i++ {
+		wg.Add(1)
+		go ins.gatherOneQuery(slist, db, globalTags, wg, ins.GlobalQueries[i])
+	}
 }
 
 func (ins *Instance) gatherOneQuery(slist *types.SampleList, db *sql.DB, globalTags map[string]string, wg *sync.WaitGroup, query QueryConfig) {

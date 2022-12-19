@@ -33,8 +33,8 @@ type Instance struct {
 	DisableConnectionPool bool           `toml:"disable_connection_pool"`
 	MaxOpenConnections    int            `toml:"max_open_connections"`
 	Metrics               []MetricConfig `toml:"metrics"`
-
-	client *sqlx.DB
+	GlobalMetrics         []MetricConfig `toml:"-"`
+	client                *sqlx.DB
 }
 
 type MetricConfig struct {
@@ -68,9 +68,7 @@ func (o *Oracle) Drop() {
 func (o *Oracle) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(o.Instances))
 	for i := 0; i < len(o.Instances); i++ {
-		if len(o.Instances[i].Metrics) < len(o.Metrics) {
-			o.Instances[i].Metrics = append(o.Instances[i].Metrics, o.Metrics...)
-		}
+		o.Instances[i].GlobalMetrics = o.Metrics
 		ret[i] = o.Instances[i]
 	}
 	return ret
@@ -123,6 +121,12 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	for i := 0; i < len(ins.Metrics); i++ {
 		m := ins.Metrics[i]
+		waitMetrics.Add(1)
+		go ins.scrapeMetric(waitMetrics, slist, m, tags)
+	}
+
+	for i := 0; i < len(ins.GlobalMetrics); i++ {
+		m := ins.GlobalMetrics[i]
 		waitMetrics.Add(1)
 		go ins.scrapeMetric(waitMetrics, slist, m, tags)
 	}
