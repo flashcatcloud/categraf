@@ -43,7 +43,7 @@ type Instance struct {
 	// Comma-separated list of exported server metrics. See http://cbonte.github.io/haproxy-dconv/configuration-1.5.html#9.1
 	ServerMetricFields string `toml:"server_metric_fields"`
 
-	// Comma-separated list of exported server states to exclude. See https://cbonte.github.io/haproxy-dconv/1.8/management.html#9.1, field 17 statuus
+	// Comma-separated list of exported server states to exclude. See https://cbonte.github.io/haproxy-dconv/1.8/management.html#9.1, field 17 status
 	ServerExcludeStates string `toml:"server_exclude_states"`
 
 	// Timeout for trying to get stats from HAProxy.
