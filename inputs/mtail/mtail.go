@@ -204,6 +204,9 @@ func (p *Instance) makeLabels(m *dto.Metric) map[string]string {
 	for key, value := range p.Labels {
 		result[key] = value
 	}
+	for _, pair := range m.GetLabel() {
+		result[pair.GetName()] = pair.GetValue()
+	}
 	return result
 }
 
