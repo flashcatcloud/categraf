@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/process"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/shirou/gopsutil/v3/process"
 )
 
 const inputName = "procstat"
@@ -263,10 +264,10 @@ func (ins *Instance) gatherCPU(slist *types.SampleList, procs map[PID]Process, t
 		v, err := procs[pid].Percent(time.Duration(0))
 		if err == nil {
 			if solarisMode {
-				value += v / float64(runtime.NumCPU())
-				slist.PushFront(types.NewSample(inputName, "cpu_usage", v/float64(runtime.NumCPU()), map[string]string{"pid": fmt.Sprint(pid)}, tags))
-			} else {
-				value += v
+				v /= float64(runtime.NumCPU())
+			}
+			value += v
+			if ins.GatherPerPid {
 				slist.PushFront(types.NewSample(inputName, "cpu_usage", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
 			}
 		}
