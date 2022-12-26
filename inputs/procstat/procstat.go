@@ -236,8 +236,10 @@ func (ins *Instance) gatherIO(slist *types.SampleList, procs map[PID]Process, ta
 func (ins *Instance) gatherUptime(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
 	// use the smallest one
 	var value int64 = -1
+	now := time.Now().UnixMilli()
 	for pid := range procs {
-		v, err := procs[pid].CreateTime() // returns epoch in ms
+		createTime, err := procs[pid].CreateTime() // returns epoch in ms
+		v := now - createTime
 		if err == nil {
 			if ins.GatherPerPid {
 				slist.PushFront(types.NewSample(inputName, "uptime", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
