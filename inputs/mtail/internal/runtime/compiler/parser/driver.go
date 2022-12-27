@@ -17,9 +17,9 @@
 package parser
 
 import (
-	"flag"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"time"
 
@@ -109,6 +109,7 @@ func (p *parser) inRegex() {
 
 func init() {
 	// Initialise globals defined in generated parser.go, defaults to 0 and false
-	flag.IntVar(&mtailDebug, "mtailDebug", 0, "Set parser debug level.")
+	debug := os.Getenv("MTAIL_DEBUG")
+	mtailDebug, _ = strconv.Atoi(debug)
 	mtailErrorVerbose = true
 }

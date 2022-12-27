@@ -8,7 +8,6 @@ package exporter
 import (
 	"context"
 	"expvar"
-	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -25,7 +24,7 @@ import (
 
 // Commandline Flags.
 var (
-	writeDeadline = flag.Duration("metric_push_write_deadline", 10*time.Second, "Time to wait for a push to succeed before exiting with an error.")
+	writeDeadline = time.Duration(10) * time.Second
 )
 
 // Exporter manages the export of metrics to passive and active collectors.
@@ -98,16 +97,16 @@ func New(ctx context.Context, wg *sync.WaitGroup, store *metrics.Store, options 
 		}
 	}
 
-	if *collectdSocketPath != "" {
-		o := pushOptions{"unix", *collectdSocketPath, metricToCollectd, collectdExportTotal, collectdExportSuccess}
+	if collectdSocketPath != "" {
+		o := pushOptions{"unix", collectdSocketPath, metricToCollectd, collectdExportTotal, collectdExportSuccess}
 		e.RegisterPushExport(o)
 	}
-	if *graphiteHostPort != "" {
-		o := pushOptions{"tcp", *graphiteHostPort, metricToGraphite, graphiteExportTotal, graphiteExportSuccess}
+	if graphiteHostPort != "" {
+		o := pushOptions{"tcp", graphiteHostPort, metricToGraphite, graphiteExportTotal, graphiteExportSuccess}
 		e.RegisterPushExport(o)
 	}
-	if *statsdHostPort != "" {
-		o := pushOptions{"udp", *statsdHostPort, metricToStatsd, statsdExportTotal, statsdExportSuccess}
+	if statsdHostPort != "" {
+		o := pushOptions{"udp", statsdHostPort, metricToStatsd, statsdExportTotal, statsdExportSuccess}
 		e.RegisterPushExport(o)
 	}
 	e.StartMetricPush()
@@ -191,12 +190,12 @@ func (e *Exporter) writeSocketMetrics(c io.Writer, f formatter, exportTotal *exp
 func (e *Exporter) PushMetrics() {
 	for _, target := range e.pushTargets {
 		// glog.V(2).Infof("pushing to %s", target.addr)
-		conn, err := net.DialTimeout(target.net, target.addr, *writeDeadline)
+		conn, err := net.DialTimeout(target.net, target.addr, writeDeadline)
 		if err != nil {
 			log.Printf("pusher dial error: %s", err)
 			continue
 		}
-		err = conn.SetDeadline(time.Now().Add(*writeDeadline))
+		err = conn.SetDeadline(time.Now().Add(writeDeadline))
 		if err != nil {
 			log.Printf("Couldn't set deadline on connection: %s", err)
 		}

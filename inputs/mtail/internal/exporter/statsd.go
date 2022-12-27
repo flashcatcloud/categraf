@@ -5,18 +5,16 @@ package exporter
 
 import (
 	"expvar"
-	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/metrics"
 )
 
 var (
-	statsdHostPort = flag.String("statsd_hostport", "",
-		"Host:port to statsd server to write metrics to.")
-	statsdPrefix = flag.String("statsd_prefix", "",
-		"Prefix to use for statsd metrics.")
+	statsdHostPort = os.Getenv("STATSD_HOSTPORT")
+	statsdPrefix   = os.Getenv("STATSD_PREFIX")
 
 	statsdExportTotal   = expvar.NewInt("statsd_export_total")
 	statsdExportSuccess = expvar.NewInt("statsd_export_success")
@@ -35,7 +33,7 @@ func metricToStatsd(hostname string, m *metrics.Metric, l *metrics.LabelSet, _ t
 		t = "ms" // StatsD Timer
 	}
 	return fmt.Sprintf("%s%s.%s:%s|%s",
-		*statsdPrefix,
+		statsdPrefix,
 		m.Program,
 		formatLabels(m.Name, l.Labels, ".", ".", "_"),
 		l.Datum.ValueString(), t)
