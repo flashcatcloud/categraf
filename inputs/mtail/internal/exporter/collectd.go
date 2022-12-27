@@ -5,8 +5,8 @@ package exporter
 
 import (
 	"expvar"
-	"flag"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -19,10 +19,8 @@ const (
 )
 
 var (
-	collectdSocketPath = flag.String("collectd_socketpath", "",
-		"Path to collectd unixsock to write metrics to.")
-	collectdPrefix = flag.String("collectd_prefix", "",
-		"Prefix to use for collectd metrics.")
+	collectdSocketPath = os.Getenv("COLLECTD_SOCKETPATH")
+	collectdPrefix     = os.Getenv("COLLECTD_PREFIX")
 
 	collectdExportTotal   = expvar.NewInt("collectd_export_total")
 	collectdExportSuccess = expvar.NewInt("collectd_export_success")
@@ -33,7 +31,7 @@ var (
 func metricToCollectd(hostname string, m *metrics.Metric, l *metrics.LabelSet, interval time.Duration) string {
 	return fmt.Sprintf(collectdFormat,
 		hostname,
-		*collectdPrefix,
+		collectdPrefix,
 		m.Program,
 		kindToCollectdType(m.Kind),
 		formatLabels(m.Name, l.Labels, "-", "-", "_"),
