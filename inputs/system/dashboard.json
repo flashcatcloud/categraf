@@ -1320,7 +1320,7 @@
                       "displayMode": "hidden"
                   },
                   "standardOptions": {
-                      "util": "bytesIEC",
+                      "util": "bitsIEC",
                       "decimals": 0
                   },
                   "thresholds": {}
