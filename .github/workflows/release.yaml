@@ -5,11 +5,11 @@ on:
     tags:
       - 'v*'
 env:
-  GO_VERSION: 1.18
+  GO_VERSION: 1.19
 
 jobs:
   goreleaser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v3
