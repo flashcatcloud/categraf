@@ -204,6 +204,7 @@ func (ins *Instance) TCPGather(address string) (map[string]string, map[string]in
 		responseTime = time.Since(start).Seconds()
 		// Handle error
 		if err != nil {
+			log.Printf("E! read tcp failed, address: %s, error: %s", address, err)
 			fields["result_code"] = ReadFailed
 		} else {
 			if strings.Contains(data, ins.Expect) {
@@ -264,6 +265,7 @@ func (ins *Instance) UDPGather(address string) (map[string]string, map[string]in
 	responseTime := time.Since(start).Seconds()
 	// Handle error
 	if err != nil {
+		log.Printf("E! read udp failed, address: %s, error: %s", address, err)
 		fields["result_code"] = ReadFailed
 		// Error encoded in result
 		//nolint:nilerr
