@@ -75,6 +75,7 @@ require (
 )
 
 require (
+	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.13.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
@@ -84,7 +85,10 @@ require (
 	github.com/jackc/pgtype v1.12.0 // indirect
 )
 
-require github.com/vmware/govmomi v0.29.0
+require (
+	github.com/coreos/go-systemd/v22 v22.3.2
+	github.com/vmware/govmomi v0.29.0
+)
 
 replace gopkg.in/yaml.v2 => github.com/rfratto/go-yaml v0.0.0-20211119180816-77389c3526dc
 
