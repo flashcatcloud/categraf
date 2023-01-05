@@ -1,18 +1,17 @@
 {
   "name": "postgresql大盘",
   "tags": "",
-  "ident": "",
   "configs": {
     "var": [
       {
-        "name": "instance",
+        "name": "server",
         "type": "query",
-        "definition": "label_values(postgresql_datid,instance)"
+        "definition": "label_values(postgresql_datid,server)"
       },
       {
         "name": "db",
         "type": "query",
-        "definition": "label_values(postgresql_datid{instance=\"$instance\"},db)"
+        "definition": "label_values(postgresql_datid{server=\"$server\"},db)"
       }
     ],
     "panels": [
@@ -44,11 +43,10 @@
         },
         "version": "2.0.0",
         "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
         "targets": [
           {
             "refId": "A",
-            "expr": "postgresql_numbackends{instance=\"$instance\",db=\"$db\"}",
+            "expr": "postgresql_numbackends{server=\"$server\",db=\"$db\"}",
             "legend": "{{db}}"
           }
         ],
@@ -90,11 +88,10 @@
         },
         "version": "2.0.0",
         "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
         "targets": [
           {
             "refId": "A",
-            "expr": "postgresql_blks_hit{instance=\"$instance\",db=\"$db\"}/(postgresql_blks_hit{instance=\"$instance\",db=\"$db\"}+postgresql_blks_read{instance=\"$instance\",db=\"$db\"})",
+            "expr": "postgresql_blks_hit{server=\"$server\",db=\"$db\"}/(postgresql_blks_hit{server=\"$server\",db=\"$db\"}+postgresql_blks_read{server=\"$server\",db=\"$db\"})",
             "legend": "{{db}}"
           }
         ],
@@ -139,11 +136,10 @@
         },
         "version": "2.0.0",
         "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
         "targets": [
           {
             "refId": "A",
-            "expr": "postgresql_deadlocks{instance=\"$instance\",db=\"$db\"}",
+            "expr": "postgresql_deadlocks{server=\"$server\",db=\"$db\"}",
             "legend": "{{db}}"
           }
         ],
@@ -188,11 +184,10 @@
         },
         "version": "2.0.0",
         "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
         "targets": [
           {
             "refId": "A",
-            "expr": "postgresql_conflicts{instance=\"$instance\",db=\"$db\"}",
+            "expr": "postgresql_conflicts{server=\"$server\",db=\"$db\"}",
             "legend": "{{db}}"
           }
         ],
@@ -225,27 +220,14 @@
         }
       },
       {
-        "type": "timeseries",
-        "id": "3dea2872-5904-4abf-b0f8-64afe82b617a",
-        "layout": {
-          "h": 4,
-          "w": 12,
-          "x": 0,
-          "y": 5,
-          "i": "443aee8c-d1b8-485b-b74f-13fa58b6e7ae",
-          "isResizable": true
-        },
-        "version": "2.0.0",
-        "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_xact_commit{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_xact_commit{server=\"$server\",db=\"$db\"}[5m])",
             "legend": "commit"
           },
           {
-            "expr": "increase(postgresql_xact_rollback{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_xact_rollback{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "B",
             "legend": "rollback"
           }
@@ -274,38 +256,32 @@
         "custom": {
           "drawStyle": "lines",
           "lineInterpolation": "smooth",
-          "spanNulls": false,
           "lineWidth": 1,
           "fillOpacity": 0.5,
           "gradientMode": "none",
-          "stack": "off",
-          "scaleDistribution": {
-            "type": "linear"
-          }
-        }
-      },
-      {
+          "stack": "off"
+        },
+        "version": "2.0.0",
         "type": "timeseries",
-        "id": "dec2c25d-ae70-4e47-bc4f-6dbaa9e72683",
         "layout": {
           "h": 4,
           "w": 12,
-          "x": 12,
+          "x": 0,
           "y": 5,
-          "i": "8b85bc95-091a-4868-9bec-b495609d7a04",
+          "i": "443aee8c-d1b8-485b-b74f-13fa58b6e7ae",
           "isResizable": true
         },
-        "version": "2.0.0",
-        "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
+        "id": "3dea2872-5904-4abf-b0f8-64afe82b617a"
+      },
+      {
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_tup_returned{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_tup_returned{server=\"$server\",db=\"$db\"}[5m])",
             "legend": "returned"
           },
           {
-            "expr": "increase(postgresql_tup_fetched{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_tup_fetched{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "B",
             "legend": "fetched"
           }
@@ -334,43 +310,37 @@
         "custom": {
           "drawStyle": "lines",
           "lineInterpolation": "smooth",
-          "spanNulls": false,
           "lineWidth": 1,
           "fillOpacity": 0.5,
           "gradientMode": "none",
-          "stack": "off",
-          "scaleDistribution": {
-            "type": "linear"
-          }
-        }
-      },
-      {
+          "stack": "off"
+        },
+        "version": "2.0.0",
         "type": "timeseries",
-        "id": "048d2652-40f1-42ab-a435-7e02d51c98c4",
         "layout": {
           "h": 4,
           "w": 12,
-          "x": 0,
-          "y": 9,
-          "i": "e08d94bb-1a72-4104-8ba0-11ab7317a192",
+          "x": 12,
+          "y": 5,
+          "i": "8b85bc95-091a-4868-9bec-b495609d7a04",
           "isResizable": true
         },
-        "version": "2.0.0",
-        "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
+        "id": "dec2c25d-ae70-4e47-bc4f-6dbaa9e72683"
+      },
+      {
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_tup_inserted{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_tup_inserted{server=\"$server\",db=\"$db\"}[5m])",
             "legend": "inserted"
           },
           {
-            "expr": "increase(postgresql_tup_updated{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_tup_updated{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "B",
             "legend": "updated"
           },
           {
-            "expr": "increase(postgresql_tup_deleted{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_tup_deleted{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "C",
             "legend": "deleted"
           }
@@ -399,38 +369,32 @@
         "custom": {
           "drawStyle": "lines",
           "lineInterpolation": "smooth",
-          "spanNulls": false,
           "lineWidth": 1,
           "fillOpacity": 0.5,
           "gradientMode": "none",
-          "stack": "off",
-          "scaleDistribution": {
-            "type": "linear"
-          }
-        }
-      },
-      {
+          "stack": "off"
+        },
+        "version": "2.0.0",
         "type": "timeseries",
-        "id": "c89d1e4b-d8ad-402d-bee4-f6d362b4634a",
         "layout": {
           "h": 4,
           "w": 12,
-          "x": 12,
+          "x": 0,
           "y": 9,
-          "i": "971c5838-7408-4ec7-ae5e-33dcd0f20210",
+          "i": "e08d94bb-1a72-4104-8ba0-11ab7317a192",
           "isResizable": true
         },
-        "version": "2.0.0",
-        "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
+        "id": "048d2652-40f1-42ab-a435-7e02d51c98c4"
+      },
+      {
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_temp_files{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_temp_files{server=\"$server\",db=\"$db\"}[5m])",
             "legend": "temp_files"
           },
           {
-            "expr": "increase(postgresql_temp_bytes{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_temp_bytes{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "B",
             "legend": "temp_bytes"
           }
@@ -459,38 +423,32 @@
         "custom": {
           "drawStyle": "lines",
           "lineInterpolation": "smooth",
-          "spanNulls": false,
           "lineWidth": 1,
           "fillOpacity": 0.5,
           "gradientMode": "none",
-          "stack": "off",
-          "scaleDistribution": {
-            "type": "linear"
-          }
-        }
-      },
-      {
-        "type": "timeseries",
-        "id": "7ae2c26a-cc2b-435d-9a16-52722c37bedf",
-        "layout": {
-          "h": 4,
-          "w": 24,
-          "x": 0,
-          "y": 13,
-          "i": "71e28edd-8961-4a7a-be78-3a9a526c89bb",
-          "isResizable": true
+          "stack": "off"
         },
         "version": "2.0.0",
-        "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
+        "type": "timeseries",
+        "layout": {
+          "h": 4,
+          "w": 12,
+          "x": 12,
+          "y": 9,
+          "i": "971c5838-7408-4ec7-ae5e-33dcd0f20210",
+          "isResizable": true
+        },
+        "id": "c89d1e4b-d8ad-402d-bee4-f6d362b4634a"
+      },
+      {
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_blk_read_time{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_blk_read_time{server=\"$server\",db=\"$db\"}[5m])",
             "legend": "blk_read_time"
           },
           {
-            "expr": "increase(postgresql_blk_write_time{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_blk_write_time{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "B",
             "legend": "blk_write_time"
           }
@@ -521,15 +479,22 @@
         "custom": {
           "drawStyle": "lines",
           "lineInterpolation": "smooth",
-          "spanNulls": false,
           "lineWidth": 1,
           "fillOpacity": 0.5,
           "gradientMode": "none",
-          "stack": "off",
-          "scaleDistribution": {
-            "type": "linear"
-          }
-        }
+          "stack": "off"
+        },
+        "version": "2.0.0",
+        "type": "timeseries",
+        "layout": {
+          "h": 4,
+          "w": 24,
+          "x": 0,
+          "y": 13,
+          "i": "71e28edd-8961-4a7a-be78-3a9a526c89bb",
+          "isResizable": true
+        },
+        "id": "7ae2c26a-cc2b-435d-9a16-52722c37bedf"
       },
       {
         "type": "row",
@@ -546,27 +511,14 @@
         }
       },
       {
-        "type": "timeseries",
-        "id": "600a9687-0a1e-4531-b9bc-ccf8589566a2",
-        "layout": {
-          "h": 5,
-          "w": 12,
-          "x": 0,
-          "y": 18,
-          "i": "c3d3ccee-719f-4280-8921-367ea5343849",
-          "isResizable": true
-        },
-        "version": "2.0.0",
-        "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_checkpoints_timed{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_checkpoints_timed{server=\"$server\",db=\"$db\"}[5m])",
             "legend": "postgresql_checkpoints_timed"
           },
           {
-            "expr": "increase(postgresql_checkpoints_req{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_checkpoints_req{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "B",
             "legend": "postgresql_checkpoints_req"
           }
@@ -597,38 +549,32 @@
         "custom": {
           "drawStyle": "lines",
           "lineInterpolation": "smooth",
-          "spanNulls": false,
           "lineWidth": 1,
           "fillOpacity": 0.5,
           "gradientMode": "none",
-          "stack": "off",
-          "scaleDistribution": {
-            "type": "linear"
-          }
-        }
-      },
-      {
+          "stack": "off"
+        },
+        "version": "2.0.0",
         "type": "timeseries",
-        "id": "561012f8-481a-482a-8504-4bdd8c62e8a6",
         "layout": {
           "h": 5,
           "w": 12,
-          "x": 12,
+          "x": 0,
           "y": 18,
-          "i": "178d8220-3c22-4ea3-909d-71c73fbb3a78",
+          "i": "c3d3ccee-719f-4280-8921-367ea5343849",
           "isResizable": true
         },
-        "version": "2.0.0",
-        "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
+        "id": "600a9687-0a1e-4531-b9bc-ccf8589566a2"
+      },
+      {
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_checkpoint_write_time{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_checkpoint_write_time{server=\"$server\",db=\"$db\"}[5m])",
             "legend": "checkpoint_write_time"
           },
           {
-            "expr": "increase(postgresql_checkpoint_sync_time{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_checkpoint_sync_time{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "B",
             "legend": "checkpoint_sync_time"
           }
@@ -659,48 +605,42 @@
         "custom": {
           "drawStyle": "lines",
           "lineInterpolation": "smooth",
-          "spanNulls": false,
           "lineWidth": 1,
           "fillOpacity": 0.5,
           "gradientMode": "none",
-          "stack": "off",
-          "scaleDistribution": {
-            "type": "linear"
-          }
-        }
-      },
-      {
-        "type": "timeseries",
-        "id": "af9e2a7f-ce09-4de2-8625-e779c770d46d",
-        "layout": {
-          "h": 5,
-          "w": 24,
-          "x": 0,
-          "y": 23,
-          "i": "23b6fc64-1a19-422e-b28e-453570af339c",
-          "isResizable": true
+          "stack": "off"
         },
         "version": "2.0.0",
-        "datasourceCate": "prometheus",
-        "datasourceName": "qd-dev-cluster",
+        "type": "timeseries",
+        "layout": {
+          "h": 5,
+          "w": 12,
+          "x": 12,
+          "y": 18,
+          "i": "178d8220-3c22-4ea3-909d-71c73fbb3a78",
+          "isResizable": true
+        },
+        "id": "561012f8-481a-482a-8504-4bdd8c62e8a6"
+      },
+      {
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_buffers_checkpoint{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_buffers_checkpoint{server=\"$server\",db=\"$db\"}[5m])",
             "legend": "buffers_checkpoint"
           },
           {
-            "expr": "increase(postgresql_buffers_clean{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_buffers_clean{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "B",
             "legend": "buffers_clean"
           },
           {
-            "expr": "increase(postgresql_buffers_backend{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_buffers_backend{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "C",
             "legend": "buffers_backend"
           },
           {
-            "expr": "increase(postgresql_buffers_backend_fsync{instance=\"$instance\",db=\"$db\"})",
+            "expr": "increase(postgresql_buffers_backend_fsync{server=\"$server\",db=\"$db\"}[5m])",
             "refId": "D",
             "legend": "buffers_backend_fsync"
           }
@@ -731,15 +671,22 @@
         "custom": {
           "drawStyle": "lines",
           "lineInterpolation": "smooth",
-          "spanNulls": false,
           "lineWidth": 1,
           "fillOpacity": 0.5,
           "gradientMode": "none",
-          "stack": "off",
-          "scaleDistribution": {
-            "type": "linear"
-          }
-        }
+          "stack": "off"
+        },
+        "version": "2.0.0",
+        "type": "timeseries",
+        "layout": {
+          "h": 5,
+          "w": 24,
+          "x": 0,
+          "y": 23,
+          "i": "23b6fc64-1a19-422e-b28e-453570af339c",
+          "isResizable": true
+        },
+        "id": "af9e2a7f-ce09-4de2-8625-e779c770d46d"
       }
     ],
     "version": "2.0.0",
