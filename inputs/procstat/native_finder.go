@@ -55,25 +55,53 @@ func (pg *NativeFinder) PidFile(path string) ([]PID, error) {
 }
 
 // FullPattern matches on the command line when the process was executed
-func (pg *NativeFinder) FullPattern(pattern string) ([]PID, error) {
+func (pg *NativeFinder) FullPattern(pattern string, user string) ([]PID, error) {
 	var pids []PID
 
-	procs, err := pg.FastProcessList()
-	if err != nil {
+	if user != "" {
+		procs, err := process.Processes()
+		if err != nil {
+			return pids, err
+		}
+		for _, p := range procs {
+			username, err := p.Username()
+			if err != nil {
+				//skip, this can happen if we don't have permissions or
+				//the pid no longer exists
+				continue
+			}
+			if username == user {
+				cmd, err := p.Cmdline()
+				if err != nil {
+					//skip, this can be caused by the pid no longer existing
+					//or you having no permissions to access it
+					continue
+				}
+				if strings.Contains(cmd, pattern) {
+					pids = append(pids, PID(p.Pid))
+				}
+			}
+		}
+		return pids, err
+	} else {
+		procs, err := pg.FastProcessList()
+		if err != nil {
+			return pids, err
+		}
+		for _, p := range procs {
+			cmd, err := p.Cmdline()
+			if err != nil {
+				//skip, this can be caused by the pid no longer existing
+				//or you having no permissions to access it
+				continue
+			}
+			if strings.Contains(cmd, pattern) {
+				pids = append(pids, PID(p.Pid))
+			}
+		}
 		return pids, err
 	}
-	for _, p := range procs {
-		cmd, err := p.Cmdline()
-		if err != nil {
-			//skip, this can be caused by the pid no longer existing
-			//or you having no permissions to access it
-			continue
-		}
-		if strings.Contains(cmd, pattern) {
-			pids = append(pids, PID(p.Pid))
-		}
-	}
-	return pids, err
+
 }
 
 func (pg *NativeFinder) FastProcessList() ([]*process.Process, error) {
