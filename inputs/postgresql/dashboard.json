@@ -689,7 +689,6 @@
         "id": "af9e2a7f-ce09-4de2-8625-e779c770d46d"
       }
     ],
-    "version": "2.0.0",
-    "datasourceValue": "qd-dev-cluster"
+    "version": "2.0.0"
   }
 }
