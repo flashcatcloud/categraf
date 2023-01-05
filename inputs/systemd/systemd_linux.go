@@ -56,8 +56,10 @@ func (s *Systemd) Init() error {
 	return nil
 }
 
-func (s *Systemd) Close() {
-	s.conn.Close()
+func (s *Systemd) Drop() {
+	if s.conn != nil {
+		s.conn.Close()
+	}
 }
 
 // Gather  gathers metrics from systemd.  Dbus collection is done in parallel
