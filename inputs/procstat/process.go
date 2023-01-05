@@ -31,9 +31,9 @@ type Process interface {
 
 type PIDFinder interface {
 	PidFile(path string) ([]PID, error)
-	Pattern(pattern string) ([]PID, error)
+	Pattern(pattern string, user string) ([]PID, error)
 	UID(user string) ([]PID, error)
-	FullPattern(path string) ([]PID, error)
+	FullPattern(path string, user string) ([]PID, error)
 }
 
 type Proc struct {

@@ -26,6 +26,7 @@ type Instance struct {
 	SearchExecSubstring    string   `toml:"search_exec_substring"`
 	SearchCmdlineSubstring string   `toml:"search_cmdline_substring"`
 	SearchWinService       string   `toml:"search_win_service"`
+	SearchUser             string   `toml:"search_user"`
 	Mode                   string   `toml:"mode"`
 	GatherTotal            bool     `toml:"gather_total"`
 	GatherPerPid           bool     `toml:"gather_per_pid"`
@@ -89,9 +90,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	pg, _ := NewNativeFinder()
 	if ins.SearchExecSubstring != "" {
-		pids, err = pg.Pattern(ins.SearchExecSubstring)
+		pids, err = pg.Pattern(ins.SearchExecSubstring, ins.SearchUser)
 	} else if ins.SearchCmdlineSubstring != "" {
-		pids, err = pg.FullPattern(ins.SearchCmdlineSubstring)
+		pids, err = pg.FullPattern(ins.SearchCmdlineSubstring, ins.SearchUser)
 	} else if ins.SearchWinService != "" {
 		pids, err = ins.winServicePIDs()
 	} else {
