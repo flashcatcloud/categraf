@@ -1,3 +1,6 @@
+//go:build linux
+// +build linux
+
 // Copyright 2015 The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,55 +27,11 @@ import (
 	"sync"
 	"time"
 
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/types"
 	"github.com/coreos/go-systemd/v22/dbus"
+
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/types"
 )
-
-const (
-	// minSystemdVersionSystemState is the minimum SystemD version for availability of
-	// the 'SystemState' manager property and the timer property 'LastTriggerUSec'
-	// https://github.com/prometheus/node_exporter/issues/291
-	minSystemdVersionSystemState = 212
-	inputName                    = `systemd`
-)
-
-type (
-	Systemd struct {
-		config.PluginConfig
-		Enable bool `toml:"enable"`
-
-		UnitInclude string `toml:"unit_include"`
-		UnitExclude string `toml:"unit_exclude"`
-
-		unitIncludePattern *regexp.Regexp `toml:"-"`
-		unitExcludePattern *regexp.Regexp `toml:"-"`
-
-		SystemdPrivate         bool `toml:"systemd_private"`
-		EnableTaskMetrics      bool `toml:"enable_task_metrics"`
-		EnableRestartMetrics   bool `toml:"enable_restarts_metrics"`
-		EnableStartTimeMetrics bool `toml:"enable_start_time_metrics"`
-
-		conn *dbus.Conn
-	}
-	unit struct {
-		dbus.UnitStatus
-	}
-)
-
-var _ inputs.SampleGatherer = new(Systemd)
-
-var (
-	systemdVersionRE = regexp.MustCompile(`[0-9]{3,}(\.[0-9]+)?`)
-	unitStatesName   = []string{"active", "activating", "deactivating", "inactive", "failed"}
-)
-
-func init() {
-	inputs.Add(inputName, func() inputs.Input {
-		return &Systemd{}
-	})
-}
 
 // Init returns a new Collector exposing systemd statistics.
 func (s *Systemd) Init() error {
@@ -104,7 +63,6 @@ func (s *Systemd) Close() {
 // Gather  gathers metrics from systemd.  Dbus collection is done in parallel
 // to reduce wait time for responses.
 func (s *Systemd) Gather(slist *types.SampleList) {
-	log.Println("systemd gather starting...")
 	begin := time.Now()
 
 	systemdVersion, systemdVersionFull := s.getSystemdVersion()
@@ -122,11 +80,15 @@ func (s *Systemd) Gather(slist *types.SampleList) {
 	begin = time.Now()
 	summary := summarizeUnits(allUnits)
 	s.collectSummaryMetrics(slist, summary)
-	log.Println("msg", "collectSummaryMetrics took", "duration_seconds", time.Since(begin).Seconds())
+	if config.Config.DebugMode {
+		log.Println("D!", "collectSummaryMetrics took", "duration_seconds", time.Since(begin).Seconds())
+	}
 
 	begin = time.Now()
 	units := filterUnits(allUnits, s.unitIncludePattern, s.unitExcludePattern)
-	log.Println("msg", "filterUnits took", "duration_seconds", time.Since(begin).Seconds())
+	if config.Config.DebugMode {
+		log.Println("D!", "filterUnits took", "duration_seconds", time.Since(begin).Seconds())
+	}
 
 	var wg sync.WaitGroup
 	defer wg.Wait()
@@ -187,14 +149,14 @@ func (s *Systemd) collectUnitStatusMetrics(slist *types.SampleList, units []unit
 		if strings.HasSuffix(unit.Name, ".service") {
 			serviceTypeProperty, err := s.conn.GetUnitTypePropertyContext(context.TODO(), unit.Name, "Service", "Type")
 			if err != nil {
-				log.Println("msg", "couldn't get unit type", "unit", unit.Name, "err", err)
+				log.Println("E!", "couldn't get unit type", "unit", unit.Name, "err", err)
 			} else {
 				serviceType = serviceTypeProperty.Value.Value().(string)
 			}
 		} else if strings.HasSuffix(unit.Name, ".mount") {
 			serviceTypeProperty, err := s.conn.GetUnitTypePropertyContext(context.TODO(), unit.Name, "Mount", "Type")
 			if err != nil {
-				log.Println("msg", "couldn't get unit type", "unit", unit.Name, "err", err)
+				log.Println("E!", "couldn't get unit type", "unit", unit.Name, "err", err)
 			} else {
 				serviceType = serviceTypeProperty.Value.Value().(string)
 			}
@@ -211,7 +173,7 @@ func (s *Systemd) collectUnitStatusMetrics(slist *types.SampleList, units []unit
 			// NRestarts wasn't added until systemd 235.
 			restartsCount, err := s.conn.GetUnitTypePropertyContext(context.TODO(), unit.Name, "Service", "NRestarts")
 			if err != nil {
-				log.Println("msg", "couldn't get unit NRestarts", "unit", unit.Name, "err", err)
+				log.Println("E!", "couldn't get unit NRestarts", "unit", unit.Name, "err", err)
 			} else {
 				slist.PushSample(inputName, "service_restart_total", restartsCount.Value.Value().(uint32),
 					map[string]string{"name": unit.Name})
@@ -229,7 +191,7 @@ func (s *Systemd) collectSockets(slist *types.SampleList, units []unit) {
 
 		acceptedConnectionCount, err := s.conn.GetUnitTypePropertyContext(context.TODO(), unit.Name, "Socket", "NAccepted")
 		if err != nil {
-			log.Println("msg", "couldn't get unit NAccepted", "unit", unit.Name, "err", err)
+			log.Println("W!", "couldn't get unit NAccepted", "unit", unit.Name, "err", err)
 			continue
 		}
 		tag["name"] = unit.Name
@@ -238,7 +200,7 @@ func (s *Systemd) collectSockets(slist *types.SampleList, units []unit) {
 
 		currentConnectionCount, err := s.conn.GetUnitTypePropertyContext(context.TODO(), unit.Name, "Socket", "NConnections")
 		if err != nil {
-			log.Println("msg", "couldn't get unit NConnections", "unit", unit.Name, "err", err)
+			log.Println("W!", "couldn't get unit NConnections", "unit", unit.Name, "err", err)
 			continue
 		}
 		slist.PushSample(inputName, "socket_current_connections",
@@ -265,7 +227,7 @@ func (s *Systemd) collectUnitStartTimeMetrics(slist *types.SampleList, units []u
 		} else {
 			timestampValue, err := s.conn.GetUnitPropertyContext(context.TODO(), unit.Name, "ActiveEnterTimestamp")
 			if err != nil {
-				log.Println("msg", "couldn't get unit StartTimeUsec", "unit", unit.Name, "err", err)
+				log.Println("W!", "couldn't get unit StartTimeUsec", "unit", unit.Name, "err", err)
 				continue
 			}
 			startTimeUsec = timestampValue.Value.Value().(uint64)
@@ -286,7 +248,7 @@ func (s *Systemd) collectUnitTasksMetrics(slist *types.SampleList, units []unit)
 		if strings.HasSuffix(unit.Name, ".service") {
 			tasksCurrentCount, err := s.conn.GetUnitTypePropertyContext(context.TODO(), unit.Name, "Service", "TasksCurrent")
 			if err != nil {
-				log.Println("msg", "couldn't get unit TasksCurrent", "unit", unit.Name, "err", err)
+				log.Println("E!", "couldn't get unit TasksCurrent", "unit", unit.Name, "err", err)
 			} else {
 				val = tasksCurrentCount.Value.Value().(uint64)
 				// Don't set if tasksCurrent if dbus reports MaxUint64.
@@ -296,7 +258,7 @@ func (s *Systemd) collectUnitTasksMetrics(slist *types.SampleList, units []unit)
 			}
 			tasksMaxCount, err := s.conn.GetUnitTypePropertyContext(context.TODO(), unit.Name, "Service", "TasksMax")
 			if err != nil {
-				log.Println("msg", "couldn't get unit TasksMax", "unit", unit.Name, "err", err)
+				log.Println("E!", "couldn't get unit TasksMax", "unit", unit.Name, "err", err)
 			} else {
 				val = tasksMaxCount.Value.Value().(uint64)
 				// Don't set if tasksMax if dbus reports MaxUint64.
@@ -318,7 +280,7 @@ func (s *Systemd) collectTimers(slist *types.SampleList, units []unit) {
 
 		lastTriggerValue, err := s.conn.GetUnitTypePropertyContext(context.TODO(), unit.Name, "Timer", "LastTriggerUSec")
 		if err != nil {
-			log.Println("msg", "couldn't get unit LastTriggerUSec", "unit", unit.Name, "err", err)
+			log.Println("W!", "couldn't get unit LastTriggerUSec", "unit", unit.Name, "err", err)
 			continue
 		}
 
