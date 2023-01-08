@@ -9,6 +9,8 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 )
 
+type Filter func(p *process.Process) bool
+
 // NativeFinder uses gopsutil to find processes
 type NativeFinder struct {
 }
@@ -27,8 +29,8 @@ func (pg *NativeFinder) UID(user string) ([]PID, error) {
 	for _, p := range procs {
 		username, err := p.Username()
 		if err != nil {
-			//skip, this can happen if we don't have permissions or
-			//the pid no longer exists
+			// skip, this can happen if we don't have permissions or
+			// the pid no longer exists
 			continue
 		}
 		if username == user {
@@ -55,52 +57,30 @@ func (pg *NativeFinder) PidFile(path string) ([]PID, error) {
 }
 
 // FullPattern matches on the command line when the process was executed
-func (pg *NativeFinder) FullPattern(pattern string, user string) ([]PID, error) {
+func (pg *NativeFinder) FullPattern(pattern string, filters ...Filter) ([]PID, error) {
 	var pids []PID
 
-	if user != "" {
-		procs, err := process.Processes()
-		if err != nil {
-			return pids, err
-		}
-		for _, p := range procs {
-			username, err := p.Username()
-			if err != nil {
-				//skip, this can happen if we don't have permissions or
-				//the pid no longer exists
-				continue
-			}
-			if username == user {
-				cmd, err := p.Cmdline()
-				if err != nil {
-					//skip, this can be caused by the pid no longer existing
-					//or you having no permissions to access it
-					continue
-				}
-				if strings.Contains(cmd, pattern) {
-					pids = append(pids, PID(p.Pid))
-				}
-			}
-		}
-		return pids, err
-	} else {
-		procs, err := pg.FastProcessList()
-		if err != nil {
-			return pids, err
-		}
-		for _, p := range procs {
-			cmd, err := p.Cmdline()
-			if err != nil {
-				//skip, this can be caused by the pid no longer existing
-				//or you having no permissions to access it
-				continue
-			}
-			if strings.Contains(cmd, pattern) {
-				pids = append(pids, PID(p.Pid))
-			}
-		}
+	procs, err := pg.FastProcessList()
+	if err != nil {
 		return pids, err
 	}
+	for _, p := range procs {
+		for _, filter := range filters {
+			if !filter(p) {
+				continue
+			}
+		}
+		cmd, err := p.Cmdline()
+		if err != nil {
+			// skip, this can be caused by the pid no longer existing
+			// or you having no permissions to access it
+			continue
+		}
+		if strings.Contains(cmd, pattern) {
+			pids = append(pids, PID(p.Pid))
+		}
+	}
+	return pids, err
 
 }
 

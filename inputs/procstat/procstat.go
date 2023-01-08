@@ -81,18 +81,32 @@ func (s *Procstat) GetInstances() []inputs.Instance {
 	return ret
 }
 
+func UserFilter(username string) Filter {
+	return func(p *process.Process) bool {
+		if u, _ := p.Username(); u == username {
+			return true
+		}
+		return false
+	}
+}
+
 func (ins *Instance) Gather(slist *types.SampleList) {
 	var (
 		pids []PID
 		err  error
 		tags = map[string]string{"search_string": ins.searchString}
+		opts = []Filter{}
 	)
+
+	if ins.SearchUser != "" {
+		opts = append(opts, UserFilter(ins.SearchUser))
+	}
 
 	pg, _ := NewNativeFinder()
 	if ins.SearchExecSubstring != "" {
-		pids, err = pg.Pattern(ins.SearchExecSubstring, ins.SearchUser)
+		pids, err = pg.Pattern(ins.SearchExecSubstring, opts...)
 	} else if ins.SearchCmdlineSubstring != "" {
-		pids, err = pg.FullPattern(ins.SearchCmdlineSubstring, ins.SearchUser)
+		pids, err = pg.FullPattern(ins.SearchCmdlineSubstring, opts...)
 	} else if ins.SearchWinService != "" {
 		pids, err = ins.winServicePIDs()
 	} else {
