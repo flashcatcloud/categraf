@@ -11,6 +11,9 @@
 # # windows service name
 # search_win_service = ""
 
+# # search process with specific user, option with exec_substring or cmdline_substring
+# search_user = ""
+
 # # append some labels for series
 # labels = { region="cloud", product="n9e" }
 
