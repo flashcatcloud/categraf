@@ -73,6 +73,8 @@ func init() {
 	})
 }
 
+var _ inputs.SampleGatherer = new(Instance)
+
 func (s *Procstat) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(s.Instances))
 	for i := 0; i < len(s.Instances); i++ {
