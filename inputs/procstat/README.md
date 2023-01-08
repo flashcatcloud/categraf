@@ -21,7 +21,11 @@ search_exec_substring = "nginx"
 # search_win_service = ""
 ```
 
-上面三个 search 相关的配置，每个采集目标选用其中一个
+上面三个 search 相关的配置，每个采集目标选用其中一个。有一个额外的配置，search_user 配合search_exec_substring 或者 search_cmdline_substring 使用，表示匹配指定username的特定进程。如果不需要指定username ，保持配置注释即可。
+```
+# # search process with specific user, option with exec_substring or cmdline_substring
+# search_user = ""
+```
 
 ## mode
 
