@@ -14,10 +14,11 @@ func (pg *NativeFinder) Pattern(pattern string, filters ...Filter) ([]PID, error
 	if err != nil {
 		return pids, err
 	}
+PROCS:
 	for _, p := range procs {
 		for _, filter := range filters {
 			if !filter(p) {
-				continue
+				continue PROCS
 			}
 		}
 		name, err := p.Exe()

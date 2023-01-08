@@ -64,10 +64,11 @@ func (pg *NativeFinder) FullPattern(pattern string, filters ...Filter) ([]PID, e
 	if err != nil {
 		return pids, err
 	}
+PROCS:
 	for _, p := range procs {
 		for _, filter := range filters {
 			if !filter(p) {
-				continue
+				continue PROCS
 			}
 		}
 		cmd, err := p.Cmdline()
