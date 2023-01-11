@@ -30,6 +30,15 @@ type Global struct {
 	Providers    []string          `toml:"providers"`
 }
 
+type Log struct {
+	FileName   string `toml:"file_name"`
+	MaxSize    int    `toml:"max_size"`
+	MaxAge     int    `toml:"max_age"`
+	MaxBackups int    `toml:"max_backups"`
+	LocalTime  bool   `toml:"local_time"`
+	Compress   bool   `toml:"compress"`
+}
+
 type WriterOpt struct {
 	Batch    int `toml:"batch"`
 	ChanSize int `toml:"chan_size"`
@@ -83,6 +92,7 @@ type ConfigType struct {
 	HTTP       *HTTP          `toml:"http"`
 	Prometheus *Prometheus    `toml:"prometheus"`
 	Ibex       *IbexConfig    `toml:"ibex"`
+	Log        Log            `toml:"log"`
 
 	HTTPProviderConfig *HTTPProviderConfig `toml:"http_provider"`
 }

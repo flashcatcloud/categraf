@@ -47,13 +47,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	doOSsvc()
-	printEnv()
-
 	// init configs
 	if err := config.InitConfig(*configDir, *debugMode, *testMode, *interval, *inputFilters); err != nil {
 		log.Fatalln("F! failed to init config:", err)
 	}
+
+	doOSsvc()
+	printEnv()
 
 	initWriters()
 

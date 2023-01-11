@@ -28,6 +28,20 @@ disable_usage_report = true
 # region = "shanghai"
 # env = "localhost"
 
+[log]
+# file_name is the file to write logs to
+file_name = "log/categraf.log"
+# max_size is the maximum size in megabytes of the log file before it gets rotated. It defaults to 100 megabytes.
+max_size = 100
+# max_age is the maximum number of days to retain old log files based on the timestamp encoded in their filename.  
+max_age = 1
+# max_backups is the maximum number of old log files to retain.  
+max_backups = 1
+# local_time determines if the time used for formatting the timestamps in backup files is the computer's local time.  
+local_time = true
+# Compress determines if the rotated log files should be compressed using gzip. 
+compress = false
+
 [writer_opt]
 batch = 1000
 chan_size = 1000000
