@@ -16,12 +16,14 @@ func runAgent(ag *agent.Agent) {
 }
 
 func doOSsvc() {
-	log.SetOutput(&lumberjack.Logger{
-		Filename:   config.Config.Log.FileName,
-		MaxSize:    config.Config.Log.MaxSize,
-		MaxAge:     config.Config.Log.MaxAge,
-		MaxBackups: config.Config.Log.MaxBackups,
-		LocalTime:  config.Config.Log.LocalTime,
-		Compress:   config.Config.Log.Compress,
-	})
+	if config.Config.Log.Enable {
+		log.SetOutput(&lumberjack.Logger{
+			Filename:   config.Config.Log.FileName,
+			MaxSize:    config.Config.Log.MaxSize,
+			MaxAge:     config.Config.Log.MaxAge,
+			MaxBackups: config.Config.Log.MaxBackups,
+			LocalTime:  config.Config.Log.LocalTime,
+			Compress:   config.Config.Log.Compress,
+		})
+	}
 }

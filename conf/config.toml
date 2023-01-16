@@ -29,6 +29,7 @@ disable_usage_report = true
 # env = "localhost"
 
 [log]
+enable = false
 # file_name is the file to write logs to
 file_name = "log/categraf.log"
 # max_size is the maximum size in megabytes of the log file before it gets rotated. It defaults to 100 megabytes.
