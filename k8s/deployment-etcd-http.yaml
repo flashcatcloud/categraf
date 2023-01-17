@@ -109,6 +109,8 @@ data:
     log_level="info"
     ## wal reserve time duration, default value is 2 hour
     # wal_min_duration=2
+    ## wal storage path, default value is ./data-agent
+    wal_storage_path="/opt/categraf/prometheus-wal"
 ---
 kind: ConfigMap
 metadata:
@@ -258,6 +260,8 @@ spec:
           name: categraf-config
         - mountPath: /opt/categraf/scrape
           name: scrape-config
+        - mountPath: /opt/categraf/prometheus-wal
+          name: prometheus-wal
       dnsPolicy: ClusterFirst
       hostNetwork: false
       restartPolicy: Always
@@ -277,3 +281,5 @@ spec:
           defaultMode: 420
           name: scrape-config
         name: scrape-config
+      - emptyDir: {}
+        name: prometheus-wal
