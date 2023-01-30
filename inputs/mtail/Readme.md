@@ -33,8 +33,9 @@ gauge xxx_errors
 }
 ```
 
-3. 一个tab中执行 `categraf --test --inputs mtail`  
+3. 一个tab中执行 `categraf --test --inputs mtail`，用于测试 
 4. 另一个tab中，"/path/to/a.log" 或者 "path/to/b.log" 追加一行 ERROR，看看categraf的输出
+5. 测试通过后，启动categraf
 
 ### 输入
 logs参数指定要处理的日志源, 支持模糊匹配, 支持多个log文件。
