@@ -10,6 +10,32 @@
 ## 启动
 编辑mtail.toml文件, 注意每个instance 需要指定不同的progs参数（不同的progs文件或者目录）
 
+1. conf/inputs.mtail/mtail.toml中指定instance
+```toml
+
+[[instances]]
+## 指定mtail prog的目录
+progs = "/path/to/prog1"
+## 指定mtail要读取的日志
+logs = ["/path/to/a.log", "path/to/b.log"] 
+## 指定时区
+# override_timezone = "Asia/Shanghai" 
+## metrics是否带时间戳，注意，这里是"true"
+# emit_metric_timestamp = "true" 
+
+...
+```
+2. 在/path/to/prog1 目录下编写规则文件
+```
+gauge xxx_errors
+/ERROR.*/ {
+    xxx_errros++
+}
+```
+
+3. 一个tab中执行 `categraf --test --inputs mtail`  
+4. 另一个tab中，"/path/to/a.log" 或者 "path/to/b.log" 追加一行 ERROR，看看categraf的输出
+
 ### 输入
 logs参数指定要处理的日志源, 支持模糊匹配, 支持多个log文件。
 
