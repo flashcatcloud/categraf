@@ -20,7 +20,6 @@ import (
 	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/pkg/cmdx"
 	"flashcat.cloud/categraf/types"
-	"github.com/kballard/go-shellquote"
 )
 
 const MaxStderrBytes int = 512
@@ -137,7 +136,7 @@ func (ins *Instance) ProcessCommand(slist *types.SampleList, command string, wg 
 }
 
 func commandRun(command string, timeout time.Duration) ([]byte, []byte, error) {
-	splitCmd, err := shellquote.Split(command)
+	splitCmd, err := QuoteSplit(command)
 	if err != nil || len(splitCmd) == 0 {
 		return nil, nil, fmt.Errorf("exec: unable to parse command, %s", err)
 	}
