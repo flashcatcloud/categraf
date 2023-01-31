@@ -31,7 +31,6 @@ type Global struct {
 }
 
 type Log struct {
-	Enable     bool   `toml:"enable"`
 	FileName   string `toml:"file_name"`
 	MaxSize    int    `toml:"max_size"`
 	MaxAge     int    `toml:"max_age"`
