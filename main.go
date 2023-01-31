@@ -49,7 +49,7 @@ func initLog(output string) {
 		log.SetOutput(os.Stderr)
 	case len(output) != 0:
 		log.SetOutput(&lumberjack.Logger{
-			Filename:   config.Config.Log.FileName,
+			Filename:   output,
 			MaxSize:    config.Config.Log.MaxSize,
 			MaxAge:     config.Config.Log.MaxAge,
 			MaxBackups: config.Config.Log.MaxBackups,
