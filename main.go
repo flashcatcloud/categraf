@@ -43,6 +43,8 @@ func init() {
 
 func initLog(output string) {
 	switch {
+	case output == "stdout":
+		log.SetOutput(os.Stdout)
 	case output == "stderr":
 		log.SetOutput(os.Stderr)
 	case len(output) != 0:
