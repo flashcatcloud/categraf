@@ -29,9 +29,10 @@ disable_usage_report = true
 # env = "localhost"
 
 [log]
-enable = false
 # file_name is the file to write logs to
-file_name = "log/categraf.log"
+file_name = "stdout"
+
+# options below will not be work when file_name is stdout or stderr
 # max_size is the maximum size in megabytes of the log file before it gets rotated. It defaults to 100 megabytes.
 max_size = 100
 # max_age is the maximum number of days to retain old log files based on the timestamp encoded in their filename.  

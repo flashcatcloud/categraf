@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"gopkg.in/natefinch/lumberjack.v2"
+
 	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/config"
@@ -36,6 +38,24 @@ func init() {
 	}
 	if err := os.Chdir(filepath.Dir(appPath)); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func initLog(output string) {
+	switch {
+	case output == "stderr":
+		log.SetOutput(os.Stderr)
+	case len(output) != 0:
+		log.SetOutput(&lumberjack.Logger{
+			Filename:   config.Config.Log.FileName,
+			MaxSize:    config.Config.Log.MaxSize,
+			MaxAge:     config.Config.Log.MaxAge,
+			MaxBackups: config.Config.Log.MaxBackups,
+			LocalTime:  config.Config.Log.LocalTime,
+			Compress:   config.Config.Log.Compress,
+		})
+	default:
+		log.SetOutput(os.Stdout)
 	}
 }
 
