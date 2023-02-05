@@ -1,6 +1,6 @@
 # exec
 
-该插件用于给用户自定义监控脚本，监控脚本采集到监控数据之后通过相应的格式输出到stdout，categraf截获stdout内容，解析之后传给服务端，脚本的输出格式支持3种：influx、falcon、prometheus
+该插件用于给用户自定义监控脚本，监控脚本采集到监控数据之后通过相应的格式输出到stdout，categraf截获stdout内容，解析之后传给服务端，脚本的输出格式支持3种：influx、falcon、prometheus，通过 exec.toml 的 `data_format` 配置告诉 Categraf
 
 ## influx
 
