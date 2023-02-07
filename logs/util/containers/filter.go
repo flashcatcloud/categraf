@@ -233,10 +233,10 @@ func NewAutodiscoveryFilter(filter FilterType) (*Filter, error) {
 	switch filter {
 	case GlobalFilter:
 		includeList = []string{}
-		excludeList = []string{}
+		excludeList = []string{"image:*.categraf.*"}
 	case LogsFilter:
 		includeList = []string{}
-		excludeList = []string{}
+		excludeList = []string{"image:.*categraf.*"}
 	}
 	return NewFilter(includeList, excludeList)
 }
