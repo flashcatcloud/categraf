@@ -144,7 +144,7 @@ type Instance struct {
 	Tables []Table `toml:"table"`
 
 	// Name & Fields are the elements of a Table.
-	// Telegraf chokes if we try to embed a Table. So instead we have to embed the
+	// Categraf chokes if we try to embed a Table. So instead we have to embed the
 	// fields of a Table, and construct a Table during runtime.
 	Name   string  `toml:"name"`
 	Fields []Field `toml:"field"`
@@ -408,7 +408,6 @@ func (s *Snmp) Description() string {
 // Gather retrieves all the configured fields and tables.
 // Any error encountered does not halt the process. The errors are accumulated
 // and returned at the end.
-// func (s *Instance) Gather(acc telegraf.Accumulator) error {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	var wg sync.WaitGroup
 	for i, agent := range ins.Agents {
