@@ -8,7 +8,16 @@
 + 处理： 本质是golang的正则提取+表达式计算
 
 ## 启动
-编辑mtail.toml文件, 注意每个instance 需要指定不同的progs参数（不同的progs文件或者目录）
+编辑mtail.toml文件, 一般每个instance需要指定不同的progs参数（不同的progs文件或者目录）,否则指标会相互干扰。
+**注意**: 如果不同instance使用相同progs, 可以通过给每个instance增加labels做区分，
+```toml
+labels = { k1=v1 }
+```
+或
+```toml
+[instances.labels]
+k1=v1
+```
 
 1. conf/inputs.mtail/mtail.toml中指定instance
 ```toml
