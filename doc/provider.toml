@@ -1,0 +1,50 @@
+[http_provider]
+# HttpRemoteProvider插件，通过Http请求的方式获取Categraf的配置
+# 通过设置global中的provider为HttpRemoteProvider启用
+# example request: GET /categraf/configs?agent=categraf&host=machine1 HTTP/1.1
+# struct of response
+# type httpRemoteProviderResponse struct {
+#	// version is signature/md5 of current Config, server side should deal with the Version calculate
+#	Version string `json:"version"`
+#
+#	// ConfigMap (InputName -> Config), if version is identical, server side can set Config to nil
+#	Configs map[string]cfg.ConfigWithFormat `json:"configs"`
+# }
+# type ConfigWithFormat struct {
+# 	Config string       `json:"config"`
+# 	Format ConfigFormat `json:"format"`
+# }
+# example response:
+# {
+#  "version": "111",
+#  "configs": {
+#    "mysql": {
+#      "config": "# # collect interval\n# interval = 15\n\n[[ instances ]]\naddress = \"172.33.44.55:3306\"\nusername = \"111\"\npassword = \"2222\"\nlabels = { instance = \"mysql2\"}\nextra_innodb_metrics =true",
+#      "format": "toml"
+#    }
+#  }
+#}
+#
+# remote url
+remote_url = "http://localhost:20000/categraf/configs"
+
+# header settings when request config from remote
+# headers = ["X-From", "categraf", "X-Xyz", "abc"]
+
+# http basic auth config
+# basic_auth_user = ""
+# basic_auth_pass = ""
+
+# http timeout in seconds
+timeout = 5
+
+# reload interval in seconds
+reload_interval = 120
+
+## Optional TLS Config
+# use_tls = false
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = false
