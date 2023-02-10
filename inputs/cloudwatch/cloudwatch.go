@@ -49,9 +49,8 @@ type (
 
 	// CloudWatch contains the configuration and cache for the cloudwatch plugin.
 	Instance struct {
-		config.PluginConfig
+		config.InstanceConfig
 
-		Instances        []*Instance     `toml:"instances"`
 		StatisticExclude []string        `toml:"statistic_exclude"`
 		StatisticInclude []string        `toml:"statistic_include"`
 		Timeout          config.Duration `toml:"timeout"`
