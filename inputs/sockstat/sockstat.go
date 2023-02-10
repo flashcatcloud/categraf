@@ -4,10 +4,11 @@ import (
 	"log"
 	"strings"
 
+	"github.com/toolkits/pkg/slice"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/slice"
 )
 
 const inputName = "sockstat"
