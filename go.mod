@@ -28,7 +28,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
 	github.com/krallistic/kazoo-go v0.0.0-20170526135507-a15279744f4e
-	github.com/mattn/go-isatty v0.0.14
+	github.com/mattn/go-isatty v0.0.17
 	github.com/matttproud/golang_protobuf_extensions v1.0.4
 	github.com/miekg/dns v1.1.50
 	github.com/moby/ipvs v1.0.2
