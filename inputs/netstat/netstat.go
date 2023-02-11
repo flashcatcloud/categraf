@@ -16,8 +16,9 @@ type NetStats struct {
 	ps system.PS
 	config.PluginConfig
 
-	TcpExt bool `toml:"tcp_ext"`
-	IpExt  bool `toml:"ip_ext"`
+	DisableConnectionStats bool `toml:"disable_connection_stats"`
+	TcpExt                 bool `toml:"tcp_ext"`
+	IpExt                  bool `toml:"ip_ext"`
 }
 
 func init() {
@@ -30,6 +31,11 @@ func init() {
 }
 
 func (s *NetStats) Gather(slist *types.SampleList) {
+	s.gatherExt(slist)
+
+	if s.DisableConnectionStats {
+		return
+	}
 	netconns, err := s.ps.NetConnections()
 	if err != nil {
 		log.Println("E! failed to get net connections:", err)
@@ -70,8 +76,10 @@ func (s *NetStats) Gather(slist *types.SampleList) {
 	}
 
 	slist.PushSamples(inputName, fields, tags)
+}
 
-	s.gatherExt(slist)
+func (s *NetStats) gatherNetStat(slist *types.SampleList) {
+
 }
 
 func (s *NetStats) gatherExt(slist *types.SampleList) {
