@@ -255,7 +255,7 @@ func (s *Systemd) collectUnitTasksMetrics(slist *types.SampleList, units []unit)
 				val = tasksCurrentCount.Value.Value().(uint64)
 				// Don't set if tasksCurrent if dbus reports MaxUint64.
 				if val != math.MaxUint64 {
-					slist.PushSample(inputName, "", float64(val), tag)
+					slist.PushSample(inputName, "unit_tasks_current", float64(val), tag)
 				}
 			}
 			tasksMaxCount, err := s.conn.GetUnitTypePropertyContext(context.TODO(), unit.Name, "Service", "TasksMax")
