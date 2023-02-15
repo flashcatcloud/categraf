@@ -65,18 +65,11 @@ func (ins *Instance) Init() error {
 	}
 
 	// set default value
-	if ins.SyslogUseCurrentYear != "false" {
-		ins.sysLogUseCurrentYear = true
-	}
-	if ins.LogRuntimeErrors != "false" {
-		ins.logRuntimeErrors = true
-	}
-	if ins.EmitProgLabel == "true" {
-		ins.emitProgLabel = true
-	}
-	if ins.EmitMetricTimestamp == "true" {
-		ins.emitMetricTimestamp = true
-	}
+	ins.sysLogUseCurrentYear = ins.SyslogUseCurrentYear == "true"
+	ins.logRuntimeErrors = ins.LogRuntimeErrors == "true"
+	ins.emitProgLabel = ins.EmitProgLabel == "true"
+	ins.emitMetricTimestamp = ins.EmitMetricTimestamp == "true"
+
 	if ins.PollLogInterval == 0 {
 		ins.PollLogInterval = 250 * time.Millisecond
 	}
