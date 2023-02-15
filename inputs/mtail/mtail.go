@@ -74,6 +74,9 @@ func (ins *Instance) Init() error {
 	if ins.EmitProgLabel == "true" {
 		ins.emitProgLabel = true
 	}
+	if ins.EmitMetricTimestamp == "true" {
+		ins.emitMetricTimestamp = true
+	}
 	if ins.PollLogInterval == 0 {
 		ins.PollLogInterval = 250 * time.Millisecond
 	}
@@ -181,7 +184,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		return
 	}
 	defer done()
-
 	for _, mf := range mfs {
 		metricName := mf.GetName()
 		for _, m := range mf.Metric {
@@ -215,12 +217,23 @@ func (p *Instance) HandleSummary(m *dto.Metric, tags map[string]string, metricNa
 	if !strings.HasPrefix(metricName, p.NamePrefix) {
 		namePrefix = p.NamePrefix
 	}
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags))
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags))
+	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
+	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
 
 	for _, q := range m.GetSummary().Quantile {
-		slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
+		slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
 	}
+}
+
+func (p *Instance) GetLogMetricTime(ts int64) time.Time {
+	var tm time.Time
+	if ts <= 0 || !p.emitMetricTimestamp {
+		return tm
+	}
+	sec := ts / 1000
+	ms := ts % 1000 * 1e6
+	tm = time.Unix(sec, ms)
+	return tm
 }
 
 func (p *Instance) HandleHistogram(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
@@ -228,14 +241,15 @@ func (p *Instance) HandleHistogram(m *dto.Metric, tags map[string]string, metric
 	if !strings.HasPrefix(metricName, p.NamePrefix) {
 		namePrefix = p.NamePrefix
 	}
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags))
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags))
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
+
+	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
+	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
+	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
 
 	for _, b := range m.GetHistogram().Bucket {
 		le := fmt.Sprint(b.GetUpperBound())
 		value := float64(b.GetCumulativeCount())
-		slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}))
+		slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
 	}
 }
 
@@ -243,9 +257,9 @@ func (p *Instance) handleGaugeCounter(m *dto.Metric, tags map[string]string, met
 	fields := getNameAndValue(m, metricName)
 	for metric, value := range fields {
 		if !strings.HasPrefix(metric, p.NamePrefix) {
-			slist.PushFront(types.NewSample("", prom.BuildMetric(p.NamePrefix, metric, ""), value, tags))
+			slist.PushFront(types.NewSample("", prom.BuildMetric(p.NamePrefix, metric, ""), value, tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
 		} else {
-			slist.PushFront(types.NewSample("", prom.BuildMetric("", metric, ""), value, tags))
+			slist.PushFront(types.NewSample("", prom.BuildMetric("", metric, ""), value, tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
 		}
 
 	}

@@ -20,6 +20,7 @@ type Sample struct {
 var (
 	labelReplacer  = strings.NewReplacer("-", "_", ".", "_", " ", "_", "/", "_")
 	metricReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "'", "_", "\"", "_")
+	zeroTime       = time.Unix(0, 0)
 )
 
 func NewSample(prefix, metric string, value interface{}, labels ...map[string]string) *Sample {
@@ -77,4 +78,12 @@ func (item *Sample) ConvertTimeSeries(precision string) *prompb.TimeSeries {
 	}
 
 	return &pt
+}
+
+func (s *Sample) SetTime(t time.Time) *Sample {
+	if t.IsZero() || zeroTime.Equal(t) {
+		return s
+	}
+	s.Timestamp = t
+	return s
 }
