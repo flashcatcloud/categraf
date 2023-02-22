@@ -31,7 +31,7 @@ import (
 //go:embed sample.conf
 var sampleConfig string
 
-const inputName = `cloudwatch`
+const inputName = "cloudwatch"
 
 const (
 	StatisticAverage     = "Average"
@@ -111,10 +111,25 @@ func (*CloudWatch) SampleConfig() string {
 }
 
 func (ins *Instance) Init() error {
+	if ins.BatchSize == 0 {
+		ins.BatchSize = 500
+	}
+	if ins.RateLimit == 0 {
+		ins.RateLimit = 25
+	}
+	if ins.CacheTTL == 0 {
+		ins.CacheTTL = config.Duration(time.Hour)
+	}
+	if ins.Timeout == 0 {
+		ins.Timeout = config.Duration(time.Second * 5)
+	}
 	if len(ins.Namespace) != 0 {
 		ins.Namespaces = append(ins.Namespaces, ins.Namespace)
 	}
 
+	if len(ins.Namespaces) == 0 {
+		return internalTypes.ErrInstancesEmpty
+	}
 	err := ins.initializeCloudWatch()
 	if err != nil {
 		return err
@@ -129,12 +144,21 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
+func (cw *CloudWatch) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(cw.Instances))
+	for i := 0; i < len(cw.Instances); i++ {
+		ret[i] = cw.Instances[i]
+	}
+	return ret
+}
+
 // Gather takes in an accumulator and adds the metrics that the Input
 // gathers. This is called every "interval".
-func (ins *Instance) Gather(slist *internalTypes.SampleList) error {
+func (ins *Instance) Gather(slist *internalTypes.SampleList) {
 	filteredMetrics, err := getFilteredMetrics(ins)
 	if err != nil {
-		return err
+		log.Println("E! filter metrics error,", err)
+		return
 	}
 
 	ins.updateWindow(time.Now())
@@ -142,7 +166,8 @@ func (ins *Instance) Gather(slist *internalTypes.SampleList) error {
 	// Get all of the possible queries so we can send groups of 100.
 	queries := ins.getDataQueries(filteredMetrics)
 	if len(queries) == 0 {
-		return nil
+		log.Println("E! data queries length is 0")
+		return
 	}
 
 	// Limit concurrency or we can easily exhaust user connection limit.
@@ -183,7 +208,10 @@ func (ins *Instance) Gather(slist *internalTypes.SampleList) error {
 
 	wg.Wait()
 
-	return ins.aggregateMetrics(slist, results)
+	err = ins.aggregateMetrics(slist, results)
+	if err != nil {
+		log.Println("E! aggregate metrics error,", err)
+	}
 }
 
 func (ins *Instance) initializeCloudWatch() error {
@@ -229,7 +257,6 @@ func (ins *Instance) initializeCloudWatch() error {
 			dimension.valueMatcher = matcher
 		}
 	}
-
 	return nil
 }
 
@@ -513,20 +540,14 @@ func (ins *Instance) aggregateMetrics(
 	return nil
 }
 
+var _ inputs.SampleGatherer = new(Instance)
+var _ inputs.Input = new(CloudWatch)
+var _ inputs.InstancesGetter = new(CloudWatch)
+
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return New()
+		return &CloudWatch{}
 	})
-}
-
-// New instance of the cloudwatch plugin
-func New() *CloudWatch {
-	return &CloudWatch{
-		// CacheTTL:  config.Duration(time.Hour),
-		// RateLimit: 25,
-		// Timeout:   config.Duration(time.Second * 5),
-		// BatchSize: 500,
-	}
 }
 
 func sanitizeMeasurement(namespace string) string {

@@ -1,0 +1,15 @@
+[[instances]]
+region="cn-beijing"
+endpoint="metrics.cn-hangzhou.aliyuncs.com"
+access_key_id="Your AccessKeyID"
+access_key_secret="Your AccessKeySecret"
+delay="5m"
+period="60s"
+namespaces=["acs_ecs_dashboard"]
+[[instances.metric_filters]]
+# metric_names=["cpu_cores","vm.TcpCount"]
+metric_names=["cpu_idle"]
+namespace=""
+ratelimit=25
+catch_ttl="1h"
+timeout="5s"
