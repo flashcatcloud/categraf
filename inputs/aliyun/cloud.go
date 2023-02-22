@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"sync"
 	"time"
 	"unicode"
@@ -136,7 +135,7 @@ func (ins *Instance) initialize() error {
 }
 
 func (f *metricCache) isValid() bool {
-	return f.metrics != nil && time.Since(f.built) < f.ttl
+	return f != nil && f.metrics != nil && time.Since(f.built) < f.ttl
 }
 
 // getFilteredMetrics returns metrics specified in the config file or metrics listed from Cloudwatch.
@@ -226,11 +225,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			ins.client = m
 		}
 	}
-	filteredMetrics, err := ins.getFilteredMetrics()
-	if err != nil {
-		log.Println("E!", err)
-		return
-	}
 
 	ins.updateWindow(time.Now())
 
@@ -238,79 +232,64 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	defer lmtr.Stop()
 	wg := sync.WaitGroup{}
 
-	ctx := context.Background()
 	if ins.metricCache.isValid() {
 		for _, filtered := range ins.metricCache.metrics {
 			for j := range filtered.metrics {
 				<-lmtr.C
 				wg.Add(1)
-				go func(metric internalTypes.Metric) {
-					defer wg.Done()
-					req := new(cms20190101.DescribeMetricListRequest)
-					if len(metric.MetricName) != 0 {
-						req.MetricName = tea.String(metric.MetricName)
-					}
-					if len(metric.Namespace) != 0 {
-						req.Namespace = tea.String(metric.Namespace)
-					}
-					if len(metric.Dimensions) != 0 {
-						req.Dimensions = tea.String(metric.Dimensions)
-					}
-					if !ins.windowEnd.IsZero() {
-						req.EndTime = tea.String(ins.windowEnd.Format(timefmt))
-					}
-					if !ins.windowStart.IsZero() {
-						req.StartTime = tea.String(ins.windowStart.Format(timefmt))
-					}
-					points, err := ins.client.GetMetric(ctx, req)
-					if err != nil {
-						log.Println("E! get metrics error,", err)
-						return
-					}
-					for _, point := range points {
-						if point.Value != nil {
-							tags := ins.makeLabels(point)
-							mName := fmt.Sprintf("%s_%s", snakeCase(point.Namespace), snakeCase(point.MetricName))
-							slist.PushFront(types.NewSample(inputName, mName, *point.Value, tags, map[string]string{"namespace": metric.Namespace, "metric_name": metric.MetricName}).SetTime(point.GetMetricTime()))
-						}
-					}
-				}(filtered.metrics[j])
+				go ins.sendMetrics(filtered.metrics[j], &wg, slist)
 			}
 		}
 	} else {
+		filteredMetrics, err := ins.getFilteredMetrics()
+		if err != nil {
+			log.Println("E!", err)
+			return
+		}
 		for _, filtered := range filteredMetrics {
 			for j := range filtered.metrics {
 				<-lmtr.C
 				wg.Add(1)
-				go func(metric internalTypes.Metric) {
-					defer wg.Done()
-					req := new(cms20190101.DescribeMetricListRequest)
-					if len(metric.MetricName) != 0 {
-						req.MetricName = tea.String(metric.MetricName)
-					}
-					if len(metric.Namespace) != 0 {
-						req.Namespace = tea.String(metric.Namespace)
-					}
-					if len(metric.Dimensions) != 0 {
-						req.Dimensions = tea.String(metric.Dimensions)
-					}
-					points, err := ins.client.GetMetric(ctx, req)
-					if err != nil {
-						log.Println("E! get metrics error,", err)
-						return
-					}
-					for _, point := range points {
-						if point.Value != nil {
-							tags := ins.makeLabels(point)
-							mName := fmt.Sprintf("%s_%s", strings.ToLower(point.Namespace), point.MetricName)
-							slist.PushFront(types.NewSample(inputName, mName, *point.Value, tags, map[string]string{"namespace": metric.Namespace, "metric_name": metric.MetricName}).SetTime(point.GetMetricTime()))
-						}
-					}
-				}(filtered.metrics[j])
+				go ins.sendMetrics(filtered.metrics[j], &wg, slist)
 			}
 		}
 	}
 	wg.Wait()
+}
+
+func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup, slist *types.SampleList) {
+	defer wg.Done()
+
+	ctx := context.Background()
+	req := new(cms20190101.DescribeMetricListRequest)
+	if len(metric.MetricName) != 0 {
+		req.MetricName = tea.String(metric.MetricName)
+	}
+	if len(metric.Namespace) != 0 {
+		req.Namespace = tea.String(metric.Namespace)
+	}
+	if len(metric.Dimensions) != 0 {
+		req.Dimensions = tea.String(metric.Dimensions)
+	}
+	if !ins.windowEnd.IsZero() {
+		req.EndTime = tea.String(ins.windowEnd.Format(timefmt))
+	}
+	if !ins.windowStart.IsZero() {
+		req.StartTime = tea.String(ins.windowStart.Format(timefmt))
+	}
+	points, err := ins.client.GetMetric(ctx, req)
+	if err != nil {
+		log.Println("E! get metrics error,", err)
+		return
+	}
+	for _, point := range points {
+		if point.Value != nil {
+			tags := ins.makeLabels(point)
+			mName := fmt.Sprintf("%s_%s", snakeCase(point.Namespace), snakeCase(point.MetricName))
+			slist.PushFront(types.NewSample(inputName, mName, *point.Value, tags, map[string]string{"namespace": metric.Namespace, "metric_name": metric.MetricName}).SetTime(point.GetMetricTime()))
+		}
+	}
+
 }
 
 func (ins *Instance) makeLabels(point internalTypes.Point, labels ...map[string]string) map[string]string {
