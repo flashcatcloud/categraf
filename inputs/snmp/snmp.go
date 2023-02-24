@@ -531,7 +531,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				}
 			} else if pkt != nil && len(pkt.Variables) > 0 {
 				ent := pkt.Variables[0]
-				if pkt.Variables[0].Type == gosnmp.NoSuchObject || pkt.Variables[0].Type == gosnmp.NoSuchInstance {
+				if ent.Type == gosnmp.NoSuchObject || ent.Type == gosnmp.NoSuchInstance {
 					return nil, fmt.Errorf("get info for oid %s error %v", oid, ent.Type)
 				}
 				fv, err := fieldConvert(f.Conversion, ent.Value)
