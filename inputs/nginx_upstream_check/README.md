@@ -4,6 +4,13 @@
 # 部署场景
 需要在装有nginx服务的虚拟机启用此插件。
 
+# 采集原理
+
+- 该采集插件是读取 [nginx_upstream_check](https://github.com/yaoweibin/nginx_upstream_check_module) 的状态输出。[nginx_upstream_check](https://github.com/yaoweibin/nginx_upstream_check_module) 可以周期性检查 upstream 中的各个 server 是否存活，如果检查失败，就会标记为 `down`，如果检查成功，就标记为 `up`。
+
+# 注意事项
+- 由于 TSDB 通常无法处理字符串，所以 Categraf 会做转换，将 `down` 转换为 2， `up` 转换为 1，其他状态转换为 0，使用 `nginx_upstream_check_status_code` 这个指标来表示，所以，我们可能需要这样的告警规则：
+
 # 前置条件
 ## 条件1：nginx服务需要启用nginx_upstream_check_module模块
 ```
@@ -142,12 +149,19 @@ urls字段填写条件2所定义好的域名。
 # interval = 15
 
 [[instances]]
+# 这个配置最关键，是要给出获取 status 信息的接口地址
 targets = [
     "https://nginx-upstream.domains.com/?format=json"
 ]
 
+# 标签这个配置请注意
+# 如果 Categraf 和 Nginx 是在一台机器上，target 可能配置的是 127.0.0.1
+# 如果 Nginx 有多台机器，每台机器都有 Categraf 来采集本机的 Nginx 的 Status 信息
+# 可能会导致时序数据标签相同，不易区分，当然，Categraf 会自带 ident 标签，该标签标识本机机器名
+# 如果大家觉得 ident 标签不够用，可以用下面 labels 配置，附加 instance、region 之类的标签
+
 # # append some labels for series
-labels = { cloud="huaweicloud", region="huabei-beijing-4",azone="az1", product="nginx-upstream" }
+labels = { cloud="my-cloud", region="my-region",azone="az1", product="my-product" }
 
 # # interval = global.interval * interval_times
 # interval_times = 1
