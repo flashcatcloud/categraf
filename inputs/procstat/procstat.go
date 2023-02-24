@@ -184,6 +184,17 @@ func (ins *Instance) updateProcesses(pids []PID) {
 	ins.procs = procs
 }
 
+func (ins *Instance) makeProcTag(p Process) map[string]string {
+	info := map[string]string{
+		"pid": fmt.Sprint(p.PID()),
+	}
+	comm, err := p.Name()
+	if err == nil {
+		info["comm"] = comm
+	}
+	return info
+}
+
 func (ins *Instance) gatherThreads(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
 	var val int32
 	for pid := range procs {
@@ -191,7 +202,7 @@ func (ins *Instance) gatherThreads(slist *types.SampleList, procs map[PID]Proces
 		if err == nil {
 			val += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "num_threads", val, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample(inputName, "num_threads", val, ins.makeProcTag(procs[pid]), tags))
 			}
 		}
 	}
@@ -208,7 +219,7 @@ func (ins *Instance) gatherFD(slist *types.SampleList, procs map[PID]Process, ta
 		if err == nil {
 			val += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "num_fds", val, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample(inputName, "num_fds", val, ins.makeProcTag(procs[pid]), tags))
 			}
 		}
 	}
@@ -234,10 +245,10 @@ func (ins *Instance) gatherIO(slist *types.SampleList, procs map[PID]Process, ta
 			readBytes += io.ReadBytes
 			writeBytes += io.WriteBytes
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "read_count", readCount, map[string]string{"pid": fmt.Sprint(pid)}, tags))
-				slist.PushFront(types.NewSample(inputName, "write_count", writeCount, map[string]string{"pid": fmt.Sprint(pid)}, tags))
-				slist.PushFront(types.NewSample(inputName, "read_bytes", readBytes, map[string]string{"pid": fmt.Sprint(pid)}, tags))
-				slist.PushFront(types.NewSample(inputName, "write_bytes", writeBytes, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample(inputName, "read_count", readCount, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "write_count", writeCount, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "read_bytes", readBytes, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "write_bytes", writeBytes, ins.makeProcTag(procs[pid]), tags))
 			}
 		}
 	}
@@ -259,7 +270,7 @@ func (ins *Instance) gatherUptime(slist *types.SampleList, procs map[PID]Process
 		if err == nil {
 			v := now - createTime/1000
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "uptime", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample(inputName, "uptime", v, ins.makeProcTag(procs[pid]), tags))
 			}
 			if value == -1 {
 				value = v
@@ -287,7 +298,8 @@ func (ins *Instance) gatherCPU(slist *types.SampleList, procs map[PID]Process, t
 			}
 			value += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "cpu_usage", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				procs[pid].Name()
+				slist.PushFront(types.NewSample(inputName, "cpu_usage", v, ins.makeProcTag(procs[pid]), tags))
 			}
 		}
 	}
@@ -304,7 +316,7 @@ func (ins *Instance) gatherMem(slist *types.SampleList, procs map[PID]Process, t
 		if err == nil {
 			value += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "mem_usage", v, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+				slist.PushFront(types.NewSample(inputName, "mem_usage", v, ins.makeProcTag(procs[pid]), tags))
 			}
 		}
 	}
@@ -322,8 +334,8 @@ func (ins *Instance) gatherLimit(slist *types.SampleList, procs map[PID]Process,
 			for _, rlim := range rlims {
 				if rlim.Resource == process.RLIMIT_NOFILE {
 					if ins.GatherPerPid {
-						slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_soft", rlim.Soft, map[string]string{"pid": fmt.Sprint(pid)}, tags))
-						slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_hard", rlim.Hard, map[string]string{"pid": fmt.Sprint(pid)}, tags))
+						slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_soft", rlim.Soft, ins.makeProcTag(procs[pid]), tags))
+						slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_hard", rlim.Hard, ins.makeProcTag(procs[pid]), tags))
 					}
 
 					if softMin == 0 {
