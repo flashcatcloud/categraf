@@ -1,8 +1,11 @@
+- 该插件依赖**nginx**的 **http_stub_status_module
+
 # 应用场景
 一般用于业务系统做对外或对外路由映射时使用代理服务，是运维最常见且最重要的代理工具。
 
 # 部署场景
 需要在装有nginx服务的虚拟机启用此插件。
+
 
 # 前置条件
 ```
@@ -128,7 +131,7 @@ urls = [
 ]
 
 ## append some labels for series
-labels = { cloud="huaweicloud", region="huabei-beijing-4",azone="az1", product="nginx" }
+labels = { cloud="my-cloud", region="my-region",azone="az1", product="my-product" }
 
 ## interval = global.interval * interval_times
 # interval_times = 1
@@ -185,7 +188,10 @@ journalctl -f -n 500 -u categraf | grep "E\!" | grep "W\!"
 
 # 监控告警规则配置
 ```
-先略过
+```
+个人经验仅供参考：
+超过2000毫秒，为P2级别，启用企业微信应用推送告警，3分钟内恢复发出恢复告警。
+超过5000毫秒，为P1级别，启用电话语音告警&企业微信应用告警，3分钟内恢复发出恢复告警。
 ```
 
 # 监控图表配置
