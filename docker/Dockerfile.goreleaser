@@ -1,6 +1,6 @@
 FROM --platform=$TARGETPLATFORM ubuntu:22.10
 
-RUN apt update && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt -y install tzdata
+RUN apt update && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt -y install tzdata ca-certificates 
 
 COPY docker/nsswitch.conf /etc/nsswitch.conf
 
