@@ -529,13 +529,18 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				} else {
 					return nil, fmt.Errorf("performing get on field %s: %w", f.Name, err)
 				}
-			} else if pkt != nil && len(pkt.Variables) > 0 && pkt.Variables[0].Type != gosnmp.NoSuchObject && pkt.Variables[0].Type != gosnmp.NoSuchInstance {
+			} else if pkt != nil && len(pkt.Variables) > 0 {
 				ent := pkt.Variables[0]
+				if ent.Type == gosnmp.NoSuchObject || ent.Type == gosnmp.NoSuchInstance {
+					return nil, fmt.Errorf("get info for oid %s error %v", oid, ent.Type)
+				}
 				fv, err := fieldConvert(f.Conversion, ent.Value)
 				if err != nil {
 					return nil, fmt.Errorf("converting %q (OID %s) for field %s: %w", ent.Value, ent.Name, f.Name, err)
 				}
 				ifv[""] = fv
+			} else {
+				log.Println("W! no info for oid", oid)
 			}
 		} else {
 			err := gs.Walk(oid, func(ent gosnmp.SnmpPDU) error {

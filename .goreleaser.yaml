@@ -72,7 +72,7 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
-    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}-with-oracle-plugin"
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}-with-cgo-plugin"
     wrap_in_directory: true
     files:
       - conf/*
