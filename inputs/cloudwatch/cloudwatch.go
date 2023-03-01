@@ -518,6 +518,7 @@ func (ins *Instance) aggregateMetrics(
 	)
 
 	for namespace, results := range metricDataResults {
+		ns := namespace
 		namespace = sanitizeMeasurement(namespace)
 
 		for _, result := range results {
@@ -527,6 +528,7 @@ func (ins *Instance) aggregateMetrics(
 				tags = *dimensions
 			}
 			tags["region"] = ins.Region
+			tags["namespace"] = ns
 
 			for i := range result.Values {
 				grouper.Add(namespace, tags, result.Timestamps[i], *result.Label, result.Values[i])
@@ -534,7 +536,7 @@ func (ins *Instance) aggregateMetrics(
 		}
 	}
 	for _, metric := range grouper.Metrics() {
-		slist.PushSamples(inputName, metric.Fields(), metric.Tags())
+		slist.PushSamples(metric.Name(), metric.Fields(), metric.Tags())
 	}
 
 	return nil
@@ -553,7 +555,7 @@ func init() {
 func sanitizeMeasurement(namespace string) string {
 	namespace = strings.ReplaceAll(namespace, "/", "_")
 	namespace = snakeCase(namespace)
-	return "cloudwatch_" + namespace
+	return inputName + "_" + namespace
 }
 
 func snakeCase(s string) string {
