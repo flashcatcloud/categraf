@@ -68,7 +68,7 @@
       "severity": 2,
       "disabled": 0,
       "prom_for_duration": 60,
-      "prom_ql": "redis_maxmemory > 0 and (redis_used_memory / redis_maxmemory) > 0.85",
+      "prom_ql": "redis_memory_max_bytes > 0 and (redis_memory_used_bytes / redis_memory_max_bytes) > 0.85",
       "prom_eval_interval": 15,
       "enable_stime": "00:00",
       "enable_etime": "23:59",

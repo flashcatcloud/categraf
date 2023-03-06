@@ -123,7 +123,7 @@
             {
                 "targets": [
                     {
-                        "expr": "redis_used_memory{instance=~\"$instance\"}"
+                        "expr": "redis_memory_used_bytes{instance=~\"$instance\"}"
                     }
                 ],
                 "name": "Memory Used",
@@ -175,7 +175,7 @@
             {
                 "targets": [
                     {
-                        "expr": "redis_maxmemory{instance=~\"$instance\"}"
+                        "expr": "redis_memory_max_bytes{instance=~\"$instance\"}"
                     }
                 ],
                 "name": "Max Memory Limit",
