@@ -128,8 +128,7 @@ func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetric
 	}
 	result = append(result, points...)
 	for resp.Body != nil && resp.Body.NextToken != nil {
-		nextToken := resp.Body.NextToken
-		req.NextToken = nextToken
+		req.NextToken = resp.Body.NextToken
 		resp, err = m.cms.DescribeMetricList(req)
 		if err != nil {
 			log.Println(err)
@@ -188,11 +187,17 @@ func NewCmsClient(key, secret, region, endpoint string) Option {
 		panic("endpoint for cms is required")
 	}
 	return func(m *Manager) error {
+		m.cms = &cmsClient{
+			apikey:    key,
+			apiSecret: secret,
+			region:    region,
+			endpoint:  endpoint,
+		}
 		config := &openapi.Config{
-			AccessKeyId:     tea.String(key),
-			AccessKeySecret: tea.String(secret),
-			RegionId:        tea.String(region),
-			Endpoint:        tea.String(endpoint),
+			AccessKeyId:     &m.cms.apikey,
+			AccessKeySecret: &m.cms.apiSecret,
+			RegionId:        &m.cms.region,
+			Endpoint:        &m.cms.endpoint,
 		}
 
 		cms, err := cms20190101.NewClient(config)
@@ -200,13 +205,7 @@ func NewCmsClient(key, secret, region, endpoint string) Option {
 		if err != nil {
 			return err
 		}
-		m.cms = &cmsClient{
-			apikey:    key,
-			apiSecret: secret,
-			region:    region,
-			endpoint:  endpoint,
-			Client:    cms,
-		}
+		m.cms.Client = cms
 		return nil
 	}
 }
@@ -225,11 +224,17 @@ func NewCmsV2Client(key, secret, region, endpoint string) Option {
 		panic("endpoint for cms batch exporter is required")
 	}
 	return func(m *Manager) error {
+		m.cmsv2 = &cmsV2Client{
+			apikey:    key,
+			apiSecret: secret,
+			region:    region,
+			endpoint:  endpoint,
+		}
 		config := &openapi.Config{
-			AccessKeyId:     tea.String(key),
-			AccessKeySecret: tea.String(secret),
-			RegionId:        tea.String(region),
-			Endpoint:        tea.String(endpoint),
+			AccessKeyId:     &m.cmsv2.apikey,
+			AccessKeySecret: &m.cmsv2.apiSecret,
+			RegionId:        &m.cmsv2.region,
+			Endpoint:        &m.cmsv2.endpoint,
 		}
 
 		// 批量导出接口
@@ -237,13 +242,7 @@ func NewCmsV2Client(key, secret, region, endpoint string) Option {
 		if err != nil {
 			return err
 		}
-		m.cmsv2 = &cmsV2Client{
-			apikey:    key,
-			apiSecret: secret,
-			region:    region,
-			endpoint:  endpoint,
-			Client:    cmsv2,
-		}
+		m.cmsv2.Client = cmsv2
 
 		return nil
 	}

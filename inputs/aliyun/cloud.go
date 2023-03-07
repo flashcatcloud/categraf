@@ -159,9 +159,8 @@ func (ins *Instance) initialize() error {
 		m, err := manager.New(cms)
 		if err != nil {
 			return fmt.Errorf("connect to aliyun error, %s", err)
-		} else {
-			ins.client = m
 		}
+		ins.client = m
 	}
 
 	if ins.metaCache.Size() == 0 {
