@@ -10,6 +10,8 @@ type (
 	Point  struct {
 		Timestamp  int64    `json:"timestamp"`
 		InstanceID string   `json:"instanceId"`
+		ClusterID  string   `json:"clusterId"`
+		NodeID     string   `json:"nodeId"`
 		UserID     string   `json:"userId"`
 		Min        *float64 `json:"Minimum,omitempty"`
 		Max        *float64 `json:"Maximum,omitempty"`
