@@ -98,6 +98,13 @@ var _ inputs.Input = new(Aliyun)
 var _ inputs.InstancesGetter = new(Aliyun)
 
 func (ins *Instance) Init() error {
+	if ins == nil ||
+		ins.AccessKeySecret == nil ||
+		ins.AccessKeyID == nil ||
+		ins.Region == nil ||
+		ins.Endpoint == nil {
+		return types.ErrInstancesEmpty
+	}
 	if ins.BatchSize == 0 {
 		ins.BatchSize = 500
 	}
