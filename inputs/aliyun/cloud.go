@@ -6,7 +6,6 @@ import (
 	"log"
 	"sync"
 	"time"
-	"unicode"
 
 	cms20190101 "github.com/alibabacloud-go/cms-20190101/v8/client"
 	"github.com/alibabacloud-go/tea/tea"
@@ -15,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/aliyun/internal/manager"
 	internalTypes "flashcat.cloud/categraf/inputs/aliyun/internal/types"
+	"flashcat.cloud/categraf/pkg/cache"
 	"flashcat.cloud/categraf/pkg/limiter"
 	"flashcat.cloud/categraf/types"
 )
@@ -35,13 +35,7 @@ type (
 		config.InstanceConfig
 
 		// credentials.Config
-		AccessKeyID     *string `toml:"access_key_id"`
-		AccessKeySecret *string `toml:"access_key_secret"`
-		Region          *string `toml:"region"`
-		Endpoint        *string `toml:"endpoint"`
-
-		// StatisticExclude []string `toml:"statistic_exclude"`
-		// StatisticInclude []string `toml:"statistic_include"`
+		Credential
 
 		client *manager.Manager `toml:"-"`
 
@@ -67,7 +61,15 @@ type (
 		// 企业云监控配置项
 		// batchSize int `toml:"batchSize"`
 
-		metricCache *metricCache `toml:"-"`
+		metricCache *metricCache      `toml:"-"`
+		metaCache   *cache.BasicCache `toml:"-"`
+	}
+
+	Credential struct {
+		AccessKeyID     *string `toml:"access_key_id"`
+		AccessKeySecret *string `toml:"access_key_secret"`
+		Region          *string `toml:"region"`
+		Endpoint        *string `toml:"endpoint"`
 	}
 
 	MetricFilter struct {
@@ -120,6 +122,7 @@ func (ins *Instance) Init() error {
 	if len(ins.Namespaces) == 0 {
 		ins.Namespaces = append(ins.Namespaces, "")
 	}
+	ins.metaCache = cache.NewBasicCache()
 
 	err := ins.initialize()
 	if err != nil {
@@ -138,6 +141,40 @@ func (s *Aliyun) GetInstances() []inputs.Instance {
 }
 
 func (ins *Instance) initialize() error {
+	if len(*ins.AccessKeyID) == 0 {
+		return fmt.Errorf("%s", "access_key_id is required")
+	}
+	if len(*ins.AccessKeySecret) == 0 {
+		return fmt.Errorf("%s", "E! access_key_secret is required")
+	}
+	if len(*ins.Region) == 0 {
+		return fmt.Errorf("%s", "region is required")
+	}
+	if len(*ins.Endpoint) == 0 {
+		return fmt.Errorf("%s", "endpoint is required")
+	}
+
+	if ins.client == nil {
+		cms := manager.NewCmsClient(*ins.AccessKeyID, *ins.AccessKeySecret, *ins.Region, *ins.Endpoint)
+		m, err := manager.New(cms)
+		if err != nil {
+			return fmt.Errorf("connect to aliyun error, %s", err)
+		} else {
+			ins.client = m
+		}
+	}
+
+	if ins.metaCache.Size() == 0 {
+		hosts, err := ins.client.GetEcsHosts()
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		for _, host := range hosts {
+			k := ins.client.EcsKey(*host.InstanceId)
+			ins.metaCache.Add(k, host)
+		}
+	}
 	return nil
 }
 
@@ -162,6 +199,9 @@ func (ins *Instance) getFilteredMetrics() ([]filteredMetric, error) {
 			for _, f := range ins.Filters {
 				if len(f.MetricNames) != 0 {
 					for _, name := range f.MetricNames {
+						if len(name) == 0 {
+							name = metric.MetricName
+						}
 						if isSelected(metric, name, f.Dimensions, f.Namespace) {
 							metrics = append(metrics, internalTypes.Metric{
 								MetricName: name,
@@ -206,33 +246,6 @@ func (ins *Instance) getFilteredMetrics() ([]filteredMetric, error) {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
-	if ins.AccessKeyID == nil {
-		log.Println("E! access_key_id is required")
-		return
-	}
-	if ins.AccessKeySecret == nil {
-		log.Println("E! access_key_secret is required")
-		return
-	}
-	if ins.Region == nil {
-		log.Println("E! region is required")
-		return
-	}
-	if ins.Endpoint == nil {
-		log.Println("E! endpoint is required")
-		return
-	}
-
-	if ins.client == nil {
-		m, err := manager.New(ins.AccessKeyID, ins.AccessKeySecret, ins.Endpoint, ins.Region)
-		if err != nil {
-			log.Println("E! connect to aliyun error,", err)
-			return
-		} else {
-			ins.client = m
-		}
-	}
-
 	ins.updateWindow(time.Now())
 
 	lmtr := limiter.NewRateLimiter(ins.RateLimit, time.Second)
@@ -292,7 +305,7 @@ func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup
 	for _, point := range points {
 		if point.Value != nil {
 			tags := ins.makeLabels(point)
-			mName := fmt.Sprintf("%s_%s", snakeCase(point.Namespace), snakeCase(point.MetricName))
+			mName := fmt.Sprintf("%s_%s", manager.SnakeCase(point.Namespace), manager.SnakeCase(point.MetricName))
 			slist.PushFront(types.NewSample(inputName, mName, *point.Value, tags, map[string]string{"namespace": metric.Namespace, "metric_name": metric.MetricName}).SetTime(point.GetMetricTime()))
 		}
 	}
@@ -309,8 +322,26 @@ func (ins *Instance) makeLabels(point internalTypes.Point, labels ...map[string]
 			result[k] = v
 		}
 	}
+	addLebel := func(instance interface{}) {
+		if meta, ok := instance.(*cms20190101.DescribeMonitoringAgentHostsResponseBodyHostsHost); ok {
+			result["ident"] = manager.SnakeCase(*meta.HostName)
+		}
+	}
+	if instance, ok := ins.metaCache.Get(ins.client.EcsKey(point.InstanceID)); ok {
+		addLebel(instance)
+	}
+
 	result["user_id"] = point.UserID
-	result["instance_id"] = point.InstanceID
+
+	if len(point.InstanceID) != 0 {
+		result["instance_id"] = point.InstanceID
+	}
+	if len(point.ClusterID) != 0 {
+		result["cluster_id"] = point.ClusterID
+	}
+	if len(point.NodeID) != 0 {
+		result["node_id"] = point.NodeID
+	}
 	return result
 }
 
@@ -372,22 +403,4 @@ func isSelected(metric internalTypes.Metric, name, dimensions, namespace string)
 		return false
 	}
 	return true
-}
-
-func snakeCase(in string) string {
-	runes := []rune(in)
-	length := len(runes)
-
-	var out []rune
-	for i := 0; i < length; i++ {
-		if runes[i] == '.' {
-			continue
-		}
-		if i > 0 && unicode.IsUpper(runes[i]) && ((i+1 < length && unicode.IsLower(runes[i+1])) || unicode.IsLower(runes[i-1])) {
-			out = append(out, '_')
-		}
-		out = append(out, unicode.ToLower(runes[i]))
-	}
-
-	return string(out)
 }
