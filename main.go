@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/osx"
+	"flashcat.cloud/categraf/pkg/pprof"
 	"flashcat.cloud/categraf/writer"
 	"github.com/chai2010/winsvc"
 	"github.com/toolkits/pkg/runner"
@@ -97,8 +99,9 @@ func initWriters() {
 }
 
 func handleSignal(ag *agent.Agent) {
+
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGPIPE)
+	signal.Notify(sc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGPIPE, syscall.SIGUSR2)
 
 EXIT:
 	for {
@@ -110,8 +113,10 @@ EXIT:
 		case syscall.SIGHUP:
 			ag.Reload()
 		case syscall.SIGPIPE:
-			// https://pkg.go.dev/os/signal#hdr-SIGPIPE
-			// do nothing
+		// https://pkg.go.dev/os/signal#hdr-SIGPIPE
+		// do nothing
+		case syscall.SIGUSR2:
+			go pprof.Go()
 		default:
 			break EXIT
 		}
