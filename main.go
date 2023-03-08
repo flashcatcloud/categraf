@@ -4,13 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sync/atomic"
 	"syscall"
 
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -19,6 +16,7 @@ import (
 	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/osx"
+	"flashcat.cloud/categraf/pkg/pprof"
 	"flashcat.cloud/categraf/writer"
 	"github.com/chai2010/winsvc"
 	"github.com/toolkits/pkg/runner"
@@ -101,10 +99,7 @@ func initWriters() {
 }
 
 func handleSignal(ag *agent.Agent) {
-	var (
-		pprof uint32
-		addr  string
-	)
+
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGPIPE, syscall.SIGUSR2)
 
@@ -121,27 +116,7 @@ EXIT:
 		// https://pkg.go.dev/os/signal#hdr-SIGPIPE
 		// do nothing
 		case syscall.SIGUSR2:
-
-			if !atomic.CompareAndSwapUint32(&pprof, 0, 1) {
-				log.Println("pprofile already started,", addr)
-				continue
-			}
-			go func() {
-
-				listener, err := net.Listen("tcp", ":0")
-				if err != nil {
-					log.Println(err)
-					return
-				}
-				addr = fmt.Sprintf("http://127.0.0.1:%d/debug/pprof", listener.Addr().(*net.TCPAddr).Port)
-				log.Printf("pprof started at %s", addr)
-
-				err = http.Serve(listener, nil)
-				if err != nil {
-					log.Println(err)
-					return
-				}
-			}()
+			go pprof.Go()
 		default:
 			break EXIT
 		}
