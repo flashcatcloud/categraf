@@ -19,20 +19,17 @@ func Go() {
 		log.Println("pprofile already started,", addr)
 		return
 	}
-	go func() {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	addr = fmt.Sprintf("http://127.0.0.1:%d/debug/pprof", listener.Addr().(*net.TCPAddr).Port)
+	log.Printf("pprof started at %s", addr)
 
-		listener, err := net.Listen("tcp", "127.0.0.1:0")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		addr = fmt.Sprintf("http://127.0.0.1:%d/debug/pprof", listener.Addr().(*net.TCPAddr).Port)
-		log.Printf("pprof started at %s", addr)
-
-		err = http.Serve(listener, nil)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-	}()
+	err = http.Serve(listener, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }
