@@ -126,6 +126,12 @@ func (ins *Instance) Init() error {
 	if len(ins.URL) == 0 {
 		return types.ErrInstancesEmpty
 	}
+	if ins.Timeout == 0 {
+		ins.Timeout = config.Duration(5 * time.Second)
+	}
+	if len(ins.Collect) == 0 {
+		ins.Collect = []string{"pipelines", "process", "jvm"}
+	}
 
 	client, err := ins.createHTTPClient()
 	if err != nil {
@@ -398,7 +404,7 @@ func (ins *Instance) gatherQueueStats(
 	return nil
 }
 
-//gatherJVMStats gather the Pipelines metrics and add results to list  (for Logstash >= 6)
+// gatherJVMStats gather the Pipelines metrics and add results to list  (for Logstash >= 6)
 func (ins *Instance) gatherPipelinesStats(address string, slist *types.SampleList) error {
 	pipelinesStats := &PipelinesStats{}
 
