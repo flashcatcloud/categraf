@@ -24,21 +24,25 @@ ram用户权限见 https://help.aliyun.com/document_detail/43170.html?spm=a2c4g.
 
 4. 配置
 ```toml
-# 阿里云资源所处的region
+## 阿里云资源所处的region
+## endpoint region 参考 https://help.aliyun.com/document_detail/28616.html#section-72p-xhs-6qt
 region="cn-beijing"
 endpoint="metrics.cn-hangzhou.aliyuncs.com"
-# 填入你的acces_key_id
+## 填入你的acces_key_id
 access_key_id=""
-# 填入你的access_key_secret
+## 填入你的access_key_secret
 access_key_secret=""
 
-# 可能无法获取当前最新指标，这个指标是指监控指标的截止时间距离现在多久
+## 可能无法获取当前最新指标，这个指标是指监控指标的截止时间距离现在多久
 delay="50m"
-# 采集周期，60s 是推荐值，再小了部分指标不支持
+## 采集周期，60s 是推荐值，再小了部分指标不支持
 period="60s"
-# 指标所属的namespace ,为空，则表示所有空间指标都要采集
+## 指标所属的namespace ,为空，则表示所有空间指标都要采集
+## namespace 参考 https://help.aliyun.com/document_detail/163515.htm?spm=a2c4g.11186623.0.0.44d65c58mhgNw3
 namespaces=["acs_ecs_dashboard"]
-# 过滤某个namespace下的一个或多个指标
+## 过滤某个namespace下的一个或多个指标
+## metric name 参考 https://help.aliyun.com/document_detail/163515.htm?spm=a2c4g.11186623.0.0.401d15c73Z0dZh
+## 参考页面中的Metric Id 填入下面的metricName ,页面中包含中文的Metric Name对应接口中的Description
 [[instances.metric_filters]]
 namespace=""
 metric_names=["cpu_cores","vm.TcpCount", "cpu_idle"]
