@@ -154,13 +154,13 @@ func work(version string, ps *system.SystemPS, client *http.Client) {
 	}
 
 	defer res.Body.Close()
+	bs, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println("E! failed to read heartbeat response body:", err)
+		return
+	}
 
 	if config.Config.DebugMode {
-		bs, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Println("E! failed to read heartbeat response body:", err)
-			return
-		}
 		log.Println("D! heartbeat response:", string(bs), "status code:", res.StatusCode)
 	}
 }
