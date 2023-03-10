@@ -85,8 +85,8 @@
 
   ## Namespace-wide statistic filters. These allow fewer queries to be made to
   ## cloudwatch.
-  statistic_include = ["average", "sum", "minimum", "maximum", sample_count"]
-  statistic_exclude = []
+  # statistic_include = ["average", "sum", "minimum", "maximum", sample_count"]
+  # statistic_exclude = []
 
   ## Metrics to Pull
   ## Defaults to all Metrics in Namespace if nothing is provided

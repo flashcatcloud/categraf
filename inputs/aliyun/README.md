@@ -25,6 +25,9 @@ RAM 用户授权。RAM 用户调用云监控 API 前，需要所属的阿里云�
 4. 配置
 
 ```toml
+# # categraf采集周期，阿里云指标的粒度一般是60秒，建议设置不要少于60秒
+# interval = 60
+[[instances]]
 ## 阿里云资源所处的region
 ## endpoint region 参考 https://help.aliyun.com/document_detail/28616.html#section-72p-xhs-6qt
 region="cn-beijing"
@@ -36,7 +39,7 @@ access_key_secret=""
 
 ## 可能无法获取当前最新指标，这个指标是指监控指标的截止时间距离现在多久
 delay="50m"
-## 采集周期，60s 是推荐值，再小了部分指标不支持
+## 阿里云指标的最小粒度，60s 是推荐值，再小了部分指标不支持
 period="60s"
 ## 指标所属的namespace ,为空，则表示所有空间指标都要采集
 ## namespace 参考 https://help.aliyun.com/document_detail/163515.htm?spm=a2c4g.11186623.0.0.44d65c58mhgNw3
@@ -59,3 +62,4 @@ timeout="5s"
 5. Dashboard
 
 - dashboard_for_redis_kvstore_standard：适用于 [Redis/Tair 内存型（标准版）](https://cms.console.aliyun.com/metric-meta/acs_kvstore/kvstore_standard?spm=a2c4g.11186623.0.0.5ed876abviVWI8)
+
