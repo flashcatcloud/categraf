@@ -1,28 +1,29 @@
 1. 需要提供
-a. AccessKey
-b. AcessSecret 
-c. Endpoint 
-d. RegionID
-其中，Endpoint 与 RegionID 见[接入地址](https://help.aliyun.com/document_detail/28616.html?spm=a2c4g.11186623.0.0.30c85d7aFf1Qzc#section-72p-xhs-6qt)
+
+- AccessKey
+- AcessSecret
+- Endpoint
+- RegionID
+
+其中，Endpoint 与 RegionID 见 [接入地址](https://help.aliyun.com/document_detail/28616.html?spm=a2c4g.11186623.0.0.30c85d7aFf1Qzc#section-72p-xhs-6qt)
 
 请求限制:
- - Http Request Header+Query≤128KB
- - Http Request Body≤512KB
- - Http Response≤2048KB
+- Http Request Header+Query ≤ 128KB
+- Http Request Body ≤ 512KB
+- Http Response ≤ 2048KB
 
 2. 凭证相关
-获取凭证 https://usercenter.console.aliyun.com/#/manage/ak
-RAM 用户授权
-RAM用户调用云监控API前，需要所属的阿里云账号将权限策略授予对应的RAM用户
-ram用户权限见 https://help.aliyun.com/document_detail/43170.html?spm=a2c4g.11186623.0.0.30c841feqsoAAn
-可以在[授权页面](https://ram.console.aliyun.com/permissions) 新增授权，选择对应的用户，
-授予云监控只读权限AliyunCloudMonitorReadOnlyAccess, 授予权限的用户，创建accessKey 即可。
 
+获取凭证 https://usercenter.console.aliyun.com/#/manage/ak
+RAM 用户授权。RAM 用户调用云监控 API 前，需要所属的阿里云账号将权限策略授予对应的 RAM 用户，参见 [RAM 用户权限](https://help.aliyun.com/document_detail/43170.html?spm=a2c4g.11186623.0.0.30c841feqsoAAn)。
+可以在 [授权页面](https://ram.console.aliyun.com/permissions) 新增授权，选择对应的用户，授予云监控只读权限 `AliyunCloudMonitorReadOnlyAccess`, 并为授予权限的用户创建accessKey 即可。
 
 3. 指标查询
-[阿里云监控指标](https://help.aliyun.com/document_detail/163515.htm?spm=a2c4g.11186623.0.0.3ad53c60q3sQz1)
+
+    [阿里云监控指标](https://help.aliyun.com/document_detail/163515.htm?spm=a2c4g.11186623.0.0.3ad53c60q3sQz1)
 
 4. 配置
+
 ```toml
 # # categraf采集周期，阿里云指标的粒度一般是60秒，建议设置不要少于60秒
 # interval = 60
@@ -56,5 +57,9 @@ ratelimit=25
 catch_ttl="1h"
 # 每次请求阿里云endpoint的超时时间
 timeout="5s"
-
 ```
+
+5. Dashboard
+
+- dashboard_for_redis_kvstore_standard：适用于 [Redis/Tair 内存型（标准版）](https://cms.console.aliyun.com/metric-meta/acs_kvstore/kvstore_standard?spm=a2c4g.11186623.0.0.5ed876abviVWI8)
+
