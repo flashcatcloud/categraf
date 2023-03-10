@@ -10,6 +10,7 @@ import (
 
 	"flashcat.cloud/categraf/config/traces"
 	"flashcat.cloud/categraf/pkg/cfg"
+	"flashcat.cloud/categraf/pkg/tls"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/toolkits/pkg/file"
 )
@@ -70,8 +71,23 @@ type HTTP struct {
 type IbexConfig struct {
 	Enable   bool
 	Interval Duration `toml:"interval"`
-	MetaDir  string   `toml:"metaDir"`
+	MetaDir  string   `toml:"meta_dir"`
 	Servers  []string `toml:"servers"`
+}
+
+type HeartbeatConfig struct {
+	Enable              bool     `toml:"enable"`
+	Url                 string   `toml:"url"`
+	Interval            int64    `toml:"interval"`
+	BasicAuthUser       string   `toml:"basic_auth_user"`
+	BasicAuthPass       string   `toml:"basic_auth_pass"`
+	Headers             []string `toml:"headers"`
+	Timeout             int64    `toml:"timeout"`
+	DialTimeout         int64    `toml:"dial_timeout"`
+	MaxIdleConnsPerHost int      `toml:"max_idle_conns_per_host"`
+
+	HTTPProxy
+	tls.ClientConfig
 }
 
 type ConfigType struct {
@@ -84,15 +100,16 @@ type ConfigType struct {
 	DisableUsageReport bool `toml:"disable_usage_report"`
 
 	// from config.toml
-	Global     Global         `toml:"global"`
-	WriterOpt  WriterOpt      `toml:"writer_opt"`
-	Writers    []WriterOption `toml:"writers"`
-	Logs       Logs           `toml:"logs"`
-	Traces     *traces.Config `toml:"traces"`
-	HTTP       *HTTP          `toml:"http"`
-	Prometheus *Prometheus    `toml:"prometheus"`
-	Ibex       *IbexConfig    `toml:"ibex"`
-	Log        Log            `toml:"log"`
+	Global     Global           `toml:"global"`
+	WriterOpt  WriterOpt        `toml:"writer_opt"`
+	Writers    []WriterOption   `toml:"writers"`
+	Logs       Logs             `toml:"logs"`
+	Traces     *traces.Config   `toml:"traces"`
+	HTTP       *HTTP            `toml:"http"`
+	Prometheus *Prometheus      `toml:"prometheus"`
+	Ibex       *IbexConfig      `toml:"ibex"`
+	Heartbeat  *HeartbeatConfig `toml:"heartbeat"`
+	Log        Log              `toml:"log"`
 
 	HTTPProviderConfig *HTTPProviderConfig `toml:"http_provider"`
 }

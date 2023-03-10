@@ -15,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/heartbeat"
 	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/pkg/pprof"
 	"flashcat.cloud/categraf/writer"
@@ -82,7 +83,7 @@ func main() {
 	initWriters()
 
 	go api.Start()
-	go agent.Report()
+	go heartbeat.Work()
 
 	ag, err := agent.NewAgent()
 	if err != nil {
