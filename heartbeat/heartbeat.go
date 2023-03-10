@@ -101,7 +101,7 @@ func work(version string, ps *system.SystemPS, client *http.Client) {
 		"cpu_num":       runtime.NumCPU(),
 		"cpu_util":      cpuUsagePercent,
 		"mem_util":      memUsagePercent,
-		"unixtime":      time.Now().Unix(),
+		"unixtime":      time.Now().UnixMilli(),
 	}
 
 	bs, err := json.Marshal(data)
