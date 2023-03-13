@@ -7,13 +7,20 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
+	"sync/atomic"
+	"time"
+
+	"github.com/chai2010/winsvc"
 
 	"flashcat.cloud/categraf/agent"
-	"github.com/chai2010/winsvc"
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/pkg/pprof"
 )
 
 var (
+	pprofStart          uint32
 	flagWinSvcName      = flag.String("win-service-name", "categraf", "Set windows service name")
 	flagWinSvcDesc      = flag.String("win-service-desc", "Categraf", "Set windows service description")
 	flagWinSvcInstall   = flag.Bool("win-service-install", false, "Install windows service")
@@ -33,6 +40,7 @@ func runAgent(ag *agent.Agent) {
 	}
 
 	ag.Start()
+	go profile()
 	handleSignal(ag)
 }
 
@@ -71,5 +79,23 @@ func doOSsvc() {
 		}
 		fmt.Println("done")
 		os.Exit(0)
+	}
+}
+
+func profile() {
+	// TODO: replace with windows event
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			file := filepath.Join(config.Config.ConfigDir, ".pprof")
+			if _, err := os.Stat(file); err == nil {
+				if !atomic.CompareAndSwapUint32(&pprofStart, 0, 1) {
+					return
+				}
+				go pprof.Go()
+			}
+		}
 	}
 }
