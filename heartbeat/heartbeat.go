@@ -22,7 +22,7 @@ const collinterval = 3
 func Work() {
 	conf := config.Config.Heartbeat
 
-	if !conf.Enable {
+	if conf != nil && !conf.Enable {
 		return
 	}
 
