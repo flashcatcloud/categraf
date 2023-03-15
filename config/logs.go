@@ -28,6 +28,8 @@ type (
 		ScanPeriod            int                          `json:"scan_period" toml:"scan_period"`
 		FrameSize             int                          `json:"frame_size" toml:"frame_size"`
 		CollectContainerAll   bool                         `json:"collect_container_all" toml:"collect_container_all"`
+		ContainerInclude      []string                     `json:"container_include" toml:"container_include"`
+		ContainerExclude      []string                     `json:"container_exclude" toml:"container_exclude"`
 		GlobalProcessingRules []*logsconfig.ProcessingRule `json:"processing_rules" toml:"processing_rules"`
 		Items                 []*logsconfig.LogsConfig     `json:"items" toml:"items"`
 		KafkaConfig
@@ -87,4 +89,18 @@ func IsFeaturePresent(t string) bool {
 
 func GetContainerCollectAll() bool {
 	return Config.Logs.CollectContainerAll
+}
+
+func GetContainerIncludeList() []string {
+	if Config.Logs.ContainerInclude == nil {
+		return []string{}
+	}
+	return Config.Logs.ContainerInclude
+}
+
+func GetContainerExcludeList() []string {
+	if Config.Logs.ContainerExclude == nil {
+		return []string{}
+	}
+	return Config.Logs.ContainerExclude
 }

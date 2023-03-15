@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/errors"
 	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/logs/util/containers/providers"
@@ -86,6 +87,10 @@ func NewKubeUtil() *KubeUtil {
 		rawConnectionInfo:    make(map[string]string),
 		podListCacheDuration: 5 * time.Second,
 		podUnmarshaller:      newPodUnmarshaller(),
+	}
+	filter, err := containers.NewAutodiscoveryFilter(containers.LogsFilter)
+	if err == nil {
+		ku.filter = filter
 	}
 
 	waitOnMissingContainer := 0
@@ -211,7 +216,9 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*Pod, error) {
 			allContainers = append(allContainers, pod.Status.InitContainers...)
 			allContainers = append(allContainers, pod.Status.Containers...)
 			pod.Status.AllContainers = allContainers
-			tmpSlice = append(tmpSlice, pod)
+			if !ku.filterPod(pod) {
+				tmpSlice = append(tmpSlice, pod)
+			}
 		}
 	}
 	pods.Items = tmpSlice
@@ -220,6 +227,18 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*Pod, error) {
 	cache.Cache.Set(podListCacheKey, pods, ku.podListCacheDuration)
 
 	return pods.Items, nil
+}
+
+func (ku *KubeUtil) filterPod(pod *Pod) bool {
+	for _, c := range pod.Status.GetAllContainers() {
+		if coreconfig.Config.DebugMode {
+			log.Printf("D! container name:%s image:%s, ns:%s", c.Name, c.Image, pod.Metadata.Namespace)
+		}
+		if ku.filter.IsExcluded(c.Name, c.Image, pod.Metadata.Namespace) {
+			return true
+		}
+	}
+	return false
 }
 
 // ForceGetLocalPodList reset podList cache and call GetLocalPodList

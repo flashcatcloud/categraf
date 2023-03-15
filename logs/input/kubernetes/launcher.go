@@ -32,6 +32,7 @@ const (
 	AnnotationRuleKey      = "categraf/logs.stdout.processing_rules"
 	AnnotationTopicKey     = "categraf/logs.stdout.topic"
 	AnnotationTagPrefixKey = "categraf/tags.prefix"
+	AnnotationCollectKey   = "categraf/logs.stdout.collect"
 )
 
 var (
@@ -252,6 +253,11 @@ func (l *Launcher) getSource(pod *kubelet.Pod, container kubelet.ContainerStatus
 
 	if cfg == nil {
 		if !l.collectAll {
+			return nil, errCollectAllDisabled
+		}
+		if !(pod.Metadata.Annotations[AnnotationCollectKey] == "" ||
+			pod.Metadata.Annotations[AnnotationCollectKey] == "true") {
+			log.Printf("pod %s disable stdout collecting", pod.Metadata.Name)
 			return nil, errCollectAllDisabled
 		}
 		// The logs source is the short image name

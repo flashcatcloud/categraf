@@ -13,6 +13,8 @@ import (
 	"log"
 	"regexp"
 	"strings"
+
+	coreconfig "flashcat.cloud/categraf/config"
 )
 
 const (
@@ -60,6 +62,7 @@ const (
 	pauseContainerUpstream = `image:upstream/pause.*`
 	// - cdk/pause-amd64
 	pauseContainerCDK = `image:cdk/pause.*`
+	categrafContainer = `image:flashcatcloud/categraf.*`
 
 	// filter prefixes for inclusion/exclusion
 	imageFilterPrefix         = `image:`
@@ -200,8 +203,8 @@ func NewFilter(includeList, excludeList []string) (*Filter, error) {
 func newMetricFilterFromConfig() (*Filter, error) {
 	// We merge `container_include` and `container_include_metrics` as this filter
 	// is used by all core and python checks (so components sending metrics).
-	includeList := []string{}
-	excludeList := []string{}
+	includeList := coreconfig.GetContainerIncludeList()
+	excludeList := coreconfig.GetContainerExcludeList()
 
 	excludeList = append(excludeList,
 		pauseContainerGCR,
@@ -219,6 +222,7 @@ func newMetricFilterFromConfig() (*Filter, error) {
 		pauseContainerECR,
 		pauseContainerUpstream,
 		pauseContainerCDK,
+		categrafContainer,
 	)
 	return NewFilter(includeList, excludeList)
 }
@@ -228,15 +232,19 @@ func newMetricFilterFromConfig() (*Filter, error) {
 // It allows to filter metrics and logs separately
 // For use in autodiscovery.
 func NewAutodiscoveryFilter(filter FilterType) (*Filter, error) {
-	includeList := []string{}
-	excludeList := []string{}
+	includeList := coreconfig.GetContainerIncludeList()
+	excludeList := coreconfig.GetContainerExcludeList()
 	switch filter {
 	case GlobalFilter:
 		includeList = []string{}
-		excludeList = []string{"image:*.categraf.*"}
+		if len(excludeList) == 0 {
+			excludeList = append(excludeList, categrafContainer)
+		}
 	case LogsFilter:
 		includeList = []string{}
-		excludeList = []string{"image:.*categraf.*"}
+		if len(excludeList) == 0 {
+			excludeList = append(excludeList, categrafContainer)
+		}
 	}
 	return NewFilter(includeList, excludeList)
 }
@@ -267,7 +275,11 @@ func (cf Filter) IsExcluded(containerName, containerImage, podNamespace string) 
 
 	// Check if excludeListed
 	for _, r := range cf.ImageExcludeList {
-		if r.MatchString(containerImage) {
+		match := r.MatchString(containerImage)
+		if coreconfig.Config.DebugMode {
+			log.Printf("D!, exclude item :%+v, container image:%s, %t\n", r, containerImage, match)
+		}
+		if match {
 			return true
 		}
 	}
