@@ -275,14 +275,12 @@ func (cf Filter) IsExcluded(containerName, containerImage, podNamespace string) 
 
 	// Check if excludeListed
 	for _, r := range cf.ImageExcludeList {
-		if r.MatchString(containerImage) {
-			if coreconfig.Config.DebugMode {
-				log.Printf("D!, exclude item :%+v, container image:%s, true\n", r, containerImage)
-			}
-			return true
-		}
+		match := r.MatchString(containerImage)
 		if coreconfig.Config.DebugMode {
-			log.Printf("D! exclude item :%+v, container image:%s, false", r, containerImage)
+			log.Printf("D!, exclude item :%+v, container image:%s, %t\n", r, containerImage, match)
+		}
+		if match {
+			return true
 		}
 	}
 	for _, r := range cf.NameExcludeList {
