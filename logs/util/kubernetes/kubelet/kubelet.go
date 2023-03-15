@@ -237,11 +237,6 @@ func (ku *KubeUtil) filterPod(pod *Pod) bool {
 		if ku.filter.IsExcluded(c.Name, c.Image, pod.Metadata.Namespace) {
 			return true
 		}
-		_, err := parseContainerInPod(c, pod)
-		if err != nil {
-			log.Printf("Cannot parse container %s in pod %s: %s", c.ID, pod.Metadata.Name, err)
-			continue
-		}
 	}
 	return false
 }
