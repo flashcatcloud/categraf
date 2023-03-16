@@ -236,12 +236,10 @@ func NewAutodiscoveryFilter(filter FilterType) (*Filter, error) {
 	excludeList := coreconfig.GetContainerExcludeList()
 	switch filter {
 	case GlobalFilter:
-		includeList = []string{}
 		if len(excludeList) == 0 {
 			excludeList = append(excludeList, categrafContainer)
 		}
 	case LogsFilter:
-		includeList = []string{}
 		if len(excludeList) == 0 {
 			excludeList = append(excludeList, categrafContainer)
 		}
