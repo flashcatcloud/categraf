@@ -66,7 +66,7 @@
   # cache_ttl = "1h"
 
   ## Metric Statistic Namespaces (required)
-  namespaces = ["AWS/EC2"]
+  # namespaces = ["AWS/EC2"]
 
   ## Maximum requests per second. Note that the global default AWS rate limit
   ## is 50 reqs/sec, so if you define multiple namespaces, these should add up
