@@ -218,7 +218,7 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*Pod, error) {
 			pod.Status.AllContainers = allContainers
 			if !ku.filterPod(pod) {
 				if coreconfig.Config.DebugMode {
-					log.Printf("filter include, pod name: %s, pod namespace: %s. pod image:[%v]", pod.Metadata.Name, pod.Metadata.Namespace, pod.Spec.Containers)
+					log.Printf("D! filter include, pod name: %s, pod namespace: %s. pod image:[%v]", pod.Metadata.Name, pod.Metadata.Namespace, pod.Spec.Containers)
 				}
 				tmpSlice = append(tmpSlice, pod)
 			}
