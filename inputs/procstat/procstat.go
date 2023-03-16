@@ -192,6 +192,12 @@ func (ins *Instance) makeProcTag(p Process) map[string]string {
 	if err == nil {
 		info["comm"] = comm
 	}
+	if runtime.GOOS == "windows" {
+		title := getWindowTitleByPid(uint32(p.PID()))
+		if len(title) != 0 {
+			info["window_title"] = title
+		}
+	}
 	return info
 }
 
@@ -298,7 +304,6 @@ func (ins *Instance) gatherCPU(slist *types.SampleList, procs map[PID]Process, t
 			}
 			value += v
 			if ins.GatherPerPid {
-				procs[pid].Name()
 				slist.PushFront(types.NewSample(inputName, "cpu_usage", v, ins.makeProcTag(procs[pid]), tags))
 			}
 		}
