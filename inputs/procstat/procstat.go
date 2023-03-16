@@ -192,13 +192,10 @@ func (ins *Instance) makeProcTag(p Process) map[string]string {
 	if err == nil {
 		info["comm"] = comm
 	}
-	var title string
 	if runtime.GOOS == "windows" {
-		title = getWindowTitleByPid(uint32(p.PID()))
+		title := getWindowTitleByPid(uint32(p.PID()))
 		if len(title) != 0 {
 			info["window_title"] = title
-		} else {
-			log.Printf("pid %d has no window", p.PID())
 		}
 	}
 	return info
