@@ -217,6 +217,9 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*Pod, error) {
 			allContainers = append(allContainers, pod.Status.Containers...)
 			pod.Status.AllContainers = allContainers
 			if !ku.filterPod(pod) {
+				if coreconfig.Config.DebugMode {
+					log.Printf("filter include, pod name: %s, pod namespace: %s. pod image:[%v]", pod.Metadata.Name, pod.Metadata.Namespace, pod.Spec.Containers)
+				}
 				tmpSlice = append(tmpSlice, pod)
 			}
 		}
@@ -231,10 +234,10 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*Pod, error) {
 
 func (ku *KubeUtil) filterPod(pod *Pod) bool {
 	for _, c := range pod.Status.GetAllContainers() {
-		if coreconfig.Config.DebugMode {
-			log.Printf("D! container name:%s image:%s, ns:%s", c.Name, c.Image, pod.Metadata.Namespace)
-		}
 		if ku.filter.IsExcluded(c.Name, c.Image, pod.Metadata.Namespace) {
+			if coreconfig.Config.DebugMode {
+				log.Printf("D! container name:%s image:%s, ns:%s, exclude:true", c.Name, c.Image, pod.Metadata.Namespace)
+			}
 			return true
 		}
 	}
