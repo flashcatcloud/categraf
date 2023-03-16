@@ -195,7 +195,9 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 		}
 
 		if empty {
-			// log.Printf("W! no instances for input:%s", inputKey)
+			if config.Config.DebugMode {
+				log.Printf("W! no instances for input:%s", inputKey)
+			}
 			return
 		}
 	}
