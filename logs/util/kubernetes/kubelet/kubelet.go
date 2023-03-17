@@ -88,10 +88,6 @@ func NewKubeUtil() *KubeUtil {
 		podListCacheDuration: 5 * time.Second,
 		podUnmarshaller:      newPodUnmarshaller(),
 	}
-	filter, err := containers.NewAutodiscoveryFilter(containers.LogsFilter)
-	if err == nil {
-		ku.filter = filter
-	}
 
 	waitOnMissingContainer := 0
 	if waitOnMissingContainer > 0 {
