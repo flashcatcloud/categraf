@@ -1,4 +1,4 @@
-package self
+package categraf
 
 import (
 	"log"
@@ -18,17 +18,17 @@ const (
 	defaultPrefix = "categraf"
 )
 
-type Self struct {
+type Categraf struct {
 	config.PluginConfig
 }
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &Self{}
+		return &Categraf{}
 	})
 }
 
-func (ins *Self) Gather(slist *types.SampleList) {
+func (ins *Categraf) Gather(slist *types.SampleList) {
 	mfs, err := prometheus.DefaultGatherer.Gather()
 	if err != nil {
 		log.Println(err)
@@ -48,8 +48,4 @@ func (ins *Self) Gather(slist *types.SampleList) {
 			}
 		}
 	}
-}
-
-func (p *Self) GetLabels() map[string]string {
-	return p.Labels
 }
