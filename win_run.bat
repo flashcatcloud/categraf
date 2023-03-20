@@ -26,7 +26,6 @@ goto :eof
 
 :stopLogic
 echo Executing stop logic...
-:: for /f "tokens=2" %%A in ('tasklist /nh /fi "imagename eq categraf.exe"') do (
 for /f "tokens=2" %%A in ('tasklist -v ^| findstr categraf.exe') do (
     set pid=%%A
     goto :killProcess
