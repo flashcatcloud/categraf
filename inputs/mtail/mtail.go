@@ -3,9 +3,7 @@ package mtail
 import (
 	"fmt"
 	"log"
-	"math"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -17,7 +15,7 @@ import (
 	"flashcat.cloud/categraf/inputs/mtail/internal/metrics"
 	"flashcat.cloud/categraf/inputs/mtail/internal/mtail"
 	"flashcat.cloud/categraf/inputs/mtail/internal/waker"
-	"flashcat.cloud/categraf/pkg/prom"
+	pkgMetrics "flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -180,41 +178,16 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, mf := range mfs {
 		metricName := mf.GetName()
 		for _, m := range mf.Metric {
-			// reading tags
-			tags := ins.makeLabels(m)
+			tags := pkgMetrics.MakeLabels(m, ins.GetLabels())
 
 			if mf.GetType() == dto.MetricType_SUMMARY {
-				ins.HandleSummary(m, tags, metricName, slist)
+				pkgMetrics.HandleSummary(inputName, m, tags, metricName, ins.GetLogMetricTime, slist)
 			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
-				ins.HandleHistogram(m, tags, metricName, slist)
+				pkgMetrics.HandleHistogram(inputName, m, tags, metricName, ins.GetLogMetricTime, slist)
 			} else {
-				ins.handleGaugeCounter(m, tags, metricName, slist)
+				pkgMetrics.HandleGaugeCounter(inputName, m, tags, metricName, ins.GetLogMetricTime, slist)
 			}
 		}
-	}
-}
-
-func (p *Instance) makeLabels(m *dto.Metric) map[string]string {
-	result := map[string]string{}
-	for key, value := range p.Labels {
-		result[key] = value
-	}
-	for _, pair := range m.GetLabel() {
-		result[pair.GetName()] = pair.GetValue()
-	}
-	return result
-}
-
-func (p *Instance) HandleSummary(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
-	namePrefix := ""
-	if !strings.HasPrefix(metricName, p.NamePrefix) {
-		namePrefix = p.NamePrefix
-	}
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
-
-	for _, q := range m.GetSummary().Quantile {
-		slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
 	}
 }
 
@@ -227,51 +200,4 @@ func (p *Instance) GetLogMetricTime(ts int64) time.Time {
 	ms := ts % 1000 * 1e6
 	tm = time.Unix(sec, ms)
 	return tm
-}
-
-func (p *Instance) HandleHistogram(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
-	namePrefix := ""
-	if !strings.HasPrefix(metricName, p.NamePrefix) {
-		namePrefix = p.NamePrefix
-	}
-
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
-	slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
-
-	for _, b := range m.GetHistogram().Bucket {
-		le := fmt.Sprint(b.GetUpperBound())
-		value := float64(b.GetCumulativeCount())
-		slist.PushFront(types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
-	}
-}
-
-func (p *Instance) handleGaugeCounter(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
-	fields := getNameAndValue(m, metricName)
-	for metric, value := range fields {
-		if !strings.HasPrefix(metric, p.NamePrefix) {
-			slist.PushFront(types.NewSample("", prom.BuildMetric(p.NamePrefix, metric, ""), value, tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
-		} else {
-			slist.PushFront(types.NewSample("", prom.BuildMetric("", metric, ""), value, tags).SetTime(p.GetLogMetricTime(m.GetTimestampMs())))
-		}
-
-	}
-}
-
-func getNameAndValue(m *dto.Metric, metricName string) map[string]interface{} {
-	fields := make(map[string]interface{})
-	if m.Gauge != nil {
-		if !math.IsNaN(m.GetGauge().GetValue()) {
-			fields[metricName] = m.GetGauge().GetValue()
-		}
-	} else if m.Counter != nil {
-		if !math.IsNaN(m.GetCounter().GetValue()) {
-			fields[metricName] = m.GetCounter().GetValue()
-		}
-	} else if m.Untyped != nil {
-		if !math.IsNaN(m.GetUntyped().GetValue()) {
-			fields[metricName] = m.GetUntyped().GetValue()
-		}
-	}
-	return fields
 }

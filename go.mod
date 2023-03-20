@@ -99,6 +99,7 @@ require (
 	github.com/jackc/pgproto3/v2 v2.3.1 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.12.0 // indirect
+	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 )
 
