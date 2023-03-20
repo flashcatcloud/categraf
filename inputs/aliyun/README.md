@@ -62,4 +62,4 @@ timeout="5s"
 5. Dashboard
 
 - dashboard_for_redis_kvstore_standard：适用于 [Redis/Tair 内存型（标准版）](https://cms.console.aliyun.com/metric-meta/acs_kvstore/kvstore_standard?spm=a2c4g.11186623.0.0.5ed876abviVWI8)
-
+- dashboard_for_polardb_mysql：适用于 [云数据库POLARDB-MySQL(新版)](https://cms.console.aliyun.com/metric-meta/acs_polardb/polardb_mysql_cluster?spm=a2c4g.11186623.0.0.1f1d76abbgD9eJ)
