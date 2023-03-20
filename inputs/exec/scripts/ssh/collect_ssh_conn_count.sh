@@ -12,4 +12,4 @@ azone="az1"
 product="my-product"
 
 ssh_conn_count=`who | wc -l`
-echo "system,${input_name},cloud=${cloud},region=${region},azone=${azone},product=${product} ssh_conn_count=${ssh_conn_count}"
+echo "${input_name},cloud=${cloud},region=${region},azone=${azone},product=${product} ssh_conn_count=${ssh_conn_count}"
