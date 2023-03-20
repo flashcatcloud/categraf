@@ -15,7 +15,7 @@ import (
 	"flashcat.cloud/categraf/inputs/mtail/internal/metrics"
 	"flashcat.cloud/categraf/inputs/mtail/internal/mtail"
 	"flashcat.cloud/categraf/inputs/mtail/internal/waker"
-	pkgMetrics "flashcat.cloud/categraf/pkg/metrics"
+	util "flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -178,14 +178,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, mf := range mfs {
 		metricName := mf.GetName()
 		for _, m := range mf.Metric {
-			tags := pkgMetrics.MakeLabels(m, ins.GetLabels())
+			tags := util.MakeLabels(m, ins.GetLabels())
 
 			if mf.GetType() == dto.MetricType_SUMMARY {
-				pkgMetrics.HandleSummary(inputName, m, tags, metricName, ins.GetLogMetricTime, slist)
+				util.HandleSummary(inputName, m, tags, metricName, ins.GetLogMetricTime, slist)
 			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
-				pkgMetrics.HandleHistogram(inputName, m, tags, metricName, ins.GetLogMetricTime, slist)
+				util.HandleHistogram(inputName, m, tags, metricName, ins.GetLogMetricTime, slist)
 			} else {
-				pkgMetrics.HandleGaugeCounter(inputName, m, tags, metricName, ins.GetLogMetricTime, slist)
+				util.HandleGaugeCounter(inputName, m, tags, metricName, ins.GetLogMetricTime, slist)
 			}
 		}
 	}
