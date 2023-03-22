@@ -59,6 +59,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/redis"
 	_ "flashcat.cloud/categraf/inputs/redis_sentinel"
 	_ "flashcat.cloud/categraf/inputs/rocketmq_offset"
+	_ "flashcat.cloud/categraf/inputs/self_metrics"
 	_ "flashcat.cloud/categraf/inputs/snmp"
 	_ "flashcat.cloud/categraf/inputs/sockstat"
 	_ "flashcat.cloud/categraf/inputs/sqlserver"
