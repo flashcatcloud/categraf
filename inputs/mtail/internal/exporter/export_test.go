@@ -62,7 +62,7 @@ func FakeSocketWrite(f formatter, m *metrics.Metric) []string {
 }
 
 func TestMetricToCollectd(t *testing.T) {
-	*collectdPrefix = ""
+	collectdPrefix = ""
 	ts, terr := time.Parse("2006/01/02 15:04:05", "2012/07/24 10:14:00")
 	if terr != nil {
 		t.Errorf("time parse error: %s", terr)
@@ -102,14 +102,14 @@ func TestMetricToCollectd(t *testing.T) {
 	expected = []string{"PUTVAL \"gunstar/mtail-prog/gauge-foo\" interval=60 1343124840:123\n"}
 	testutil.ExpectNoDiff(t, expected, r)
 
-	*collectdPrefix = prefix
+	collectdPrefix = prefix
 	r = FakeSocketWrite(metricToCollectd, timingMetric)
 	expected = []string{"PUTVAL \"gunstar/prefixmtail-prog/gauge-foo\" interval=60 1343124840:123\n"}
 	testutil.ExpectNoDiff(t, expected, r)
 }
 
 func TestMetricToGraphite(t *testing.T) {
-	*graphitePrefix = ""
+	graphitePrefix = ""
 	ts, terr := time.Parse("2006/01/02 15:04:05", "2012/07/24 10:14:00")
 	if terr != nil {
 		t.Errorf("time parse error: %s", terr)
@@ -156,7 +156,7 @@ func TestMetricToGraphite(t *testing.T) {
 	}
 	testutil.ExpectNoDiff(t, expected, r)
 
-	*graphitePrefix = prefix
+	graphitePrefix = prefix
 	r = FakeSocketWrite(metricToGraphite, dimensionedMetric)
 	expected = []string{
 		"prefixprog.bar.host.quux_com 37 1343124840\n",
@@ -166,7 +166,7 @@ func TestMetricToGraphite(t *testing.T) {
 }
 
 func TestMetricToStatsd(t *testing.T) {
-	*statsdPrefix = ""
+	statsdPrefix = ""
 	ts, terr := time.Parse("2006/01/02 15:04:05", "2012/07/24 10:14:00")
 	if terr != nil {
 		t.Errorf("time parse error: %s", terr)
@@ -213,7 +213,7 @@ func TestMetricToStatsd(t *testing.T) {
 		t.Errorf("String didn't match:\n\texpected: %v\n\treceived: %v", expected, r)
 	}
 
-	*statsdPrefix = prefix
+	statsdPrefix = prefix
 	r = FakeSocketWrite(metricToStatsd, timingMetric)
 	expected = []string{"prefixprog.foo:37|ms"}
 	if !reflect.DeepEqual(expected, r) {

@@ -42,7 +42,7 @@ var handleGraphiteTests = []struct {
 }
 
 func TestHandleGraphite(t *testing.T) {
-	*graphitePrefix = "foobar."
+	graphitePrefix = "foobar."
 	for _, tc := range handleGraphiteTests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
