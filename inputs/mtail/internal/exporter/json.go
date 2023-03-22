@@ -17,7 +17,7 @@ func (e *Exporter) HandleJSON(w http.ResponseWriter, r *http.Request) {
 	b, err := json.MarshalIndent(e.store, "", "  ")
 	if err != nil {
 		exportJSONErrors.Add(1)
-		log.Printf("error marshalling metrics into json:", err.Error())
+		log.Printf("error marshalling metrics into json:%s", err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
