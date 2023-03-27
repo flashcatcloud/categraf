@@ -36,6 +36,11 @@ func ParseNetSockstat() (*NetSockstat, error) {
 // If IPv6 is disabled on this kernel, the returned error can be checked with
 // os.IsNotExist.
 func ParseNetSockstat6() (*NetSockstat, error) {
+	// If IPv6 is disabled, the file will not exist.
+	_, err := os.Stat("/proc/net/sockstat6")
+	if err != nil {
+		return nil, err
+	}
 	return readSockstat("/proc/net/sockstat6")
 }
 

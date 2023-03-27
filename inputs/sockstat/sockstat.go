@@ -1,7 +1,9 @@
 package sockstat
 
 import (
+	"errors"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/toolkits/pkg/slice"
@@ -56,8 +58,14 @@ func (ss *SockStat) Gather(slist *types.SampleList) {
 
 	ns6, err := ParseNetSockstat6()
 	if err != nil {
-		log.Println("E! failed to get net sockstat6: ", err)
-		return
+		if config.Config.DebugMode {
+			log.Println("D! failed to get net sockstat6: ", err)
+			return
+		}
+		if !errors.Is(err, os.ErrNotExist) {
+			log.Println("E! failed to get net sockstat6: ", err)
+			return
+		}
 	}
 	ss.parse(ns6, slist)
 }
