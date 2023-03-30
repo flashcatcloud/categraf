@@ -8,4 +8,4 @@ nginx_vts 已经支持输出 prometheus 格式的数据，所以，其实已经�
 
 ## 监控大盘
 
-这个插件暂无监控大盘，如果有人做了 vts 的监控大盘，欢迎导出大盘 JSON 配置，提 PR 到这个目录
+https://github.com/flashcatcloud/categraf/blob/main/inputs/nginx_vts/dashboards.json

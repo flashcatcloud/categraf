@@ -195,9 +195,8 @@ journalctl -f -n 500 -u categraf | grep "E\!" | grep "W\!"
 ```
 
 # 监控图表配置
-```
-先略过
-```
+
+https://github.com/flashcatcloud/categraf/blob/main/inputs/nginx_vts/dashboards.json
 
 # 故障自愈配置
 ```
