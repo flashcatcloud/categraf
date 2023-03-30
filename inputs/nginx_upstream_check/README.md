@@ -223,9 +223,7 @@ nginx_upstream_check_status_code!=1则视为异常需立即告警，级别为一
 ```
 
 # 监控图表配置
-```
-先略过
-```
+https://github.com/flashcatcloud/categraf/blob/main/inputs/nginx_upstream_check/dashboards.json
 
 # 故障自愈配置
 ```
