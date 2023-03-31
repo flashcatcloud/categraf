@@ -15,7 +15,7 @@ import (
 
 type PS interface {
 	CPUTimes(perCPU, totalCPU bool) ([]cpu.TimesStat, error)
-	DiskUsage(mountPointFilter []string, fstypeExclude []string) ([]*disk.UsageStat, []*disk.PartitionStat, error)
+	DiskUsage(mountPointFilter []string, fstypeExclude []string) ([]*DiskUsageStat, []*disk.PartitionStat, error)
 	NetIO() ([]net.IOCountersStat, error)
 	NetProto() ([]net.ProtoCountersStat, error)
 	DiskIO(names []string) (map[string]disk.IOCountersStat, error)
@@ -30,6 +30,11 @@ type PSDiskDeps interface {
 	OSGetenv(key string) string
 	OSStat(name string) (os.FileInfo, error)
 	PSDiskUsage(path string) (*disk.UsageStat, error)
+}
+
+type DiskUsageStat struct {
+	*disk.UsageStat
+	DeviceError int
 }
 
 func NewSystemPS() *SystemPS {
@@ -89,7 +94,7 @@ func newSet() *set {
 func (s *SystemPS) DiskUsage(
 	mountPointFilter []string,
 	fstypeExclude []string,
-) ([]*disk.UsageStat, []*disk.PartitionStat, error) {
+) ([]*DiskUsageStat, []*disk.PartitionStat, error) {
 	parts, err := s.Partitions(true)
 	if err != nil {
 		return nil, nil, err
@@ -113,7 +118,7 @@ func (s *SystemPS) DiskUsage(
 	// partition to avoid triggering a mount.
 	fstypeExcludeSet.add("autofs")
 
-	var usage []*disk.UsageStat
+	var usage []*DiskUsageStat
 	var partitions []*disk.PartitionStat
 	hostMountPrefix := s.OSGetenv("HOST_MOUNT_PREFIX")
 
@@ -145,15 +150,20 @@ func (s *SystemPS) DiskUsage(
 			}
 		}
 
+		dun := &DiskUsageStat{
+			DeviceError: 0,
+		}
 		du, err := s.PSDiskUsage(mountpoint)
 		if err != nil {
 			log.Println("E! failed to get disk usage, mountpoint:", mountpoint, "error:", err)
-			continue
+			dun.DeviceError = 1
+			du = &disk.UsageStat{}
 		}
 
 		du.Path = filepath.Join("/", strings.TrimPrefix(p.Mountpoint, hostMountPrefix))
 		du.Fstype = p.Fstype
-		usage = append(usage, du)
+		dun.UsageStat = du
+		usage = append(usage, dun)
 		partitions = append(partitions, &p)
 	}
 
