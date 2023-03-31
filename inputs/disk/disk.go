@@ -37,6 +37,18 @@ func (s *DiskStats) Gather(slist *types.SampleList) {
 	}
 
 	for i, du := range disks {
+		if du.DeviceError == 1 {
+			tags := map[string]string{
+				"path":   du.Path,
+				"device": strings.Replace(partitions[i].Device, "/dev/", "", -1),
+				"fstype": du.Fstype,
+			}
+			fields := map[string]interface{}{
+				"device_error": du.DeviceError,
+			}
+			slist.PushSamples("disk", fields, tags)
+			continue
+		}
 		if du.Total == 0 {
 			// Skip dummy filesystem (procfs, cgroupfs, ...)
 			continue
@@ -69,6 +81,7 @@ func (s *DiskStats) Gather(slist *types.SampleList) {
 			"inodes_total": du.InodesTotal,
 			"inodes_free":  du.InodesFree,
 			"inodes_used":  du.InodesUsed,
+			"device_error": du.DeviceError,
 		}
 
 		slist.PushSamples("disk", fields, tags)
