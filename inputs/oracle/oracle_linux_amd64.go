@@ -113,6 +113,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if err := ins.client.Ping(); err != nil {
 		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
 		log.Println("E! failed to ping oracle:", ins.Address, "error:", err)
+		return
 	} else {
 		slist.PushFront(types.NewSample(inputName, "up", 1, tags))
 	}
