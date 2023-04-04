@@ -2,6 +2,7 @@ package postgresql
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -10,18 +11,20 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	// Blank import required to register driver
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/stdlib"
 )
 
 const (
-	inputName                = "postgresql"
+	inputName = "postgresql"
 )
 
 type Postgresql struct {
@@ -48,6 +51,16 @@ func (pt *Postgresql) Drop() {
 	}
 }
 
+type MetricConfig struct {
+	Mesurement       string          `toml:"mesurement"`
+	LabelFields      []string        `toml:"label_fields"`
+	MetricFields     []string        `toml:"metric_fields"`
+	FieldToAppend    string          `toml:"field_to_append"`
+	Timeout          config.Duration `toml:"timeout"`
+	Request          string          `toml:"request"`
+	IgnoreZeroResult bool            `toml:"ignore_zero_result"`
+}
+
 type Instance struct {
 	config.InstanceConfig
 
@@ -58,6 +71,7 @@ type Instance struct {
 	Databases          []string        `toml:"databases"`
 	IgnoredDatabases   []string        `toml:"ignored_databases"`
 	PreparedStatements bool            `toml:"prepared_statements"`
+	Metrics            []MetricConfig  `toml:"metrics"`
 
 	MaxIdle int
 	MaxOpen int
@@ -189,6 +203,120 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			return
 		}
 	}
+
+	waitMetrics := new(sync.WaitGroup)
+
+	for i := 0; i < len(ins.Metrics); i++ {
+		m := ins.Metrics[i]
+		waitMetrics.Add(1)
+		tags := map[string]string{}
+		go ins.scrapeMetric(waitMetrics, slist, m, tags)
+	}
+
+	waitMetrics.Wait()
+}
+
+func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.SampleList, metricConf MetricConfig, tags map[string]string) {
+	defer waitMetrics.Done()
+
+	timeout := time.Duration(metricConf.Timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	rows, err := ins.DB.QueryContext(ctx, metricConf.Request)
+
+	if ctx.Err() == context.DeadlineExceeded {
+		log.Println("E! postgresql query timeout, request:", metricConf.Request)
+		return
+	}
+
+	if err != nil {
+		log.Println("E! failed to query:", err)
+		return
+	}
+
+	defer rows.Close()
+
+	cols, err := rows.Columns()
+	if err != nil {
+		log.Println("E! failed to get columns:", err)
+		return
+	}
+
+	for rows.Next() {
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		// Scan the result into the column pointers...
+		if err := rows.Scan(columnPointers...); err != nil {
+			log.Println("E! failed to scan:", err)
+			return
+		}
+
+		// Create our map, and retrieve the value for each column from the pointers slice,
+		// storing it in the map with the name of the column as the key.
+		m := make(map[string]string)
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[strings.ToLower(colName)] = fmt.Sprint(*val)
+		}
+
+		count := 0
+		if err = ins.parseRow(m, metricConf, slist, tags); err != nil {
+			log.Println("E! failed to parse row:", err)
+			continue
+		} else {
+			count++
+		}
+
+		if !metricConf.IgnoreZeroResult && count == 0 {
+			log.Println("E! no metrics found while parsing")
+		}
+	}
+}
+
+func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, slist *types.SampleList, tags map[string]string) error {
+	labels := make(map[string]string)
+	for k, v := range tags {
+		labels[k] = v
+	}
+
+	for _, label := range metricConf.LabelFields {
+		labelValue, has := row[label]
+		if has {
+			labels[label] = strings.Replace(labelValue, " ", "_", -1)
+		}
+	}
+
+	for _, column := range metricConf.MetricFields {
+		value, err := conv.ToFloat64(row[column])
+		if err != nil {
+			log.Println("E! failed to convert field:", column, "value:", value, "error:", err)
+			return err
+		}
+
+		if metricConf.FieldToAppend == "" {
+			slist.PushSample(inputName, metricConf.Mesurement+"_"+column, value, labels)
+		} else {
+			suffix := cleanName(row[metricConf.FieldToAppend])
+			slist.PushSample(inputName, metricConf.Mesurement+"_"+suffix+"_"+column, value, labels)
+		}
+	}
+
+	return nil
+}
+func cleanName(s string) string {
+	s = strings.Replace(s, " ", "_", -1) // Remove spaces
+	s = strings.Replace(s, "(", "", -1)  // Remove open parenthesis
+	s = strings.Replace(s, ")", "", -1)  // Remove close parenthesis
+	s = strings.Replace(s, "/", "", -1)  // Remove forward slashes
+	s = strings.Replace(s, "*", "", -1)  // Remove asterisks
+	s = strings.Replace(s, "%", "percent", -1)
+	s = strings.ToLower(s)
+	return s
 }
 
 type scanner interface {
