@@ -209,7 +209,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for i := 0; i < len(ins.Metrics); i++ {
 		m := ins.Metrics[i]
 		waitMetrics.Add(1)
-		tags := map[string]string{"address": ins.Address}
+		tags := map[string]string{}
 		go ins.scrapeMetric(waitMetrics, slist, m, tags)
 	}
 
@@ -226,7 +226,7 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 	rows, err := ins.DB.QueryContext(ctx, metricConf.Request)
 
 	if ctx.Err() == context.DeadlineExceeded {
-		log.Println("E! oracle query timeout, request:", metricConf.Request)
+		log.Println("E! postgresql query timeout, request:", metricConf.Request)
 		return
 	}
 
@@ -242,10 +242,6 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 		log.Println("E! failed to get columns:", err)
 		return
 	}
-
-	//if config..DebugMode {
-	//	log.Println("D! columns:", cols)
-	//}
 
 	for rows.Next() {
 		columns := make([]interface{}, len(cols))
