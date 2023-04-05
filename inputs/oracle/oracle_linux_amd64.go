@@ -103,6 +103,9 @@ func (ins *Instance) Drop() error {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
+	if ins.client == nil {
+		return
+	}
 	tags := map[string]string{"address": ins.Address}
 
 	defer func(begun time.Time) {
