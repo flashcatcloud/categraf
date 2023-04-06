@@ -104,6 +104,9 @@ func (ins *Instance) Drop() error {
 
 func (ins *Instance) Gather(slist *types.SampleList) {
 	if len(ins.Address) == 0 {
+		if config.Config.DebugMode {
+			log.Println("D! oracle address is empty")
+		}
 		return
 	}
 	tags := map[string]string{"address": ins.Address}
