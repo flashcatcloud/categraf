@@ -103,7 +103,7 @@ func (ins *Instance) Drop() error {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
-	if ins.client == nil {
+	if len(ins.Address) == 0 {
 		return
 	}
 	tags := map[string]string{"address": ins.Address}
