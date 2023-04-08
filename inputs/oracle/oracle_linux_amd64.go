@@ -87,7 +87,7 @@ func (ins *Instance) Init() error {
 	}
 
 	if ins.MaxOpenConnections == 0 {
-		ins.MaxOpenConnections = 1
+		ins.MaxOpenConnections = 2
 	}
 
 	ins.client.SetMaxOpenConns(ins.MaxOpenConnections)
