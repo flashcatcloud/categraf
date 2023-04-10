@@ -41,6 +41,7 @@ func (r *InputReader) startInput() {
 	}
 	timer := time.NewTimer(0 * time.Second)
 	defer timer.Stop()
+	var start time.Time
 
 	for {
 		select {
@@ -48,9 +49,8 @@ func (r *InputReader) startInput() {
 			close(r.quitChan)
 			return
 		case <-timer.C:
-			var start time.Time
+			start = time.Now()
 			if config.Config.DebugMode {
-				start = time.Now()
 				log.Println("D!", r.inputName, ": before gather once")
 			}
 
