@@ -76,4 +76,9 @@ When using `method = "native"`, you will need permissions similar to the executa
 
 该 README 的同级目录下，提供了 dashboard.json 就是监控大盘的配置，alerts.json 是告警规则，可以导入夜莺使用。
 
+### 新增PING大盘2.0
+
+![dashboard-2.0.png](./dashboard-2.0.png)
+
+大盘地址 [dashboard-2.0.json](https://github.com/flashcatcloud/categraf/tree/main/inputs/ping/dashboard-2.0.json)
 
