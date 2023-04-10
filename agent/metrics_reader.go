@@ -39,13 +39,15 @@ func (r *InputReader) startInput() {
 	if r.input.GetInterval() > 0 {
 		interval = time.Duration(r.input.GetInterval())
 	}
+	timer := time.NewTimer(0 * time.Second)
+	defer timer.Stop()
 
 	for {
 		select {
 		case <-r.quitChan:
 			close(r.quitChan)
 			return
-		default:
+		case <-timer.C:
 			var start time.Time
 			if config.Config.DebugMode {
 				start = time.Now()
@@ -58,7 +60,11 @@ func (r *InputReader) startInput() {
 				log.Println("D!", r.inputName, ": after gather once,", "duration:", time.Since(start))
 			}
 
-			time.Sleep(interval)
+			next := interval - time.Since(start)
+			if next < 0 {
+				next = 0
+			}
+			timer.Reset(next)
 		}
 	}
 }
