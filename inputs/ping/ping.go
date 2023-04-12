@@ -12,7 +12,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/go-ping/ping"
+	ping "github.com/prometheus-community/pro-bing"
 )
 
 const (
@@ -215,7 +215,7 @@ func (ins *Instance) ping(destination string) (*pingStats, error) {
 	once := &sync.Once{}
 	pinger.OnRecv = func(pkt *ping.Packet) {
 		once.Do(func() {
-			ps.ttl = pkt.Ttl
+			ps.ttl = pkt.TTL
 		})
 	}
 
