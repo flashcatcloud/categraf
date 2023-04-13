@@ -12,7 +12,6 @@ require (
 	github.com/gaochao1/sw v1.0.0
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-kit/log v0.2.1
-	github.com/go-ping/ping v0.0.0-20211130115550-779d1e919534
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/gobwas/glob v0.2.3
@@ -114,6 +113,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.5.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.3
 	github.com/coreos/go-systemd/v22 v22.3.2
+	github.com/prometheus-community/pro-bing v0.1.0
 	github.com/vmware/govmomi v0.29.0
 )
 
