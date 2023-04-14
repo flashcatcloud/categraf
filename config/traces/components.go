@@ -6,6 +6,7 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/alibabacloudlogserviceexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/jaegerexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/kafkaexporter"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/zipkinexporter"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/basicauthextension"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension"
@@ -16,11 +17,13 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/tailsamplingprocessor"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jaegerreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/kafkareceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/exporter/otlpexporter"
 	"go.opentelemetry.io/collector/exporter/otlphttpexporter"
 	"go.opentelemetry.io/collector/processor/batchprocessor"
+	"go.opentelemetry.io/collector/processor/memorylimiterprocessor"
 	"go.opentelemetry.io/collector/receiver/otlpreceiver"
 )
 
@@ -40,6 +43,7 @@ func components() (component.Factories, error) {
 		zipkinreceiver.NewFactory(),
 		otlpreceiver.NewFactory(),
 		kafkareceiver.NewFactory(),
+		prometheusreceiver.NewFactory(),
 	)
 	if err != nil {
 		return component.Factories{}, err
@@ -52,6 +56,7 @@ func components() (component.Factories, error) {
 		zipkinexporter.NewFactory(),
 		kafkaexporter.NewFactory(),
 		alibabacloudlogserviceexporter.NewFactory(),
+		prometheusremotewriteexporter.NewFactory(),
 	)
 	if err != nil {
 		return component.Factories{}, err
@@ -63,6 +68,7 @@ func components() (component.Factories, error) {
 		tailsamplingprocessor.NewFactory(),
 		resourceprocessor.NewFactory(),
 		spanprocessor.NewFactory(),
+		memorylimiterprocessor.NewFactory(),
 	)
 	if err != nil {
 		return component.Factories{}, err

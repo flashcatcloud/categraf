@@ -220,7 +220,7 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "up", 0, labels))
-		log.Println("E! failed to read response body, url:", u.String(), "error:", err)
+		log.Println("E! failed to read response body, error:", err)
 		return
 	}
 
