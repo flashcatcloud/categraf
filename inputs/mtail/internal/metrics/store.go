@@ -154,7 +154,7 @@ func (s *Store) Range(f func(*Metric) error) error {
 // Gc iterates through the Store looking for metrics that can be tidied up,
 // if they are passed their expiry or sized greater than their limit.
 func (s *Store) Gc() error {
-	log.Println("Running Store.Expire()")
+	// log.Println("D! Running Store.Expire()")
 	now := time.Now()
 	return s.Range(func(m *Metric) error {
 		if m.Limit > 0 && len(m.LabelValues) >= m.Limit {

@@ -86,7 +86,15 @@ func (ins *Instance) Init() error {
 		return fmt.Errorf("failed to open oracle connection: %v", err)
 	}
 
+	if ins.MaxOpenConnections == 0 {
+		ins.MaxOpenConnections = 2
+	}
+
 	ins.client.SetMaxOpenConns(ins.MaxOpenConnections)
+	ins.client.SetMaxIdleConns(ins.MaxOpenConnections)
+	ins.client.SetConnMaxIdleTime(time.Duration(0))
+	ins.client.SetConnMaxLifetime(time.Duration(0))
+
 	return nil
 }
 
@@ -103,6 +111,12 @@ func (ins *Instance) Drop() error {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
+	if len(ins.Address) == 0 {
+		if config.Config.DebugMode {
+			log.Println("D! oracle address is empty")
+		}
+		return
+	}
 	tags := map[string]string{"address": ins.Address}
 
 	defer func(begun time.Time) {
