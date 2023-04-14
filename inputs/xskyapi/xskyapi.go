@@ -25,22 +25,16 @@ var (
 	utf8BOM = []byte("\xef\xbb\xbf")
 )
 
-//default
-
 type XskyApi struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
 }
-
-//default
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &XskyApi{}
 	})
 }
-
-//default
 
 func (pt *XskyApi) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
@@ -53,13 +47,12 @@ func (pt *XskyApi) GetInstances() []inputs.Instance {
 type Instance struct {
 	config.InstanceConfig
 
-	DsCluster       string            `toml:"ds_cluster"`
+	DssType         string            `toml:"dss_type"`
 	Servers         []string          `toml:"servers"`
-	Method          string            `toml:"method"`
 	TagKeys         []string          `toml:"tag_keys"`
 	ResponseTimeout config.Duration   `toml:"response_timeout"`
 	Parameters      map[string]string `toml:"parameters"`
-	XmsAuthToken    string            `toml:"xms_auth_token"`
+	XmsAuthTokens   []string          `toml:"xms_auth_tokens"`
 	tls.ClientConfig
 
 	client httpClient
@@ -70,7 +63,7 @@ type httpClient interface {
 }
 
 func (ins *Instance) Init() error {
-	// 对toml的server进行不为空和url合法性检查
+	// check servers
 	if len(ins.Servers) == 0 {
 		return types.ErrInstancesEmpty
 	}
@@ -86,17 +79,12 @@ func (ins *Instance) Init() error {
 		}
 	}
 
-	// 对toml的response_timeout数据大小进行纠正，至少为3s
+	// check response_timeout
 	if ins.ResponseTimeout < config.Duration(time.Second) {
 		ins.ResponseTimeout = config.Duration(time.Second * 3)
 	}
 
-	// 对toml的method为空的情况视为Get
-	if ins.Method == "" {
-		ins.Method = "GET"
-	}
-
-	// 实例client初始化
+	// initiate http client
 	client, err := ins.createHTTPClient()
 	if err != nil {
 		return fmt.Errorf("failed to create http client: %v", err)
@@ -113,7 +101,6 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		return nil, err
 	}
 
-	// 抄的http_response
 	dialer := &net.Dialer{}
 	if err != nil {
 		return nil, err
@@ -125,7 +112,6 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		TLSClientConfig:   tlsCfg,
 	}
 
-	// 也是抄的，这数据不知道从哪来的
 	if ins.UseTLS {
 		trans.TLSClientConfig = tlsCfg
 	}
@@ -138,19 +124,17 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-// Gathers data for all servers.
-
 func (ins *Instance) Gather(slist *types.SampleList) {
 
 	wg := new(sync.WaitGroup)
-	for _, server := range ins.Servers {
+	for i, server := range ins.Servers {
 		// Increment the WaitGroup counter.
 		wg.Add(1)
-		go func(server string) {
+		go func(server string, token string) {
 			// Decrement the counter when the goroutine completes.
 			defer wg.Done()
-			ins.gather(slist, server)
-		}(server)
+			ins.gather(slist, server, token)
+		}(server, ins.XmsAuthTokens[i])
 	}
 	// Wait for all goroutines to complete.
 	wg.Wait()
@@ -158,18 +142,25 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 // Gathers data from a particular server
 
-func (ins *Instance) gather(slist *types.SampleList, server string) error {
+func (ins *Instance) gather(slist *types.SampleList, server string, token string) {
 	if config.Config.DebugMode {
 		log.Println("D! xskyapi... server:", server)
 	}
 
-	resp, _, err := ins.sendRequest(server)
-	if err != nil {
-		//log.Println("E! sendrequest error", err)
-		return err
-	}
+	// acquire quota data of 3 mainstream distributed storage service provided by Xsky
+	switch ins.DssType {
+	case "oss": //object storage
 
-	if strings.Index(server, "users") != -1 {
+		// oss users
+
+		urlUsers, _ := url.JoinPath(server, "v1/os-users")
+		//log.Println("D! urlUsers:", urlUsers, "token:", token)
+
+		resp, _, err := ins.sendRequest(urlUsers, token)
+		if err != nil {
+			log.Println("E! failed to send request to xskyapi url:", urlUsers, "error:", err)
+		}
+
 		osUsers := OsUsers{}
 
 		er := json.Unmarshal(resp, &osUsers)
@@ -177,7 +168,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string) error {
 			fmt.Printf("解析json字符串异常：%s\n", err)
 		}
 
-		labels := map[string]string{"target": ins.DsCluster, "server": server}
+		labels := map[string]string{"server": server}
 		fields := make(map[string]interface{})
 		//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
 
@@ -185,56 +176,176 @@ func (ins *Instance) gather(slist *types.SampleList, server string) error {
 			labels["name"] = user.Name
 			labels["id"] = strconv.Itoa(user.ID)
 			fields["oss_user_quota"] = user.UserQuotaMaxSize
+			fields["oss_user_used_size"] = user.Samples[0].AllocatedSize
 			slist.PushSamples(inputName, fields, labels)
 		}
-	} else if strings.Index(server, "buckets") != -1 {
+
+		// oss buckets
+
+		urlBuckets, _ := url.JoinPath(server, "v1/os-buckets")
+		//log.Println("D! urlUsers:", urlBuckets, "token:", token)
+		resp, _, err = ins.sendRequest(urlBuckets, token)
+		if err != nil {
+			log.Println("E! failed to send request to xskyapi url:", urlBuckets, "error:", err)
+		}
 		osBuckets := OsBuckets{}
 
-		er := json.Unmarshal(resp, &osBuckets)
+		err = json.Unmarshal(resp, &osBuckets)
+		if err != nil {
+			fmt.Printf("解析json字符串异常：%s\n", err)
+		}
+
+		labels = map[string]string{"server": server}
+		fields = make(map[string]interface{})
+		//log.Println("D! len(OsBucket):", len(osBuckets.OsBucket))
+
+		for _, bucket := range osBuckets.OsBucket {
+			labels["name"] = bucket.Name
+			labels["id"] = strconv.Itoa(bucket.ID)
+			fields["oss_bucket_quota"] = bucket.BucketQuotaMaxSize
+			fields["oss_bucket_used_size"] = bucket.Samples[0].AllocatedSize
+			slist.PushSamples(inputName, fields, labels)
+		}
+
+	case "gfs":
+
+		// gfs dfs
+
+		urlDfs, _ := url.JoinPath(server, "v1/dfs-quotas")
+		//log.Println("D! urlDfs:", urlDfs, "token:", token)
+
+		resp, _, err := ins.sendRequest(urlDfs, token)
+		if err != nil {
+			log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
+		}
+
+		dfsQuotas := DfsQuotas{}
+
+		er := json.Unmarshal(resp, &dfsQuotas)
 		if er != nil {
 			fmt.Printf("解析json字符串异常：%s\n", err)
 		}
 
-		labels := map[string]string{"target": ins.DsCluster, "server": server}
+		labels := map[string]string{"server": server}
 		fields := make(map[string]interface{})
-		//log.Println("D! len(OsBucket):", len(osBuckets.OsBucket))
+		//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
 
-		for _, user := range osBuckets.OsBucket {
-			labels["name"] = user.Name
-			labels["id"] = strconv.Itoa(user.ID)
-			fields["oss_bucket_quota"] = user.BucketQuotaMaxSize
+		for _, dfsQuota := range dfsQuotas.DfsQuota {
+			labels["name"] = dfsQuota.DfsPath.Name
+			labels["id"] = strconv.Itoa(dfsQuota.DfsPath.ID)
+			fields["dfs_quota"] = dfsQuota.SizeHardQuota
 			slist.PushSamples(inputName, fields, labels)
 		}
-	}
 
-	return nil
+		// gfs block volumes
+
+		urlBV, _ := url.JoinPath(server, "v1/block-volumes")
+		//log.Println("D! urlBV:", urlDfs, "token:", token)
+
+		resp, _, err = ins.sendRequest(urlBV, token)
+		if err != nil {
+			log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
+		}
+
+		blockVolumes := BlockVolumes{}
+
+		err = json.Unmarshal(resp, &blockVolumes)
+		if err != nil {
+			fmt.Printf("解析json字符串异常：%s\n", err)
+		}
+
+		labels = map[string]string{"server": server}
+		fields = make(map[string]interface{})
+		//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
+
+		for _, blockVolume := range blockVolumes.BlockVolume {
+			labels["name"] = blockVolume.Name
+			labels["id"] = strconv.Itoa(blockVolume.ID)
+			fields["block_volume_quota"] = blockVolume.Size
+			fields["block_volume_used_size"] = blockVolume.AllocatedSize
+			slist.PushSamples(inputName, fields, labels)
+		}
+
+	case "eus":
+
+		// eus-folder
+
+		urlDfs, _ := url.JoinPath(server, "v1/fs-folders")
+		//log.Println("D! urlDfs:", urlDfs, "token:", token)
+
+		resp, _, err := ins.sendRequest(urlDfs, token)
+		if err != nil {
+			log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
+		}
+
+		fsFolders := FsFolders{}
+
+		er := json.Unmarshal(resp, &fsFolders)
+		if er != nil {
+			fmt.Printf("解析json字符串异常：%s\n", err)
+		}
+
+		labels := map[string]string{"server": server}
+		fields := make(map[string]interface{})
+		//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
+
+		for _, fsFolder := range fsFolders.FsFolder {
+			labels["name"] = fsFolder.Name
+			labels["id"] = strconv.Itoa(fsFolder.ID)
+			fields["dfs_quota"] = fsFolder.Size
+			slist.PushSamples(inputName, fields, labels)
+		}
+
+		// eus block volumes
+
+		urlBV, _ := url.JoinPath(server, "v1/block-volumes")
+		//log.Println("D! urlBV:", urlDfs, "token:", token)
+
+		resp, _, err = ins.sendRequest(urlBV, token)
+		if err != nil {
+			log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
+		}
+
+		blockVolumes := BlockVolumes{}
+
+		err = json.Unmarshal(resp, &blockVolumes)
+		if err != nil {
+			fmt.Printf("解析json字符串异常：%s\n", err)
+		}
+
+		labels = map[string]string{"server": server}
+		fields = make(map[string]interface{})
+		//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
+
+		for _, blockVolume := range blockVolumes.BlockVolume {
+			labels["name"] = blockVolume.Name
+			labels["id"] = strconv.Itoa(blockVolume.ID)
+			fields["block_volume_quota"] = blockVolume.Size
+			fields["block_volume_used_size"] = blockVolume.AllocatedSize
+			slist.PushSamples(inputName, fields, labels)
+		}
+	default:
+		log.Printf("E! dss_type %s not suppported, expected oss, gfs or eus", ins.DssType)
+	}
 }
 
-func (ins *Instance) sendRequest(serverURL string) ([]byte, float64, error) {
+func (ins *Instance) sendRequest(serverURL string, token string) ([]byte, float64, error) {
 	// Prepare URL
 	requestURL, _ := url.Parse(serverURL)
 	log.Println("D! now parseurl:", requestURL)
 
 	// Prepare request query and body
 	data := url.Values{}
-	switch {
-	case ins.Method == "GET":
-		params := requestURL.Query()
-		for k, v := range ins.Parameters {
-			params.Add(k, v)
-		}
-		requestURL.RawQuery = params.Encode()
 
-	case ins.Method == "POST":
-		requestURL.RawQuery = ""
-		for k, v := range ins.Parameters {
-			data.Add(k, v)
-		}
+	params := requestURL.Query()
+	for k, v := range ins.Parameters {
+		params.Add(k, v)
 	}
+	requestURL.RawQuery = params.Encode()
 
 	// Create + send request
 	//log.Println("D! now creating request")
-	req, err := http.NewRequest(ins.Method, requestURL.String(),
+	req, err := http.NewRequest("GET", requestURL.String(),
 		strings.NewReader(data.Encode()))
 	if err != nil {
 		return []byte(""), -1, err
@@ -242,7 +353,7 @@ func (ins *Instance) sendRequest(serverURL string) ([]byte, float64, error) {
 
 	//log.Println("D! now adding heads")
 	// Add header parameters
-	req.Header.Add("Xms-Auth-Token", ins.XmsAuthToken)
+	req.Header.Add("Xms-Auth-Token", token)
 
 	start := time.Now()
 	resp, err := ins.client.Do(req)
@@ -276,16 +387,12 @@ func (ins *Instance) sendRequest(serverURL string) ([]byte, float64, error) {
 }
 
 type osUser struct {
-	//DisplayName string `json:"display_name"`
 	//Email       string `json:"email"`
-	ID int `json:"id"`
-	//MaxBuckets                    int         `json:"max_buckets"`
-	Name string `json:"name"`
-
-	//Status              string    `json:"status"`
-	//Suspended           bool      `json:"suspended"`
-	//Update              time.Time `json:"update"`
-	//UserQuotaMaxObjects int       `json:"user_quota_max_objects"`
+	ID      int    `json:"id"`
+	Name    string `json:"name"`
+	Samples []struct {
+		AllocatedSize int `json:"allocated_size"`
+	} `json:"samples"`
 	UserQuotaMaxSize int64 `json:"user_quota_max_size"`
 }
 
@@ -296,11 +403,46 @@ type OsUsers struct {
 type osBucket struct {
 	ID int `json:"id"`
 	//MaxBuckets                    int         `json:"max_buckets"`
-	Name string `json:"name"`
-
+	Name    string `json:"name"`
+	Samples []struct {
+		AllocatedSize int `json:"allocated_size"`
+	} `json:"samples"`
 	BucketQuotaMaxSize int64 `json:"quota_max_size"`
 }
 
 type OsBuckets struct {
 	OsBucket []*osBucket `json:"os_buckets"`
+}
+
+type dfsQuota struct {
+	DfsPath struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"dfs_path"`
+	SizeHardQuota int `json:"size_hard_quota"`
+}
+
+type DfsQuotas struct {
+	DfsQuota []*dfsQuota `json:"dfs_quotas"`
+}
+
+type blockVolume struct {
+	Name          string `json:"name"`
+	AllocatedSize int    `json:"allocated_size"`
+	ID            int    `json:"id"`
+	Size          int    `json:"size"`
+}
+
+type BlockVolumes struct {
+	BlockVolume []*blockVolume `json:"block_volumes"`
+}
+
+type fsFolder struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+}
+
+type FsFolders struct {
+	FsFolder []*fsFolder `json:"fs_folders"`
 }

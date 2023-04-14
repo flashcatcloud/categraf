@@ -24,9 +24,9 @@ providers = ["local"]
 
 disable_usage_report = true
 
-# [global.labels]
-# region = "shanghai"
-# env = "localhost"
+[global.labels]
+ region = "qd-vm"
+ env = "prd"
 
 [log]
 # file_name is the file to write logs to
@@ -49,7 +49,7 @@ batch = 1000
 chan_size = 1000000
 
 [[writers]]
-url = "http://127.0.0.1:19000/prometheus/v1/write"
+url = "http://nserver.prdapp.hisense.com/prometheus/v1/write"
 
 # Basic auth username
 basic_auth_user = ""

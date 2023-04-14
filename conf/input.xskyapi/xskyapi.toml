@@ -1,6 +1,6 @@
 # # collect interval
 # interval = 15
-
+#
 [[instances]]
 # # append some labels for series
 # labels = { region="cloud", product="n9e" }
@@ -8,34 +8,18 @@
 # # interval = global.interval * interval_times
 # interval_times = 1
 
-
-## Timeout for docker list, info, and stats commands
-#response_timeout = "5s"
-# Read flattened metrics from one or more JSON HTTP endpoints
-
-
-## must contain oss/xgfs
-ds_cluster = "jt54oss"
+## must be one of oss/gfs/eus
+dss_type = "oss"
 
 ## URL of each server in the service's cluster
-#servers = [
-#    "http://localhost:9999/stats/",
-#    "http://localhost:9998/stats/",
-#]
-servers =[
-    #     must contain users/bucktes
-    "http://xxxx:8056/v1/os-users/",
-    "http://xxxx:8056/v1/os-buckets/"
+servers = [
+    "http://x.x.x.x:xx"
 ]
+
 ## Set response_timeout (default 5 seconds)
 response_timeout = "5s"
 
-## HTTP method to use: GET or POST (case-sensitive)
-method = "GET"
-
-xms_auth_token = "**********************"
-
-
-
-
+xms_auth_tokens = [
+    "xxxxxxxxxxxxxxx"
+]
 
