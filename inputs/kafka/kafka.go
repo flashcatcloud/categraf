@@ -100,6 +100,9 @@ type Instance struct {
 	// Metadata refresh interval
 	MetadataRefreshInterval string `toml:"metadata_refresh_interval,omitempty"`
 
+	// Whether show the offset/lag for all consumer group, otherwise, only show connected consumer groups, default is true
+	OffsetShowAll *bool `toml:"offset_show_all,omitempty"`
+
 	// If true, all scrapes will trigger kafka operations otherwise, they will share results. WARN: This should be disabled on large clusters
 	AllowConcurrent *bool `toml:"allow_concurrency,omitempty"`
 
@@ -114,6 +117,11 @@ type Instance struct {
 
 	// Regex filter for consumer groups to be monitored
 	GroupFilter string `toml:"groups_filter_regex,omitempty"`
+
+	// rename metric: kafka_consumergroup_uncommitted_offsets to kafka_consumergroup_lag
+	RenameUncommitOffsetsToLag bool `toml:"rename_uncommit_offset_to_lag,omitempty"`
+	// disable calculate lag rate
+	DisableCalculateLagRate bool `toml:"disable_calculate_lag_rate,omitempty"`
 
 	l klog.Logger        `toml:"-"`
 	e *exporter.Exporter `toml:"-"`
@@ -145,6 +153,10 @@ func (ins *Instance) Init() error {
 		flag := false
 		ins.AllowConcurrent = &flag
 	}
+	if ins.OffsetShowAll == nil {
+		flag := true
+		ins.OffsetShowAll = &flag
+	}
 	if ins.MaxOffsets <= 0 {
 		ins.MaxOffsets = 1000
 	}
@@ -159,24 +171,27 @@ func (ins *Instance) Init() error {
 	}
 
 	options := exporter.Options{
-		Uri:                      ins.KafkaURIs,
-		UseSASL:                  ins.UseSASL,
-		UseSASLHandshake:         *ins.UseSASLHandshake,
-		SaslUsername:             ins.SASLUsername,
-		SaslPassword:             string(ins.SASLPassword),
-		SaslMechanism:            ins.SASLMechanism,
-		UseTLS:                   ins.UseTLS,
-		TlsCAFile:                ins.CAFile,
-		TlsCertFile:              ins.CertFile,
-		TlsKeyFile:               ins.KeyFile,
-		TlsInsecureSkipTLSVerify: ins.InsecureSkipVerify,
-		KafkaVersion:             ins.KafkaVersion,
-		UseZooKeeperLag:          ins.UseZooKeeperLag,
-		UriZookeeper:             ins.ZookeeperURIs,
-		MetadataRefreshInterval:  ins.MetadataRefreshInterval,
-		AllowConcurrent:          *ins.AllowConcurrent,
-		MaxOffsets:               ins.MaxOffsets,
-		PruneIntervalSeconds:     ins.PruneIntervalSeconds,
+		Uri:                        ins.KafkaURIs,
+		UseSASL:                    ins.UseSASL,
+		UseSASLHandshake:           *ins.UseSASLHandshake,
+		SaslUsername:               ins.SASLUsername,
+		SaslPassword:               string(ins.SASLPassword),
+		SaslMechanism:              ins.SASLMechanism,
+		UseTLS:                     ins.UseTLS,
+		TlsCAFile:                  ins.CAFile,
+		TlsCertFile:                ins.CertFile,
+		TlsKeyFile:                 ins.KeyFile,
+		TlsInsecureSkipTLSVerify:   ins.InsecureSkipVerify,
+		KafkaVersion:               ins.KafkaVersion,
+		UseZooKeeperLag:            ins.UseZooKeeperLag,
+		UriZookeeper:               ins.ZookeeperURIs,
+		MetadataRefreshInterval:    ins.MetadataRefreshInterval,
+		OffsetShowAll:              *ins.OffsetShowAll,
+		AllowConcurrent:            *ins.AllowConcurrent,
+		MaxOffsets:                 ins.MaxOffsets,
+		PruneIntervalSeconds:       ins.PruneIntervalSeconds,
+		DisableCalculateLagRate:    ins.DisableCalculateLagRate,
+		RenameUncommitOffsetsToLag: ins.RenameUncommitOffsetsToLag,
 	}
 
 	ins.l = level.NewFilter(klog.NewLogfmtLogger(klog.NewSyncWriter(os.Stderr)), levelFilter(ins.LogLevel))

@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"sort"
@@ -28,6 +27,7 @@ const (
 type PromDesc struct {
 	up                                       *prometheus.Desc
 	clusterBrokers                           *prometheus.Desc
+	clusterBrokerInfo                        *prometheus.Desc
 	topicPartitions                          *prometheus.Desc
 	topicCurrentOffset                       *prometheus.Desc
 	topicOldestOffset                        *prometheus.Desc
@@ -50,46 +50,53 @@ type PromDesc struct {
 // Exporter collects Kafka stats from the given server and exports them using
 // the prometheus metrics package.
 type Exporter struct {
-	client                  sarama.Client
-	topicFilter             *regexp.Regexp
-	groupFilter             *regexp.Regexp
-	mu                      sync.Mutex
-	useZooKeeperLag         bool
-	zookeeperClient         *kazoo.Kazoo
-	nextMetadataRefresh     time.Time
-	metadataRefreshInterval time.Duration
-	allowConcurrent         bool
-	sgMutex                 sync.Mutex
-	sgWaitCh                chan struct{}
-	sgChans                 []chan<- prometheus.Metric
-	consumerGroupFetchAll   bool
-	consumerGroupLagTable   interpolationMap
-	kafkaOpts               Options
-	saramaConfig            *sarama.Config
-	logger                  log.Logger
-	promDesc                *PromDesc
+	client                     sarama.Client
+	topicFilter                *regexp.Regexp
+	groupFilter                *regexp.Regexp
+	mu                         sync.Mutex
+	useZooKeeperLag            bool
+	zookeeperClient            *kazoo.Kazoo
+	nextMetadataRefresh        time.Time
+	metadataRefreshInterval    time.Duration
+	offsetShowAll              bool
+	allowConcurrent            bool
+	sgMutex                    sync.Mutex
+	sgWaitCh                   chan struct{}
+	sgChans                    []chan<- prometheus.Metric
+	consumerGroupFetchAll      bool
+	consumerGroupLagTable      interpolationMap
+	kafkaOpts                  Options
+	saramaConfig               *sarama.Config
+	logger                     log.Logger
+	promDesc                   *PromDesc
+	disableCalculateLagRate    bool
+	renameUncommitOffsetsToLag bool
+	quitPruneCh                chan struct{}
 }
 
 type Options struct {
-	Uri                      []string
-	UseSASL                  bool
-	UseSASLHandshake         bool
-	SaslUsername             string
-	SaslPassword             string
-	SaslMechanism            string
-	UseTLS                   bool
-	TlsCAFile                string
-	TlsCertFile              string
-	TlsKeyFile               string
-	TlsInsecureSkipTLSVerify bool
-	KafkaVersion             string
-	UseZooKeeperLag          bool
-	UriZookeeper             []string
-	Labels                   string
-	MetadataRefreshInterval  string
-	AllowConcurrent          bool
-	MaxOffsets               int
-	PruneIntervalSeconds     int
+	Uri                        []string
+	UseSASL                    bool
+	UseSASLHandshake           bool
+	SaslUsername               string
+	SaslPassword               string
+	SaslMechanism              string
+	UseTLS                     bool
+	TlsCAFile                  string
+	TlsCertFile                string
+	TlsKeyFile                 string
+	TlsInsecureSkipTLSVerify   bool
+	KafkaVersion               string
+	UseZooKeeperLag            bool
+	UriZookeeper               []string
+	Labels                     string
+	MetadataRefreshInterval    string
+	OffsetShowAll              bool
+	AllowConcurrent            bool
+	MaxOffsets                 int
+	PruneIntervalSeconds       int
+	DisableCalculateLagRate    bool
+	RenameUncommitOffsetsToLag bool
 }
 
 // CanReadCertAndKey returns true if the certificate and key files already exists,
@@ -175,7 +182,7 @@ func New(logger log.Logger, opts Options, topicFilter, groupFilter string) (*Exp
 		}
 
 		if opts.TlsCAFile != "" {
-			if ca, err := ioutil.ReadFile(opts.TlsCAFile); err == nil {
+			if ca, err := os.ReadFile(opts.TlsCAFile); err == nil {
 				config.Net.TLS.Config.RootCAs.AppendCertsFromPEM(ca)
 			} else {
 				level.Error(logger).Log("msg", "unable to open TlsCAFile", "TlsCAFile", opts.TlsCAFile)
@@ -225,27 +232,35 @@ func New(logger log.Logger, opts Options, topicFilter, groupFilter string) (*Exp
 
 	// Init our exporter.
 	newExporter := &Exporter{
-		client:                  client,
-		topicFilter:             regexp.MustCompile(topicFilter),
-		groupFilter:             regexp.MustCompile(groupFilter),
-		useZooKeeperLag:         opts.UseZooKeeperLag,
-		zookeeperClient:         zookeeperClient,
-		nextMetadataRefresh:     time.Now(),
-		metadataRefreshInterval: interval,
-		allowConcurrent:         opts.AllowConcurrent,
-		sgMutex:                 sync.Mutex{},
-		sgWaitCh:                nil,
-		sgChans:                 []chan<- prometheus.Metric{},
-		consumerGroupFetchAll:   config.Version.IsAtLeast(sarama.V2_0_0_0),
-		consumerGroupLagTable:   interpolationMap{mu: sync.Mutex{}},
-		kafkaOpts:               opts,
-		saramaConfig:            config,
-		logger:                  logger,
-		promDesc:                nil, // initialized in func initializeMetrics
+		client:                     client,
+		topicFilter:                regexp.MustCompile(topicFilter),
+		groupFilter:                regexp.MustCompile(groupFilter),
+		useZooKeeperLag:            opts.UseZooKeeperLag,
+		zookeeperClient:            zookeeperClient,
+		nextMetadataRefresh:        time.Now(),
+		metadataRefreshInterval:    interval,
+		offsetShowAll:              opts.OffsetShowAll,
+		allowConcurrent:            opts.AllowConcurrent,
+		sgMutex:                    sync.Mutex{},
+		sgWaitCh:                   nil,
+		sgChans:                    []chan<- prometheus.Metric{},
+		consumerGroupFetchAll:      config.Version.IsAtLeast(sarama.V2_0_0_0),
+		consumerGroupLagTable:      interpolationMap{mu: sync.Mutex{}},
+		kafkaOpts:                  opts,
+		saramaConfig:               config,
+		logger:                     logger,
+		promDesc:                   nil, // initialized in func initializeMetrics
+		disableCalculateLagRate:    opts.DisableCalculateLagRate,
+		renameUncommitOffsetsToLag: opts.RenameUncommitOffsetsToLag,
 	}
 
 	level.Debug(logger).Log("msg", "Initializing metrics")
 	newExporter.initializeMetrics()
+
+	if !newExporter.disableCalculateLagRate {
+		newExporter.quitPruneCh = make(chan struct{})
+		go newExporter.RunPruner()
+	}
 	return newExporter, nil
 }
 
@@ -266,6 +281,7 @@ func (e *Exporter) fetchOffsetVersion() int16 {
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.promDesc.up
 	ch <- e.promDesc.clusterBrokers
+	ch <- e.promDesc.clusterBrokerInfo
 	ch <- e.promDesc.topicCurrentOffset
 	ch <- e.promDesc.topicOldestOffset
 	ch <- e.promDesc.topicPartitions
@@ -339,6 +355,12 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(
 		e.promDesc.clusterBrokers, prometheus.GaugeValue, float64(len(e.client.Brokers())),
 	)
+	for _, b := range e.client.Brokers() {
+		ch <- prometheus.MustNewConstMetric(
+			e.promDesc.clusterBrokerInfo, prometheus.GaugeValue, 1, strconv.Itoa(int(b.ID())), b.Addr(),
+		)
+	}
+	offsetMap := make(map[string]map[int32]int64)
 
 	now := time.Now()
 
@@ -370,7 +392,7 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) {
 		topic := topic
 		go func() {
 			defer wg.Done()
-			e.metricsForTopic(topic, ch)
+			e.metricsForTopic(topic, offsetMap, ch)
 		}()
 	}
 
@@ -385,7 +407,7 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) {
 			broker := broker
 			go func() {
 				defer wg.Done()
-				e.metricsForConsumerGroup(broker, ch)
+				e.metricsForConsumerGroup(broker, offsetMap, ch)
 			}()
 		}
 		level.Debug(e.logger).Log("msg", "waiting for consumergroup metric generation to complete")
@@ -394,17 +416,20 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) {
 		level.Error(e.logger).Log("msg", "No brokers found. Unable to generate topic metrics")
 	}
 
-	level.Info(e.logger).Log("msg", "Calculating consumergroup lag")
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		e.metricsForLag(ch)
-	}()
-	level.Debug(e.logger).Log("msg", "waiting for consumergroup lag estimation metric generation to complete")
-	wg.Wait()
+	if !e.disableCalculateLagRate {
+		level.Info(e.logger).Log("msg", "Calculating consumergroup lag")
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			e.metricsForLag(ch)
+		}()
+		level.Debug(e.logger).Log("msg", "waiting for consumergroup lag estimation metric generation to complete")
+		wg.Wait()
+	}
+
 }
 
-func (e *Exporter) metricsForTopic(topic string, ch chan<- prometheus.Metric) {
+func (e *Exporter) metricsForTopic(topic string, offsetMap map[string]map[int32]int64, ch chan<- prometheus.Metric) {
 	level.Debug(e.logger).Log("msg", "Fetching topic metrics", "topic", topic)
 	if e.topicFilter.MatchString(topic) {
 		partitions, err := e.client.Partitions(topic)
@@ -434,6 +459,7 @@ func (e *Exporter) metricsForTopic(topic string, ch chan<- prometheus.Metric) {
 			} else {
 				e.mu.Lock()
 				offset[partition] = currentOffset
+				offsetMap[topic] = offset
 				e.mu.Unlock()
 				ch <- prometheus.MustNewConstMetric(
 					e.promDesc.topicCurrentOffset, prometheus.GaugeValue, float64(currentOffset), topic, strconv.FormatInt(int64(partition), 10),
@@ -509,18 +535,18 @@ func (e *Exporter) metricsForTopic(topic string, ch chan<- prometheus.Metric) {
 	}
 }
 
-func (e *Exporter) metricsForConsumerGroup(broker *sarama.Broker, ch chan<- prometheus.Metric) {
-	level.Debug(e.logger).Log("msg", "Fetching consumer group metrics for broker", "broker", broker.ID())
+func (e *Exporter) metricsForConsumerGroup(broker *sarama.Broker, offsetMap map[string]map[int32]int64, ch chan<- prometheus.Metric) {
+	level.Debug(e.logger).Log("msg", "Fetching consumer group metrics for broker", "broker", broker.ID(), "broker_addr", broker.Addr())
 	if err := broker.Open(e.client.Config()); err != nil && err != sarama.ErrAlreadyConnected {
-		level.Error(e.logger).Log("msg", "Error connecting to broker", "broker", broker.ID(), "err", err.Error())
+		level.Error(e.logger).Log("msg", "Error connecting to broker", "broker", broker.ID(), "broker_addr", broker.Addr(), "err", err.Error())
 		return
 	}
 	defer broker.Close()
 
-	level.Debug(e.logger).Log("msg", "listing consumergroups for broker", "broker", broker.ID())
+	level.Debug(e.logger).Log("msg", "listing consumergroups for broker", "broker", broker.ID(), "broker_addr", broker.Addr())
 	groups, err := broker.ListGroups(&sarama.ListGroupsRequest{})
 	if err != nil {
-		level.Error(e.logger).Log("msg", "Error listing consumergroups for broker", "broker", broker.ID(), "err", err.Error())
+		level.Error(e.logger).Log("msg", "Error listing consumergroups for broker", "broker", broker.ID(), "broker_addr", broker.Addr(), "err", err.Error())
 		return
 	}
 	groupIds := make([]string, 0)
@@ -536,15 +562,28 @@ func (e *Exporter) metricsForConsumerGroup(broker *sarama.Broker, ch chan<- prom
 		return
 	}
 	for _, group := range describeGroups.Groups {
-		offsetFetchRequest := sarama.OffsetFetchRequest{ConsumerGroup: group.GroupId, Version: e.fetchOffsetVersion()}
-		if !e.consumerGroupFetchAll {
-			//TODO: currently this will never add partitions to the request since the only place insertions to the table are done is further down in this method
-			for topic, partitions := range e.consumerGroupLagTable.iMap[group.GroupId] {
+		offsetFetchRequest := sarama.OffsetFetchRequest{ConsumerGroup: group.GroupId, Version: 1}
+		if e.offsetShowAll {
+			for topic, partitions := range offsetMap {
 				for partition := range partitions {
 					offsetFetchRequest.AddPartition(topic, partition)
 				}
 			}
+		} else {
+			for _, member := range group.Members {
+				assignment, err := member.GetMemberAssignment()
+				if err != nil {
+					level.Error(e.logger).Log("msg", "Cannot get GetMemberAssignment of group member", "member", member, "err", err.Error())
+					return
+				}
+				for topic, partions := range assignment.Topics {
+					for _, partition := range partions {
+						offsetFetchRequest.AddPartition(topic, partition)
+					}
+				}
+			}
 		}
+
 		ch <- prometheus.MustNewConstMetric(
 			e.promDesc.consumergroupMembers, prometheus.GaugeValue, float64(len(group.Members)), group.GroupId,
 		)
@@ -586,7 +625,9 @@ func (e *Exporter) metricsForConsumerGroup(broker *sarama.Broker, ch chan<- prom
 						if err != nil {
 							level.Error(e.logger).Log("msg", "Error getting next offset for topic/partition", "topic", topic, "partition", partition, "err", err.Error())
 						}
-						e.consumerGroupLagTable.createOrUpdate(group.GroupId, topic, partition, nextOffset)
+						if !e.disableCalculateLagRate {
+							e.consumerGroupLagTable.createOrUpdate(group.GroupId, topic, partition, nextOffset)
+						}
 
 						// If the topic is consumed by that consumer group, but no offset associated with the partition
 						// forcing lag to -1 to be able to alert on that
@@ -727,10 +768,10 @@ func getNextLowerOffset(offsets []int64, k int64) int64 {
 	return min
 }
 
-//Run iMap.Prune() on an interval (default 30 seconds). A new client is created
-//to avoid an issue where the client may be closed before Prune attempts to
-//use it.
-func (e *Exporter) RunPruner(quit chan struct{}) {
+// Run iMap.Prune() on an interval (default 30 seconds). A new client is created
+// to avoid an issue where the client may be closed before Prune attempts to
+// use it.
+func (e *Exporter) RunPruner() {
 	ticker := time.NewTicker(time.Duration(e.kafkaOpts.PruneIntervalSeconds) * time.Second)
 
 	for {
@@ -742,8 +783,9 @@ func (e *Exporter) RunPruner(quit chan struct{}) {
 				return
 			}
 			e.consumerGroupLagTable.Prune(e.logger, client, e.kafkaOpts.MaxOffsets)
+
 			client.Close()
-		case <-quit:
+		case <-e.quitPruneCh:
 			ticker.Stop()
 			return
 		}
@@ -751,6 +793,7 @@ func (e *Exporter) RunPruner(quit chan struct{}) {
 }
 
 func (e *Exporter) Close() {
+	close(e.quitPruneCh)
 	e.client.Close()
 }
 
@@ -777,6 +820,11 @@ func (e *Exporter) initializeMetrics() {
 		prometheus.BuildFQName(namespace, "", "brokers"),
 		"Number of Brokers in the Kafka Cluster.",
 		nil, labels,
+	)
+	clusterBrokerInfo := prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "broker_info"),
+		"Information about the Kafka Broker.",
+		[]string{"id", "address"}, labels,
 	)
 	topicPartitions := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "topic", "partitions"),
@@ -836,23 +884,44 @@ func (e *Exporter) initializeMetrics() {
 		[]string{"consumergroup", "topic"}, labels,
 	)
 
-	consumergroupUncomittedOffsets := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "consumergroup", "uncommitted_offsets"),
-		"Current Approximate count of uncommitted offsets for a ConsumerGroup at Topic/Partition",
-		[]string{"consumergroup", "topic", "partition"}, labels,
-	)
+	var consumergroupUncomittedOffsets, consumergroupUncommittedOffsetsZookeeper, consumergroupUncommittedOffsetsSum *prometheus.Desc
+	if e.renameUncommitOffsetsToLag {
+		consumergroupUncomittedOffsets = prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "consumergroup", "lag"),
+			"Current Approximate Lag of a ConsumerGroup at Topic/Partition",
+			[]string{"consumergroup", "topic", "partition"}, labels,
+		)
+		consumergroupUncommittedOffsetsZookeeper = prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "consumergroupzookeeper", "lag_zookeeper"),
+			"Current Approximate Lag(zookeeper) of a ConsumerGroup at Topic/Partition",
+			[]string{"consumergroup", "topic", "partition"}, nil,
+		)
 
-	consumergroupUncommittedOffsetsZookeeper := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "consumergroupzookeeper", "uncommitted_offsets_zookeeper"),
-		"Current Approximate count of uncommitted offsets(zookeeper) for a ConsumerGroup at Topic/Partition",
-		[]string{"consumergroup", "topic", "partition"}, nil,
-	)
+		consumergroupUncommittedOffsetsSum = prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "consumergroup", "lag_sum"),
+			"Current Approximate Lag of a ConsumerGroup at Topic for all partitions",
+			[]string{"consumergroup", "topic"}, labels,
+		)
 
-	consumergroupUncommittedOffsetsSum := prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "consumergroup", "uncommitted_offsets_sum"),
-		"Current Approximate count of uncommitted offsets for a ConsumerGroup at Topic for all partitions",
-		[]string{"consumergroup", "topic"}, labels,
-	)
+	} else {
+		consumergroupUncomittedOffsets = prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "consumergroup", "uncommitted_offsets"),
+			"Current Approximate count of uncommitted offsets for a ConsumerGroup at Topic/Partition",
+			[]string{"consumergroup", "topic", "partition"}, labels,
+		)
+
+		consumergroupUncommittedOffsetsZookeeper = prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "consumergroupzookeeper", "uncommitted_offsets_zookeeper"),
+			"Current Approximate count of uncommitted offsets(zookeeper) for a ConsumerGroup at Topic/Partition",
+			[]string{"consumergroup", "topic", "partition"}, nil,
+		)
+
+		consumergroupUncommittedOffsetsSum = prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "consumergroup", "uncommitted_offsets_sum"),
+			"Current Approximate count of uncommitted offsets for a ConsumerGroup at Topic for all partitions",
+			[]string{"consumergroup", "topic"}, labels,
+		)
+	}
 
 	consumergroupMembers := prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "consumergroup", "members"),
@@ -882,6 +951,7 @@ func (e *Exporter) initializeMetrics() {
 	e.promDesc = &PromDesc{
 		up:                                       up,
 		clusterBrokers:                           clusterBrokers,
+		clusterBrokerInfo:                        clusterBrokerInfo,
 		topicPartitions:                          topicPartitions,
 		topicCurrentOffset:                       topicCurrentOffset,
 		topicOldestOffset:                        topicOldestOffset,
