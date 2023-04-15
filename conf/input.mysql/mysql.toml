@@ -10,10 +10,14 @@
 # select 'n9e' as service, count(*) as total from n9e_v5.users
 # '''
 
+
 [[instances]]
 # address = "127.0.0.1:3306"
 # username = "root"
 # password = "1234"
+# # mysql uses the unix domain socket when the host is set to localhost
+# socket = "/tmp/mysql.sock"
+
 
 # # set tls=custom to enable tls
 # parameters = "tls=false"
