@@ -12,12 +12,10 @@
 
 
 [[instances]]
-# address = "127.0.0.1:3306"
-# username = "root"
-# password = "1234"
-# # mysql uses the unix domain socket when the host is set to localhost
-# socket = "/tmp/mysql.sock"
-
+# # If the host value is localhost, address must be specified socket path
+ address = "localhost:3306"
+ username = "root"
+ password = "1234"
 
 # # set tls=custom to enable tls
 # parameters = "tls=false"

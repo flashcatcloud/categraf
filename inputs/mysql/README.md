@@ -76,7 +76,7 @@ gather_slave_status = true
 
 当主机填写为localhost时mysql会采用 unix domain socket连接
 当主机填写为127.0.0.1时mysql会采用tcp方式连接
-大家最常问的问题是如何监控多个mysql实例，实际大家对toml配置学习一下就了解了，`[[instances]]` 部分表示数组，是可以出现多个的，支持通过unix连接 所以，举例：
+大家最常问的问题是如何监控多个mysql实例，实际大家对toml配置学习一下就了解了，`[[instances]]` 部分表示数组，是可以出现多个的，address参数支持通过unix路径连接 所以，举例：
 
 ```toml
 [[instances]]
@@ -92,10 +92,9 @@ password = "1234"
 labels = { instance="zbx-10.2.6.9:3306" }
 
 [[instances]]
-address = "localhost:3306"
+address = "/tmp/mysql.sock"
 username = "root"
 password = "1234"
-socket = "/tmp/mysql.sock"
 labels = { instance="zbx-localhost:3306" }
 ```
 

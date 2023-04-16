@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -29,7 +30,6 @@ type Instance struct {
 
 	Address        string `toml:"address"`
 	Username       string `toml:"username"`
-	Socket         string `toml:"socket"`
 	Password       string `toml:"password"`
 	Parameters     string `toml:"parameters"`
 	TimeoutSeconds int64  `toml:"timeout_seconds"`
@@ -52,7 +52,7 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
-	if ins.Address == "" && ins.Socket == "" {
+	if ins.Address == "" {
 		return types.ErrInstancesEmpty
 	}
 
@@ -67,12 +67,11 @@ func (ins *Instance) Init() error {
 			return fmt.Errorf("failed to register tls config: %v", err)
 		}
 	}
-
-	if ins.Socket != "" {
-		ins.dsn = fmt.Sprintf("%s:%s@unix(%s)/?%s", ins.Username, ins.Password, ins.Socket, ins.Parameters)
-	} else {
-		ins.dsn = fmt.Sprintf("%s:%s@tcp(%s)/?%s", ins.Username, ins.Password, ins.Address, ins.Parameters)
-	}
+	net := "tcp"
+	if strings.HasSuffix(ins.Address, ".sock") {
+		net = "unix"
+	} 
+	ins.dsn = fmt.Sprintf("%s:%s@%s(%s)/?%s", ins.Username, ins.Password, net, ins.Address, ins.Parameters)
 	conf, err := mysql.ParseDSN(ins.dsn)
 	if err != nil {
 		return err
