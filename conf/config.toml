@@ -24,7 +24,7 @@ providers = ["local"]
 
 disable_usage_report = true
 
-# [global.labels]
+[global.labels]
 # region = "shanghai"
 # env = "localhost"
 
