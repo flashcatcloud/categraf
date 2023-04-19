@@ -6,14 +6,15 @@ import (
 	"context"
 	"fmt"
 
-	"flashcat.cloud/categraf/pkg/otel/extensions"
-	"flashcat.cloud/categraf/pkg/otel/pipelines"
-	"flashcat.cloud/categraf/pkg/otel/telemetrylogs"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
 	"go.opentelemetry.io/otel/metric/nonrecording"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/multierr"
+
+	"flashcat.cloud/categraf/pkg/otel/extensions"
+	"flashcat.cloud/categraf/pkg/otel/pipelines"
+	"flashcat.cloud/categraf/pkg/otel/telemetrylogs"
 )
 
 type service struct {

@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"log"
 
+	"go.opentelemetry.io/collector/component"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/config/traces"
-	"go.opentelemetry.io/collector/component"
 )
 
 // Collector simply wrapped the OpenTelemetry Collector, which means you can get a full support

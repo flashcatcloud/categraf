@@ -3,10 +3,11 @@
 package traces
 
 import (
-	"flashcat.cloud/categraf/pkg/otel/extensions"
-	"flashcat.cloud/categraf/pkg/otel/pipelines"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/config"
+
+	"flashcat.cloud/categraf/pkg/otel/extensions"
+	"flashcat.cloud/categraf/pkg/otel/pipelines"
 )
 
 var _ component.Host = (*serviceHost)(nil)
