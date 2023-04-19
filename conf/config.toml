@@ -25,8 +25,8 @@ providers = ["local"]
 disable_usage_report = true
 
 [global.labels]
- region = "qd-vm"
- env = "prd"
+# region = "shanghai"
+# env = "localhost"
 
 [log]
 # file_name is the file to write logs to

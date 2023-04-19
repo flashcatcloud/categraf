@@ -13,13 +13,13 @@ dss_type = "oss"
 
 ## URL of each server in the service's cluster
 servers = [
-    "http://x.x.x.x:xx"
+    #"http://x.x.x.x:xx"
 ]
 
 ## Set response_timeout (default 5 seconds)
 response_timeout = "5s"
 
 xms_auth_tokens = [
-    "xxxxxxxxxxxxxxx"
+    #"xxxxxxxxxxxxxxx"
 ]
 

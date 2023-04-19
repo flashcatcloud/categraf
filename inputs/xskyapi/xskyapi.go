@@ -154,7 +154,6 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		// oss users
 
 		urlUsers, _ := url.JoinPath(server, "v1/os-users")
-		//log.Println("D! urlUsers:", urlUsers, "token:", token)
 
 		resp, _, err := ins.sendRequest(urlUsers, token)
 		if err != nil {
@@ -165,12 +164,11 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		er := json.Unmarshal(resp, &osUsers)
 		if er != nil {
-			fmt.Printf("解析json字符串异常：%s\n", err)
+			fmt.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels := map[string]string{"server": server}
 		fields := make(map[string]interface{})
-		//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
 
 		for _, user := range osUsers.OsUser {
 			labels["name"] = user.Name
@@ -183,7 +181,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		// oss buckets
 
 		urlBuckets, _ := url.JoinPath(server, "v1/os-buckets")
-		//log.Println("D! urlUsers:", urlBuckets, "token:", token)
+
 		resp, _, err = ins.sendRequest(urlBuckets, token)
 		if err != nil {
 			log.Println("E! failed to send request to xskyapi url:", urlBuckets, "error:", err)
@@ -192,12 +190,11 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		err = json.Unmarshal(resp, &osBuckets)
 		if err != nil {
-			fmt.Printf("解析json字符串异常：%s\n", err)
+			fmt.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels = map[string]string{"server": server}
 		fields = make(map[string]interface{})
-		//log.Println("D! len(OsBucket):", len(osBuckets.OsBucket))
 
 		for _, bucket := range osBuckets.OsBucket {
 			labels["name"] = bucket.Name
@@ -212,7 +209,6 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		// gfs dfs
 
 		urlDfs, _ := url.JoinPath(server, "v1/dfs-quotas")
-		//log.Println("D! urlDfs:", urlDfs, "token:", token)
 
 		resp, _, err := ins.sendRequest(urlDfs, token)
 		if err != nil {
@@ -223,12 +219,11 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		er := json.Unmarshal(resp, &dfsQuotas)
 		if er != nil {
-			fmt.Printf("解析json字符串异常：%s\n", err)
+			fmt.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels := map[string]string{"server": server}
 		fields := make(map[string]interface{})
-		//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
 
 		for _, dfsQuota := range dfsQuotas.DfsQuota {
 			labels["name"] = dfsQuota.DfsPath.Name
@@ -240,7 +235,6 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		// gfs block volumes
 
 		urlBV, _ := url.JoinPath(server, "v1/block-volumes")
-		//log.Println("D! urlBV:", urlDfs, "token:", token)
 
 		resp, _, err = ins.sendRequest(urlBV, token)
 		if err != nil {
@@ -251,12 +245,11 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		err = json.Unmarshal(resp, &blockVolumes)
 		if err != nil {
-			fmt.Printf("解析json字符串异常：%s\n", err)
+			fmt.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels = map[string]string{"server": server}
 		fields = make(map[string]interface{})
-		//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
 
 		for _, blockVolume := range blockVolumes.BlockVolume {
 			labels["name"] = blockVolume.Name
@@ -271,7 +264,6 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		// eus-folder
 
 		urlDfs, _ := url.JoinPath(server, "v1/fs-folders")
-		//log.Println("D! urlDfs:", urlDfs, "token:", token)
 
 		resp, _, err := ins.sendRequest(urlDfs, token)
 		if err != nil {
@@ -282,12 +274,11 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		er := json.Unmarshal(resp, &fsFolders)
 		if er != nil {
-			fmt.Printf("解析json字符串异常：%s\n", err)
+			fmt.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels := map[string]string{"server": server}
 		fields := make(map[string]interface{})
-		//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
 
 		for _, fsFolder := range fsFolders.FsFolder {
 			labels["name"] = fsFolder.Name
@@ -299,7 +290,6 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		// eus block volumes
 
 		urlBV, _ := url.JoinPath(server, "v1/block-volumes")
-		//log.Println("D! urlBV:", urlDfs, "token:", token)
 
 		resp, _, err = ins.sendRequest(urlBV, token)
 		if err != nil {
@@ -310,7 +300,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		err = json.Unmarshal(resp, &blockVolumes)
 		if err != nil {
-			fmt.Printf("解析json字符串异常：%s\n", err)
+			fmt.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels = map[string]string{"server": server}
@@ -344,14 +334,12 @@ func (ins *Instance) sendRequest(serverURL string, token string) ([]byte, float6
 	requestURL.RawQuery = params.Encode()
 
 	// Create + send request
-	//log.Println("D! now creating request")
 	req, err := http.NewRequest("GET", requestURL.String(),
 		strings.NewReader(data.Encode()))
 	if err != nil {
 		return []byte(""), -1, err
 	}
 
-	//log.Println("D! now adding heads")
 	// Add header parameters
 	req.Header.Add("Xms-Auth-Token", token)
 
@@ -368,9 +356,7 @@ func (ins *Instance) sendRequest(serverURL string, token string) ([]byte, float6
 	if err != nil {
 		return body, responseTime, err
 	}
-	//log.Println("D! len(init url response body):", len(body))
 	body = bytes.TrimPrefix(body, utf8BOM)
-	//log.Println("D! len(after trimprefix url response body):", len(body))
 
 	// Process response
 	if resp.StatusCode != http.StatusOK {
