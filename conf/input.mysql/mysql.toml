@@ -10,6 +10,7 @@
 # select 'n9e' as service, count(*) as total from n9e_v5.users
 # '''
 
+
 [[instances]]
 # address = "127.0.0.1:3306"
 # username = "root"

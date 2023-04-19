@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -66,14 +67,15 @@ func (ins *Instance) Init() error {
 			return fmt.Errorf("failed to register tls config: %v", err)
 		}
 	}
-
-	ins.dsn = fmt.Sprintf("%s:%s@tcp(%s)/?%s", ins.Username, ins.Password, ins.Address, ins.Parameters)
-
+	net := "tcp"
+	if strings.HasSuffix(ins.Address, ".sock") {
+		net = "unix"
+	} 
+	ins.dsn = fmt.Sprintf("%s:%s@%s(%s)/?%s", ins.Username, ins.Password, net, ins.Address, ins.Parameters)
 	conf, err := mysql.ParseDSN(ins.dsn)
 	if err != nil {
 		return err
 	}
-
 	if conf.Timeout == 0 {
 		if ins.TimeoutSeconds == 0 {
 			ins.TimeoutSeconds = 3
