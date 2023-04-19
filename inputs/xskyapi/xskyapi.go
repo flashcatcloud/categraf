@@ -199,6 +199,8 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		for _, bucket := range osBuckets.OsBucket {
 			labels["name"] = bucket.Name
 			labels["id"] = strconv.Itoa(bucket.ID)
+			labels["user_id"] = strconv.Itoa(bucket.Owner.ID)
+			labels["user_name"] = bucket.Owner.Name
 			fields["oss_bucket_quota"] = bucket.BucketQuotaMaxSize
 			fields["oss_bucket_used_size"] = bucket.Samples[0].AllocatedSize
 			slist.PushSamples(inputName, fields, labels)
@@ -389,7 +391,11 @@ type OsUsers struct {
 type osBucket struct {
 	ID int `json:"id"`
 	//MaxBuckets                    int         `json:"max_buckets"`
-	Name    string `json:"name"`
+	Name  string `json:"name"`
+	Owner struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"owner"`
 	Samples []struct {
 		AllocatedSize int `json:"allocated_size"`
 	} `json:"samples"`
