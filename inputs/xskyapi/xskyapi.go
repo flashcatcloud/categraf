@@ -3,10 +3,6 @@ package xskyapi
 import (
 	"bytes"
 	"encoding/json"
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/pkg/tls"
-	"flashcat.cloud/categraf/types"
 	"fmt"
 	"io"
 	"log"
@@ -17,6 +13,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/tls"
+	"flashcat.cloud/categraf/types"
 )
 
 const inputName = "xskyapi"
@@ -149,7 +150,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 	// acquire quota data of 3 mainstream distributed storage service provided by Xsky
 	switch ins.DssType {
-	case "oss": //object storage
+	case "oss": // object storage
 
 		// oss users
 
@@ -164,7 +165,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		er := json.Unmarshal(resp, &osUsers)
 		if er != nil {
-			fmt.Printf("Parsing JSON string exception：%s\n", err)
+			log.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels := map[string]string{"server": server}
@@ -190,7 +191,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		err = json.Unmarshal(resp, &osBuckets)
 		if err != nil {
-			fmt.Printf("Parsing JSON string exception：%s\n", err)
+			log.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels = map[string]string{"server": server}
@@ -221,7 +222,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		er := json.Unmarshal(resp, &dfsQuotas)
 		if er != nil {
-			fmt.Printf("Parsing JSON string exception：%s\n", err)
+			log.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels := map[string]string{"server": server}
@@ -247,7 +248,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		err = json.Unmarshal(resp, &blockVolumes)
 		if err != nil {
-			fmt.Printf("Parsing JSON string exception：%s\n", err)
+			log.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels = map[string]string{"server": server}
@@ -276,7 +277,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		er := json.Unmarshal(resp, &fsFolders)
 		if er != nil {
-			fmt.Printf("Parsing JSON string exception：%s\n", err)
+			log.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels := map[string]string{"server": server}
@@ -302,12 +303,12 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		err = json.Unmarshal(resp, &blockVolumes)
 		if err != nil {
-			fmt.Printf("Parsing JSON string exception：%s\n", err)
+			log.Printf("Parsing JSON string exception：%s\n", err)
 		}
 
 		labels = map[string]string{"server": server}
 		fields = make(map[string]interface{})
-		//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
+		// log.Println("D! len(OsUsers):", len(osUsers.OsUser))
 
 		for _, blockVolume := range blockVolumes.BlockVolume {
 			labels["name"] = blockVolume.Name
@@ -375,7 +376,6 @@ func (ins *Instance) sendRequest(serverURL string, token string) ([]byte, float6
 }
 
 type osUser struct {
-	//Email       string `json:"email"`
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
 	Samples []struct {
@@ -389,8 +389,7 @@ type OsUsers struct {
 }
 
 type osBucket struct {
-	ID int `json:"id"`
-	//MaxBuckets                    int         `json:"max_buckets"`
+	ID    int    `json:"id"`
 	Name  string `json:"name"`
 	Owner struct {
 		ID   int    `json:"id"`
