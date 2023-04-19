@@ -324,6 +324,19 @@ func (ins *Instance) gatherMem(slist *types.SampleList, procs map[PID]Process, t
 				slist.PushFront(types.NewSample(inputName, "mem_usage", v, ins.makeProcTag(procs[pid]), tags))
 			}
 		}
+
+		minfo, err := procs[pid].MemoryInfo()
+		if err == nil {
+			if ins.GatherPerPid {
+				slist.PushFront(types.NewSample(inputName, "mem_rss", minfo.RSS, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_vms", minfo.VMS, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_hwm", minfo.HWM, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_data", minfo.Data, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_stack", minfo.Stack, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_locked", minfo.Locked, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_swap", minfo.Swap, ins.makeProcTag(procs[pid]), tags))
+			}
+		}
 	}
 
 	if ins.GatherTotal {
