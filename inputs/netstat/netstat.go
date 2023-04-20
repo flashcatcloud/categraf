@@ -47,7 +47,7 @@ func (s *NetStats) gatherSummary(slist *types.SampleList) {
 		log.Println("W! netstat_summary is only supported on linux")
 		return
 	}
-	if !s.DisableSummaryStats {
+	if s.DisableSummaryStats {
 		return
 	}
 	tags := map[string]string{}
