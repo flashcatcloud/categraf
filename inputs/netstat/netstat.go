@@ -27,7 +27,7 @@ type NetStats struct {
 	ps system.PS
 	config.PluginConfig
 
-	StatSummary            bool `toml:"stat_summary"`
+	DisableSummaryStats    bool `toml:"disable_summary_stats"`
 	DisableConnectionStats bool `toml:"disable_connection_stats"`
 	TcpExt                 bool `toml:"tcp_ext"`
 	IpExt                  bool `toml:"ip_ext"`
@@ -45,6 +45,9 @@ func init() {
 func (s *NetStats) gatherSummary(slist *types.SampleList) {
 	if runtime.GOOS != "linux" {
 		log.Println("W! netstat_summary is only supported on linux")
+		return
+	}
+	if !s.DisableSummaryStats {
 		return
 	}
 	tags := map[string]string{}
@@ -89,9 +92,8 @@ func (s *NetStats) gatherSummary(slist *types.SampleList) {
 func (s *NetStats) Gather(slist *types.SampleList) {
 	s.gatherExt(slist)
 
-	if s.StatSummary {
-		s.gatherSummary(slist)
-	}
+	s.gatherSummary(slist)
+
 	if s.DisableConnectionStats {
 		return
 	}
