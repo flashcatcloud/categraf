@@ -141,7 +141,7 @@ func (ma *MetricsAgent) Start() error {
 func (ma *MetricsAgent) Stop() error {
 	ma.InputProvider.StopReloader()
 	for name := range ma.InputReaders {
-		ma.DeregisterInput(name)
+		ma.InputReaders[name].Stop()
 	}
 	return nil
 }
