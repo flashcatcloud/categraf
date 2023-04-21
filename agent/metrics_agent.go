@@ -119,6 +119,7 @@ func (ma *MetricsAgent) Start() error {
 		log.Println("I! no inputs")
 		return nil
 	}
+	ma.InputReaders = make(map[string]*InputReader)
 
 	for _, name := range names {
 		_, inputKey := inputs.ParseInputName(name)
@@ -140,7 +141,7 @@ func (ma *MetricsAgent) Start() error {
 func (ma *MetricsAgent) Stop() error {
 	ma.InputProvider.StopReloader()
 	for name := range ma.InputReaders {
-		ma.DeregisterInput(name)
+		ma.InputReaders[name].Stop()
 	}
 	return nil
 }
