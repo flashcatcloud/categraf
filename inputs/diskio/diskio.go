@@ -30,9 +30,8 @@ func init() {
 }
 
 func (d *DiskIO) Clone() inputs.Input {
-	ps := system.NewSystemPS()
 	return &DiskIO{
-		ps: ps,
+		ps: system.NewSystemPS(),
 	}
 }
 

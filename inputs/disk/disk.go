@@ -23,10 +23,9 @@ type DiskStats struct {
 }
 
 func init() {
-	ps := system.NewSystemPS()
 	inputs.Add(inputName, func() inputs.Input {
 		return &DiskStats{
-			ps: ps,
+			ps: system.NewSystemPS(),
 		}
 	})
 }

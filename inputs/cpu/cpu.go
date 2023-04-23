@@ -22,10 +22,9 @@ type CPUStats struct {
 }
 
 func init() {
-	ps := system.NewSystemPS()
 	inputs.Add(inputName, func() inputs.Input {
 		return &CPUStats{
-			ps: ps,
+			ps: system.NewSystemPS(),
 		}
 	})
 }
