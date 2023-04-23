@@ -52,6 +52,14 @@ func init() {
 	})
 }
 
+func (pt *PhpFpm) Clone() inputs.Input {
+	return &PhpFpm{}
+}
+
+func (pt *PhpFpm) Name() string {
+	return inputName
+}
+
 func (pt *PhpFpm) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
 	for i := 0; i < len(pt.Instances); i++ {
@@ -317,14 +325,14 @@ func globUnixSocketPath(pathPattern string) ([]string, error) {
 		return nil, fmt.Errorf("the file is not exist")
 	}
 
-	//Check whether the path is an absolute path.
+	// Check whether the path is an absolute path.
 	if !filepath.IsAbs(pathPattern) {
 		return nil, fmt.Errorf("the file is not absolute: %s", pathPattern)
 	}
 
 	if !strings.ContainsAny(pathPattern, "*?[") {
 		file, err := os.Stat(pathPattern)
-		//无法识别文件或者该文件不是 unix socket 类型
+		// 无法识别文件或者该文件不是 unix socket 类型
 		if err != nil || !isUnixSocketFile(file) {
 			return nil, fmt.Errorf("the file is not of type socket：%s", pathPattern)
 		}
@@ -339,7 +347,7 @@ func globUnixSocketPath(pathPattern string) ([]string, error) {
 	for _, path := range paths {
 		file, err := os.Stat(path)
 		if err != nil || !isUnixSocketFile(file) {
-			//无法识别文件或者该文件不是 unix socket 类型
+			// 无法识别文件或者该文件不是 unix socket 类型
 			continue
 		}
 		validPaths = append(validPaths, path)

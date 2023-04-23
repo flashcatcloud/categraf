@@ -135,6 +135,14 @@ func init() {
 	})
 }
 
+func (p *Prometheus) Clone() inputs.Input {
+	return &Prometheus{}
+}
+
+func (p *Prometheus) Name() string {
+	return inputName
+}
+
 func (p *Prometheus) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(p.Instances))
 	for i := 0; i < len(p.Instances); i++ {

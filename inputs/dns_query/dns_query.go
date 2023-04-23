@@ -15,6 +15,8 @@ import (
 	"github.com/miekg/dns"
 )
 
+const inputName = "dns_query"
+
 type ResultType uint64
 
 const (
@@ -29,9 +31,17 @@ type DnsQuery struct {
 }
 
 func init() {
-	inputs.Add("dns_query", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &DnsQuery{}
 	})
+}
+
+func (dq *DnsQuery) Clone() inputs.Input {
+	return &DnsQuery{}
+}
+
+func (c *DnsQuery) Name() string {
+	return inputName
 }
 
 func (dq *DnsQuery) GetInstances() []inputs.Instance {

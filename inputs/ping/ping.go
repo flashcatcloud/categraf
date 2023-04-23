@@ -94,6 +94,14 @@ func init() {
 	})
 }
 
+func (p *Ping) Clone() inputs.Input {
+	return &Ping{}
+}
+
+func (p *Ping) Name() string {
+	return inputName
+}
+
 func (p *Ping) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(p.Instances))
 	for i := 0; i < len(p.Instances); i++ {

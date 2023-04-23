@@ -32,6 +32,14 @@ func init() {
 	})
 }
 
+func (r *NginxUpstreamCheck) Clone() inputs.Input {
+	return &NginxUpstreamCheck{}
+}
+
+func (r *NginxUpstreamCheck) Name() string {
+	return inputName
+}
+
 func (r *NginxUpstreamCheck) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

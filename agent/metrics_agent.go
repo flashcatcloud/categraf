@@ -184,66 +184,15 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 	for _, creator := range cs {
 		input := creator()
 
-		if ma.InputProvider.Name() == "http" {
-			for _, c := range configs {
-				err := cfg.LoadConfigsHTTP(c, input)
-				if err != nil {
-					log.Println("E! failed to load configuration of plugin:", name, "error:", err)
-					return
-				}
-				ma.inputGo(name, input)
-			}
-		} else {
-
-			err := cfg.LoadConfigs(configs, input)
-			if err != nil {
-				log.Println("E! failed to load configuration of plugin:", name, "error:", err)
-				return
-			}
-			ma.inputGo(name, input)
+		newInputs, err := ma.InputProvider.LoadInputConfig(configs, input)
+		if err != nil {
+			log.Println("E! failed to load configuration of plugin:", name, "error:", err)
+			return
 		}
-		// if err = input.InitInternalConfig(); err != nil {
-		// 	log.Println("E! failed to init input:", name, "error:", err)
-		// 	return
-		// }
-		//
-		// if err = inputs.MayInit(input); err != nil {
-		// 	if !errors.Is(err, types.ErrInstancesEmpty) {
-		// 		log.Println("E! failed to init input:", name, "error:", err)
-		// 	}
-		// 	return
-		// }
-		//
-		// instances := inputs.MayGetInstances(input)
-		// if instances != nil {
-		// 	empty := true
-		// 	for i := 0; i < len(instances); i++ {
-		// 		if err := instances[i].InitInternalConfig(); err != nil {
-		// 			log.Println("E! failed to init input:", name, "error:", err)
-		// 			continue
-		// 		}
-		//
-		// 		if err := inputs.MayInit(instances[i]); err != nil {
-		// 			if !errors.Is(err, types.ErrInstancesEmpty) {
-		// 				log.Println("E! failed to init input:", name, "error:", err)
-		// 			}
-		// 			continue
-		// 		}
-		// 		empty = false
-		// 	}
-		//
-		// 	if empty {
-		// 		if config.Config.DebugMode {
-		// 			log.Printf("W! no instances for input:%s", inputKey)
-		// 		}
-		// 		return
-		// 	}
-		// }
-		//
-		// reader := newInputReader(name, input)
-		// go reader.startInput()
-		// ma.InputReaders.Add(name, reader)
-		// log.Println("I! input:", name, "started")
+
+		for _, nInput := range newInputs {
+			ma.inputGo(name, nInput)
+		}
 	}
 }
 

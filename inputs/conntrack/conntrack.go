@@ -15,6 +15,8 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+const inputName = "conntrack"
+
 type Conntrack struct {
 	config.PluginConfig
 	Dirs  []string `toml:"dirs"`
@@ -35,9 +37,17 @@ var dfltFiles = []string{
 }
 
 func init() {
-	inputs.Add("conntrack", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &Conntrack{}
 	})
+}
+
+func (c *Conntrack) Clone() inputs.Input {
+	return &Conntrack{}
+}
+
+func (c *Conntrack) Name() string {
+	return inputName
 }
 
 func (c *Conntrack) setDefaults() {

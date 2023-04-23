@@ -2,8 +2,8 @@ package greenplum
 
 import (
 	"log"
-	"strings"
 	"os/exec"
+	"strings"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -20,6 +20,14 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &Greenplum{}
 	})
+}
+
+func (e *Greenplum) Clone() inputs.Input {
+	return &Greenplum{}
+}
+
+func (c *Greenplum) Name() string {
+	return inputName
 }
 
 func (ins *Greenplum) Gather(slist *types.SampleList) {

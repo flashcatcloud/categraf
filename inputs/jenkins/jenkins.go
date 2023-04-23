@@ -32,6 +32,14 @@ func init() {
 	})
 }
 
+func (j *Jenkins) Clone() inputs.Input {
+	return &Jenkins{}
+}
+
+func (c *Jenkins) Name() string {
+	return inputName
+}
+
 func (j *Jenkins) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(j.Instances))
 	for i := 0; i < len(j.Instances); i++ {
@@ -94,7 +102,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	ins.gatherJobs(slist)
 }
 
-/////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////////////////
 
 // measurement
 const (
@@ -455,7 +463,7 @@ func mapResultCode(s string) int {
 	return -1
 }
 
-//////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////
 
 type client struct {
 	baseURL       string

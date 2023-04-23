@@ -387,6 +387,14 @@ func init() {
 	})
 }
 
+func (s *Snmp) Clone() inputs.Input {
+	return &Snmp{}
+}
+
+func (s *Snmp) Name() string {
+	return inputName
+}
+
 func (s *Snmp) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(s.Instances))
 	for i := 0; i < len(s.Instances); i++ {

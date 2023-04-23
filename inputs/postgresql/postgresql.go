@@ -38,6 +38,14 @@ func init() {
 	})
 }
 
+func (pt *Postgresql) Clone() inputs.Input {
+	return &Postgresql{}
+}
+
+func (pt *Postgresql) Name() string {
+	return inputName
+}
+
 func (pt *Postgresql) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
 	for i := 0; i < len(pt.Instances); i++ {
@@ -92,7 +100,7 @@ func (ins *Instance) Init() error {
 	}
 	ins.MaxIdle = 1
 	ins.MaxOpen = 1
-	//ins.MaxLifetime = config.Duration(0)
+	// ins.MaxLifetime = config.Duration(0)
 	if !ins.IsPgBouncer {
 		ins.PreparedStatements = true
 		ins.IsPgBouncer = false
@@ -134,7 +142,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-//  closes any necessary channels and connections
+// closes any necessary channels and connections
 func (p *Instance) Drop() {
 	// Ignore the returned error as we cannot do anything about it anyway
 	//nolint:errcheck,revive
@@ -382,7 +390,7 @@ func (ins *Instance) accRow(row scanner, slist *types.SampleList, columns []stri
 			fields[col] = *val
 		}
 	}
-	//acc.AddFields("postgresql", fields, tags)
+	// acc.AddFields("postgresql", fields, tags)
 	for key, val := range fields {
 		slist.PushSample(inputName, key, val, tags)
 	}

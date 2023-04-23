@@ -32,6 +32,14 @@ func init() {
 	})
 }
 
+func (k *Kubernetes) Clone() inputs.Input {
+	return &Kubernetes{}
+}
+
+func (c *Kubernetes) Name() string {
+	return inputName
+}
+
 func (k *Kubernetes) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(k.Instances))
 	for i := 0; i < len(k.Instances); i++ {

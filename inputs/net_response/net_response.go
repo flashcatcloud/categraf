@@ -93,6 +93,14 @@ func init() {
 	})
 }
 
+func (n *NetResponse) Clone() inputs.Input {
+	return &NetResponse{}
+}
+
+func (n *NetResponse) Name() string {
+	return inputName
+}
+
 func (n *NetResponse) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(n.Instances))
 	for i := 0; i < len(n.Instances); i++ {

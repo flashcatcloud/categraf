@@ -24,6 +24,8 @@ import (
 	itypes "flashcat.cloud/categraf/types"
 )
 
+const inputName = "docker"
+
 // KB, MB, GB, TB, PB...human friendly
 const (
 	KB = 1000
@@ -45,9 +47,17 @@ type Docker struct {
 }
 
 func init() {
-	inputs.Add("docker", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &Docker{}
 	})
+}
+
+func (d *Docker) Clone() inputs.Input {
+	return &Docker{}
+}
+
+func (c Docker) Name() string {
+	return inputName
 }
 
 func (d *Docker) GetInstances() []inputs.Instance {

@@ -25,6 +25,14 @@ func init() {
 	})
 }
 
+func (r *MongoDB) Clone() inputs.Input {
+	return &MongoDB{}
+}
+
+func (c *MongoDB) Name() string {
+	return inputName
+}
+
 func (r *MongoDB) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

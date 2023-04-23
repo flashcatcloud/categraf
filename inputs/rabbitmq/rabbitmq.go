@@ -29,6 +29,14 @@ func init() {
 	})
 }
 
+func (r *RabbitMQ) Clone() inputs.Input {
+	return &RabbitMQ{}
+}
+
+func (r *RabbitMQ) Name() string {
+	return inputName
+}
+
 func (r *RabbitMQ) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

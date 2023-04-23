@@ -30,6 +30,14 @@ func init() {
 	})
 }
 
+func (s *GPUStats) Clone() inputs.Input {
+	return &GPUStats{}
+}
+
+func (s *GPUStats) Name() string {
+	return inputName
+}
+
 func (s *GPUStats) Init() error {
 	if s.NvidiaSmiCommand == "" {
 		return types.ErrInstancesEmpty

@@ -26,6 +26,14 @@ func init() {
 	})
 }
 
+func (s *SystemStats) Clone() inputs.Input {
+	return &SystemStats{}
+}
+
+func (s *SystemStats) Name() string {
+	return inputName
+}
+
 func (s *SystemStats) Gather(slist *types.SampleList) {
 	loadavg, err := load.Avg()
 	if err != nil && !strings.Contains(err.Error(), "not implemented") {

@@ -51,3 +51,11 @@ func init() {
 		return &Systemd{}
 	})
 }
+
+func (s *Systemd) Clone() inputs.Input {
+	return &Systemd{}
+}
+
+func (s *Systemd) Name() string {
+	return inputName
+}

@@ -33,6 +33,16 @@ func init() {
 	})
 }
 
+func (s *SysctlFS) Clone() inputs.Input {
+	return &SysctlFS{
+		path: path.Join(osx.GetHostProc(), "/sys/fs"),
+	}
+}
+
+func (c *SysctlFS) Name() string {
+	return inputName
+}
+
 func (s *SysctlFS) Gather(slist *types.SampleList) {
 	fields := map[string]interface{}{}
 

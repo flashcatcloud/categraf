@@ -28,6 +28,16 @@ func init() {
 	})
 }
 
+func (s *MemStats) Clone() inputs.Input {
+	return &MemStats{
+		ps: system.NewSystemPS(),
+	}
+}
+
+func (c *MemStats) Name() string {
+	return inputName
+}
+
 func (s *MemStats) Gather(slist *types.SampleList) {
 	vm, err := s.ps.VMStat()
 	if err != nil {

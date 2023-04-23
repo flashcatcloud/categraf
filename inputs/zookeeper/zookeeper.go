@@ -71,6 +71,14 @@ func init() {
 	})
 }
 
+func (z *Zookeeper) Clone() inputs.Input {
+	return &Zookeeper{}
+}
+
+func (z *Zookeeper) Name() string {
+	return inputName
+}
+
 func (z *Zookeeper) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(z.Instances))
 	for i := 0; i < len(z.Instances); i++ {

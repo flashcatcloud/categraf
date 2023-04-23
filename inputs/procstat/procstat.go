@@ -73,6 +73,14 @@ func init() {
 	})
 }
 
+func (p *Procstat) Clone() inputs.Input {
+	return &Procstat{}
+}
+
+func (p *Procstat) Name() string {
+	return inputName
+}
+
 var _ inputs.SampleGatherer = new(Instance)
 
 func (s *Procstat) GetInstances() []inputs.Instance {

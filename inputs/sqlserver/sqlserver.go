@@ -79,6 +79,15 @@ func init() {
 		return &SQLServer{}
 	})
 }
+
+func (pt *SQLServer) Clone() inputs.Input {
+	return &SQLServer{}
+}
+
+func (pt *SQLServer) Name() string {
+	return inputName
+}
+
 func (pt *SQLServer) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
 	for i := 0; i < len(pt.Instances); i++ {
@@ -136,7 +145,7 @@ func (s *Instance) initQueries() error {
 
 	// To prevent query definition conflicts
 	// Constant definitions for type "SQLServer" start with sqlServer
-	if s.DatabaseType == typeSQLServer { //These are still V2 queries and have not been refactored yet.
+	if s.DatabaseType == typeSQLServer { // These are still V2 queries and have not been refactored yet.
 		queries["SQLServerPerformanceCounters"] = Query{ScriptName: "SQLServerPerformanceCounters", Script: sqlServerPerformanceCounters, ResultByRow: false}
 		queries["SQLServerWaitStatsCategorized"] = Query{ScriptName: "SQLServerWaitStatsCategorized", Script: sqlServerWaitStatsCategorized, ResultByRow: false}
 		queries["SQLServerDatabaseIO"] = Query{ScriptName: "SQLServerDatabaseIO", Script: sqlServerDatabaseIO, ResultByRow: false}

@@ -59,6 +59,14 @@ func init() {
 	})
 }
 
+func (o *Oracle) Clone() inputs.Input {
+	return &Oracle{}
+}
+
+func (o *Oracle) Name() string {
+	return inputName
+}
+
 func (o *Oracle) Drop() {
 	for i := 0; i < len(o.Instances); i++ {
 		o.Instances[i].Drop()
@@ -102,7 +110,7 @@ func (ins *Instance) Drop() error {
 	if config.Config.DebugMode {
 		log.Println("D! dropping oracle connection:", ins.Address)
 	}
-	
+
 	if len(ins.Address) == 0 || ins.client == nil {
 		if config.Config.DebugMode {
 			log.Println("D! oracle address is empty or client is nil, so there is no need to close")

@@ -11,6 +11,8 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+const inputName = "disk"
+
 type DiskStats struct {
 	ps system.PS
 
@@ -22,11 +24,21 @@ type DiskStats struct {
 
 func init() {
 	ps := system.NewSystemPS()
-	inputs.Add("disk", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &DiskStats{
 			ps: ps,
 		}
 	})
+}
+
+func (s *DiskStats) Clone() inputs.Input {
+	return &DiskStats{
+		ps: system.NewSystemPS(),
+	}
+}
+
+func (s *DiskStats) Name() string {
+	return inputName
 }
 
 func (s *DiskStats) Gather(slist *types.SampleList) {

@@ -35,6 +35,14 @@ func init() {
 	})
 }
 
+func (r *RedisSentinel) Clone() inputs.Input {
+	return &RedisSentinel{}
+}
+
+func (r *RedisSentinel) Name() string {
+	return inputName
+}
+
 func (r *RedisSentinel) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

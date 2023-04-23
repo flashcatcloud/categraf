@@ -33,6 +33,16 @@ func init() {
 	})
 }
 
+func (s *NetIOStats) Clone() inputs.Input {
+	return &NetIOStats{
+		ps: system.NewSystemPS(),
+	}
+}
+
+func (s *NetIOStats) Name() string {
+	return inputName
+}
+
 func (s *NetIOStats) Init() error {
 	var err error
 

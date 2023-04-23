@@ -145,6 +145,14 @@ func init() {
 	})
 }
 
+func (h *HTTPResponse) Clone() inputs.Input {
+	return &HTTPResponse{}
+}
+
+func (c *HTTPResponse) Name() string {
+	return inputName
+}
+
 func (h *HTTPResponse) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(h.Instances))
 	for i := 0; i < len(h.Instances); i++ {

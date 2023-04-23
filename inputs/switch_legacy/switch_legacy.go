@@ -33,6 +33,14 @@ func init() {
 	})
 }
 
+func (s *Switch) Clone() inputs.Input {
+	return &Switch{}
+}
+
+func (s *Switch) Name() string {
+	return inputName
+}
+
 func (s *Switch) MappingIP(ip string) string {
 	val, has := s.Mappings[ip]
 	if has {

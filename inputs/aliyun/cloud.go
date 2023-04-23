@@ -95,6 +95,14 @@ func init() {
 	})
 }
 
+func (a *Aliyun) Clone() inputs.Input {
+	return &Aliyun{}
+}
+
+func (a *Aliyun) Name() string {
+	return inputName
+}
+
 var _ inputs.SampleGatherer = new(Instance)
 var _ inputs.Input = new(Aliyun)
 var _ inputs.InstancesGetter = new(Aliyun)

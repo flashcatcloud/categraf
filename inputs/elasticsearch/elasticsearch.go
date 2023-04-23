@@ -19,6 +19,8 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+const inputName = "elasticsearch"
+
 // Nodestats are always generated, so simply define a constant for these endpoints
 const statsPath = "/_nodes/stats"
 const statsPathLocal = "/_nodes/_local/stats"
@@ -89,9 +91,17 @@ type Elasticsearch struct {
 }
 
 func init() {
-	inputs.Add("elasticsearch", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &Elasticsearch{}
 	})
+}
+
+func (r *Elasticsearch) Clone() inputs.Input {
+	return &Elasticsearch{}
+}
+
+func (c *Elasticsearch) Name() string {
+	return inputName
 }
 
 func (r *Elasticsearch) GetInstances() []inputs.Instance {

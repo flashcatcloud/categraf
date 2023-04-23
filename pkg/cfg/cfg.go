@@ -112,7 +112,7 @@ func LoadConfigs(configs []ConfigWithFormat, configPtr interface{}) error {
 	return m.Load(configPtr)
 }
 
-func LoadConfigsHTTP(c ConfigWithFormat, configPtr interface{}) error {
+func LoadSingleConfig(c ConfigWithFormat, configPtr interface{}) error {
 	loaders := []multiconfig.Loader{
 		&multiconfig.TagLoader{},
 		&multiconfig.EnvironmentLoader{},

@@ -28,6 +28,14 @@ func init() {
 	})
 }
 
+func (vs *VSphere) Clone() inputs.Input {
+	return &VSphere{}
+}
+
+func (vs *VSphere) Name() string {
+	return inputName
+}
+
 func (pt *VSphere) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
 	for i := 0; i < len(pt.Instances); i++ {
@@ -205,7 +213,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		err = nil
 	}
 	if err != nil {
-		//acc.AddError(err)
+		// acc.AddError(err)
 		log.Printf("E! fail to gather\n", err)
 	}
 
