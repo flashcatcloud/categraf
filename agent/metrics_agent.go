@@ -74,15 +74,24 @@ import (
 
 type MetricsAgent struct {
 	InputFilters  map[string]struct{}
-	InputReaders  map[string]*InputReader
+	InputReaders  Readers
 	InputProvider inputs.Provider
+}
+
+type Readers map[string][]*InputReader
+
+func (r Readers) Add(name string, reader *InputReader) {
+	if _, ok := r[name]; !ok {
+		r[name] = []*InputReader{reader} // make([]*InputReader, 0, 10)
+	} else {
+		r[name] = append(r[name], reader)
+	}
 }
 
 func NewMetricsAgent() AgentModule {
 	c := config.Config
 	agent := &MetricsAgent{
 		InputFilters: parseFilter(c.InputFilters),
-		InputReaders: make(map[string]*InputReader),
 	}
 
 	provider, err := inputs.NewProvider(c, agent)
@@ -119,7 +128,7 @@ func (ma *MetricsAgent) Start() error {
 		log.Println("I! no inputs")
 		return nil
 	}
-	ma.InputReaders = make(map[string]*InputReader)
+	ma.InputReaders = make(map[string][]*InputReader)
 
 	for _, name := range names {
 		_, inputKey := inputs.ParseInputName(name)
@@ -141,9 +150,15 @@ func (ma *MetricsAgent) Start() error {
 func (ma *MetricsAgent) Stop() error {
 	ma.InputProvider.StopReloader()
 	for name := range ma.InputReaders {
-		ma.InputReaders[name].Stop()
+		for _, r := range ma.InputReaders[name] {
+			r.Stop()
+		}
 	}
 	return nil
+}
+
+func Config([]cfg.ConfigWithFormat, []inputs.Creator) {
+
 }
 
 func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithFormat) {
@@ -152,21 +167,88 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 		return
 	}
 
-	creator, has := inputs.InputCreators[inputKey]
+	log.Println("DEBUG, inputkey", inputKey)
+	cs, has := inputs.InputCreators[inputKey]
 	if !has {
 		log.Println("E! input:", name, "not supported")
 		return
 	}
 
+	log.Println("DEBUG", inputKey, "supported")
 	// construct input instance
-	input := creator()
-
-	err := cfg.LoadConfigs(configs, input)
-	if err != nil {
-		log.Println("E! failed to load configuration of plugin:", name, "error:", err)
+	if len(cs) == 0 {
+		log.Println("E! input:", name, "not initial")
 		return
 	}
 
+	for _, creator := range cs {
+		input := creator()
+
+		if ma.InputProvider.Name() == "http" {
+			for _, c := range configs {
+				err := cfg.LoadConfigsHTTP(c, input)
+				if err != nil {
+					log.Println("E! failed to load configuration of plugin:", name, "error:", err)
+					return
+				}
+				ma.inputGo(name, input)
+			}
+		} else {
+
+			err := cfg.LoadConfigs(configs, input)
+			if err != nil {
+				log.Println("E! failed to load configuration of plugin:", name, "error:", err)
+				return
+			}
+			ma.inputGo(name, input)
+		}
+		// if err = input.InitInternalConfig(); err != nil {
+		// 	log.Println("E! failed to init input:", name, "error:", err)
+		// 	return
+		// }
+		//
+		// if err = inputs.MayInit(input); err != nil {
+		// 	if !errors.Is(err, types.ErrInstancesEmpty) {
+		// 		log.Println("E! failed to init input:", name, "error:", err)
+		// 	}
+		// 	return
+		// }
+		//
+		// instances := inputs.MayGetInstances(input)
+		// if instances != nil {
+		// 	empty := true
+		// 	for i := 0; i < len(instances); i++ {
+		// 		if err := instances[i].InitInternalConfig(); err != nil {
+		// 			log.Println("E! failed to init input:", name, "error:", err)
+		// 			continue
+		// 		}
+		//
+		// 		if err := inputs.MayInit(instances[i]); err != nil {
+		// 			if !errors.Is(err, types.ErrInstancesEmpty) {
+		// 				log.Println("E! failed to init input:", name, "error:", err)
+		// 			}
+		// 			continue
+		// 		}
+		// 		empty = false
+		// 	}
+		//
+		// 	if empty {
+		// 		if config.Config.DebugMode {
+		// 			log.Printf("W! no instances for input:%s", inputKey)
+		// 		}
+		// 		return
+		// 	}
+		// }
+		//
+		// reader := newInputReader(name, input)
+		// go reader.startInput()
+		// ma.InputReaders.Add(name, reader)
+		// log.Println("I! input:", name, "started")
+	}
+}
+
+func (ma *MetricsAgent) inputGo(name string, input inputs.Input) {
+	var err error
 	if err = input.InitInternalConfig(); err != nil {
 		log.Println("E! failed to init input:", name, "error:", err)
 		return
@@ -199,6 +281,7 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 
 		if empty {
 			if config.Config.DebugMode {
+				_, inputKey := inputs.ParseInputName(name)
 				log.Printf("W! no instances for input:%s", inputKey)
 			}
 			return
@@ -207,13 +290,15 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 
 	reader := newInputReader(name, input)
 	go reader.startInput()
-	ma.InputReaders[name] = reader
+	ma.InputReaders.Add(name, reader)
 	log.Println("I! input:", name, "started")
 }
 
 func (ma *MetricsAgent) DeregisterInput(name string) {
 	if reader, has := ma.InputReaders[name]; has {
-		reader.Stop()
+		for _, r := range reader {
+			r.Stop()
+		}
 		delete(ma.InputReaders, name)
 		log.Println("I! input:", name, "stopped")
 	} else {

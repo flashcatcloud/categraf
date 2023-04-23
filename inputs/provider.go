@@ -63,6 +63,9 @@ type Provider interface {
 
 	// GetInputConfig 获取input的配置，注意处理时先判断配置是否在provider中，如果在provider并且读取错误再返回error
 	GetInputConfig(inputName string) ([]cfg.ConfigWithFormat, error)
+
+	// 加载配置的方法，如果配置改变，返回true；提供给 StartReloader 以及 HUP信号的Reload使用
+	// ConfigConvert([]cfg.ConfigWithFormat, Input)
 }
 
 func NewProvider(c *config.ConfigType, op InputOperation) (Provider, error) {

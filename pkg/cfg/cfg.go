@@ -111,3 +111,26 @@ func LoadConfigs(configs []ConfigWithFormat, configPtr interface{}) error {
 	}
 	return m.Load(configPtr)
 }
+
+func LoadConfigsHTTP(c ConfigWithFormat, configPtr interface{}) error {
+	loaders := []multiconfig.Loader{
+		&multiconfig.TagLoader{},
+		&multiconfig.EnvironmentLoader{},
+	}
+
+	switch c.Format {
+	case TomlFormat:
+		loaders = append(loaders, &multiconfig.TOMLLoader{Reader: bytes.NewReader([]byte(c.Config))})
+	case YamlFormat:
+		loaders = append(loaders, &multiconfig.YAMLLoader{Reader: bytes.NewReader([]byte(c.Config))})
+	case JsonFormat:
+		loaders = append(loaders, &multiconfig.JSONLoader{Reader: bytes.NewReader([]byte(c.Config))})
+
+	}
+
+	m := multiconfig.DefaultLoader{
+		Loader:    multiconfig.MultiLoader(loaders...),
+		Validator: multiconfig.MultiValidator(&multiconfig.RequiredValidator{}),
+	}
+	return m.Load(configPtr)
+}
