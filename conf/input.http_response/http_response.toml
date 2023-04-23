@@ -33,7 +33,7 @@ targets = [
 # password = "pa$$word"
 
 ## Optional headers
-# headers = ["X-From", "categraf", "X-Xyz", "abc"]
+# headers = ["Header-Key-1", "Header-Value-1", "Header-Key-2", "Header-Value-2"]
 
 ## Optional HTTP Request Body
 # body = '''
