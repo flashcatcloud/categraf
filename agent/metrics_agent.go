@@ -82,7 +82,7 @@ type Readers map[string][]*InputReader
 
 func (r Readers) Add(name string, reader *InputReader) {
 	if _, ok := r[name]; !ok {
-		r[name] = []*InputReader{reader} // make([]*InputReader, 0, 10)
+		r[name] = []*InputReader{reader}
 	} else {
 		r[name] = append(r[name], reader)
 	}
