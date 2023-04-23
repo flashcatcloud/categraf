@@ -36,7 +36,7 @@ func (k *Kubernetes) Clone() inputs.Input {
 	return &Kubernetes{}
 }
 
-func (c *Kubernetes) Name() string {
+func (k *Kubernetes) Name() string {
 	return inputName
 }
 

@@ -29,7 +29,7 @@ func (r *MongoDB) Clone() inputs.Input {
 	return &MongoDB{}
 }
 
-func (c *MongoDB) Name() string {
+func (r *MongoDB) Name() string {
 	return inputName
 }
 

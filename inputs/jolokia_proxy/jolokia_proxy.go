@@ -29,7 +29,7 @@ func (r *JolokiaProxy) Clone() inputs.Input {
 	return &JolokiaProxy{}
 }
 
-func (c *JolokiaProxy) Name() string {
+func (r *JolokiaProxy) Name() string {
 	return inputName
 }
 

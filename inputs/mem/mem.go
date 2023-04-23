@@ -34,7 +34,7 @@ func (s *MemStats) Clone() inputs.Input {
 	}
 }
 
-func (c *MemStats) Name() string {
+func (s *MemStats) Name() string {
 	return inputName
 }
 

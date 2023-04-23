@@ -38,7 +38,7 @@ func (s *KernelVmstat) Clone() inputs.Input {
 	}
 }
 
-func (c *KernelVmstat) Name() string {
+func (s *KernelVmstat) Name() string {
 	return inputName
 }
 

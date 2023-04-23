@@ -33,7 +33,7 @@ func (r *Kafka) Clone() inputs.Input {
 	return &Kafka{}
 }
 
-func (c *Kafka) Name() string {
+func (r *Kafka) Name() string {
 	return inputName
 }
 

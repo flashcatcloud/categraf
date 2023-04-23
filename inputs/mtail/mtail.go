@@ -154,7 +154,7 @@ func (s *MTail) Clone() inputs.Input {
 	return &MTail{}
 }
 
-func (c *MTail) Name() string {
+func (s *MTail) Name() string {
 	return inputName
 }
 

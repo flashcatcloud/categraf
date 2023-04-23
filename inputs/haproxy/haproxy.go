@@ -27,7 +27,7 @@ func (r *HAProxy) Clone() inputs.Input {
 	return &HAProxy{}
 }
 
-func (c *HAProxy) Name() string {
+func (r *HAProxy) Name() string {
 	return inputName
 }
 

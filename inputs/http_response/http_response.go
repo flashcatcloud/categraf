@@ -149,7 +149,7 @@ func (h *HTTPResponse) Clone() inputs.Input {
 	return &HTTPResponse{}
 }
 
-func (c *HTTPResponse) Name() string {
+func (h *HTTPResponse) Name() string {
 	return inputName
 }
 

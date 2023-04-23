@@ -36,7 +36,7 @@ func (j *Jenkins) Clone() inputs.Input {
 	return &Jenkins{}
 }
 
-func (c *Jenkins) Name() string {
+func (j *Jenkins) Name() string {
 	return inputName
 }
 

@@ -26,7 +26,7 @@ func (e *Greenplum) Clone() inputs.Input {
 	return &Greenplum{}
 }
 
-func (c *Greenplum) Name() string {
+func (e *Greenplum) Name() string {
 	return inputName
 }
 

@@ -30,7 +30,7 @@ func (r *JolokiaAgent) Clone() inputs.Input {
 	return &JolokiaAgent{}
 }
 
-func (c *JolokiaAgent) Name() string {
+func (r *JolokiaAgent) Name() string {
 	return inputName
 }
 

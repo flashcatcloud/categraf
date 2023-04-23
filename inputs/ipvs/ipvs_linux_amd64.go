@@ -33,7 +33,7 @@ func (i *IPVS) Clone() inputs.Input {
 	return &IPVS{}
 }
 
-func (c *IPVS) Name() string {
+func (i *IPVS) Name() string {
 	return inputName
 }
 

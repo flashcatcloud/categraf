@@ -39,7 +39,7 @@ func (s *SysctlFS) Clone() inputs.Input {
 	}
 }
 
-func (c *SysctlFS) Name() string {
+func (s *SysctlFS) Name() string {
 	return inputName
 }
 

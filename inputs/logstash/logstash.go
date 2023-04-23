@@ -34,7 +34,7 @@ func (l *Logstash) Clone() inputs.Input {
 	return &Logstash{}
 }
 
-func (c *Logstash) Name() string {
+func (l *Logstash) Name() string {
 	return inputName
 }
 

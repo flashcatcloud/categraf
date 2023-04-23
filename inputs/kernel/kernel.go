@@ -49,7 +49,7 @@ func (s *KernelStats) Clone() inputs.Input {
 	}
 }
 
-func (c *KernelStats) Name() string {
+func (s *KernelStats) Name() string {
 	return inputName
 }
 
