@@ -163,7 +163,6 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 		return
 	}
 
-	log.Println("DEBUG, inputkey", inputKey)
 	creator, has := inputs.InputCreators[inputKey]
 	if !has {
 		log.Println("E! input:", name, "not supported")
