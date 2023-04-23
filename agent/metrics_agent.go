@@ -68,6 +68,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/systemd"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
 	_ "flashcat.cloud/categraf/inputs/vsphere"
+	_ "flashcat.cloud/categraf/inputs/xskyapi"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
 )
 
@@ -118,6 +119,7 @@ func (ma *MetricsAgent) Start() error {
 		log.Println("I! no inputs")
 		return nil
 	}
+	ma.InputReaders = make(map[string]*InputReader)
 
 	for _, name := range names {
 		_, inputKey := inputs.ParseInputName(name)

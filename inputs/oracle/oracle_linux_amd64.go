@@ -102,6 +102,13 @@ func (ins *Instance) Drop() error {
 	if config.Config.DebugMode {
 		log.Println("D! dropping oracle connection:", ins.Address)
 	}
+	
+	if len(ins.Address) == 0 || ins.client == nil {
+		if config.Config.DebugMode {
+			log.Println("D! oracle address is empty or client is nil, so there is no need to close")
+		}
+		return nil
+	}
 
 	if err := ins.client.Close(); err != nil {
 		log.Println("E! failed to close oracle connection:", ins.Address, "error:", err)

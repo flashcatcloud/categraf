@@ -1,8 +1,19 @@
 package netstat
 
 import (
+	"bufio"
+	"bytes"
+	"io"
+	"io/ioutil"
 	"log"
+	"os"
+	"path"
+	"runtime"
+	"strconv"
+	"strings"
 	"syscall"
+
+	"github.com/toolkits/pkg/file"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -16,6 +27,7 @@ type NetStats struct {
 	ps system.PS
 	config.PluginConfig
 
+	DisableSummaryStats    bool `toml:"disable_summary_stats"`
 	DisableConnectionStats bool `toml:"disable_connection_stats"`
 	TcpExt                 bool `toml:"tcp_ext"`
 	IpExt                  bool `toml:"ip_ext"`
@@ -30,8 +42,57 @@ func init() {
 	})
 }
 
+func (s *NetStats) gatherSummary(slist *types.SampleList) {
+	if runtime.GOOS != "linux" {
+		log.Println("W! netstat_summary is only supported on linux")
+		return
+	}
+	if s.DisableSummaryStats {
+		return
+	}
+	tags := map[string]string{}
+	f := "/proc/net/sockstat"
+	prefix, ok := os.LookupEnv("HOST_MOUNT_PREFIX")
+	if ok {
+		f = path.Join(prefix, f)
+	}
+	bs, err := ioutil.ReadFile(f)
+	if err != nil {
+		log.Println("E! failed to read sockstat", f, err)
+		return
+	}
+	reader := bufio.NewReader(bytes.NewBuffer(bs))
+
+	for {
+		var lineBytes []byte
+		lineBytes, err = file.ReadLine(reader)
+		if err == io.EOF {
+			return
+		}
+		line := string(lineBytes)
+		s := strings.SplitN(line, ":", 2)
+		if len(s) != 2 {
+			continue
+		}
+		metric := strings.ToLower(strings.TrimSpace(s[0]))
+		kvs := strings.Split(strings.TrimSpace(s[1]), " ")
+		if len(kvs)%2 != 0 {
+			continue
+		}
+		for i := 0; i < len(kvs); i += 2 {
+			val, err := strconv.ParseUint(kvs[i+1], 10, 64)
+			if err != nil {
+				log.Println("W! parse:", f, "line:", line, "field:", kvs[i+1], "failed:", err)
+			}
+			slist.PushSample(inputName+"_"+metric, strings.ToLower(kvs[i]), val, tags)
+		}
+	}
+}
+
 func (s *NetStats) Gather(slist *types.SampleList) {
 	s.gatherExt(slist)
+
+	s.gatherSummary(slist)
 
 	if s.DisableConnectionStats {
 		return
