@@ -114,6 +114,7 @@ func (ma *MetricsAgent) FilterPass(inputKey string) bool {
 }
 
 func (ma *MetricsAgent) Start() error {
+	ma.InputReaders = make(map[string][]*InputReader)
 	if _, err := ma.InputProvider.LoadConfig(); err != nil {
 		log.Println("E! input provider load config get err: ", err)
 	}
@@ -128,7 +129,6 @@ func (ma *MetricsAgent) Start() error {
 		log.Println("I! no inputs")
 		return nil
 	}
-	ma.InputReaders = make(map[string][]*InputReader)
 
 	for _, name := range names {
 		_, inputKey := inputs.ParseInputName(name)
