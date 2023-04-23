@@ -64,15 +64,10 @@ type (
 
 type Creator func() Input
 
-var InputCreators = map[string][]Creator{}
+var InputCreators = map[string]Creator{}
 
 func Add(name string, creator Creator) {
-
-	if _, ok := InputCreators[name]; !ok {
-		InputCreators[name] = []Creator{creator}
-	} else {
-		InputCreators[name] = append(InputCreators[name], creator)
-	}
+	InputCreators[name] = creator
 }
 
 type Instance interface {

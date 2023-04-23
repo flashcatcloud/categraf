@@ -1,11 +1,12 @@
 package inputs
 
 import (
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/pkg/cfg"
 	"fmt"
 	"log"
 	"strings"
+
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/pkg/cfg"
 )
 
 const inputFilePrefix = "input."

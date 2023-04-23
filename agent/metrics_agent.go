@@ -157,10 +157,6 @@ func (ma *MetricsAgent) Stop() error {
 	return nil
 }
 
-func Config([]cfg.ConfigWithFormat, []inputs.Creator) {
-
-}
-
 func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithFormat) {
 	_, inputKey := inputs.ParseInputName(name)
 	if !ma.FilterPass(inputKey) {
@@ -168,31 +164,20 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 	}
 
 	log.Println("DEBUG, inputkey", inputKey)
-	cs, has := inputs.InputCreators[inputKey]
+	creator, has := inputs.InputCreators[inputKey]
 	if !has {
 		log.Println("E! input:", name, "not supported")
 		return
 	}
 
-	log.Println("DEBUG", inputKey, "supported")
-	// construct input instance
-	if len(cs) == 0 {
-		log.Println("E! input:", name, "not initial")
+	newInputs, err := ma.InputProvider.LoadInputConfig(configs, creator())
+	if err != nil {
+		log.Println("E! failed to load configuration of plugin:", name, "error:", err)
 		return
 	}
 
-	for _, creator := range cs {
-		input := creator()
-
-		newInputs, err := ma.InputProvider.LoadInputConfig(configs, input)
-		if err != nil {
-			log.Println("E! failed to load configuration of plugin:", name, "error:", err)
-			return
-		}
-
-		for _, nInput := range newInputs {
-			ma.inputGo(name, nInput)
-		}
+	for _, nInput := range newInputs {
+		ma.inputGo(name, nInput)
 	}
 }
 

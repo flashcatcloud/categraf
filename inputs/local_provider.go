@@ -2,10 +2,11 @@ package inputs
 
 import (
 	"fmt"
-	"github.com/toolkits/pkg/file"
 	"path"
 	"strings"
 	"sync"
+
+	"github.com/toolkits/pkg/file"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
