@@ -135,6 +135,10 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 		Config.Global.Interval = Duration(time.Duration(interval) * time.Second)
 	}
 
+	if Config.Global.Precision == "" {
+		Config.Global.Precision = "ms"
+	}
+
 	if Config.WriterOpt.ChanSize <= 0 {
 		Config.WriterOpt.ChanSize = 1000000
 	}

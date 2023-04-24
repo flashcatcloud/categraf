@@ -13,8 +13,8 @@ hostname = ""
 # will not add label(agent_hostname) if true
 omit_hostname = false
 
-# s | ms
-precision = "ms"
+# # s | ms
+# precision = "ms"
 
 # global collect interval
 interval = 15
