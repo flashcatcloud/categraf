@@ -19,6 +19,10 @@ func Start() {
 		!config.Config.HTTP.Enable {
 		return
 	}
+	// test mode 不开启
+	if config.Config.TestMode {
+		return
+	}
 
 	conf := config.Config.HTTP
 
