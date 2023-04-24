@@ -123,7 +123,7 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
   ## Metrics to Pull
   ## Defaults to all Metrics in Namespace if nothing is provided
   ## Refreshes Namespace available metrics every 1h
-  #[[inputs.cloudwatch.metrics]]
+  # [[instances.metrics]]
   #  names = ["Latency", "RequestCount"]
   #
   #  ## Statistic filters for Metric.  These allow for retrieving specific
@@ -135,7 +135,7 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
   #  ## All dimensions defined for the metric names must be specified in order
   #  ## to retrieve the metric statistics.
   #  ## 'value' has wildcard / 'glob' matching support such as 'p-*'.
-  #  [[inputs.cloudwatch.metrics.dimensions]]
+  #  [[instances.metrics.dimensions]]
   #    name = "LoadBalancerName"
   #    value = "p-example"
 ```
@@ -162,19 +162,19 @@ configured dimensions where the the value of the wildcard dimension is ignored.
 Example:
 
 ```toml
-[[inputs.cloudwatch]]
+[[instances]]
   period = "1m"
   interval = "5m"
 
-  [[inputs.cloudwatch.metrics]]
+  [[instances.metrics]]
     names = ["Latency"]
 
     ## Dimension filters for Metric (optional)
-    [[inputs.cloudwatch.metrics.dimensions]]
+    [[instances.metrics.dimensions]]
       name = "LoadBalancerName"
       value = "p-example"
 
-    [[inputs.cloudwatch.metrics.dimensions]]
+    [[instances.metrics.dimensions]]
       name = "AvailabilityZone"
       value = "*"
 ```
