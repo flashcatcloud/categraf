@@ -231,6 +231,7 @@ func (hrp *HTTPProvider) LoadConfig() (bool, error) {
 	if confResp.Version == hrp.version {
 		return false, nil
 	}
+	log.Printf("I! remote version:%s, current version:%s", confResp.Version, hrp.version)
 
 	// if config is nil, may some error occurs in server side, ignore this instead of deleting all configs
 	if confResp.Configs == nil {
