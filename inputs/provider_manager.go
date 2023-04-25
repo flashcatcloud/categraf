@@ -7,14 +7,14 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
+	"flashcat.cloud/categraf/pkg/checksum"
 )
 
 const inputFilePrefix = "input."
 
 type InputOperation interface {
 	RegisterInput(string, []cfg.ConfigWithFormat)
-	DeregisterInput(string)
-	ReregisterInput(string, []cfg.ConfigWithFormat)
+	DeregisterInput(string, checksum.Checksum)
 }
 
 // FormatInputName providerName + '.' + inputKey
@@ -55,7 +55,7 @@ type Provider interface {
 	GetInputConfig(inputName string) ([]cfg.ConfigWithFormat, error)
 
 	// 加载 input 的配置
-	LoadInputConfig([]cfg.ConfigWithFormat, Input) ([]Input, error)
+	LoadInputConfig([]cfg.ConfigWithFormat, Input) (map[checksum.Checksum]Input, error)
 }
 
 func NewProvider(c *config.ConfigType, op InputOperation) (Provider, error) {
@@ -111,13 +111,16 @@ func (pm *ProviderManager) StopReloader() {
 }
 
 func (pm *ProviderManager) LoadConfig() (bool, error) {
+	changed := false
 	for _, p := range pm.providers {
-		_, err := p.LoadConfig()
+		ok, err := p.LoadConfig()
 		if err != nil {
 			log.Printf("E! provider manager, LoadConfig of %s err: %s", p.Name(), err)
+		} else {
+			changed = changed || ok
 		}
 	}
-	return false, nil
+	return changed, nil
 }
 
 // GetInputs 返回带有provider前缀的inputName
@@ -163,15 +166,17 @@ func (pm *ProviderManager) GetInputConfig(inputName string) ([]cfg.ConfigWithFor
 	return cwf, nil
 }
 
-func (pm *ProviderManager) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) ([]Input, error) {
+func (pm *ProviderManager) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) (map[checksum.Checksum]Input, error) {
 	// 从配置中获取provider
-	inputs := make([]Input, 0, len(configs))
+	inputs := make(map[checksum.Checksum]Input)
 	for _, p := range pm.providers {
 		is, err := p.LoadInputConfig(configs, input)
 		if err != nil {
 			return nil, err
 		}
-		inputs = append(inputs, is...)
+		for s, i := range is {
+			inputs[s] = i
+		}
 	}
 
 	return inputs, nil

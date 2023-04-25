@@ -12,33 +12,88 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
+	"flashcat.cloud/categraf/pkg/checksum"
 	"flashcat.cloud/categraf/pkg/tls"
 )
 
 // HTTPProvider provider a mechanism to get config from remote http server at a fixed interval
 // If input config is changed, the provider will reload the input without reload whole agent
-type HTTPProvider struct {
-	sync.RWMutex
+type (
+	HTTPProvider struct {
+		sync.RWMutex
 
-	RemoteUrl    string
-	Headers      []string
-	AuthUsername string
-	AuthPassword string
+		RemoteUrl    string
+		Headers      []string
+		AuthUsername string
+		AuthPassword string
 
-	Timeout        int
-	ReloadInterval int
+		Timeout        int
+		ReloadInterval int
 
-	tls.ClientConfig
-	client *http.Client
-	stopCh chan struct{}
-	op     InputOperation
+		tls.ClientConfig
+		client *http.Client
+		stopCh chan struct{}
+		op     InputOperation
 
-	configMap map[string]cfg.ConfigWithFormat
-	version   string
+		configMap map[string][]cfg.ConfigWithFormat
+		version   string
 
-	compareNewsCache    []string
-	compareUpdatesCache []string
-	compareDeletesCache []string
+		cache *innerCache
+		add   *innerCache
+		del   *innerCache
+	}
+	innerCache struct {
+		lock   *sync.RWMutex
+		record map[string]map[checksum.Checksum]cfg.ConfigWithFormat
+	}
+)
+
+func newInnerCache() *innerCache {
+	return &innerCache{
+		lock:   &sync.RWMutex{},
+		record: make(map[string]map[checksum.Checksum]cfg.ConfigWithFormat),
+	}
+}
+
+func (ic *innerCache) get(inputName string) (map[checksum.Checksum]cfg.ConfigWithFormat, bool) {
+	ic.lock.RLock()
+	defer ic.lock.RUnlock()
+
+	m, has := ic.record[inputName]
+	return m, has
+}
+
+func (ic innerCache) put(inputName string, sum checksum.Checksum, config cfg.ConfigWithFormat) {
+	ic.lock.Lock()
+	defer ic.lock.Unlock()
+	if ic.record[inputName] == nil {
+		ic.record[inputName] = make(map[checksum.Checksum]cfg.ConfigWithFormat)
+	}
+	ic.record[inputName][sum] = config
+}
+
+func (ic *innerCache) del(inputName string, sum checksum.Checksum) {
+	ic.lock.Lock()
+	defer ic.lock.Unlock()
+	if sum == 0 {
+		delete(ic.record, inputName)
+		return
+	}
+	if _, ok := ic.record[inputName]; ok {
+		delete(ic.record[inputName], sum)
+	}
+}
+
+func (ic *innerCache) iter() map[string]map[checksum.Checksum]cfg.ConfigWithFormat {
+	ic.lock.RLock()
+	defer ic.lock.RUnlock()
+	return ic.record
+}
+
+func (ic *innerCache) len() int {
+	ic.lock.Lock()
+	defer ic.lock.Unlock()
+	return len(ic.record)
 }
 
 type httpProviderResponse struct {
@@ -46,7 +101,7 @@ type httpProviderResponse struct {
 	Version string `json:"version"`
 
 	// ConfigMap (InputName -> Config), if version is identical, server side can set Config to nil
-	Configs map[string]cfg.ConfigWithFormat `json:"configs"`
+	Configs map[string][]cfg.ConfigWithFormat `json:"configs"`
 }
 
 func (hrp *HTTPProvider) Name() string {
@@ -68,6 +123,7 @@ func newHTTPProvider(c *config.ConfigType, op InputOperation) (*HTTPProvider, er
 		ReloadInterval: c.HTTPProviderConfig.ReloadInterval,
 		stopCh:         make(chan struct{}, 1),
 		op:             op,
+		cache:          newInnerCache(),
 	}
 
 	if err := provider.check(); err != nil {
@@ -151,6 +207,14 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 		log.Println("E! http provider: unmarshal result error:", err)
 		return nil, err
 	}
+
+	// set checksum for each config
+	for k, v := range confResp.Configs {
+		for kk, vv := range v {
+			confResp.Configs[k][kk].SetCheckSum(checksum.New(vv.Config))
+		}
+	}
+
 	return confResp, nil
 }
 
@@ -176,18 +240,18 @@ func (hrp *HTTPProvider) LoadConfig() (bool, error) {
 
 	// delete empty entries
 	for k, v := range confResp.Configs {
-		if len(v.Config) == 0 {
+		if len(v) == 0 {
 			delete(confResp.Configs, k)
 		}
 	}
 
-	hrp.compareNewsCache, hrp.compareUpdatesCache, hrp.compareDeletesCache = compareConfig(hrp.configMap, confResp.Configs)
-	changed := len(hrp.compareNewsCache)+len(hrp.compareUpdatesCache)+len(hrp.compareDeletesCache) > 0
+	hrp.caculateDiff(confResp.Configs)
+	changed := hrp.add.len()+hrp.del.len() > 0
 	if changed {
 		hrp.Lock()
-		defer hrp.Unlock()
 		hrp.configMap = confResp.Configs
 		hrp.version = confResp.Version
+		hrp.Unlock()
 	}
 
 	return changed, nil
@@ -203,26 +267,24 @@ func (hrp *HTTPProvider) StartReloader() {
 					continue
 				}
 				if changed {
-					if len(hrp.compareNewsCache) > 0 {
-						log.Println("I! http provider: new inputs:", hrp.compareNewsCache)
-						for _, newInput := range hrp.compareNewsCache {
-							hrp.op.RegisterInput(FormatInputName(hrp.Name(), newInput), []cfg.ConfigWithFormat{hrp.configMap[newInput]})
+					if hrp.add.len() > 0 {
+						log.Println("I! http provider: new or updated inputs:", hrp.add)
+						for inputKey, cm := range hrp.add.iter() {
+							for _, conf := range cm {
+								hrp.op.RegisterInput(FormatInputName(hrp.Name(), inputKey), []cfg.ConfigWithFormat{conf})
+							}
 						}
 					}
 
-					if len(hrp.compareUpdatesCache) > 0 {
-						log.Println("I! http provider: updated inputs:", hrp.compareUpdatesCache)
-						for _, updatedInput := range hrp.compareUpdatesCache {
-							hrp.op.ReregisterInput(FormatInputName(hrp.Name(), updatedInput), []cfg.ConfigWithFormat{hrp.configMap[updatedInput]})
+					if hrp.del.len() > 0 {
+						log.Println("I! http provider: deleted inputs:", hrp.del)
+						for inputKey, cm := range hrp.del.iter() {
+							for sum := range cm {
+								hrp.op.DeregisterInput(FormatInputName(hrp.Name(), inputKey), sum)
+							}
 						}
 					}
 
-					if len(hrp.compareDeletesCache) > 0 {
-						log.Println("I! http provider: deleted inputs:", hrp.compareDeletesCache)
-						for _, deletedInput := range hrp.compareDeletesCache {
-							hrp.op.DeregisterInput(FormatInputName(hrp.Name(), deletedInput))
-						}
-					}
 				}
 			case <-hrp.stopCh:
 				return
@@ -251,47 +313,56 @@ func (hrp *HTTPProvider) GetInputConfig(inputKey string) ([]cfg.ConfigWithFormat
 	hrp.RLock()
 	defer hrp.RUnlock()
 
-	if conf, has := hrp.configMap[inputKey]; has {
-		return []cfg.ConfigWithFormat{conf}, nil
+	if configs, has := hrp.configMap[inputKey]; has {
+		return configs, nil
 	}
 
 	return nil, nil
 }
 
-// compareConfig 比较新旧两个配置的差异
-func compareConfig(cold, cnew map[string]cfg.ConfigWithFormat) (news, updates, deletes []string) {
-	news = make([]string, 0, len(cnew))
-	updates = make([]string, 0, len(cnew))
-	deletes = make([]string, 0, len(cnew))
+func (hrp *HTTPProvider) caculateDiff(newConfigs map[string][]cfg.ConfigWithFormat) {
+	hrp.add = newInnerCache()
+	hrp.del = newInnerCache()
+	cache := newInnerCache()
+	for inputKey, configs := range newConfigs {
+		for _, config := range configs {
+			cache.put(inputKey, config.CheckSum(), config)
+		}
+	}
 
-	for kold, vold := range cold {
-		if vnew, has := cnew[kold]; has {
-			if vold.Config != vnew.Config || vold.Format != vnew.Format {
-				updates = append(updates, kold)
+	for inputKey, configMap := range cache.iter() {
+		if oldConfigMap, has := hrp.cache.get(inputKey); has {
+			new := NewSet().Load(configMap)
+			add, del := new.Diff(NewSet().Load(oldConfigMap))
+			for sum := range add {
+				hrp.add.put(inputKey, sum, configMap[sum])
+			}
+			for sum := range del {
+				hrp.del.put(inputKey, sum, oldConfigMap[sum])
 			}
 		} else {
-			deletes = append(deletes, kold)
+			for _, config := range configMap {
+				hrp.add.put(inputKey, config.CheckSum(), config)
+			}
 		}
 	}
-
-	for knew := range cnew {
-		if _, has := cold[knew]; !has {
-			news = append(news, knew)
-		}
+	if hrp.add.len()+hrp.del.len() > 0 {
+		hrp.Lock()
+		hrp.cache = cache
+		hrp.Unlock()
 	}
 
-	return
 }
 
-func (hrp *HTTPProvider) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) ([]Input, error) {
-	inputs := make([]Input, 0, len(configs))
+func (hrp *HTTPProvider) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) (map[checksum.Checksum]Input, error) {
+	inputs := make(map[checksum.Checksum]Input)
 	for _, c := range configs {
 		nInput := input.Clone()
 		err := cfg.LoadSingleConfig(c, nInput)
 		if err != nil {
 			return nil, err
 		}
-		inputs = append(inputs, nInput)
+		inputs[c.CheckSum()] = nInput
 	}
 	return inputs, nil
 }

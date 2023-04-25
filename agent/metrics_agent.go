@@ -4,10 +4,12 @@ import (
 	"errors"
 	"log"
 	"strings"
+	"sync"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/cfg"
+	"flashcat.cloud/categraf/pkg/checksum"
 	"flashcat.cloud/categraf/types"
 
 	// auto registry
@@ -78,14 +80,50 @@ type MetricsAgent struct {
 	InputProvider inputs.Provider
 }
 
-type Readers map[string][]*InputReader
+type Readers struct {
+	lock   *sync.RWMutex
+	record map[string]map[checksum.Checksum]*InputReader
+}
 
-func (r Readers) Add(name string, reader *InputReader) {
-	if _, ok := r[name]; !ok {
-		r[name] = []*InputReader{reader}
-	} else {
-		r[name] = append(r[name], reader)
+func NewReaders() Readers {
+	return Readers{
+		lock:   new(sync.RWMutex),
+		record: make(map[string]map[checksum.Checksum]*InputReader),
 	}
+}
+
+func (r *Readers) Add(name string, sum checksum.Checksum, reader *InputReader) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	if _, ok := r.record[name]; !ok {
+		r.record[name] = make(map[checksum.Checksum]*InputReader)
+	} else {
+		r.record[name][sum] = reader
+	}
+}
+
+func (r *Readers) Del(name string, sum checksum.Checksum) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	if sum == 0 {
+		delete(r.record, name)
+		return
+	}
+	if _, ok := r.record[name]; ok {
+		delete(r.record[name], sum)
+	}
+}
+
+func (r *Readers) GetInput(name string) (map[checksum.Checksum]*InputReader, bool) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	m, has := r.record[name]
+	return m, has
+}
+func (r *Readers) Iter() map[string]map[checksum.Checksum]*InputReader {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	return r.record
 }
 
 func NewMetricsAgent() AgentModule {
@@ -114,7 +152,7 @@ func (ma *MetricsAgent) FilterPass(inputKey string) bool {
 }
 
 func (ma *MetricsAgent) Start() error {
-	ma.InputReaders = make(map[string][]*InputReader)
+	ma.InputReaders = NewReaders()
 	if _, err := ma.InputProvider.LoadConfig(); err != nil {
 		log.Println("E! input provider load config get err: ", err)
 	}
@@ -149,8 +187,9 @@ func (ma *MetricsAgent) Start() error {
 
 func (ma *MetricsAgent) Stop() error {
 	ma.InputProvider.StopReloader()
-	for name := range ma.InputReaders {
-		for _, r := range ma.InputReaders[name] {
+	for name := range ma.InputReaders.Iter() {
+		inputs, _ := ma.InputReaders.GetInput(name)
+		for _, r := range inputs {
 			r.Stop()
 		}
 	}
@@ -175,12 +214,12 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 		return
 	}
 
-	for _, nInput := range newInputs {
-		ma.inputGo(name, nInput)
+	for sum, nInput := range newInputs {
+		ma.inputGo(name, sum, nInput)
 	}
 }
 
-func (ma *MetricsAgent) inputGo(name string, input inputs.Input) {
+func (ma *MetricsAgent) inputGo(name string, sum checksum.Checksum, input inputs.Input) {
 	var err error
 	if err = input.InitInternalConfig(); err != nil {
 		log.Println("E! failed to init input:", name, "error:", err)
@@ -223,25 +262,22 @@ func (ma *MetricsAgent) inputGo(name string, input inputs.Input) {
 
 	reader := newInputReader(name, input)
 	go reader.startInput()
-	ma.InputReaders.Add(name, reader)
+	ma.InputReaders.Add(name, sum, reader)
 	log.Println("I! input:", name, "started")
 }
 
-func (ma *MetricsAgent) DeregisterInput(name string) {
-	if reader, has := ma.InputReaders[name]; has {
-		for _, r := range reader {
-			r.Stop()
+func (ma *MetricsAgent) DeregisterInput(name string, sum checksum.Checksum) {
+	if readers, has := ma.InputReaders.GetInput(name); has {
+		for cs, r := range readers {
+			if sum == 0 || sum == cs {
+				r.Stop()
+			}
 		}
-		delete(ma.InputReaders, name)
-		log.Println("I! input:", name, "stopped")
+		ma.InputReaders.Del(name, sum)
+		log.Printf("I! input: %s[%d] stopped", name, sum)
 	} else {
 		log.Printf("W! dereigster input name [%s] not found", name)
 	}
-}
-
-func (ma *MetricsAgent) ReregisterInput(name string, configs []cfg.ConfigWithFormat) {
-	ma.DeregisterInput(name)
-	ma.RegisterInput(name, configs)
 }
 
 func parseFilter(filterStr string) map[string]struct{} {

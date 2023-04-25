@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"flashcat.cloud/categraf/pkg/checksum"
 	"github.com/koding/multiconfig"
 	"github.com/toolkits/pkg/file"
 )
@@ -19,8 +20,17 @@ const (
 )
 
 type ConfigWithFormat struct {
-	Config string       `json:"config"`
-	Format ConfigFormat `json:"format"`
+	Config   string            `json:"config"`
+	Format   ConfigFormat      `json:"format"`
+	checkSum checksum.Checksum `json:"-"`
+}
+
+func (cwf *ConfigWithFormat) CheckSum() checksum.Checksum {
+	return cwf.checkSum
+}
+
+func (cwf *ConfigWithFormat) SetCheckSum(checkSum checksum.Checksum) {
+	cwf.checkSum = checkSum
 }
 
 func GuessFormat(fpath string) ConfigFormat {
