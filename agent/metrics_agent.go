@@ -97,9 +97,8 @@ func (r *Readers) Add(name string, sum checksum.Checksum, reader *InputReader) {
 	defer r.lock.Unlock()
 	if _, ok := r.record[name]; !ok {
 		r.record[name] = make(map[checksum.Checksum]*InputReader)
-	} else {
-		r.record[name][sum] = reader
 	}
+	r.record[name][sum] = reader
 }
 
 func (r *Readers) Del(name string, sum checksum.Checksum) {
@@ -130,6 +129,7 @@ func NewMetricsAgent() AgentModule {
 	c := config.Config
 	agent := &MetricsAgent{
 		InputFilters: parseFilter(c.InputFilters),
+		InputReaders: NewReaders(),
 	}
 
 	provider, err := inputs.NewProvider(c, agent)
@@ -152,7 +152,6 @@ func (ma *MetricsAgent) FilterPass(inputKey string) bool {
 }
 
 func (ma *MetricsAgent) Start() error {
-	ma.InputReaders = NewReaders()
 	if _, err := ma.InputProvider.LoadConfig(); err != nil {
 		log.Println("E! input provider load config get err: ", err)
 	}
@@ -189,8 +188,9 @@ func (ma *MetricsAgent) Stop() error {
 	ma.InputProvider.StopReloader()
 	for name := range ma.InputReaders.Iter() {
 		inputs, _ := ma.InputReaders.GetInput(name)
-		for _, r := range inputs {
+		for sum, r := range inputs {
 			r.Stop()
+			ma.InputReaders.Del(name, sum)
 		}
 	}
 	return nil
