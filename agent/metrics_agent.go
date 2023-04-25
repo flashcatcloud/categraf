@@ -267,10 +267,10 @@ func (ma *MetricsAgent) inputGo(name string, sum checksum.Checksum, input inputs
 }
 
 func (ma *MetricsAgent) DeregisterInput(name string, sum checksum.Checksum) {
-	if readers, has := ma.InputReaders.GetInput(name); has {
-		for cs, r := range readers {
-			if sum == 0 || sum == cs {
-				r.Stop()
+	if inputs, has := ma.InputReaders.GetInput(name); has {
+		for isum, input := range inputs {
+			if sum == 0 || sum == isum {
+				input.Stop()
 			}
 		}
 		ma.InputReaders.Del(name, sum)
