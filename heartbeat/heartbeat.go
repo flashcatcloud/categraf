@@ -173,7 +173,7 @@ func memUsage(ps *system.SystemPS) float64 {
 		return 0
 	}
 
-	return 100 - 100*float64(vm.Available)/float64(vm.Total)
+	return vm.UsedPercent
 }
 
 func cpuUsage(ps *system.SystemPS) float64 {
