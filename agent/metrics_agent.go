@@ -76,7 +76,7 @@ import (
 
 type MetricsAgent struct {
 	InputFilters  map[string]struct{}
-	InputReaders  Readers
+	InputReaders  *Readers
 	InputProvider inputs.Provider
 }
 
@@ -85,8 +85,8 @@ type Readers struct {
 	record map[string]map[checksum.Checksum]*InputReader
 }
 
-func NewReaders() Readers {
-	return Readers{
+func NewReaders() *Readers {
+	return &Readers{
 		lock:   new(sync.RWMutex),
 		record: make(map[string]map[checksum.Checksum]*InputReader),
 	}
