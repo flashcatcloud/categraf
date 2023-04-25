@@ -119,6 +119,7 @@ func (r *Readers) GetInput(name string) (map[checksum.Checksum]*InputReader, boo
 	m, has := r.record[name]
 	return m, has
 }
+
 func (r *Readers) Iter() map[string]map[checksum.Checksum]*InputReader {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
