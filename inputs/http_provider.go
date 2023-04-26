@@ -233,12 +233,6 @@ func (hrp *HTTPProvider) LoadConfig() (bool, error) {
 	}
 	log.Printf("I! remote version:%s, current version:%s", confResp.Version, hrp.version)
 
-	// if config is nil, may some error occurs in server side, ignore this instead of deleting all configs
-	if confResp.Configs == nil {
-		log.Println("W! http provider: received config is empty")
-		return false, nil
-	}
-
 	// delete empty entries
 	for k, v := range confResp.Configs {
 		if len(v) == 0 {
@@ -344,6 +338,14 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string][]cfg.ConfigWithForm
 		} else {
 			for _, config := range configMap {
 				hrp.add.put(inputKey, config.CheckSum(), config)
+			}
+		}
+	}
+
+	for inputKey, configMap := range hrp.cache.iter() {
+		if _, has := cache.get(inputKey); !has {
+			for _, config := range configMap {
+				hrp.del.put(inputKey, config.CheckSum(), config)
 			}
 		}
 	}
