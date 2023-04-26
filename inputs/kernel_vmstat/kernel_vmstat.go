@@ -32,6 +32,16 @@ func init() {
 	})
 }
 
+func (s *KernelVmstat) Clone() inputs.Input {
+	return &KernelVmstat{
+		statFile: "/proc/vmstat",
+	}
+}
+
+func (s *KernelVmstat) Name() string {
+	return inputName
+}
+
 func (s *KernelVmstat) Gather(slist *types.SampleList) {
 	data, err := s.getProcVmstat()
 	if err != nil {

@@ -75,6 +75,14 @@ func init() {
 	})
 }
 
+func (r *Redis) Clone() inputs.Input {
+	return &Redis{}
+}
+
+func (r *Redis) Name() string {
+	return inputName
+}
+
 func (r *Redis) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

@@ -11,6 +11,8 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+const inputName = "diskio"
+
 type DiskIO struct {
 	ps system.PS
 
@@ -20,12 +22,21 @@ type DiskIO struct {
 }
 
 func init() {
-	ps := system.NewSystemPS()
-	inputs.Add("diskio", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &DiskIO{
-			ps: ps,
+			ps: system.NewSystemPS(),
 		}
 	})
+}
+
+func (d *DiskIO) Clone() inputs.Input {
+	return &DiskIO{
+		ps: system.NewSystemPS(),
+	}
+}
+
+func (c *DiskIO) Name() string {
+	return inputName
 }
 
 func (d *DiskIO) Init() error {

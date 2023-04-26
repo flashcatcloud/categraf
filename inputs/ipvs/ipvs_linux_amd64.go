@@ -29,6 +29,14 @@ func init() {
 	})
 }
 
+func (i *IPVS) Clone() inputs.Input {
+	return &IPVS{}
+}
+
+func (i *IPVS) Name() string {
+	return inputName
+}
+
 // Gather gathers the stats
 func (i *IPVS) Gather(slist *types.SampleList) error {
 	if i.handle == nil {

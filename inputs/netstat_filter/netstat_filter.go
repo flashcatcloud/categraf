@@ -34,6 +34,14 @@ func init() {
 	})
 }
 
+func (l *NetStatFilter) Clone() inputs.Input {
+	return &NetStatFilter{}
+}
+
+func (l *NetStatFilter) Name() string {
+	return inputName
+}
+
 func (l *NetStatFilter) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(l.Instances))
 	for i := 0; i < len(l.Instances); i++ {

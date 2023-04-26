@@ -32,6 +32,14 @@ func init() {
 	})
 }
 
+func (r *ArpPacket) Clone() inputs.Input {
+	return &ArpPacket{}
+}
+
+func (r *ArpPacket) Name() string {
+	return inputName
+}
+
 func (r *ArpPacket) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

@@ -28,6 +28,14 @@ func init() {
 	})
 }
 
+func (pt *Categraf) Clone() inputs.Input {
+	return &Categraf{}
+}
+
+func (pt *Categraf) Name() string {
+	return inputName
+}
+
 func (ins *Categraf) Gather(slist *types.SampleList) {
 	mfs, err := prometheus.DefaultGatherer.Gather()
 	if err != nil {

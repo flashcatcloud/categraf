@@ -21,6 +21,14 @@ func init() {
 	})
 }
 
+func (s *SockStat) Clone() inputs.Input {
+	return &SockStat{}
+}
+
+func (s *SockStat) Name() string {
+	return inputName
+}
+
 type SockStat struct {
 	config.PluginConfig
 

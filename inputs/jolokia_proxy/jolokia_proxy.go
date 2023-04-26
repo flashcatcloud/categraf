@@ -25,6 +25,14 @@ func init() {
 	})
 }
 
+func (r *JolokiaProxy) Clone() inputs.Input {
+	return &JolokiaProxy{}
+}
+
+func (r *JolokiaProxy) Name() string {
+	return inputName
+}
+
 func (r *JolokiaProxy) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

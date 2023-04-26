@@ -70,7 +70,7 @@ func (ins *Instance) Init() error {
 	net := "tcp"
 	if strings.HasSuffix(ins.Address, ".sock") {
 		net = "unix"
-	} 
+	}
 	ins.dsn = fmt.Sprintf("%s:%s@%s(%s)/?%s", ins.Username, ins.Password, net, ins.Address, ins.Parameters)
 	conf, err := mysql.ParseDSN(ins.dsn)
 	if err != nil {
@@ -160,6 +160,14 @@ func init() {
 	inputs.Add(inputName, func() inputs.Input {
 		return &MySQL{}
 	})
+}
+
+func (m *MySQL) Clone() inputs.Input {
+	return &MySQL{}
+}
+
+func (m *MySQL) Name() string {
+	return inputName
 }
 
 func (m *MySQL) GetInstances() []inputs.Instance {

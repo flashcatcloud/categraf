@@ -42,6 +42,16 @@ func init() {
 		}
 	})
 }
+func (s *KernelStats) Clone() inputs.Input {
+	return &KernelStats{
+		statFile:        "/proc/stat",
+		entropyStatFile: "/proc/sys/kernel/random/entropy_avail",
+	}
+}
+
+func (s *KernelStats) Name() string {
+	return inputName
+}
 
 func (s *KernelStats) Gather(slist *types.SampleList) {
 	data, err := s.getProcStat()

@@ -26,6 +26,14 @@ func init() {
 	})
 }
 
+func (r *JolokiaAgent) Clone() inputs.Input {
+	return &JolokiaAgent{}
+}
+
+func (r *JolokiaAgent) Name() string {
+	return inputName
+}
+
 func (r *JolokiaAgent) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))
 	for i := 0; i < len(r.Instances); i++ {

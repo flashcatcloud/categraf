@@ -11,6 +11,8 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+const inputName = "cpu"
+
 type CPUStats struct {
 	ps        system.PS
 	lastStats map[string]cpuUtil.TimesStat
@@ -20,12 +22,21 @@ type CPUStats struct {
 }
 
 func init() {
-	ps := system.NewSystemPS()
-	inputs.Add("cpu", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &CPUStats{
-			ps: ps,
+			ps: system.NewSystemPS(),
 		}
 	})
+}
+
+func (c *CPUStats) Clone() inputs.Input {
+	return &CPUStats{
+		ps: system.NewSystemPS(),
+	}
+}
+
+func (c *CPUStats) Name() string {
+	return inputName
 }
 
 func (c *CPUStats) Gather(slist *types.SampleList) {

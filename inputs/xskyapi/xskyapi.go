@@ -37,6 +37,14 @@ func init() {
 	})
 }
 
+func (pt *XskyApi) Clone() inputs.Input {
+	return &XskyApi{}
+}
+
+func (pt *XskyApi) Name() string {
+	return inputName
+}
+
 func (pt *XskyApi) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
 	for i := 0; i < len(pt.Instances); i++ {

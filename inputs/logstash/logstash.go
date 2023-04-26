@@ -30,6 +30,13 @@ func init() {
 		return &Logstash{}
 	})
 }
+func (l *Logstash) Clone() inputs.Input {
+	return &Logstash{}
+}
+
+func (l *Logstash) Name() string {
+	return inputName
+}
 
 func (l *Logstash) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(l.Instances))

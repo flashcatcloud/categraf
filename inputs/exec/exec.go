@@ -22,6 +22,8 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+const inputName = "exec"
+
 const MaxStderrBytes int = 512
 
 type Instance struct {
@@ -39,9 +41,17 @@ type Exec struct {
 }
 
 func init() {
-	inputs.Add("exec", func() inputs.Input {
+	inputs.Add(inputName, func() inputs.Input {
 		return &Exec{}
 	})
+}
+
+func (e *Exec) Clone() inputs.Input {
+	return &Exec{}
+}
+
+func (c *Exec) Name() string {
+	return inputName
 }
 
 func (e *Exec) GetInstances() []inputs.Instance {

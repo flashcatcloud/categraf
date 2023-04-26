@@ -552,6 +552,14 @@ func init() {
 	})
 }
 
+func (c *CloudWatch) Clone() inputs.Input {
+	return &CloudWatch{}
+}
+
+func (c *CloudWatch) Name() string {
+	return inputName
+}
+
 func sanitizeMeasurement(namespace string) string {
 	namespace = strings.ReplaceAll(namespace, "/", "_")
 	namespace = snakeCase(namespace)

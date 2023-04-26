@@ -24,6 +24,14 @@ func init() {
 	})
 }
 
+func (n *NTPStat) Clone() inputs.Input {
+	return &NTPStat{}
+}
+
+func (n *NTPStat) Name() string {
+	return inputName
+}
+
 func (n *NTPStat) Init() error {
 	if len(n.NTPServers) == 0 {
 		return types.ErrInstancesEmpty

@@ -42,6 +42,16 @@ func init() {
 	})
 }
 
+func (s *NetStats) Clone() inputs.Input {
+	return &NetStats{
+		ps: system.NewSystemPS(),
+	}
+}
+
+func (s *NetStats) Name() string {
+	return inputName
+}
+
 func (s *NetStats) gatherSummary(slist *types.SampleList) {
 	if runtime.GOOS != "linux" {
 		log.Println("W! netstat_summary is only supported on linux")

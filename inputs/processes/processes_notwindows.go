@@ -34,6 +34,14 @@ func init() {
 	})
 }
 
+func (p *Processes) Clone() inputs.Input {
+	return &Processes{}
+}
+
+func (p *Processes) Name() string {
+	return inputName
+}
+
 func (p *Processes) Gather(slist *types.SampleList) {
 	// Get an empty map of metric fields
 	fields := getEmptyFields()

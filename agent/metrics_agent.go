@@ -4,10 +4,12 @@ import (
 	"errors"
 	"log"
 	"strings"
+	"sync"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/cfg"
+	"flashcat.cloud/categraf/pkg/checksum"
 	"flashcat.cloud/categraf/types"
 
 	// auto registry
@@ -74,15 +76,61 @@ import (
 
 type MetricsAgent struct {
 	InputFilters  map[string]struct{}
-	InputReaders  map[string]*InputReader
+	InputReaders  *Readers
 	InputProvider inputs.Provider
+}
+
+type Readers struct {
+	lock   *sync.RWMutex
+	record map[string]map[checksum.Checksum]*InputReader
+}
+
+func NewReaders() *Readers {
+	return &Readers{
+		lock:   new(sync.RWMutex),
+		record: make(map[string]map[checksum.Checksum]*InputReader),
+	}
+}
+
+func (r *Readers) Add(name string, sum checksum.Checksum, reader *InputReader) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	if _, ok := r.record[name]; !ok {
+		r.record[name] = make(map[checksum.Checksum]*InputReader)
+	}
+	r.record[name][sum] = reader
+}
+
+func (r *Readers) Del(name string, sum checksum.Checksum) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	if sum == 0 {
+		delete(r.record, name)
+		return
+	}
+	if _, ok := r.record[name]; ok {
+		delete(r.record[name], sum)
+	}
+}
+
+func (r *Readers) GetInput(name string) (map[checksum.Checksum]*InputReader, bool) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	m, has := r.record[name]
+	return m, has
+}
+
+func (r *Readers) Iter() map[string]map[checksum.Checksum]*InputReader {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	return r.record
 }
 
 func NewMetricsAgent() AgentModule {
 	c := config.Config
 	agent := &MetricsAgent{
 		InputFilters: parseFilter(c.InputFilters),
-		InputReaders: make(map[string]*InputReader),
+		InputReaders: NewReaders(),
 	}
 
 	provider, err := inputs.NewProvider(c, agent)
@@ -119,7 +167,6 @@ func (ma *MetricsAgent) Start() error {
 		log.Println("I! no inputs")
 		return nil
 	}
-	ma.InputReaders = make(map[string]*InputReader)
 
 	for _, name := range names {
 		_, inputKey := inputs.ParseInputName(name)
@@ -140,8 +187,12 @@ func (ma *MetricsAgent) Start() error {
 
 func (ma *MetricsAgent) Stop() error {
 	ma.InputProvider.StopReloader()
-	for name := range ma.InputReaders {
-		ma.InputReaders[name].Stop()
+	for name := range ma.InputReaders.Iter() {
+		inputs, _ := ma.InputReaders.GetInput(name)
+		for sum, r := range inputs {
+			r.Stop()
+			ma.InputReaders.Del(name, sum)
+		}
 	}
 	return nil
 }
@@ -158,15 +209,19 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 		return
 	}
 
-	// construct input instance
-	input := creator()
-
-	err := cfg.LoadConfigs(configs, input)
+	newInputs, err := ma.InputProvider.LoadInputConfig(configs, creator())
 	if err != nil {
 		log.Println("E! failed to load configuration of plugin:", name, "error:", err)
 		return
 	}
 
+	for sum, nInput := range newInputs {
+		ma.inputGo(name, sum, nInput)
+	}
+}
+
+func (ma *MetricsAgent) inputGo(name string, sum checksum.Checksum, input inputs.Input) {
+	var err error
 	if err = input.InitInternalConfig(); err != nil {
 		log.Println("E! failed to init input:", name, "error:", err)
 		return
@@ -199,6 +254,7 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 
 		if empty {
 			if config.Config.DebugMode {
+				_, inputKey := inputs.ParseInputName(name)
 				log.Printf("W! no instances for input:%s", inputKey)
 			}
 			return
@@ -207,23 +263,22 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 
 	reader := newInputReader(name, input)
 	go reader.startInput()
-	ma.InputReaders[name] = reader
+	ma.InputReaders.Add(name, sum, reader)
 	log.Println("I! input:", name, "started")
 }
 
-func (ma *MetricsAgent) DeregisterInput(name string) {
-	if reader, has := ma.InputReaders[name]; has {
-		reader.Stop()
-		delete(ma.InputReaders, name)
-		log.Println("I! input:", name, "stopped")
+func (ma *MetricsAgent) DeregisterInput(name string, sum checksum.Checksum) {
+	if inputs, has := ma.InputReaders.GetInput(name); has {
+		for isum, input := range inputs {
+			if sum == 0 || sum == isum {
+				input.Stop()
+			}
+		}
+		ma.InputReaders.Del(name, sum)
+		log.Printf("I! input: %s[%d] stopped", name, sum)
 	} else {
 		log.Printf("W! dereigster input name [%s] not found", name)
 	}
-}
-
-func (ma *MetricsAgent) ReregisterInput(name string, configs []cfg.ConfigWithFormat) {
-	ma.DeregisterInput(name)
-	ma.RegisterInput(name, configs)
 }
 
 func parseFilter(filterStr string) map[string]struct{} {

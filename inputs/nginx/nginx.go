@@ -32,6 +32,14 @@ func init() {
 	})
 }
 
+func (ngx *Nginx) Clone() inputs.Input {
+	return &Nginx{}
+}
+
+func (ngx *Nginx) Name() string {
+	return inputName
+}
+
 func (ngx *Nginx) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(ngx.Instances))
 	for i := 0; i < len(ngx.Instances); i++ {

@@ -29,6 +29,13 @@ func init() {
 		return &Kafka{}
 	})
 }
+func (r *Kafka) Clone() inputs.Input {
+	return &Kafka{}
+}
+
+func (r *Kafka) Name() string {
+	return inputName
+}
 
 func (r *Kafka) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(r.Instances))

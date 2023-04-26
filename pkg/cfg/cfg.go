@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"flashcat.cloud/categraf/pkg/checksum"
 	"github.com/koding/multiconfig"
 	"github.com/toolkits/pkg/file"
 )
@@ -19,8 +20,17 @@ const (
 )
 
 type ConfigWithFormat struct {
-	Config string       `json:"config"`
-	Format ConfigFormat `json:"format"`
+	Config   string            `json:"config"`
+	Format   ConfigFormat      `json:"format"`
+	checkSum checksum.Checksum `json:"-"`
+}
+
+func (cwf *ConfigWithFormat) CheckSum() checksum.Checksum {
+	return cwf.checkSum
+}
+
+func (cwf *ConfigWithFormat) SetCheckSum(checkSum checksum.Checksum) {
+	cwf.checkSum = checkSum
 }
 
 func GuessFormat(fpath string) ConfigFormat {
@@ -103,6 +113,29 @@ func LoadConfigs(configs []ConfigWithFormat, configPtr interface{}) error {
 	}
 	if len(jBuf) != 0 {
 		loaders = append(loaders, &multiconfig.JSONLoader{Reader: bytes.NewReader(jBuf)})
+	}
+
+	m := multiconfig.DefaultLoader{
+		Loader:    multiconfig.MultiLoader(loaders...),
+		Validator: multiconfig.MultiValidator(&multiconfig.RequiredValidator{}),
+	}
+	return m.Load(configPtr)
+}
+
+func LoadSingleConfig(c ConfigWithFormat, configPtr interface{}) error {
+	loaders := []multiconfig.Loader{
+		&multiconfig.TagLoader{},
+		&multiconfig.EnvironmentLoader{},
+	}
+
+	switch c.Format {
+	case TomlFormat:
+		loaders = append(loaders, &multiconfig.TOMLLoader{Reader: bytes.NewReader([]byte(c.Config))})
+	case YamlFormat:
+		loaders = append(loaders, &multiconfig.YAMLLoader{Reader: bytes.NewReader([]byte(c.Config))})
+	case JsonFormat:
+		loaders = append(loaders, &multiconfig.JSONLoader{Reader: bytes.NewReader([]byte(c.Config))})
+
 	}
 
 	m := multiconfig.DefaultLoader{

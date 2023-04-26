@@ -150,6 +150,14 @@ func init() {
 	})
 }
 
+func (s *MTail) Clone() inputs.Input {
+	return &MTail{}
+}
+
+func (s *MTail) Name() string {
+	return inputName
+}
+
 func (s *MTail) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(s.Instances))
 	for i := 0; i < len(s.Instances); i++ {

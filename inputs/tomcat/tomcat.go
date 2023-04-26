@@ -139,6 +139,14 @@ func init() {
 	})
 }
 
+func (t *Tomcat) Clone() inputs.Input {
+	return &Tomcat{}
+}
+
+func (t *Tomcat) Name() string {
+	return inputName
+}
+
 func (t *Tomcat) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(t.Instances))
 	for i := 0; i < len(t.Instances); i++ {

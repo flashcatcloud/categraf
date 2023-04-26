@@ -36,6 +36,14 @@ func init() {
 	})
 }
 
+func (s *NfsClient) Clone() inputs.Input {
+	return &NfsClient{}
+}
+
+func (s *NfsClient) Name() string {
+	return inputName
+}
+
 func (s *NfsClient) Init() error {
 	var nfs3Fields = []string{
 		"NULL",

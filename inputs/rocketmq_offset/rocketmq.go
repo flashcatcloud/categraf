@@ -30,6 +30,14 @@ func init() {
 	})
 }
 
+func (pt *RocketMQ) Clone() inputs.Input {
+	return &RocketMQ{}
+}
+
+func (pt *RocketMQ) Name() string {
+	return inputName
+}
+
 func (pt *RocketMQ) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(pt.Instances))
 	for i := 0; i < len(pt.Instances); i++ {
@@ -52,34 +60,34 @@ func (ins *Instance) Init() error {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
-	//获取rocketmq集群中的topicNameList
+	// 获取rocketmq集群中的topicNameList
 	topicNameArray := GetTopicNameList(ins.RocketMQConsoleIPAndPort)
 	if topicNameArray == nil {
 		log.Println("E! fail to get topic,please check config!")
 		return
 	}
 
-	//按照topic聚合msgDiff
+	// 按照topic聚合msgDiff
 	var diff_Topic_Map = make(map[string]*MsgDiffTopic)
 
-	//按照consumerGroup聚合msgDiff
-	//var diff_ConsumerGroup_Slice []model.MsgDiff_ConsumerGroup = []model.MsgDiff_ConsumerGroup{}
+	// 按照consumerGroup聚合msgDiff
+	// var diff_ConsumerGroup_Slice []model.MsgDiff_ConsumerGroup = []model.MsgDiff_ConsumerGroup{}
 	var diff_ConsumerGroup_Map = make(map[string]*MsgDiffConsumerGroup)
 
-	//按照topic, consumeGroup聚合msgDiff
-	//var diff_Topic_ConsumerGroup_Slice []model.MsgDiff_Topics_ConsumerGroup = []model.MsgDiff_Topics_ConsumerGroup{}
+	// 按照topic, consumeGroup聚合msgDiff
+	// var diff_Topic_ConsumerGroup_Slice []model.MsgDiff_Topics_ConsumerGroup = []model.MsgDiff_Topics_ConsumerGroup{}
 	var diff_Topic_ConsumerGroup_Map = make(map[string]*MsgDiffTopicConsumerGroup)
 
-	//按照broker聚合msgDiff
-	//var diff_Broker_Slice []model.MsgDiff_Broker = []model.MsgDiff_Broker{}
+	// 按照broker聚合msgDiff
+	// var diff_Broker_Slice []model.MsgDiff_Broker = []model.MsgDiff_Broker{}
 	var diff_Broker_Map = make(map[string]*MsgDiffBroker)
 
-	//按照clientInfo聚合msgDiff
-	//var diff_Clientinfo_Slice []model.MsgDiff_ClientInfo = []model.MsgDiff_ClientInfo{}
+	// 按照clientInfo聚合msgDiff
+	// var diff_Clientinfo_Slice []model.MsgDiff_ClientInfo = []model.MsgDiff_ClientInfo{}
 	var diff_Clientinfo_Map = make(map[string]*MsgDiffClientInfo)
 
-	//按照queue聚合msgDiff
-	//var MsgDiff_Queue_Slice []model.MsgDiff_Queue = []model.MsgDiff_Queue{}
+	// 按照queue聚合msgDiff
+	// var MsgDiff_Queue_Slice []model.MsgDiff_Queue = []model.MsgDiff_Queue{}
 	var diff_Queue_Map = make(map[string]*MsgDiffQueue)
 
 	for i := range topicNameArray {
@@ -106,7 +114,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		for cgName, consumerInfo := range topicConsumerGroups {
 			topic := consumerInfo.Topic
 
-			//获取当前consumer信息及对应的rocketmq-queue的信息
+			// 获取当前consumer信息及对应的rocketmq-queue的信息
 			queueStatInfoList := consumerInfo.QueueStatInfoList
 
 			for i := range queueStatInfoList {
@@ -143,9 +151,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				}
 				slist.PushSample(inputName, "diffDetail", diff, tags)
 
-				//按照topic进行msgDiff聚合
+				// 按照topic进行msgDiff聚合
 				if _, ok := diff_Topic_Map[topic]; ok {
-					//如果已经存在，计算diff
+					// 如果已经存在，计算diff
 					diff_Topic_Map[topic].Diff = diff_Topic_Map[topic].Diff + diff
 				} else {
 					var diffTopic *MsgDiffTopic = new(MsgDiffTopic)
@@ -156,7 +164,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					diff_Topic_Map[topic] = diffTopic
 				}
 
-				//按照consumerGroup进行msgDiff聚合
+				// 按照consumerGroup进行msgDiff聚合
 				if _, ok := diff_ConsumerGroup_Map[cgName]; ok {
 					diff_ConsumerGroup_Map[cgName].Diff = diff_ConsumerGroup_Map[cgName].Diff + diff
 				} else {
@@ -168,7 +176,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					diff_ConsumerGroup_Map[cgName] = diffConsumerGroup
 				}
 
-				//按照topic, consumerGroup进行msgDiff聚合
+				// 按照topic, consumerGroup进行msgDiff聚合
 				topic_cgName := topic + ":" + cgName
 				if _, ok := diff_Topic_ConsumerGroup_Map[topic_cgName]; ok {
 					diff_Topic_ConsumerGroup_Map[topic_cgName].Diff = diff_Topic_ConsumerGroup_Map[topic_cgName].Diff + diff
@@ -184,7 +192,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 				}
 
-				//按照broker进行msgDiff聚合
+				// 按照broker进行msgDiff聚合
 				if _, ok := diff_Broker_Map[brokerName]; ok {
 					diff_Broker_Map[brokerName].Diff = diff_Broker_Map[brokerName].Diff + diff
 				} else {
@@ -196,7 +204,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					diff_Broker_Map[brokerName] = diff_Broker
 				}
 
-				//按照queueId进行msgDiff聚合
+				// 按照queueId进行msgDiff聚合
 				queuestr := brokerName + ":" + string(queueId)
 				if _, ok := diff_Queue_Map[string(queueId)]; ok {
 					diff_Queue_Map[queuestr].Diff = diff_Queue_Map[queuestr].Diff + diff
@@ -210,7 +218,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					diff_Queue_Map[queuestr] = diff_Queue
 				}
 
-				//按照clientInfo进行msgDiff聚合
+				// 按照clientInfo进行msgDiff聚合
 
 				if _, ok := diff_Clientinfo_Map[clientInfo]; ok {
 					diff_Clientinfo_Map[clientInfo].Diff = diff_Clientinfo_Map[clientInfo].Diff + diff
