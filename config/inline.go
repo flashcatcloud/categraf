@@ -31,6 +31,9 @@ type InternalConfig struct {
 
 	// mapping value
 	ProcessorEnum []*ProcessorEnum `toml:"processor_enum"`
+
+	// whether instance initial success
+	inited bool `toml:"-"`
 }
 
 func (ic *InternalConfig) GetLabels() map[string]string {
@@ -146,6 +149,14 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 	}
 
 	return nlst
+}
+
+func (ic *InternalConfig) Initialized() bool {
+	return ic.inited
+}
+
+func (ic *InternalConfig) SetInitialized() {
+	ic.inited = true
 }
 
 type PluginConfig struct {
