@@ -57,9 +57,9 @@ func (ins *Instance) Init() error {
 	}
 
 	if ins.Timeout == 0 {
-		ins.calcTimeout = time.Duration(3) * time.Second
+		ins.calcTimeout = time.Duration(3000) * time.Millisecond
 	} else {
-		ins.calcTimeout = time.Duration(ins.Timeout) * time.Second
+		ins.calcTimeout = time.Duration(ins.Timeout*1000) * time.Millisecond
 	}
 
 	if ins.Interface != "" {
