@@ -250,6 +250,7 @@ func (ma *MetricsAgent) inputGo(name string, sum checksum.Checksum, input inputs
 				continue
 			}
 			empty = false
+			instances[i].SetInitialized()
 		}
 
 		if empty {

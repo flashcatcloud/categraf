@@ -89,6 +89,9 @@ func (r *InputReader) gatherOnce() {
 	atomic.AddUint64(&r.runCounter, 1)
 
 	for i := 0; i < len(instances); i++ {
+		if !instances[i].Initialized() {
+			continue
+		}
 		r.waitGroup.Add(1)
 		go func(ins inputs.Instance) {
 			defer r.waitGroup.Done()

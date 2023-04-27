@@ -71,6 +71,9 @@ func Add(name string, creator Creator) {
 }
 
 type Instance interface {
+	Initialized() bool
+	SetInitialized()
+
 	GetLabels() map[string]string
 	GetIntervalTimes() int64
 	InitInternalConfig() error
