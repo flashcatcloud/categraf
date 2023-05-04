@@ -2,29 +2,28 @@ package inputs
 
 import (
 	"flashcat.cloud/categraf/pkg/cfg"
-	"flashcat.cloud/categraf/pkg/checksum"
 )
 
 type (
 	Empty struct{}
-	Set   map[checksum.Checksum]Empty
+	Set   map[string]Empty
 )
 
 func NewSet() Set {
 	return make(Set)
 }
 
-func (s Set) Add(elem checksum.Checksum) {
+func (s Set) Add(elem string) {
 	s[elem] = Empty{}
 }
 
-func (s Set) Has(elem checksum.Checksum) bool {
+func (s Set) Has(elem string) bool {
 	_, ok := s[elem]
 	return ok
 }
 
-func (s Set) Load(elems map[checksum.Checksum]cfg.ConfigWithFormat) Set {
-	for k, _ := range elems {
+func (s Set) Load(elems map[string]cfg.ConfigWithFormat) Set {
+	for k := range elems {
 		s.Add(k)
 	}
 	return s
@@ -38,7 +37,7 @@ func (s Set) Clear() Set {
 }
 
 func (src Set) Diff(dst Set) (add, del Set) {
-	record := map[checksum.Checksum]int{}
+	record := map[string]int{}
 	for elem := range src {
 		record[elem]++
 	}
