@@ -275,7 +275,7 @@ func (ma *MetricsAgent) DeregisterInput(name string, sum string) {
 			}
 		}
 		ma.InputReaders.Del(name, sum)
-		log.Printf("I! input: %s[%s] stopped", name, sum)
+		log.Printf("I! input: %s[checksum:%s] stopped", name, sum)
 	} else {
 		log.Printf("W! dereigster input name [%s] not found", name)
 	}
