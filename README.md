@@ -12,7 +12,9 @@
 [![Contributors](https://img.shields.io/github/contributors-anon/flashcatcloud/categraf)](https://github.com/flashcatcloud/categraf/graphs/contributors)
 [!["License"](https://img.shields.io/badge/license-MIT-blue)](https://github.com/flashcatcloud/categraf/blob/main/LICENSE)
 
-Categraf is one-stop telemetry collector for nightingale / prometheus / m3db / victoriametrics / thanos / influxdb / tdengine.
+Categraf is one-stop telemetry collector for Nightingale / Prometheus / M3DB / VictoriaMetrics / Thanos / Influxdb / TDengine.
+
+It is recommended that you use [Nightingale](https://github.com/ccfos/nightingale) as the backend observability tools, and at the same time use [FlashDuty](http://flashcat.cloud/blog/flashduty-intro/) as the OnCall system to realize alarm aggregation convergence, claiming, upgrading, scheduling, and coordination, so that the alarm can be reached efficiently and ensure that the alarm processing is not missed, so that every piece echoed.
 
 
 ## Links
