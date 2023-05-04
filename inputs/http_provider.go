@@ -12,7 +12,6 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
-	"flashcat.cloud/categraf/pkg/checksum"
 	"flashcat.cloud/categraf/pkg/tls"
 )
 
@@ -35,7 +34,7 @@ type (
 		stopCh chan struct{}
 		op     InputOperation
 
-		configMap map[string][]cfg.ConfigWithFormat
+		configMap map[string]map[string]*cfg.ConfigWithFormat
 		version   string
 
 		cache *innerCache
@@ -44,18 +43,18 @@ type (
 	}
 	innerCache struct {
 		lock   *sync.RWMutex
-		record map[string]map[checksum.Checksum]cfg.ConfigWithFormat
+		record map[string]map[string]cfg.ConfigWithFormat
 	}
 )
 
 func newInnerCache() *innerCache {
 	return &innerCache{
 		lock:   &sync.RWMutex{},
-		record: make(map[string]map[checksum.Checksum]cfg.ConfigWithFormat),
+		record: make(map[string]map[string]cfg.ConfigWithFormat),
 	}
 }
 
-func (ic *innerCache) get(inputName string) (map[checksum.Checksum]cfg.ConfigWithFormat, bool) {
+func (ic *innerCache) get(inputName string) (map[string]cfg.ConfigWithFormat, bool) {
 	ic.lock.RLock()
 	defer ic.lock.RUnlock()
 
@@ -63,19 +62,19 @@ func (ic *innerCache) get(inputName string) (map[checksum.Checksum]cfg.ConfigWit
 	return m, has
 }
 
-func (ic innerCache) put(inputName string, sum checksum.Checksum, config cfg.ConfigWithFormat) {
+func (ic innerCache) put(inputName string, config cfg.ConfigWithFormat) {
 	ic.lock.Lock()
 	defer ic.lock.Unlock()
 	if ic.record[inputName] == nil {
-		ic.record[inputName] = make(map[checksum.Checksum]cfg.ConfigWithFormat)
+		ic.record[inputName] = make(map[string]cfg.ConfigWithFormat)
 	}
-	ic.record[inputName][sum] = config
+	ic.record[inputName][config.CheckSum()] = config
 }
 
-func (ic *innerCache) del(inputName string, sum checksum.Checksum) {
+func (ic *innerCache) del(inputName string, sum string) {
 	ic.lock.Lock()
 	defer ic.lock.Unlock()
-	if sum == 0 {
+	if len(sum) == 0 {
 		delete(ic.record, inputName)
 		return
 	}
@@ -84,7 +83,7 @@ func (ic *innerCache) del(inputName string, sum checksum.Checksum) {
 	}
 }
 
-func (ic *innerCache) iter() map[string]map[checksum.Checksum]cfg.ConfigWithFormat {
+func (ic *innerCache) iter() map[string]map[string]cfg.ConfigWithFormat {
 	ic.lock.RLock()
 	defer ic.lock.RUnlock()
 	return ic.record
@@ -101,7 +100,7 @@ type httpProviderResponse struct {
 	Version string `json:"version"`
 
 	// ConfigMap (InputName -> Config), if version is identical, server side can set Config to nil
-	Configs map[string][]cfg.ConfigWithFormat `json:"configs"`
+	Configs map[string]map[string]*cfg.ConfigWithFormat `json:"configs"`
 }
 
 func (hrp *HTTPProvider) Name() string {
@@ -209,9 +208,9 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 	}
 
 	// set checksum for each config
-	for k, v := range confResp.Configs {
-		for kk, vv := range v {
-			confResp.Configs[k][kk].SetCheckSum(checksum.New(vv.Config))
+	for k := range confResp.Configs {
+		for kk, vv := range confResp.Configs[k] {
+			vv.SetCheckSum(kk)
 		}
 	}
 
@@ -308,20 +307,27 @@ func (hrp *HTTPProvider) GetInputConfig(inputKey string) ([]cfg.ConfigWithFormat
 	hrp.RLock()
 	defer hrp.RUnlock()
 
+	cfgs := make([]cfg.ConfigWithFormat, 0, len(hrp.configMap[inputKey]))
 	if configs, has := hrp.configMap[inputKey]; has {
-		return configs, nil
+		for _, v := range configs {
+			cfgs = append(cfgs, *v)
+		}
+		return cfgs, nil
 	}
 
 	return nil, nil
 }
 
-func (hrp *HTTPProvider) caculateDiff(newConfigs map[string][]cfg.ConfigWithFormat) {
+func (hrp *HTTPProvider) caculateDiff(newConfigs map[string]map[string]*cfg.ConfigWithFormat) {
 	hrp.add = newInnerCache()
 	hrp.del = newInnerCache()
 	cache := newInnerCache()
 	for inputKey, configs := range newConfigs {
-		for _, config := range configs {
-			cache.put(inputKey, config.CheckSum(), config)
+		for _, inputConfig := range configs {
+			if config.Config.DebugMode {
+				log.Println("D!: inputKey:", inputKey, "config sum:", inputConfig.CheckSum())
+			}
+			cache.put(inputKey, *inputConfig)
 		}
 	}
 
@@ -330,22 +336,34 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string][]cfg.ConfigWithForm
 			new := NewSet().Load(configMap)
 			add, del := new.Diff(NewSet().Load(oldConfigMap))
 			for sum := range add {
-				hrp.add.put(inputKey, sum, configMap[sum])
+				if config.Config.DebugMode {
+					log.Println("D!: add config:", inputKey, "config sum:", sum)
+				}
+				hrp.add.put(inputKey, configMap[sum])
 			}
 			for sum := range del {
-				hrp.del.put(inputKey, sum, oldConfigMap[sum])
+				if config.Config.DebugMode {
+					log.Println("D!: delete config:", inputKey, "config sum:", sum)
+				}
+				hrp.del.put(inputKey, oldConfigMap[sum])
 			}
 		} else {
-			for _, config := range configMap {
-				hrp.add.put(inputKey, config.CheckSum(), config)
+			for _, inputConfig := range configMap {
+				if config.Config.DebugMode {
+					log.Println("D!: add config:", inputKey, "config sum:", inputConfig.CheckSum())
+				}
+				hrp.add.put(inputKey, inputConfig)
 			}
 		}
 	}
 
 	for inputKey, configMap := range hrp.cache.iter() {
 		if _, has := cache.get(inputKey); !has {
-			for _, config := range configMap {
-				hrp.del.put(inputKey, config.CheckSum(), config)
+			for _, inputConfig := range configMap {
+				if config.Config.DebugMode {
+					log.Println("D!: delete config:", inputKey, "config sum:", inputConfig.CheckSum())
+				}
+				hrp.del.put(inputKey, inputConfig)
 			}
 		}
 	}
@@ -357,8 +375,8 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string][]cfg.ConfigWithForm
 
 }
 
-func (hrp *HTTPProvider) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) (map[checksum.Checksum]Input, error) {
-	inputs := make(map[checksum.Checksum]Input)
+func (hrp *HTTPProvider) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) (map[string]Input, error) {
+	inputs := make(map[string]Input)
 	for _, c := range configs {
 		nInput := input.Clone()
 		err := cfg.LoadSingleConfig(c, nInput)

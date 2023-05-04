@@ -10,7 +10,6 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
-	"flashcat.cloud/categraf/pkg/checksum"
 	"flashcat.cloud/categraf/pkg/choice"
 )
 
@@ -100,12 +99,12 @@ func (lp *LocalProvider) GetInputConfig(inputKey string) ([]cfg.ConfigWithFormat
 	return cwf, nil
 }
 
-func (lp *LocalProvider) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) (map[checksum.Checksum]Input, error) {
+func (lp *LocalProvider) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) (map[string]Input, error) {
 	err := cfg.LoadConfigs(configs, input)
 	if err != nil {
 		return nil, err
 	}
-	return map[checksum.Checksum]Input{
-		checksum.Checksum(0): input,
+	return map[string]Input{
+		"default": input,
 	}, nil
 }
