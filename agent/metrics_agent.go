@@ -14,6 +14,7 @@ import (
 	// auto registry
 	_ "flashcat.cloud/categraf/inputs/aliyun"
 	_ "flashcat.cloud/categraf/inputs/arp_packet"
+	_ "flashcat.cloud/categraf/inputs/cadvisor"
 	_ "flashcat.cloud/categraf/inputs/cloudwatch"
 	_ "flashcat.cloud/categraf/inputs/conntrack"
 	_ "flashcat.cloud/categraf/inputs/cpu"
