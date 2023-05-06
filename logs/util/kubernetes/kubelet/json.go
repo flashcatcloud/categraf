@@ -8,11 +8,12 @@
 package kubelet
 
 import (
-	"flashcat.cloud/categraf/pkg/kubernetes"
 	"time"
 	"unsafe"
 
 	jsoniter "github.com/json-iterator/go"
+
+	"flashcat.cloud/categraf/pkg/kubernetes"
 )
 
 // jsoniterConfig mirrors jsoniter.ConfigFastest
