@@ -21,6 +21,7 @@ import (
 	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/logs/util/containers/providers"
 	"flashcat.cloud/categraf/pkg/cache"
+	"flashcat.cloud/categraf/pkg/kubernetes"
 	"flashcat.cloud/categraf/pkg/retry"
 )
 
@@ -178,12 +179,12 @@ func (ku *KubeUtil) GetNodename(ctx context.Context) (string, error) {
 // GetLocalPodList returns the list of pods running on the node.
 // If kubernetes_pod_expiration_duration is set, old exited pods
 // will be filtered out to keep the podlist size down: see json.go
-func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*Pod, error) {
+func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*kubernetes.Pod, error) {
 	var ok bool
-	pods := PodList{}
+	pods := kubernetes.PodList{}
 
 	if cached, hit := cache.Cache.Get(podListCacheKey); hit {
-		pods, ok = cached.(PodList)
+		pods, ok = cached.(kubernetes.PodList)
 		if !ok {
 			log.Printf("Invalid pod list cache format, forcing a cache miss")
 		} else {
@@ -205,10 +206,10 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*Pod, error) {
 	}
 
 	// ensure we dont have nil pods
-	tmpSlice := make([]*Pod, 0, len(pods.Items))
+	tmpSlice := make([]*kubernetes.Pod, 0, len(pods.Items))
 	for _, pod := range pods.Items {
 		if pod != nil {
-			allContainers := make([]ContainerStatus, 0, len(pod.Status.InitContainers)+len(pod.Status.Containers))
+			allContainers := make([]kubernetes.ContainerStatus, 0, len(pod.Status.InitContainers)+len(pod.Status.Containers))
 			allContainers = append(allContainers, pod.Status.InitContainers...)
 			allContainers = append(allContainers, pod.Status.Containers...)
 			pod.Status.AllContainers = allContainers
@@ -228,7 +229,7 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*Pod, error) {
 	return pods.Items, nil
 }
 
-func (ku *KubeUtil) filterPod(pod *Pod) bool {
+func (ku *KubeUtil) filterPod(pod *kubernetes.Pod) bool {
 	for _, c := range pod.Status.GetAllContainers() {
 		if ku.filter.IsExcluded(c.Name, c.Image, pod.Metadata.Namespace) {
 			if coreconfig.Config.DebugMode {
@@ -241,7 +242,7 @@ func (ku *KubeUtil) filterPod(pod *Pod) bool {
 }
 
 // ForceGetLocalPodList reset podList cache and call GetLocalPodList
-func (ku *KubeUtil) ForceGetLocalPodList(ctx context.Context) ([]*Pod, error) {
+func (ku *KubeUtil) ForceGetLocalPodList(ctx context.Context) ([]*kubernetes.Pod, error) {
 	ResetCache()
 	return ku.GetLocalPodList(ctx)
 }
@@ -249,7 +250,7 @@ func (ku *KubeUtil) ForceGetLocalPodList(ctx context.Context) ([]*Pod, error) {
 // GetPodForContainerID fetches the podList and returns the pod running
 // a given container on the node. Reset the cache if needed.
 // Returns a nil pointer if not found.
-func (ku *KubeUtil) GetPodForContainerID(ctx context.Context, containerID string) (*Pod, error) {
+func (ku *KubeUtil) GetPodForContainerID(ctx context.Context, containerID string) (*kubernetes.Pod, error) {
 	// Best case scenario
 	pods, err := ku.GetLocalPodList(ctx)
 	if err != nil {
@@ -303,7 +304,7 @@ func (ku *KubeUtil) GetPodForContainerID(ctx context.Context, containerID string
 	}
 }
 
-func (ku *KubeUtil) searchPodForContainerID(podList []*Pod, containerID string) (*Pod, error) {
+func (ku *KubeUtil) searchPodForContainerID(podList []*kubernetes.Pod, containerID string) (*kubernetes.Pod, error) {
 	if containerID == "" {
 		return nil, fmt.Errorf("containerID is empty")
 	}
@@ -325,27 +326,27 @@ func (ku *KubeUtil) searchPodForContainerID(podList []*Pod, containerID string) 
 }
 
 // GetStatusForContainerID returns the container status from the pod given an ID
-func (ku *KubeUtil) GetStatusForContainerID(pod *Pod, containerID string) (ContainerStatus, error) {
+func (ku *KubeUtil) GetStatusForContainerID(pod *kubernetes.Pod, containerID string) (kubernetes.ContainerStatus, error) {
 	for _, container := range pod.Status.GetAllContainers() {
 		if containerID == container.ID {
 			return container, nil
 		}
 	}
-	return ContainerStatus{}, errors.NewNotFound(fmt.Sprintf("container %s in pod", containerID))
+	return kubernetes.ContainerStatus{}, errors.NewNotFound(fmt.Sprintf("container %s in pod", containerID))
 }
 
 // GetSpecForContainerName returns the container spec from the pod given a name
 // It searches spec.containers then spec.initContainers
-func (ku *KubeUtil) GetSpecForContainerName(pod *Pod, containerName string) (ContainerSpec, error) {
+func (ku *KubeUtil) GetSpecForContainerName(pod *kubernetes.Pod, containerName string) (kubernetes.ContainerSpec, error) {
 	for _, containerSpec := range append(pod.Spec.Containers, pod.Spec.InitContainers...) {
 		if containerName == containerSpec.Name {
 			return containerSpec, nil
 		}
 	}
-	return ContainerSpec{}, errors.NewNotFound(fmt.Sprintf("container %s in pod", containerName))
+	return kubernetes.ContainerSpec{}, errors.NewNotFound(fmt.Sprintf("container %s in pod", containerName))
 }
 
-func (ku *KubeUtil) GetPodFromUID(ctx context.Context, podUID string) (*Pod, error) {
+func (ku *KubeUtil) GetPodFromUID(ctx context.Context, podUID string) (*kubernetes.Pod, error) {
 	if podUID == "" {
 		return nil, fmt.Errorf("pod UID is empty")
 	}
@@ -374,7 +375,7 @@ func (ku *KubeUtil) GetPodFromUID(ctx context.Context, podUID string) (*Pod, err
 
 // GetPodForEntityID returns a pointer to the pod that corresponds to an entity ID.
 // If the pod is not found it returns nil and an error.
-func (ku *KubeUtil) GetPodForEntityID(ctx context.Context, entityID string) (*Pod, error) {
+func (ku *KubeUtil) GetPodForEntityID(ctx context.Context, entityID string) (*kubernetes.Pod, error) {
 	if strings.HasPrefix(entityID, KubePodPrefix) {
 		uid := strings.TrimPrefix(entityID, KubePodPrefix)
 		return ku.GetPodFromUID(ctx, uid)
@@ -435,7 +436,7 @@ func (ku *KubeUtil) IsAgentHostNetwork(ctx context.Context) (bool, error) {
 }
 
 // IsPodReady return a bool if the Pod is ready
-func IsPodReady(pod *Pod) bool {
+func IsPodReady(pod *kubernetes.Pod) bool {
 	// static pods are always reported as Pending, so we make an exception there
 	if pod.Status.Phase == "Pending" && isPodStatic(pod) {
 		return true
@@ -458,7 +459,7 @@ func IsPodReady(pod *Pod) bool {
 
 // isPodStatic identifies whether a pod is static or not based on an annotation
 // Static pods can be sent to the kubelet from files or an http endpoint.
-func isPodStatic(pod *Pod) bool {
+func isPodStatic(pod *kubernetes.Pod) bool {
 	if source, ok := pod.Metadata.Annotations[configSourceAnnotation]; ok == true && (source == "file" || source == "http") {
 		return len(pod.Status.Containers) == 0
 	}

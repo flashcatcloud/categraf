@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"flashcat.cloud/categraf/pkg/kubernetes"
 )
 
 const unreadinessTimeout = 30 * time.Second
@@ -63,8 +65,8 @@ func (w *PodWatcher) isWatchingTags() bool {
 // PullChanges pulls a new podList from the kubelet and returns Pod objects for
 // new / updated pods. Updated pods will be sent entirely, user must replace
 // previous info for these pods.
-func (w *PodWatcher) PullChanges(ctx context.Context) ([]*Pod, error) {
-	var podList []*Pod
+func (w *PodWatcher) PullChanges(ctx context.Context) ([]*kubernetes.Pod, error) {
+	var podList []*kubernetes.Pod
 	podList, err := w.kubeUtil.GetLocalPodList(ctx)
 	if err != nil {
 		return podList, err
@@ -73,9 +75,9 @@ func (w *PodWatcher) PullChanges(ctx context.Context) ([]*Pod, error) {
 }
 
 // computeChanges is used by PullChanges, split for testing
-func (w *PodWatcher) computeChanges(podList []*Pod) ([]*Pod, error) {
+func (w *PodWatcher) computeChanges(podList []*kubernetes.Pod) ([]*kubernetes.Pod, error) {
 	now := time.Now()
-	var updatedPods []*Pod
+	var updatedPods []*kubernetes.Pod
 
 	w.Lock()
 	defer w.Unlock()
@@ -193,14 +195,14 @@ func (w *PodWatcher) Expire() ([]string, error) {
 // GetPodForEntityID finds the pod corresponding to an entity.
 // EntityIDs can be Docker container IDs or pod UIDs (prefixed).
 // Returns a nil pointer if not found.
-func (w *PodWatcher) GetPodForEntityID(ctx context.Context, entityID string) (*Pod, error) {
+func (w *PodWatcher) GetPodForEntityID(ctx context.Context, entityID string) (*kubernetes.Pod, error) {
 	return w.kubeUtil.GetPodForEntityID(ctx, entityID)
 }
 
 // digestPodMeta returns a unique hash of pod labels
 // and annotations.
 // it hashes labels then annotations and makes a single hash of both maps
-func digestPodMeta(meta PodMetadata) string {
+func digestPodMeta(meta kubernetes.PodMetadata) string {
 	h := fnv.New64()
 	h.Write([]byte(digestMapValues(meta.Labels)))      //nolint:errcheck
 	h.Write([]byte(digestMapValues(meta.Annotations))) //nolint:errcheck

@@ -17,13 +17,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff"
+
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/errors"
 	"flashcat.cloud/categraf/logs/service"
 	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/logs/util/kubernetes/kubelet"
+	"flashcat.cloud/categraf/pkg/kubernetes"
 	"flashcat.cloud/categraf/pkg/retry"
-	"github.com/cenkalti/backoff"
 )
 
 const (
@@ -229,7 +231,7 @@ func (l *Launcher) removeSource(service *service.Service) {
 const kubernetesIntegration = "kubernetes"
 
 // getSource returns a new source for the container in pod.
-func (l *Launcher) getSource(pod *kubelet.Pod, container kubelet.ContainerStatus) (*logsconfig.LogSource, error) {
+func (l *Launcher) getSource(pod *kubernetes.Pod, container kubernetes.ContainerStatus) (*logsconfig.LogSource, error) {
 	var cfg *logsconfig.LogsConfig
 	standardService := l.serviceNameFunc(container.Name, getTaggerEntityID(container.ID))
 	// if annotation := l.getAnnotation(pod, container); annotation != "" {
@@ -313,7 +315,7 @@ func (l *Launcher) getSource(pod *kubelet.Pod, container kubelet.ContainerStatus
 	return logsconfig.NewLogSource(l.getSourceName(pod, container), cfg), nil
 }
 
-func buildTags(pod *kubelet.Pod, container kubelet.ContainerStatus) []string {
+func buildTags(pod *kubernetes.Pod, container kubernetes.ContainerStatus) []string {
 	tags := []string{
 		fmt.Sprintf("kubernetes.namespace_name=%s", pod.Metadata.Namespace),
 		fmt.Sprintf("kubernetes.pod_id=%s", pod.Metadata.UID),
@@ -365,13 +367,13 @@ const (
 )
 
 // getConfigPath returns the path of the logs-config annotation for container.
-func (l *Launcher) getConfigPath(container kubelet.ContainerStatus) string {
+func (l *Launcher) getConfigPath(container kubernetes.ContainerStatus) string {
 	return fmt.Sprintf("%s/%s.%s", configPathPrefix, container.Name, configPathSuffix)
 }
 
 // getAnnotation returns the logs-config annotation for container if present.
 // FIXME: Reuse the annotation logic from AD
-func (l *Launcher) getAnnotation(pod *kubelet.Pod, container kubelet.ContainerStatus) string {
+func (l *Launcher) getAnnotation(pod *kubernetes.Pod, container kubernetes.ContainerStatus) string {
 	configPath := l.getConfigPath(container)
 	if annotation, exists := pod.Metadata.Annotations[configPath]; exists {
 		return annotation
@@ -380,12 +382,12 @@ func (l *Launcher) getAnnotation(pod *kubelet.Pod, container kubelet.ContainerSt
 }
 
 // getSourceName returns the source name of the container to tail.
-func (l *Launcher) getSourceName(pod *kubelet.Pod, container kubelet.ContainerStatus) string {
+func (l *Launcher) getSourceName(pod *kubernetes.Pod, container kubernetes.ContainerStatus) string {
 	return fmt.Sprintf("%s/%s/%s", pod.Metadata.Namespace, pod.Metadata.Name, container.Name)
 }
 
 // getPath returns a wildcard matching with any logs file of container in pod.
-func (l *Launcher) getPath(basePath string, pod *kubelet.Pod, container kubelet.ContainerStatus) string {
+func (l *Launcher) getPath(basePath string, pod *kubernetes.Pod, container kubernetes.ContainerStatus) string {
 	// the pattern for container logs is different depending on the version of Kubernetes
 	// so we need to try three possbile formats
 	// until v1.9 it was `/var/log/pods/{pod_uid}/{container_name_n}.log`,
@@ -423,17 +425,17 @@ func (l *Launcher) getPath(basePath string, pod *kubelet.Pod, container kubelet.
 }
 
 // getPodDirectoryUntil1_13 returns the name of the directory of pod containers until Kubernetes v1.13.
-func (l *Launcher) getPodDirectoryUntil1_13(pod *kubelet.Pod) string {
+func (l *Launcher) getPodDirectoryUntil1_13(pod *kubernetes.Pod) string {
 	return pod.Metadata.UID
 }
 
 // getPodDirectorySince1_14 returns the name of the directory of pod containers since Kubernetes v1.14.
-func (l *Launcher) getPodDirectorySince1_14(pod *kubelet.Pod) string {
+func (l *Launcher) getPodDirectorySince1_14(pod *kubernetes.Pod) string {
 	return fmt.Sprintf("%s_%s_%s", pod.Metadata.Namespace, pod.Metadata.Name, pod.Metadata.UID)
 }
 
 // getShortImageName returns the short image name of a container
-func (l *Launcher) getShortImageName(pod *kubelet.Pod, containerName string) (string, error) {
+func (l *Launcher) getShortImageName(pod *kubernetes.Pod, containerName string) (string, error) {
 	containerSpec, err := l.kubeutil.GetSpecForContainerName(pod, containerName)
 	if err != nil {
 		return "", err

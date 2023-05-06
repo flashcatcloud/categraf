@@ -1,0 +1,26 @@
+# # collect interval
+# interval = 15
+
+[[instances]]
+# url = "https://1.2.3.4:10250"
+# type = "kubelet"
+## url = "http://1.2.3.4:8080/metrics"
+## type = "cadvisor"
+
+# url_label_key = "instance"
+# url_label_value = "{{.Host}}"
+# bearer_token_string = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjE2YU9MSjNlQUlHenhCWWlVaHpESFVUYWhfVUh6RngzMFFfUVR2TGJsUEkifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJuOWV2NiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJuaWdodGluZ2FsZS1jYXRlZ3JhZi12Ni10b2tlbi0yNmNuZCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJuaWdodGluZ2FsZS1jYXRlZ3JhZi12NiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjNjNTVjZTNmLTU2ZDEtNDhhNy1iNjUyLTQwNDk5YTU4YzlmMyIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpuOWV2NjpuaWdodGluZ2FsZS1jYXRlZ3JhZi12NiJ9.oQsXDiIxuu6VYmxed5Y32ivz_VxDRzCqZB2w9VA85y0oSSuy6Ae5dyp36TJLmPudHAP6tA7UFAWix8O-p2rZVgjIErPVvZCqCgiLxJ04rZUbx_r4a5rtZGHPdmIa68GjOajjrjMp9cI65ExmPyTPAQbwTQLkZVeRzr0hUlK9xxE76eeBO_C5HViCwTCZ7ExJgNKCkkV_e2YRzPtr3CYTPZN_rbhGemc1_jiYSt-C7nJat9QQThPn-R5Lj0fuxiH2aejUpBhmAwUiaIPSehA1IWjGMvg1LpsZHP3Q213j_XQWhGCCmrkDWyuo8PfPCa17Soby3NzVkS_tS0yKwEaLPA"
+## bearer_token_file = "/path/to/token/file"
+
+# ignore_label_keys = ["id","name", "container_label*"]
+## choose_label_keys = ["id"]
+
+# timeout = "3s"
+
+# use_tls = true
+## tls_min_version = "1.2"
+## tls_ca = "/etc/categraf/ca.pem"
+## tls_cert = "/etc/categraf/cert.pem"
+## tls_key = "/etc/categraf/key.pem"
+## Use TLS but skip chain & host verification
+## insecure_skip_verify = true

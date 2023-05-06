@@ -8,6 +8,7 @@
 package kubelet
 
 import (
+	"flashcat.cloud/categraf/pkg/kubernetes"
 	"time"
 	"unsafe"
 
@@ -55,11 +56,11 @@ func (pu *podUnmarshaller) unmarshal(data []byte, v interface{}) error {
 }
 
 func (pu *podUnmarshaller) filteringDecoder(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
-	p := (*PodList)(ptr)
+	p := (*kubernetes.PodList)(ptr)
 	cutoffTime := pu.timeNowFunction().Add(-1 * pu.podExpirationDuration)
 
 	podCallback := func(iter *jsoniter.Iterator) bool {
-		pod := &Pod{}
+		pod := &kubernetes.Pod{}
 		iter.ReadVal(pod)
 
 		// Quick exit for running/pending containers
