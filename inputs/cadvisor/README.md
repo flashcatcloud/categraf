@@ -24,7 +24,7 @@ type = "kubelet"
 url_label_key = "instance"
 url_label_value = "{{.Host}}"
 # # 认证的token 或者token file
-#bearer_token_string = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjE2YU9MSjNlQUlHenhCWWlVaHpESFVUYWhfVUh6RngzMFFfUVR2TGJsUEkifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJuOWV2NiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJuaWdodGluZ2FsZS1jYXRlZ3JhZi12Ni10b2tlbi0yNmNuZCIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50Lm5hbWUiOiJuaWdodGluZ2FsZS1jYXRlZ3JhZi12NiIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VydmljZS1hY2NvdW50LnVpZCI6IjNjNTVjZTNmLTU2ZDEtNDhhNy1iNjUyLTQwNDk5YTU4YzlmMyIsInN1YiI6InN5c3RlbTpzZXJ2aWNlYWNjb3VudDpuOWV2NjpuaWdodGluZ2FsZS1jYXRlZ3JhZi12NiJ9.oQsXDiIxuu6VYmxed5Y32ivz_VxDRzCqZB2w9VA85y0oSSuy6Ae5dyp36TJLmPudHAP6tA7UFAWix8O-p2rZVgjIErPVvZCqCgiLxJ04rZUbx_r4a5rtZGHPdmIa68GjOajjrjMp9cI65ExmPyTPAQbwTQLkZVeRzr0hUlK9xxE76eeBO_C5HViCwTCZ7ExJgNKCkkV_e2YRzPtr3CYTPZN_rbhGemc1_jiYSt-C7nJat9QQThPn-R5Lj0fuxiH2aejUpBhmAwUiaIPSehA1IWjGMvg1LpsZHP3Q213j_XQWhGCCmrkDWyuo8PfPCa17Soby3NzVkS_tS0yKwEaLPA"
+#bearer_token_string = "eyJhblonglongXXX.eyJplonglongYYY.oQsXlonglongZ-Z-Z"
 bearer_token_file = "/path/to/token/file"
 
 # 需要忽略的label key
@@ -47,7 +47,7 @@ insecure_skip_verify = true
 
 ## url_label_key 和 url_label_value 用法
 ```toml
-# 从URL中提取Host部分，放到instancelabel中 
+# 从URL中提取Host部分，放到instance label中 
 # 假设 url =https://1.2.3.4:10250/metrics/cadvisor 
 # 最终附加的label为 instance=1.2.3.4:10250
 
@@ -55,7 +55,7 @@ url_label_key = "instance"
 url_label_value = "{{.Host}}"
 ```
 
-如果 HTTP scheme 部分和 `/metrics` Path 部分都想取，可以这么写：
+如果 scheme 部分和 path 部分都想取，可以这么写：
 
 ```toml
 url_label_value = "{{.Scheme}}://{{.Host}}{{.Path}}"
@@ -88,3 +88,15 @@ func (ul *UrlLabel) GenerateLabel(u *url.URL) (string, string, error) {
 	return ul.LabelKey, buffer.String(), nil
 }
 ```
+
+以 `http://1.2.3.4:8080/search?q=keyword#results` 为例, 变量及其值如下:
+
+|variable|value|
+|---|---|
+|{{.Scheme}}|http|
+|{{.Host}} |1.2.3.4:8080|
+|{{.Hostname}}|1.2.3.4|
+|{{.Port}}|8080|
+|{{.Path}}|search|
+|{{.Query}}|q=keyword|
+|{{.Fragment}}| results|
