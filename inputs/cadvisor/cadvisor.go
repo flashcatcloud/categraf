@@ -1,4 +1,4 @@
-package prometheus
+package cadvisor
 
 import (
 	"encoding/json"
@@ -91,7 +91,7 @@ func (ins *Instance) Init() error {
 
 	u, err := url.Parse(ins.URL)
 	if err != nil {
-		log.Println("E! failed to gather prometheus scrape url:", ins.URL, "error:", err)
+		log.Println("E! failed to scrape url:", ins.URL, "error:", err)
 	}
 	ins.u = u
 	if ins.u.Path == "" {
