@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"flashcat.cloud/categraf/pkg/stringx"
 )
 
 func buildQFieldToMetricInfoMap(qFieldtoRFieldMap map[qField]rField) map[qField]MetricInfo {
@@ -35,7 +37,7 @@ func buildMetricInfo(rField rField) MetricInfo {
 		multiplier = 0.01
 	}
 
-	metricName := toSnakeCase(strings.ReplaceAll(suffixTransformed, ".", "_"))
+	metricName := stringx.SnakeCase(strings.ReplaceAll(suffixTransformed, ".", "_"))
 
 	return MetricInfo{
 		metricName:      metricName,

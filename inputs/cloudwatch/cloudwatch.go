@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	cwClient "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
@@ -24,6 +23,7 @@ import (
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/limiter"
 	internalProxy "flashcat.cloud/categraf/pkg/proxy"
+	"flashcat.cloud/categraf/pkg/stringx"
 	internalTypes "flashcat.cloud/categraf/types"
 	internalMetric "flashcat.cloud/categraf/types/metric"
 )
@@ -567,7 +567,7 @@ func sanitizeMeasurement(namespace string) string {
 }
 
 func snakeCase(s string) string {
-	s = SnakeCase(s)
+	s = stringx.SnakeCase(s)
 	s = strings.ReplaceAll(s, " ", "_")
 	s = strings.ReplaceAll(s, "__", "_")
 	return s
@@ -625,19 +625,4 @@ func isSelected(name string, metric types.Metric, dimensions []*Dimension) bool 
 		}
 	}
 	return true
-}
-
-func SnakeCase(in string) string {
-	runes := []rune(in)
-	length := len(runes)
-
-	var out []rune
-	for i := 0; i < length; i++ {
-		if i > 0 && unicode.IsUpper(runes[i]) && ((i+1 < length && unicode.IsLower(runes[i+1])) || unicode.IsLower(runes[i-1])) {
-			out = append(out, '_')
-		}
-		out = append(out, unicode.ToLower(runes[i]))
-	}
-
-	return string(out)
 }
