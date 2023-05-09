@@ -13,6 +13,7 @@ import (
 	"github.com/alibabacloud-go/tea/tea"
 
 	"flashcat.cloud/categraf/inputs/aliyun/internal/types"
+	"flashcat.cloud/categraf/pkg/stringx"
 )
 
 const (
@@ -92,23 +93,23 @@ func (m *Manager) dataPointConverter(metricName, ns, datapoints string) ([]types
 		r.Timestamp = point.Timestamp
 
 		if point.Val != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", SnakeCase(metricName), "value")
+			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "value")
 			r.Value = tea.Float64(*point.Val)
 			result = append(result, r)
 		}
 		if point.Max != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", SnakeCase(metricName), "maximum")
+			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "maximum")
 			r.Value = tea.Float64(*point.Max)
 			result = append(result, r)
 		}
 		if point.Min != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", SnakeCase(metricName), "minimum")
+			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "minimum")
 			r.Value = tea.Float64(*point.Min)
 			result = append(result, r)
 		}
 
 		if point.Avg != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", SnakeCase(metricName), "average")
+			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "average")
 			r.Value = tea.Float64(*point.Avg)
 			result = append(result, r)
 		}
