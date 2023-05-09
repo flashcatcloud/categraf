@@ -3,20 +3,21 @@
 This plugin gathers the statistic data from
 [ClickHouse](https://github.com/ClickHouse/ClickHouse) server.
 
-## Global configuration options <!-- @/docs/includes/plugin_config.md -->
+## Global configuration options `<!-- @/docs/includes/plugin_config.md -->`
 
 In addition to the plugin-specific configuration settings, plugins support
 additional global and plugin configuration settings. These settings are used to
 modify metrics, tags, and field or create aliases and configure ordering, etc.
 See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
 
-[CONFIGURATION.md]: ../../../docs/CONFIGURATION.md#plugins
-
 ## Configuration
 
-```toml @sample.conf
+```toml
+# # collect interval
+# interval = 15
+
 # Read metrics from one or many ClickHouse servers
-[[inputs.clickhouse]]
+[[instances]]
   ## Username for authorization on ClickHouse server
   username = "default"
 
@@ -26,7 +27,7 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
   ## HTTP(s) timeout while getting metrics values
   ## The timeout includes connection time, any redirects, and reading the
   ## response body.
-  # timeout = 5s
+  # timeout = 5
 
   ## List of servers for metrics scraping
   ## metrics scrape via HTTP(s) clickhouse interface
@@ -78,36 +79,38 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
   # tls_key = "/etc/telegraf/key.pem"
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
+
 ```
 
 ## Metrics
 
-- clickhouse_events (see [system.events][] for details)
+- clickhouse_events (see [system.events][system.events] for details)
+
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
     - shard_num (Shard number in the cluster [optional])
   - fields:
-    - all rows from [system.events][]
+    - all rows from [system.events][system.events]
+- clickhouse_metrics (see [system.metrics][system.metrics] for details)
 
-- clickhouse_metrics (see [system.metrics][] for details)
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
     - shard_num (Shard number in the cluster [optional])
   - fields:
-    - all rows from [system.metrics][]
-
-- clickhouse_asynchronous_metrics (see [system.asynchronous_metrics][]
+    - all rows from [system.metrics][system.metrics]
+- clickhouse_asynchronous_metrics (see [system.asynchronous_metrics][system.asynchronous_metrics]
   for details)
+
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
     - shard_num (Shard number in the cluster [optional])
   - fields:
-    - all rows from [system.asynchronous_metrics][]
-
+    - all rows from [system.asynchronous_metrics][system.asynchronous_metrics]
 - clickhouse_tables
+
   - tags:
     - source (ClickHouse server hostname)
     - table
@@ -118,33 +121,33 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
     - bytes
     - parts
     - rows
+- clickhouse_zookeeper (see [system.zookeeper][system.zookeeper] for details)
 
-- clickhouse_zookeeper (see [system.zookeeper][] for details)
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
     - shard_num (Shard number in the cluster [optional])
   - fields:
     - root_nodes (count of node where path=/)
+- clickhouse_replication_queue (see [system.replication_queue][system.replication_queue] for details)
 
-- clickhouse_replication_queue (see [system.replication_queue][] for details)
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
     - shard_num (Shard number in the cluster [optional])
   - fields:
     - too_many_tries_replicas (count of replicas which have `num_tries > 1`)
+- clickhouse_detached_parts (see [system.detached_parts][system.detached_parts] for details)
 
-- clickhouse_detached_parts (see [system.detached_parts][] for details)
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
     - shard_num (Shard number in the cluster [optional])
   - fields:
     - detached_parts (total detached parts for all tables and databases
-      from [system.detached_parts][])
+      from [system.detached_parts][system.detached_parts])
+- clickhouse_dictionaries (see [system.dictionaries][system.dictionaries] for details)
 
-- clickhouse_dictionaries (see [system.dictionaries][] for details)
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
@@ -155,8 +158,8 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
     - is_loaded (0 - when dictionary data not successful load, 1 - when
       dictionary data loading fail
     - bytes_allocated (bytes allocated in RAM after a dictionary loaded)
+- clickhouse_mutations (see [system.mutations][system.mutations] for details)
 
-- clickhouse_mutations (see [system.mutations][] for details)
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
@@ -167,8 +170,8 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
       clickhouse-server run
     - completed - counter which show total successful finished mutations
       from first clickhouse-server run
+- clickhouse_disks (see [system.disks][system.disks] for details)
 
-- clickhouse_disks (see [system.disks][] for details)
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
@@ -180,8 +183,8 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
       free disk space bytes relative to total disk space bytes
     - keep_free_space_percent - 0-100, gauge which show current percent
       of required keep free disk bytes relative to total disk space bytes
+- clickhouse_processes (see [system.processes][system.processes] for details)
 
-- clickhouse_processes (see [system.processes][] for details)
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
@@ -193,8 +196,8 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
       `elapsed` field of running processes
     - longest_running - float gauge which show maximum value for `elapsed`
       field of running processes
+- clickhouse_text_log (see [system.text_log][system.text_log] for details)
 
-- clickhouse_text_log (see [system.text_log][] for details)
   - tags:
     - source (ClickHouse server hostname)
     - cluster (Name of the cluster [optional])
@@ -214,6 +217,7 @@ clickhouse_tables,cluster=test_cluster_two_shards_localhost,database=system,host
 clickhouse_tables,cluster=test_cluster_two_shards_localhost,database=default,host=kshvakov,source=localhost,shard_num=1,table=example bytes=326i,parts=2i,rows=2i 1569421000000000000
 ```
 
+[CONFIGURATION.md]: ../../../docs/CONFIGURATION.md#plugins
 [system.asynchronous_metrics]: https://clickhouse.tech/docs/en/operations/system-tables/asynchronous_metrics/
 [system.detached_parts]: https://clickhouse.tech/docs/en/operations/system-tables/detached_parts/
 [system.dictionaries]: https://clickhouse.tech/docs/en/operations/system-tables/dictionaries/
@@ -222,6 +226,6 @@ clickhouse_tables,cluster=test_cluster_two_shards_localhost,database=default,hos
 [system.metrics]: https://clickhouse.tech/docs/en/operations/system-tables/metrics/
 [system.mutations]: https://clickhouse.tech/docs/en/operations/system-tables/mutations/
 [system.processes]: https://clickhouse.tech/docs/en/operations/system-tables/processes/
-[system.replication_queue]:https://clickhouse.com/docs/en/operations/system-tables/replication_queue/
+[system.replication_queue]: https://clickhouse.com/docs/en/operations/system-tables/replication_queue/
 [system.text_log]: https://clickhouse.tech/docs/en/operations/system-tables/text_log/
 [system.zookeeper]: https://clickhouse.tech/docs/en/operations/system-tables/zookeeper/

@@ -1,8 +1,6 @@
 # # collect interval
 # interval = 15
 
-############################################################################
-# !!! uncomment [[instances]] to enable this plugin
 # Read metrics from one or many ClickHouse servers
 [[instances]]
   ## Username for authorization on ClickHouse server
@@ -14,7 +12,7 @@
   ## HTTP(s) timeout while getting metrics values
   ## The timeout includes connection time, any redirects, and reading the
   ## response body.
-  # timeout = 5s
+  # timeout = 5
 
   ## List of servers for metrics scraping
   ## metrics scrape via HTTP(s) clickhouse interface

@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/stringx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 )
@@ -23,21 +23,6 @@ import (
 const inputName = "clickhouse"
 
 var defaultTimeout = 5 * time.Second
-
-func SnakeCase(in string) string {
-	runes := []rune(in)
-	length := len(runes)
-
-	var out []rune
-	for i := 0; i < length; i++ {
-		if i > 0 && unicode.IsUpper(runes[i]) && ((i+1 < length && unicode.IsLower(runes[i+1])) || unicode.IsLower(runes[i-1])) {
-			out = append(out, '_')
-		}
-		out = append(out, unicode.ToLower(runes[i]))
-	}
-
-	return string(out)
-}
 
 type Instance struct {
 	config.InstanceConfig
@@ -238,14 +223,14 @@ func (ins *Instance) commonMetrics(slist *types.SampleList, conn *connect, metri
 			return err
 		}
 		for _, r := range floatResult {
-			slist.PushFront(types.NewSample("clickhouse_"+metric, SnakeCase(r.Metric), r.Value, tags))
+			slist.PushFront(types.NewSample("clickhouse_"+metric, stringx.SnakeCase(r.Metric), r.Value, tags))
 		}
 	} else {
 		if err := ins.execQuery(conn.url, commonMetrics[metric], &intResult); err != nil {
 			return err
 		}
 		for _, r := range intResult {
-			slist.PushFront(types.NewSample("clickhouse_"+metric, SnakeCase(r.Metric), r.Value, tags))
+			slist.PushFront(types.NewSample("clickhouse_"+metric, stringx.SnakeCase(r.Metric), r.Value, tags))
 		}
 	}
 	return nil
