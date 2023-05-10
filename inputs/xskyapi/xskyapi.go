@@ -162,7 +162,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		// oss users
 
-		urlUsers, _ := url.JoinPath(server, "v1/os-users")
+		urlUsers := server + "/v1/os-users"
 
 		resp, _, err := ins.sendRequest(urlUsers, token)
 		if err != nil {
@@ -189,7 +189,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		// oss buckets
 
-		urlBuckets, _ := url.JoinPath(server, "v1/os-buckets")
+		urlBuckets := server + "/v1/os-buckets"
 
 		resp, _, err = ins.sendRequest(urlBuckets, token)
 		if err != nil {
@@ -219,7 +219,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		// gfs dfs
 
-		urlDfs, _ := url.JoinPath(server, "v1/dfs-quotas")
+		urlDfs := server + "/v1/dfs-quotas"
 
 		resp, _, err := ins.sendRequest(urlDfs, token)
 		if err != nil {
@@ -245,7 +245,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		// gfs block volumes
 
-		urlBV, _ := url.JoinPath(server, "v1/block-volumes")
+		urlBV := server + "/v1/block-volumes"
 
 		resp, _, err = ins.sendRequest(urlBV, token)
 		if err != nil {
@@ -274,7 +274,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		// eus-folder
 
-		urlDfs, _ := url.JoinPath(server, "v1/fs-folders")
+		urlDfs := server + "/v1/fs-folders"
 
 		resp, _, err := ins.sendRequest(urlDfs, token)
 		if err != nil {
@@ -300,7 +300,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 
 		// eus block volumes
 
-		urlBV, _ := url.JoinPath(server, "v1/block-volumes")
+		urlBV := server + "/v1/block-volumes"
 
 		resp, _, err = ins.sendRequest(urlBV, token)
 		if err != nil {
