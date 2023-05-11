@@ -35,3 +35,9 @@ func (c *Cadvisor) GetInstances() []inputs.Instance {
 	}
 	return ret
 }
+
+func (c *Cadvisor) Drop() {
+	for i := 0; i < len(c.Instances); i++ {
+		c.Instances[i].Drop()
+	}
+}
