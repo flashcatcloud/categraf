@@ -67,7 +67,7 @@ func (m *Instance) Init() error {
 		m.Timeout = config.Duration(20 * time.Second)
 	}
 
-	if m.Servers == nil && m.UseSudo == false {
+	if len(m.Servers) == 0 && !m.UseSudo {
 		return types.ErrInstancesEmpty
 	}
 

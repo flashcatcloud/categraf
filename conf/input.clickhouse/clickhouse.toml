@@ -17,7 +17,7 @@
   ## List of servers for metrics scraping
   ## metrics scrape via HTTP(s) clickhouse interface
   ## https://clickhouse.tech/docs/en/interfaces/http/
-  servers = ["http://127.0.0.1:8123"]
+  # servers = ["http://127.0.0.1:8123"]
 
   ## If "auto_discovery"" is "true" plugin tries to connect to all servers
   ## available in the cluster with using same "user:password" described in
