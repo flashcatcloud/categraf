@@ -44,7 +44,7 @@ Version 1 schema:
     - unit
     - host
     - server (only when retrieving stats from remote servers)
-    - status
+    - status_code
     - description 
   - fields:
     - xxxx
