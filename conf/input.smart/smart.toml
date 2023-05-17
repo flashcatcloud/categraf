@@ -9,8 +9,7 @@
     ## Optionally specify if vendor specific attributes should be propagated for NVMe disk case
     ## ["auto-on"] - automatically find and enable additional vendor specific disk info
     ## ["vendor1", "vendor2", ...] - e.g. "Intel" enable additional Intel specific disk info
-      #enable_extensions = ["auto-on", "Intel"]
-      enable_extensions = ["Intel"]
+    #  enable_extensions = ["auto-on"]
 
     ## On most platforms used cli utilities requires root access.
     ## Setting 'use_sudo' to true will make use of sudo to run smartctl or nvme-cli.
