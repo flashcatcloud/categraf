@@ -68,11 +68,11 @@ Version 2 schema:
 本地采集，需要免密sudo权限
 
 ```sh
-KERNEL=="ipmi*", MODE="660", GROUP="telegraf"
+KERNEL=="ipmi*", MODE="660", GROUP="categraf采集所使用的用户组"
 ```
 
 Alternatively, it is possible to use sudo. You will need the following in your
-telegraf config:
+categraf config:
 
 ```toml
 [[instances]]
@@ -85,7 +85,7 @@ You will also need to update your sudoers file:
 $ visudo
 # Add the following line:
 Cmnd_Alias IPMITOOL = /usr/bin/ipmitool *
-telegraf  ALL=(root) NOPASSWD: IPMITOOL
+UserOfCategraf  ALL=(root) NOPASSWD: IPMITOOL
 Defaults!IPMITOOL !logfile, !syslog, !pam_session
 ```
 
@@ -139,7 +139,7 @@ categraf 采集所在的机器需要有ipmitool 命令，如果没有，需要�
 # path = "/usr/bin/ipmitool"
 ##
 ## Setting 'use_sudo' to true will make use of sudo to run ipmitool.
-## Sudo must be configured to allow the telegraf user to run ipmitool
+## Sudo must be configured to allow the categraf user to run ipmitool
 ## without a password.
 ## 本地采集，需要免密sudo权限
     use_sudo = true
@@ -185,7 +185,7 @@ metric_version = 2
   # path = "/usr/bin/ipmitool"
   ##
   ## Setting 'use_sudo' to true will make use of sudo to run ipmitool.
-  ## Sudo must be configured to allow the telegraf user to run ipmitool
+  ## Sudo must be configured to allow the categraf user to run ipmitool
   ## without a password.
   #  use_sudo = true
   ##
