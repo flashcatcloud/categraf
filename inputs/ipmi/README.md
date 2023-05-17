@@ -1,7 +1,7 @@
 # IPMI 插件
 
 
-从telegraf fork的ipmi_sensor ，略作改动。 采集硬件温度、风扇转速、电压、功率等信息。
+从[telegraf](https://github.com/influxdata/telegraf/blob/master/plugins/inputs/ipmi_sensor/README.md) fork的ipmi_sensor ，略作改动。 采集硬件温度、风扇转速、电压、功率等信息。
 - 本插件依赖ipmitool
 - 采集的是ipmitool sdr的输出
   
