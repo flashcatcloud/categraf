@@ -28,6 +28,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/greenplum"
 	_ "flashcat.cloud/categraf/inputs/haproxy"
 	_ "flashcat.cloud/categraf/inputs/http_response"
+	_ "flashcat.cloud/categraf/inputs/ipmi"
 	_ "flashcat.cloud/categraf/inputs/ipvs"
 	_ "flashcat.cloud/categraf/inputs/jenkins"
 	_ "flashcat.cloud/categraf/inputs/jolokia_agent"
