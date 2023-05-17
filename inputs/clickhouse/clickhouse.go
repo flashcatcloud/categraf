@@ -45,6 +45,10 @@ type connect struct {
 }
 
 func (ins *Instance) Init() error {
+	if len(ins.Servers) == 0 {
+		return types.ErrInstancesEmpty
+	}
+
 	timeout := defaultTimeout
 	if time.Duration(ins.Timeout) != 0 {
 		timeout = time.Duration(ins.Timeout)
