@@ -39,29 +39,29 @@ they're configured:
 
 Version 1 schema:
 
-- ipmi_sensor:
+- ipmi_xxxx:
   - tags:
-    - name
     - unit
     - host
     - server (only when retrieving stats from remote servers)
+    - status
+    - description 
   - fields:
-    - status (int, 1=ok status_code/0=anything else)
-    - value (float)
+    - xxxx
 
 Version 2 schema:
 
-- ipmi_sensor:
+- ipmi_xxxx:
   - tags:
-    - name
     - entity_id (can help uniquify duplicate names)
     - status_code (two letter code from IPMI documentation)
     - status_desc (extended status description field)
     - unit (only on analog values)
     - host
     - server (only when retrieving stats from remote)
+    - description
   - fields:
-    - value (float)
+    - xxxx
 
 ### Permissions
 
