@@ -9,12 +9,13 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/cfg"
-	"flashcat.cloud/categraf/pkg/checksum"
 	"flashcat.cloud/categraf/types"
 
 	// auto registry
 	_ "flashcat.cloud/categraf/inputs/aliyun"
 	_ "flashcat.cloud/categraf/inputs/arp_packet"
+	_ "flashcat.cloud/categraf/inputs/cadvisor"
+	_ "flashcat.cloud/categraf/inputs/clickhouse"
 	_ "flashcat.cloud/categraf/inputs/cloudwatch"
 	_ "flashcat.cloud/categraf/inputs/conntrack"
 	_ "flashcat.cloud/categraf/inputs/cpu"
@@ -27,6 +28,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/greenplum"
 	_ "flashcat.cloud/categraf/inputs/haproxy"
 	_ "flashcat.cloud/categraf/inputs/http_response"
+	_ "flashcat.cloud/categraf/inputs/ipmi"
 	_ "flashcat.cloud/categraf/inputs/ipvs"
 	_ "flashcat.cloud/categraf/inputs/jenkins"
 	_ "flashcat.cloud/categraf/inputs/jolokia_agent"
@@ -62,6 +64,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/redis_sentinel"
 	_ "flashcat.cloud/categraf/inputs/rocketmq_offset"
 	_ "flashcat.cloud/categraf/inputs/self_metrics"
+	_ "flashcat.cloud/categraf/inputs/smart"
 	_ "flashcat.cloud/categraf/inputs/snmp"
 	_ "flashcat.cloud/categraf/inputs/sockstat"
 	_ "flashcat.cloud/categraf/inputs/sqlserver"
@@ -82,29 +85,29 @@ type MetricsAgent struct {
 
 type Readers struct {
 	lock   *sync.RWMutex
-	record map[string]map[checksum.Checksum]*InputReader
+	record map[string]map[string]*InputReader
 }
 
 func NewReaders() *Readers {
 	return &Readers{
 		lock:   new(sync.RWMutex),
-		record: make(map[string]map[checksum.Checksum]*InputReader),
+		record: make(map[string]map[string]*InputReader),
 	}
 }
 
-func (r *Readers) Add(name string, sum checksum.Checksum, reader *InputReader) {
+func (r *Readers) Add(name string, sum string, reader *InputReader) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if _, ok := r.record[name]; !ok {
-		r.record[name] = make(map[checksum.Checksum]*InputReader)
+		r.record[name] = make(map[string]*InputReader)
 	}
 	r.record[name][sum] = reader
 }
 
-func (r *Readers) Del(name string, sum checksum.Checksum) {
+func (r *Readers) Del(name string, sum string) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-	if sum == 0 {
+	if len(sum) == 0 {
 		delete(r.record, name)
 		return
 	}
@@ -113,14 +116,14 @@ func (r *Readers) Del(name string, sum checksum.Checksum) {
 	}
 }
 
-func (r *Readers) GetInput(name string) (map[checksum.Checksum]*InputReader, bool) {
+func (r *Readers) GetInput(name string) (map[string]*InputReader, bool) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	m, has := r.record[name]
 	return m, has
 }
 
-func (r *Readers) Iter() map[string]map[checksum.Checksum]*InputReader {
+func (r *Readers) Iter() map[string]map[string]*InputReader {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 	return r.record
@@ -220,7 +223,7 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 	}
 }
 
-func (ma *MetricsAgent) inputGo(name string, sum checksum.Checksum, input inputs.Input) {
+func (ma *MetricsAgent) inputGo(name string, sum string, input inputs.Input) {
 	var err error
 	if err = input.InitInternalConfig(); err != nil {
 		log.Println("E! failed to init input:", name, "error:", err)
@@ -268,15 +271,15 @@ func (ma *MetricsAgent) inputGo(name string, sum checksum.Checksum, input inputs
 	log.Println("I! input:", name, "started")
 }
 
-func (ma *MetricsAgent) DeregisterInput(name string, sum checksum.Checksum) {
+func (ma *MetricsAgent) DeregisterInput(name string, sum string) {
 	if inputs, has := ma.InputReaders.GetInput(name); has {
 		for isum, input := range inputs {
-			if sum == 0 || sum == isum {
+			if len(sum) == 0 || sum == isum {
 				input.Stop()
 			}
 		}
 		ma.InputReaders.Del(name, sum)
-		log.Printf("I! input: %s[%d] stopped", name, sum)
+		log.Printf("I! input: %s[checksum:%s] stopped", name, sum)
 	} else {
 		log.Printf("W! dereigster input name [%s] not found", name)
 	}

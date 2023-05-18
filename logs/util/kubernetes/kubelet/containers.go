@@ -16,6 +16,7 @@ import (
 
 	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/logs/util/containers/providers"
+	"flashcat.cloud/categraf/pkg/kubernetes"
 )
 
 // ListContainers lists all non-excluded running containers, and retrieves their performance metrics
@@ -82,7 +83,7 @@ func (ku *KubeUtil) getContainerDetails(ctn *containers.Container) {
 
 // getContainerMetrics calls a ContainerImplementation, calling function should always call Prefetch() before
 
-func parseContainerInPod(status ContainerStatus, pod *Pod) (*containers.Container, error) {
+func parseContainerInPod(status kubernetes.ContainerStatus, pod *kubernetes.Pod) (*containers.Container, error) {
 	entity, err := KubeContainerIDToTaggerEntityID(status.ID)
 	if err != nil {
 		return nil, fmt.Errorf("Skipping container %s from pod %s: %s", status.Name, pod.Metadata.Name, err)
@@ -119,7 +120,7 @@ func parseContainerInPod(status ContainerStatus, pod *Pod) (*containers.Containe
 	return c, nil
 }
 
-func parseContainerNetworkAddresses(status ContainerStatus, pod *Pod) []containers.NetworkAddress {
+func parseContainerNetworkAddresses(status kubernetes.ContainerStatus, pod *kubernetes.Pod) []containers.NetworkAddress {
 	addrList := []containers.NetworkAddress{}
 	podIP := net.ParseIP(pod.Status.PodIP)
 	if podIP == nil {
@@ -157,14 +158,14 @@ func parseContainerNetworkAddresses(status ContainerStatus, pod *Pod) []containe
 	return addrList
 }
 
-func parseContainerReadiness(status ContainerStatus, pod *Pod) string {
+func parseContainerReadiness(status kubernetes.ContainerStatus, pod *kubernetes.Pod) string {
 	// Quick return if container is ready
 	if status.Ready {
 		return containers.ContainerHealthy
 	}
 
 	// Look for readinessProbe in container spec
-	var probe *ContainerProbe
+	var probe *kubernetes.ContainerProbe
 	for _, s := range pod.Spec.Containers {
 		if s.Name == status.Name {
 			probe = s.ReadinessProbe

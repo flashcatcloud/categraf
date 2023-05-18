@@ -14,7 +14,6 @@ import (
 
 const (
 	inputName     = `self_metrics`
-	description   = `categraf self monitoring data`
 	defaultPrefix = "categraf"
 )
 
@@ -42,6 +41,10 @@ func (ins *Categraf) Gather(slist *types.SampleList) {
 		log.Println(err)
 		return
 	}
+	vTag := map[string]string{
+		"version": config.Version,
+	}
+	slist.PushSample(defaultPrefix, "up", 1, vTag)
 	for _, mf := range mfs {
 		metricName := mf.GetName()
 		for _, m := range mf.Metric {

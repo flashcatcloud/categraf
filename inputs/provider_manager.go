@@ -7,14 +7,13 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
-	"flashcat.cloud/categraf/pkg/checksum"
 )
 
 const inputFilePrefix = "input."
 
 type InputOperation interface {
 	RegisterInput(string, []cfg.ConfigWithFormat)
-	DeregisterInput(string, checksum.Checksum)
+	DeregisterInput(string, string)
 }
 
 // FormatInputName providerName + '.' + inputKey
@@ -55,7 +54,7 @@ type Provider interface {
 	GetInputConfig(inputName string) ([]cfg.ConfigWithFormat, error)
 
 	// 加载 input 的配置
-	LoadInputConfig([]cfg.ConfigWithFormat, Input) (map[checksum.Checksum]Input, error)
+	LoadInputConfig([]cfg.ConfigWithFormat, Input) (map[string]Input, error)
 }
 
 func NewProvider(c *config.ConfigType, op InputOperation) (Provider, error) {
@@ -166,9 +165,9 @@ func (pm *ProviderManager) GetInputConfig(inputName string) ([]cfg.ConfigWithFor
 	return cwf, nil
 }
 
-func (pm *ProviderManager) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) (map[checksum.Checksum]Input, error) {
+func (pm *ProviderManager) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) (map[string]Input, error) {
 	// 从配置中获取provider
-	inputs := make(map[checksum.Checksum]Input)
+	inputs := make(map[string]Input)
 	for _, p := range pm.providers {
 		is, err := p.LoadInputConfig(configs, input)
 		if err != nil {
