@@ -118,6 +118,15 @@ ipmi_fan5 agent_hostname=1.2.3.4 description=no_reading status_code=ns 0
 
 #### Version 2 Schema
 
+```text
+ipmi_cpu1_temp agent_hostname=1.2.3.4 description=40_degrees_c entity_id=3.1 server=192.168.10.173 status_code=ok unit=degrees_c 40
+ipmi_cpu2_temp agent_hostname=1.2.3.4 description=42_degrees_c entity_id=3.2 server=192.168.10.173 status_code=ok unit=degrees_c 42
+ipmi_pch_temp agent_hostname=1.2.3.4 description=66_degrees_c entity_id=7.1 server=192.168.10.173 status_code=ok unit=degrees_c 66
+ipmi_fan5 agent_hostname=1.2.3.4 description=no_reading entity_id=29.5 server=192.168.10.173 status_code=ns status_desc=no_reading 0
+ipmi_fan6 agent_hostname=1.2.3.4 description=500_rpm entity_id=29.6 server=192.168.10.173 status_code=lnc unit=rpm 500
+ipmi_fana agent_hostname=1.2.3.4 description=no_reading entity_id=29.7 server=192.168.10.173 status_code=ns status_desc=no_reading 0
+```
+
 When retrieving stats from the local machine (no server specified):
 
 ```text
@@ -128,7 +137,6 @@ ipmi_fan5 agent_hostname=1.2.3.4 description=no_reading entity_id=29.5 status_co
 ipmi_fan6 agent_hostname=1.2.3.4 description=500_rpm entity_id=29.6 status_code=lnc unit=rpm 500
 ipmi_fana agent_hostname=1.2.3.4 description=no_reading entity_id=29.7 status_code=ns status_desc=no_reading 0
 ```
-
 
 ## 示例配置
 categraf 采集所在的机器需要有ipmitool 命令，如果没有，需要安装
