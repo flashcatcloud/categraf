@@ -44,7 +44,7 @@ func (ins *Categraf) Gather(slist *types.SampleList) {
 	vTag := map[string]string{
 		"version": config.Version,
 	}
-	slist.PushSample(defaultPrefix, "up", 1, vTag)
+	slist.PushSample(defaultPrefix, "info", 1, vTag)
 	for _, mf := range mfs {
 		metricName := mf.GetName()
 		for _, m := range mf.Metric {
