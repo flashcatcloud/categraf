@@ -66,6 +66,7 @@ builds:
 
 archives:
   - id: categraf
+    rlcp: true
     builds:
       - linux-amd64-cgo
     format: tar.gz
@@ -77,6 +78,7 @@ archives:
     files:
       - conf/*
   - id: categraf-common
+    rlcp: true
     builds:
       - linux-amd64
       - linux-arm64
