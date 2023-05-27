@@ -64,3 +64,12 @@
   # tls_key = "/etc/telegraf/key.pem"
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
+
+    # [[instances.metrics]]
+    # mesurement = "sessions"
+    # label_fields = [ "status", "type" ]
+    # metric_fields = [ "value" ]
+    # timeout = "3s"
+    # request = '''
+    # SELECT status, type, COUNT(*) as value FROM v$session GROUP BY status, type
+    # '''
