@@ -53,9 +53,16 @@ func (item *Sample) ConvertTimeSeries(precision string) *prompb.TimeSeries {
 	}
 
 	pt := prompb.TimeSeries{}
-	timestamp := item.Timestamp.UnixMilli()
-	if precision == "s" {
+
+	var timestamp int64
+	switch precision {
+	case "s":
 		timestamp = item.Timestamp.Unix()
+	case "m":
+		ts := item.Timestamp.Unix()
+		timestamp = ts - ts%60
+	default:
+		timestamp = item.Timestamp.UnixMilli()
 	}
 
 	pt.Samples = append(pt.Samples, prompb.Sample{

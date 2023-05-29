@@ -192,6 +192,7 @@ func (m *Instance) parseV1(slist *types.SampleList, hostname string, cmdOut []by
 			}
 
 			fields[metric] = float64(descriptionInt)
+			delete(tags, "description")
 		} else if strings.Index(description, " ") > 0 {
 			// split middle column into value and unit
 			valunit := strings.SplitN(description, " ", 2)
@@ -200,6 +201,7 @@ func (m *Instance) parseV1(slist *types.SampleList, hostname string, cmdOut []by
 			if err != nil {
 				fields[metric] = 0.0
 			} else {
+				delete(tags, "description")
 				if len(valunit) > 1 {
 					tags["unit"] = transform(valunit[1])
 				}

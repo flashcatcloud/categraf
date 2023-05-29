@@ -169,10 +169,6 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 		}
 	}
 
-	if Config.Ibex.MetaDir == "" {
-		Config.Ibex.MetaDir = "tasks.d"
-	}
-
 	return nil
 }
 

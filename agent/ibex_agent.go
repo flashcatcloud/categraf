@@ -19,6 +19,10 @@ func NewIbexAgent() AgentModule {
 		log.Println("I! ibex agent disabled!")
 		return nil
 	}
+	if coreconfig.Config.Ibex.MetaDir == "" {
+		coreconfig.Config.Ibex.MetaDir = "tasks.d"
+	}
+
 	return &IbexAgent{}
 }
 
