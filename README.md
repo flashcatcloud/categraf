@@ -14,7 +14,7 @@
 
 Categraf is one-stop telemetry collector for Nightingale / Prometheus / M3DB / VictoriaMetrics / Thanos / Influxdb / TDengine.
 
-It is recommended that you use [Nightingale](https://github.com/ccfos/nightingale) as the backend observability tools, and at the same time use [FlashDuty](http://flashcat.cloud/blog/flashduty-intro/) as the OnCall system to realize alarm aggregation convergence, claiming, upgrading, scheduling, and coordination, so that the alarm can be reached efficiently and ensure that the alarm processing is not missed, so that every piece echoed.
+It is recommended that you use [Nightingale](https://github.com/ccfos/nightingale) as the backend observability tools, and at the same time use [FlashDuty](https://flashcat.cloud/product/flashduty?from=categraf) as the OnCall system to realize alarm aggregation convergence, claiming, upgrading, scheduling, and coordination, so that the alarm can be reached efficiently and ensure that the alarm processing is not missed, so that every piece echoed.
 
 
 ## Links
