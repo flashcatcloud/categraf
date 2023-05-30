@@ -150,6 +150,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 	}
 	err = NewBuilder().WithMessage(d.apiKey, encodedPayload).WithTopic(topic).Send(d.client)
 	if err != nil {
+		log.Printf("W! send message to kafka error %s, topic:%s", err, topic)
 		if ctx.Err() == context.Canceled {
 			return ctx.Err()
 		}
