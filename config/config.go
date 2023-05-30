@@ -169,10 +169,6 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 		}
 	}
 
-	if Config.Ibex.MetaDir == "" {
-		Config.Ibex.MetaDir = "tasks.d"
-	}
-
 	// If using test mode, the logs are output to standard output for easy viewing
 	if testMode {
 		Config.Log.FileName = "stdout"
