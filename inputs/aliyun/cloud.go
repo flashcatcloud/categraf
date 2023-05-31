@@ -64,6 +64,8 @@ type (
 
 		metricCache *metricCache      `toml:"-"`
 		metaCache   *cache.BasicCache `toml:"-"`
+
+		EcsAgentHostTag string `toml:"ecs_host_tag"`
 	}
 
 	Credential struct {
@@ -130,6 +132,9 @@ func (ins *Instance) Init() error {
 	}
 	if len(ins.Namespaces) == 0 {
 		ins.Namespaces = append(ins.Namespaces, "")
+	}
+	if len(ins.EcsAgentHostTag) == 0 {
+		ins.EcsAgentHostTag = "agent_hostname"
 	}
 	ins.metaCache = cache.NewBasicCache()
 
@@ -332,7 +337,7 @@ func (ins *Instance) makeLabels(point internalTypes.Point, labels ...map[string]
 	}
 	addLabel := func(instance interface{}) {
 		if meta, ok := instance.(*cms20190101.DescribeMonitoringAgentHostsResponseBodyHostsHost); ok {
-			result["ident"] = stringx.SnakeCase(*meta.HostName)
+			result[ins.EcsAgentHostTag] = stringx.SnakeCase(*meta.HostName)
 		}
 	}
 	if instance, ok := ins.metaCache.Get(ins.client.EcsKey(point.InstanceID)); ok {
