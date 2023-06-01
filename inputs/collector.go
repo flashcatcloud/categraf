@@ -7,13 +7,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 
-	pp "flashcat.cloud/categraf/parser/prometheus"
+	util "flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/types"
 )
 
 const capMetricChan = 1000
-
-var parser = pp.EmptyParser()
 
 func Collect(e prometheus.Collector, slist *types.SampleList, constLabels ...map[string]string) error {
 	if e == nil {
@@ -65,9 +63,9 @@ func Collect(e prometheus.Collector, slist *types.SampleList, constLabels ...map
 		case dtoMetric.Gauge != nil:
 			slist.PushSample("", desc.Name(), *dtoMetric.Gauge.Value, labels)
 		case dtoMetric.Summary != nil:
-			parser.HandleSummary(dtoMetric, nil, desc.Name(), slist)
+			util.HandleSummary("", dtoMetric, nil, desc.Name(), nil, slist)
 		case dtoMetric.Histogram != nil:
-			parser.HandleHistogram(dtoMetric, nil, desc.Name(), slist)
+			util.HandleHistogram("", dtoMetric, nil, desc.Name(), nil, slist)
 		default:
 			slist.PushSample("", desc.Name(), *dtoMetric.Untyped.Value, labels)
 		}
