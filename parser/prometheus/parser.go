@@ -1,12 +1,14 @@
 package prometheus
 
 import (
+	"math"
+	"net/http"
+
+	dto "github.com/prometheus/client_model/go"
+
 	"flashcat.cloud/categraf/pkg/filter"
 	util "flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/types"
-	dto "github.com/prometheus/client_model/go"
-	"math"
-	"net/http"
 )
 
 type Parser struct {
