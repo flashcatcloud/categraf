@@ -1,16 +1,12 @@
 package prometheus
 
 import (
-	"fmt"
-	"math"
-	"net/http"
-	"strings"
-
 	"flashcat.cloud/categraf/pkg/filter"
 	util "flashcat.cloud/categraf/pkg/metrics"
-	"flashcat.cloud/categraf/pkg/prom"
 	"flashcat.cloud/categraf/types"
 	dto "github.com/prometheus/client_model/go"
+	"math"
+	"net/http"
 )
 
 type Parser struct {
@@ -50,62 +46,16 @@ func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
 			tags := p.makeLabels(m)
 
 			if mf.GetType() == dto.MetricType_SUMMARY {
-				p.HandleSummary(m, tags, metricName, slist)
+				util.HandleSummary(p.NamePrefix, m, tags, metricName, nil, slist)
 			} else if mf.GetType() == dto.MetricType_HISTOGRAM {
-				p.HandleHistogram(m, tags, metricName, slist)
+				util.HandleHistogram(p.NamePrefix, m, tags, metricName, nil, slist)
 			} else {
-				p.handleGaugeCounter(m, tags, metricName, slist)
+				util.HandleGaugeCounter(p.NamePrefix, m, tags, metricName, nil, slist)
 			}
 		}
 	}
 
 	return nil
-}
-
-func (p *Parser) HandleSummary(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
-	namePrefix := ""
-	if !strings.HasPrefix(metricName, p.NamePrefix) {
-		namePrefix = p.NamePrefix
-	}
-
-	samples := make([]*types.Sample, 0, len(m.GetSummary().Quantile)+2)
-	samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetSummary().GetSampleCount()), tags))
-	samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetSummary().GetSampleSum(), tags))
-
-	for _, q := range m.GetSummary().Quantile {
-		samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "quantile"), q.GetValue(), tags, map[string]string{"quantile": fmt.Sprint(q.GetQuantile())}))
-	}
-	slist.PushFrontN(samples)
-}
-
-func (p *Parser) HandleHistogram(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
-	namePrefix := ""
-	if !strings.HasPrefix(metricName, p.NamePrefix) {
-		namePrefix = p.NamePrefix
-	}
-
-	samples := make([]*types.Sample, 0, len(m.GetHistogram().Bucket)+3)
-	samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "count"), float64(m.GetHistogram().GetSampleCount()), tags))
-	samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "sum"), m.GetHistogram().GetSampleSum(), tags))
-	samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), float64(m.GetHistogram().GetSampleCount()), tags, map[string]string{"le": "+Inf"}))
-
-	for _, b := range m.GetHistogram().Bucket {
-		le := fmt.Sprint(b.GetUpperBound())
-		value := float64(b.GetCumulativeCount())
-		samples = append(samples, types.NewSample("", prom.BuildMetric(namePrefix, metricName, "bucket"), value, tags, map[string]string{"le": le}))
-	}
-	slist.PushFrontN(samples)
-}
-
-func (p *Parser) handleGaugeCounter(m *dto.Metric, tags map[string]string, metricName string, slist *types.SampleList) {
-	fields := getNameAndValue(m, metricName)
-	for metric, value := range fields {
-		if !strings.HasPrefix(metric, p.NamePrefix) {
-			slist.PushFront(types.NewSample("", prom.BuildMetric(p.NamePrefix, metric, ""), value, tags))
-		} else {
-			slist.PushFront(types.NewSample("", prom.BuildMetric("", metric, ""), value, tags))
-		}
-	}
 }
 
 // Get labels from metric
