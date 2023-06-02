@@ -149,15 +149,15 @@ func work(version string, ps *system.SystemPS, client *http.Client) {
 		return
 	}
 
-	if res.StatusCode/100 != 2 {
-		log.Println("E! heartbeat status code:", res.StatusCode)
-		return
-	}
-
 	defer res.Body.Close()
 	bs, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Println("E! failed to read heartbeat response body:", err)
+		log.Println("E! failed to read heartbeat response body:", err, " status code:", res.StatusCode)
+		return
+	}
+
+	if res.StatusCode/100 != 2 {
+		log.Println("E! heartbeat status code:", res.StatusCode, " response:", string(bs))
 		return
 	}
 
