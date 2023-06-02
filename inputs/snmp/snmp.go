@@ -59,6 +59,8 @@ type ClientConfig struct {
 type Snmp struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
+
+	Mappings map[string]map[string]string `toml:"mappings"`
 }
 
 func init() {
@@ -78,6 +80,18 @@ func (s *Snmp) Name() string {
 func (s *Snmp) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(s.Instances))
 	for i := 0; i < len(s.Instances); i++ {
+		if len(s.Instances[i].Mappings) == 0 {
+			s.Instances[i].Mappings = s.Mappings
+		} else {
+			m := make(map[string]map[string]string)
+			for k, v := range s.Mappings {
+				m[k] = v
+			}
+			for k, v := range s.Instances[i].Mappings {
+				m[k] = v
+			}
+			s.Instances[i].Mappings = m
+		}
 		ret[i] = s.Instances[i]
 	}
 	return ret

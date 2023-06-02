@@ -33,6 +33,8 @@ type Instance struct {
 	connectionCache []snmpConnection
 
 	translator Translator
+
+	Mappings map[string]map[string]string `toml:"mappings"`
 }
 
 func (ins *Instance) Init() error {
@@ -90,13 +92,17 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				Fields: ins.Fields,
 			}
 			topTags := map[string]string{}
-			if err := ins.gatherTable(slist, gs, t, topTags, false); err != nil {
+			extraTags := map[string]string{}
+			if m, ok := ins.Mappings[agent]; ok {
+				extraTags = m
+			}
+			if err := ins.gatherTable(slist, gs, t, topTags, extraTags, false); err != nil {
 				log.Printf("agent %s ins: %s", agent, err)
 			}
 
 			// Now is the real tables.
 			for _, t := range ins.Tables {
-				if err := ins.gatherTable(slist, gs, t, topTags, true); err != nil {
+				if err := ins.gatherTable(slist, gs, t, topTags, extraTags, true); err != nil {
 					log.Printf("agent %s ins: gathering table %s error: %s", agent, t.Name, err)
 				}
 			}
@@ -105,7 +111,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gatherTable(slist *types.SampleList, gs snmpConnection, t Table, topTags map[string]string, walk bool) error {
+func (ins *Instance) gatherTable(slist *types.SampleList, gs snmpConnection, t Table, topTags, extraTags map[string]string, walk bool) error {
 	rt, err := t.Build(gs, walk, ins.translator)
 	if err != nil {
 		return err
@@ -131,6 +137,9 @@ func (ins *Instance) gatherTable(slist *types.SampleList, gs snmpConnection, t T
 		}
 		if _, ok := tr.Tags[ins.AgentHostTag]; !ok {
 			tr.Tags[ins.AgentHostTag] = gs.Host()
+		}
+		for k, v := range extraTags {
+			tr.Tags[k] = v
 		}
 		slist.PushSamples(prefix, tr.Fields, tr.Tags)
 	}
