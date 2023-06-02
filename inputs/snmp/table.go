@@ -7,16 +7,20 @@ import (
 	"log"
 	"math"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/Knetic/govaluate"
 	"github.com/gosnmp/gosnmp"
 )
 
 const (
-	indexFilterPrefix  = "ifIndex:"
-	ifTypeFilterPrefix = "ifType:"
+	commonFormat = 2
+	fullFormat   = 3
+
+	defaultExprPrefix = "expr"
 )
 
 // Table holds the configuration for an SNMP table.
@@ -42,7 +46,16 @@ type Table struct {
 
 	IncludeFilter []string `toml:"include_filter"`
 
-	idxFilter map[string]bool `toml:"-"`
+	Filters          []string `toml:"filters"`
+	FilterExpression string   `toml:"filters_expression"`
+
+	filterFormat int                `toml:"-"`
+	filtersMap   map[string]*Filter `toml:"-"`
+}
+
+type Filter struct {
+	key string
+	re  *regexp.Regexp
 }
 
 // Init builds & initializes the nested fields.
@@ -56,14 +69,52 @@ func (t *Table) Init(tr Translator) error {
 	if t.initialized {
 		return nil
 	}
-
-	t.idxFilter = make(map[string]bool)
-
 	if len(t.IncludeFilter) != 0 {
-		for _, filter := range t.IncludeFilter {
-			if strings.HasPrefix(filter, indexFilterPrefix) {
-				t.idxFilter[strings.TrimPrefix(filter, indexFilterPrefix)] = true
+		log.Println("W! include_filter is deprecated, please use filters instead")
+		t.Filters = append(t.Filters, t.IncludeFilter...)
+	}
+
+	if len(t.Filters) != 0 {
+		t.filtersMap = make(map[string]*Filter)
+		filterExpression := ""
+		for idx, filter := range t.Filters {
+			fields := strings.Split(filter, ":")
+			if t.filterFormat == 0 {
+				t.filterFormat = len(fields)
 			}
+			if t.filterFormat != len(fields) {
+				return fmt.Errorf("invalid filter format: %s, format must be {A}:{oid}:{match} or {oid}:{matrch}", filter)
+			}
+			switch t.filterFormat {
+			case commonFormat:
+				exprKey := fmt.Sprintf("%s%d", defaultExprPrefix, idx)
+				t.filtersMap[exprKey] = &Filter{
+					key: fields[0],
+					re:  regexp.MustCompile(fields[1]),
+				}
+				if t.FilterExpression == "" {
+					if filterExpression == "" {
+						filterExpression = exprKey
+					} else {
+						filterExpression = fmt.Sprintf("%s||%s", filterExpression, exprKey)
+					}
+				}
+
+			case fullFormat:
+				t.filtersMap[fields[0]] = &Filter{
+					key: fields[1],
+					re:  regexp.MustCompile(fields[2]),
+				}
+
+				if t.FilterExpression == "" {
+					return fmt.Errorf("filters_expression cannot be empty when filters are defined as {A}:{oid}:{match}")
+				}
+			default:
+				return fmt.Errorf("invalid filter format: %s, format must be {A}:{oid}:{match} or {oid}:{matrch}", filter)
+			}
+		}
+		if t.FilterExpression == "" {
+			t.FilterExpression = filterExpression
 		}
 	}
 
@@ -226,15 +277,6 @@ func (e *walkError) Unwrap() error {
 	return e.err
 }
 
-func (t Table) isIdxSelected(idx string) bool {
-	if len(t.idxFilter) == 0 {
-		return true
-	}
-
-	ok, val := t.idxFilter[idx]
-	return ok && val
-}
-
 // Build retrieves all the fields specified in the table and constructs the RTable.
 func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, error) {
 	rows := map[string]RTableRow{}
@@ -386,10 +428,6 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				rtr.Tags["index"] = idx
 			}
 
-			if !t.isIdxSelected(idx) {
-				continue
-			}
-
 			// don't add an empty string
 			if vs, ok := v.(string); !ok || vs != "" {
 				if f.IsTag {
@@ -424,7 +462,53 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 		Time: time.Now(), // TODO record time at start
 		Rows: make([]RTableRow, 0, len(rows)),
 	}
+
+	var (
+		err  error
+		expr *govaluate.EvaluableExpression
+	)
+	if len(t.FilterExpression) != 0 {
+		expr, err = govaluate.NewEvaluableExpression(t.FilterExpression)
+		if err != nil {
+			log.Println("filters_expression err:", err)
+		}
+	}
 	for _, r := range rows {
+		if expr == nil {
+			rt.Rows = append(rt.Rows, r)
+			continue
+		}
+		params := make(map[string]interface{})
+		for rk, rv := range t.filtersMap {
+			for k, v := range r.Tags {
+				if strings.HasPrefix(k, rv.key) {
+					if rv.re.MatchString(v) {
+						params[rk] = true
+					} else {
+						params[rk] = false
+					}
+				}
+			}
+
+			for k, v := range r.Fields {
+				if strings.HasPrefix(k, rv.key) {
+					if rv.re.MatchString(fmt.Sprintf("%v", v)) {
+						params[rk] = true
+					} else {
+						params[rk] = false
+					}
+				}
+			}
+		}
+		if len(params) != 0 {
+			result, err := expr.Evaluate(params)
+			if err != nil {
+				log.Println("filter expression err:", err)
+			}
+			if match, ok := result.(bool); ok && !match {
+				continue
+			}
+		}
 		rt.Rows = append(rt.Rows, r)
 	}
 	return &rt, nil
