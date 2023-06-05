@@ -237,7 +237,6 @@ func (m *Instance) parseV2(slist *types.SampleList, hostname string, cmdOut []by
 		}
 		tags["entity_id"] = transform(ipmiFields["entity_id"])
 		tags["status_code"] = trim(ipmiFields["status_code"])
-		tags["description"] = transform(ipmiFields["description"])
 
 		fields := make(map[string]interface{})
 		descriptionResults := m.extractFieldsFromRegex(reV2ParseDescription, trim(ipmiFields["description"]))
