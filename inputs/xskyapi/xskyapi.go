@@ -155,182 +155,195 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 	if config.Config.DebugMode {
 		log.Println("D! xskyapi... server:", server)
 	}
+	offset := 0
+	labels := map[string]string{"server": server}
+	fields := make(map[string]interface{})
 
 	// acquire quota data of 3 mainstream distributed storage service provided by Xsky
 	switch ins.DssType {
 	case "oss": // object storage
 
 		// oss users
-
-		urlUsers := server + "/v1/os-users"
-
-		resp, _, err := ins.sendRequest(urlUsers, token)
-		if err != nil {
-			log.Println("E! failed to send request to xskyapi url:", urlUsers, "error:", err)
-		}
-
 		osUsers := OsUsers{}
+		urlUsers := server + "/v1/os-users"
+		for {
+			resp, _, err := ins.sendRequest(urlUsers, token, offset)
+			if err != nil {
+				log.Println("E! failed to send request to xskyapi url:", urlUsers, "error:", err)
+			}
 
-		er := json.Unmarshal(resp, &osUsers)
-		if er != nil {
-			log.Printf("Parsing JSON string exception：%s\n", err)
+			er := json.Unmarshal(resp, &osUsers)
+			if er != nil {
+				fmt.Printf("Parsing JSON string exception：%s\n", err)
+			}
+
+			for _, user := range osUsers.OsUser {
+				labels["name"] = user.Name
+				labels["id"] = strconv.Itoa(user.ID)
+				fields["oss_user_quota"] = user.UserQuotaMaxSize
+				fields["oss_user_used_size"] = user.Samples[0].AllocatedSize
+				slist.PushSamples(inputName, fields, labels)
+			}
+			if osUsers.Page.Limit > osUsers.Page.Count {
+				break
+			}
+			offset = osUsers.Page.Offset + osUsers.Page.Limit
 		}
-
-		labels := map[string]string{"server": server}
-		fields := make(map[string]interface{})
-
-		for _, user := range osUsers.OsUser {
-			labels["name"] = user.Name
-			labels["id"] = strconv.Itoa(user.ID)
-			fields["oss_user_quota"] = user.UserQuotaMaxSize
-			fields["oss_user_used_size"] = user.Samples[0].AllocatedSize
-			slist.PushSamples(inputName, fields, labels)
-		}
-
+		
 		// oss buckets
-
+		osBuckets := OsBuckets{}
 		urlBuckets := server + "/v1/os-buckets"
 
-		resp, _, err = ins.sendRequest(urlBuckets, token)
-		if err != nil {
-			log.Println("E! failed to send request to xskyapi url:", urlBuckets, "error:", err)
-		}
-		osBuckets := OsBuckets{}
+		for {
+			resp, _, err := ins.sendRequest(urlBuckets, token, offset)
+			if err != nil {
+				log.Println("E! failed to send request to xskyapi url:", urlBuckets, "error:", err)
+			}
+			err = json.Unmarshal(resp, &osBuckets)
+			if err != nil {
+				fmt.Printf("Parsing JSON string exception：%s\n", err)
+			}
 
-		err = json.Unmarshal(resp, &osBuckets)
-		if err != nil {
-			log.Printf("Parsing JSON string exception：%s\n", err)
-		}
-
-		labels = map[string]string{"server": server}
-		fields = make(map[string]interface{})
-
-		for _, bucket := range osBuckets.OsBucket {
-			labels["name"] = bucket.Name
-			labels["id"] = strconv.Itoa(bucket.ID)
-			labels["user_id"] = strconv.Itoa(bucket.Owner.ID)
-			labels["user_name"] = bucket.Owner.Name
-			fields["oss_bucket_quota"] = bucket.BucketQuotaMaxSize
-			fields["oss_bucket_used_size"] = bucket.Samples[0].AllocatedSize
-			slist.PushSamples(inputName, fields, labels)
+			for _, bucket := range osBuckets.OsBucket {
+				labels["name"] = bucket.Name
+				labels["id"] = strconv.Itoa(bucket.ID)
+				labels["user_id"] = strconv.Itoa(bucket.Owner.ID)
+				labels["user_name"] = bucket.Owner.Name
+				fields["oss_bucket_quota"] = bucket.BucketQuotaMaxSize
+				fields["oss_bucket_used_size"] = bucket.Samples[0].AllocatedSize
+				slist.PushSamples(inputName, fields, labels)
+			}
+			if osBuckets.Page.Limit > osBuckets.Page.Count {
+				break
+			}
+			offset = osBuckets.Page.Offset + osBuckets.Page.Limit
 		}
 
 	case "gfs":
 
 		// gfs dfs
-
+		
+		dfsQuotas := DfsQuotas{}
 		urlDfs := server + "/v1/dfs-quotas"
 
-		resp, _, err := ins.sendRequest(urlDfs, token)
-		if err != nil {
-			log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
-		}
+		for {
+			resp, _, err := ins.sendRequest(urlDfs, token, offset)
+			if err != nil {
+				log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
+			}
+			er := json.Unmarshal(resp, &dfsQuotas)
+			if er != nil {
+				fmt.Printf("Parsing JSON string exception：%s\n", err)
+			}
 
-		dfsQuotas := DfsQuotas{}
+			labels := map[string]string{"server": server}
 
-		er := json.Unmarshal(resp, &dfsQuotas)
-		if er != nil {
-			log.Printf("Parsing JSON string exception：%s\n", err)
-		}
-
-		labels := map[string]string{"server": server}
-		fields := make(map[string]interface{})
-
-		for _, dfsQuota := range dfsQuotas.DfsQuota {
-			labels["name"] = dfsQuota.DfsPath.Name
-			labels["id"] = strconv.Itoa(dfsQuota.DfsPath.ID)
-			fields["dfs_quota"] = dfsQuota.SizeHardQuota
-			slist.PushSamples(inputName, fields, labels)
+			for _, dfsQuota := range dfsQuotas.DfsQuota {
+				labels["name"] = dfsQuota.DfsPath.Name
+				labels["id"] = strconv.Itoa(dfsQuota.DfsPath.ID)
+				fields["dfs_quota"] = dfsQuota.SizeHardQuota
+				slist.PushSamples(inputName, fields, labels)
+			}
+			if dfsQuotas.Page.Limit > dfsQuotas.Page.Count {
+				break
+			}
+			offset = dfsQuotas.Page.Offset + dfsQuotas.Page.Limit
 		}
 
 		// gfs block volumes
-
+		
+		blockVolumes := BlockVolumes{}
 		urlBV := server + "/v1/block-volumes"
 
-		resp, _, err = ins.sendRequest(urlBV, token)
-		if err != nil {
-			log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
-		}
+		for {
+			resp, _, err := ins.sendRequest(urlBV, token, offset)
+			if err != nil {
+				log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
+			}
+			er := json.Unmarshal(resp, &dfsQuotas)
+			if er != nil {
+				fmt.Printf("Parsing JSON string exception：%s\n", err)
+			}
 
-		blockVolumes := BlockVolumes{}
-
-		err = json.Unmarshal(resp, &blockVolumes)
-		if err != nil {
-			log.Printf("Parsing JSON string exception：%s\n", err)
-		}
-
-		labels = map[string]string{"server": server}
-		fields = make(map[string]interface{})
-
-		for _, blockVolume := range blockVolumes.BlockVolume {
-			labels["name"] = blockVolume.Name
-			labels["id"] = strconv.Itoa(blockVolume.ID)
-			fields["block_volume_quota"] = blockVolume.Size
-			fields["block_volume_used_size"] = blockVolume.AllocatedSize
-			slist.PushSamples(inputName, fields, labels)
+			for _, blockVolume := range blockVolumes.BlockVolume {
+				labels["name"] = blockVolume.Name
+				labels["id"] = strconv.Itoa(blockVolume.ID)
+				fields["block_volume_quota"] = blockVolume.Size
+				fields["block_volume_used_size"] = blockVolume.AllocatedSize
+				slist.PushSamples(inputName, fields, labels)
+			}
+			if blockVolumes.Page.Limit > blockVolumes.Page.Count {
+				break
+			}
+			offset = blockVolumes.Page.Offset + blockVolumes.Page.Limit
 		}
 
 	case "eus":
 
 		// eus-folder
 
+		fsFolders := FsFolders{}
 		urlDfs := server + "/v1/fs-folders"
 
-		resp, _, err := ins.sendRequest(urlDfs, token)
-		if err != nil {
-			log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
-		}
+		for {
+			resp, _, err := ins.sendRequest(urlDfs, token, offset)
+			if err != nil {
+				log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
+			}
 
-		fsFolders := FsFolders{}
+			er := json.Unmarshal(resp, &fsFolders)
+			if er != nil {
+				fmt.Printf("Parsing JSON string exception：%s\n", err)
+			}
 
-		er := json.Unmarshal(resp, &fsFolders)
-		if er != nil {
-			log.Printf("Parsing JSON string exception：%s\n", err)
-		}
-
-		labels := map[string]string{"server": server}
-		fields := make(map[string]interface{})
-
-		for _, fsFolder := range fsFolders.FsFolder {
-			labels["name"] = fsFolder.Name
-			labels["id"] = strconv.Itoa(fsFolder.ID)
-			fields["dfs_quota"] = fsFolder.Size
-			slist.PushSamples(inputName, fields, labels)
+			for _, fsFolder := range fsFolders.FsFolder {
+				labels["name"] = fsFolder.Name
+				labels["id"] = strconv.Itoa(fsFolder.ID)
+				fields["dfs_quota"] = fsFolder.Size
+				slist.PushSamples(inputName, fields, labels)
+			}
+			if fsFolders.Page.Limit > fsFolders.Page.Count {
+				break
+			}
+			offset = fsFolders.Page.Offset + fsFolders.Page.Limit
 		}
 
 		// eus block volumes
 
+		blockVolumes := BlockVolumes{}
 		urlBV := server + "/v1/block-volumes"
 
-		resp, _, err = ins.sendRequest(urlBV, token)
-		if err != nil {
-			log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
-		}
+		for {
+			resp, _, err := ins.sendRequest(urlBV, token, offset)
+			if err != nil {
+				log.Println("E! failed to send request to xskyapi url:", urlDfs, "error:", err)
+			}
 
-		blockVolumes := BlockVolumes{}
+			err = json.Unmarshal(resp, &blockVolumes)
+			if err != nil {
+				fmt.Printf("Parsing JSON string exception：%s\n", err)
+			}
 
-		err = json.Unmarshal(resp, &blockVolumes)
-		if err != nil {
-			log.Printf("Parsing JSON string exception：%s\n", err)
-		}
+			//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
 
-		labels = map[string]string{"server": server}
-		fields = make(map[string]interface{})
-		// log.Println("D! len(OsUsers):", len(osUsers.OsUser))
-
-		for _, blockVolume := range blockVolumes.BlockVolume {
-			labels["name"] = blockVolume.Name
-			labels["id"] = strconv.Itoa(blockVolume.ID)
-			fields["block_volume_quota"] = blockVolume.Size
-			fields["block_volume_used_size"] = blockVolume.AllocatedSize
-			slist.PushSamples(inputName, fields, labels)
+			for _, blockVolume := range blockVolumes.BlockVolume {
+				labels["name"] = blockVolume.Name
+				labels["id"] = strconv.Itoa(blockVolume.ID)
+				fields["block_volume_quota"] = blockVolume.Size
+				fields["block_volume_used_size"] = blockVolume.AllocatedSize
+				slist.PushSamples(inputName, fields, labels)
+			}
+			if blockVolumes.Page.Limit > blockVolumes.Page.Count {
+				break
+			}
+			offset = blockVolumes.Page.Offset + blockVolumes.Page.Limit
 		}
 	default:
 		log.Printf("E! dss_type %s not suppported, expected oss, gfs or eus", ins.DssType)
 	}
 }
 
-func (ins *Instance) sendRequest(serverURL string, token string) ([]byte, float64, error) {
+func (ins *Instance) sendRequest(serverURL string, token string，offset int) ([]byte, float64, error) {
 	// Prepare URL
 	requestURL, _ := url.Parse(serverURL)
 	log.Println("D! now parseurl:", requestURL)
@@ -339,9 +352,8 @@ func (ins *Instance) sendRequest(serverURL string, token string) ([]byte, float6
 	data := url.Values{}
 
 	params := requestURL.Query()
-	for k, v := range ins.Parameters {
-		params.Add(k, v)
-	}
+	params.Add("offset", strconv.Itoa(offset))
+	
 	requestURL.RawQuery = params.Encode()
 
 	// Create + send request
@@ -383,7 +395,15 @@ func (ins *Instance) sendRequest(serverURL string, token string) ([]byte, float6
 	return body, responseTime, err
 }
 
+type Paging struct {
+	Count      int `json:"count"`
+	Limit      int `json:"limit"`
+	Offset     int `json:"offset"`
+	TotalCount int `json:"total_count"`
+}
+
 type osUser struct {
+	//Email       string `json:"email"`
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
 	Samples []struct {
@@ -394,10 +414,12 @@ type osUser struct {
 
 type OsUsers struct {
 	OsUser []*osUser `json:"os_users"`
+	Page   Paging    `json:"paging"`
 }
 
 type osBucket struct {
-	ID    int    `json:"id"`
+	ID int `json:"id"`
+	//MaxBuckets                    int         `json:"max_buckets"`
 	Name  string `json:"name"`
 	Owner struct {
 		ID   int    `json:"id"`
@@ -411,6 +433,7 @@ type osBucket struct {
 
 type OsBuckets struct {
 	OsBucket []*osBucket `json:"os_buckets"`
+	Page     Paging      `json:"paging"`
 }
 
 type dfsQuota struct {
@@ -423,6 +446,7 @@ type dfsQuota struct {
 
 type DfsQuotas struct {
 	DfsQuota []*dfsQuota `json:"dfs_quotas"`
+	Page     Paging      `json:"paging"`
 }
 
 type blockVolume struct {
@@ -434,6 +458,7 @@ type blockVolume struct {
 
 type BlockVolumes struct {
 	BlockVolume []*blockVolume `json:"block_volumes"`
+	Page        Paging         `json:"paging"`
 }
 
 type fsFolder struct {
@@ -444,4 +469,5 @@ type fsFolder struct {
 
 type FsFolders struct {
 	FsFolder []*fsFolder `json:"fs_folders"`
+	Page     Paging      `json:"paging"`
 }
