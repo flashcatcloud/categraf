@@ -47,6 +47,10 @@ type Instance struct {
 }
 
 func (m *Instance) Init() error {
+	if len(m.Servers) == 0 && !m.UseSudo {
+		return types.ErrInstancesEmpty
+	}
+
 	// Set defaults
 	if m.Path == "" {
 		path, err := exec.LookPath(cmd)
@@ -65,10 +69,6 @@ func (m *Instance) Init() error {
 	}
 	if m.Timeout == config.Duration(0) {
 		m.Timeout = config.Duration(20 * time.Second)
-	}
-
-	if len(m.Servers) == 0 && !m.UseSudo {
-		return types.ErrInstancesEmpty
 	}
 
 	return nil
