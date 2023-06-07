@@ -16,13 +16,11 @@ additional global and plugin configuration settings. These settings are used to
 modify metrics, tags, and field or create aliases and configure ordering, etc.
 See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
 
-[CONFIGURATION.md]: ../../../docs/CONFIGURATION.md#plugins
-
 ## Configuration
 
 ```toml @sample.conf
 # Gather health check statuses from services registered in Consul
-[[inputs.consul]]
+[[instances]]
   ## Consul server address
   # address = "localhost:8500"
 

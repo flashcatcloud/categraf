@@ -33,9 +33,10 @@ type Instance struct {
 func (ins *Instance) Init() error {
 	conf := api.DefaultConfig()
 
-	if ins.Address != "" {
-		conf.Address = ins.Address
+	if ins.Address == "" {
+		return types.ErrInstancesEmpty
 	}
+	conf.Address = ins.Address
 
 	if ins.Scheme != "" {
 		conf.Scheme = ins.Scheme
