@@ -189,7 +189,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 			}
 			offset = osUsers.Page.Offset + osUsers.Page.Limit
 		}
-		
+
 		// oss buckets
 		osBuckets := OsBuckets{}
 		urlBuckets := server + "/v1/os-buckets"
@@ -222,7 +222,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 	case "gfs":
 
 		// gfs dfs
-		
+
 		dfsQuotas := DfsQuotas{}
 		urlDfs := server + "/v1/dfs-quotas"
 
@@ -251,7 +251,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		}
 
 		// gfs block volumes
-		
+
 		blockVolumes := BlockVolumes{}
 		urlBV := server + "/v1/block-volumes"
 
@@ -324,7 +324,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 				fmt.Printf("Parsing JSON string exception：%s\n", err)
 			}
 
-			//log.Println("D! len(OsUsers):", len(osUsers.OsUser))
+			// log.Println("D! len(OsUsers):", len(osUsers.OsUser))
 
 			for _, blockVolume := range blockVolumes.BlockVolume {
 				labels["name"] = blockVolume.Name
@@ -343,7 +343,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 	}
 }
 
-func (ins *Instance) sendRequest(serverURL string, token string，offset int) ([]byte, float64, error) {
+func (ins *Instance) sendRequest(serverURL string, token string, offset int) ([]byte, float64, error) {
 	// Prepare URL
 	requestURL, _ := url.Parse(serverURL)
 	log.Println("D! now parseurl:", requestURL)
@@ -353,7 +353,7 @@ func (ins *Instance) sendRequest(serverURL string, token string，offset int) ([
 
 	params := requestURL.Query()
 	params.Add("offset", strconv.Itoa(offset))
-	
+
 	requestURL.RawQuery = params.Encode()
 
 	// Create + send request
@@ -403,7 +403,7 @@ type Paging struct {
 }
 
 type osUser struct {
-	//Email       string `json:"email"`
+	// Email       string `json:"email"`
 	ID      int    `json:"id"`
 	Name    string `json:"name"`
 	Samples []struct {
@@ -419,7 +419,7 @@ type OsUsers struct {
 
 type osBucket struct {
 	ID int `json:"id"`
-	//MaxBuckets                    int         `json:"max_buckets"`
+	// MaxBuckets                    int         `json:"max_buckets"`
 	Name  string `json:"name"`
 	Owner struct {
 		ID   int    `json:"id"`
