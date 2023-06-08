@@ -292,10 +292,12 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 		name = strings.ReplaceAll(name, "(", "_")
 		name = strings.ReplaceAll(name, ")", "_")
 		name = strings.ReplaceAll(name, " ", "_")
+		name = strings.ReplaceAll(name, "%", "_")
 		name = strings.ReplaceAll(name, "/", "_per_")
 		name = stringx.SnakeCase(name)
 
 		labels["metric_id"] = fmt.Sprintf("%v", metric.ID)
+		labels["metric_path"] = metric.Path
 		for _, val := range metric.Values {
 			sec := val.Timestamp / 1000
 			nsec := (val.Timestamp - sec*1000) * 1e6
