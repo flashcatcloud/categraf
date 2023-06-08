@@ -1,8 +1,8 @@
 package appdynamics
 
 import (
+	"bytes"
 	"encoding/json"
-	"flashcat.cloud/categraf/pkg/stringx"
 	"fmt"
 	"io"
 	"log"
@@ -11,10 +11,12 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/stringx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 )
@@ -24,7 +26,10 @@ type (
 		config.InstanceConfig
 
 		config.HTTPProxy
-		URLs            []string          `toml:"urls"`
+		URLBase string              `toml:"url_base"`
+		URLVars []map[string]string `toml:"url_vars"`
+
+		URLs            []string          `toml:"-"`
 		Headers         map[string]string `toml:"headers"`
 		Method          string            `toml:"method"`
 		FollowRedirects bool              `toml:"follow_redirects"`
@@ -72,21 +77,51 @@ var _ inputs.SampleGatherer = new(Instance)
 func (ins *Instance) Drop() {
 }
 
-func (ins *Instance) Init() error {
-	if ins == nil ||
-		len(ins.URLs) == 0 {
-		return types.ErrInstancesEmpty
+func (ins *Instance) prepare() error {
+	tmpl, err := template.New("appdynamics").Parse(ins.URLBase)
+	if err != nil {
+		e := fmt.Errorf("failed to parse url template, error: %s", err)
+		log.Println(e)
+		return e
 	}
 
-	for _, target := range ins.URLs {
+	var buf bytes.Buffer
+	for _, vars := range ins.URLVars {
+		buf.Reset()
+		err = tmpl.Execute(&buf, vars)
+		if err != nil {
+			e := fmt.Errorf("failed to prepare url template, error: %s", err)
+			log.Println(e)
+			return e
+		}
+		target := buf.String()
 		addr, err := url.Parse(target)
 		if err != nil {
-			return fmt.Errorf("failed to parse http(s) url: %s, error: %v", target, err)
+			e := fmt.Errorf("failed to parse http(s) url: %s, error: %v", target, err)
+			log.Println(e)
+			return e
 		}
 
 		if addr.Scheme != "http" && addr.Scheme != "https" {
-			return fmt.Errorf("only http and https are supported, url: %s", target)
+			e := fmt.Errorf("only http and https are supported, url: %s", target)
+			log.Println(e)
+			return e
 		}
+
+		addr.RawQuery = url.PathEscape(addr.RawQuery)
+		ins.URLs = append(ins.URLs, addr.String())
+	}
+	return nil
+}
+
+func (ins *Instance) Init() error {
+	if ins == nil ||
+		len(ins.URLBase) == 0 {
+		return types.ErrInstancesEmpty
+	}
+	err := ins.prepare()
+	if err != nil {
+		return err
 	}
 
 	if ins.Timeout == 0 {
@@ -204,13 +239,14 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 	ins.setHeaders(req)
 	labels := map[string]string{}
 
-	urlKey, urlVal, err := ins.GenerateLabel(u)
-	if err != nil {
-		log.Println("E! failed to generate url label value:", err)
-		return
+	if ins.LabelValue != "" {
+		urlKey, urlVal, err := ins.GenerateLabel(u)
+		if err != nil {
+			log.Println("E! failed to generate url label value:", err)
+			return
+		}
+		labels[urlKey] = urlVal
 	}
-
-	labels[urlKey] = urlVal
 
 	res, err := ins.client.Do(req)
 	if err != nil {
@@ -241,12 +277,22 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 		log.Printf("E! failed to unmarshal response body %s, url:%s, error:%s", body, u.String(), err)
 	}
 	for _, metric := range metrics {
-		name := strings.ReplaceAll(metric.Name, ":", "_")
+		name := metric.Path
+		names := strings.Split(metric.Path, "|")
+		if len(names) > 0 {
+			name = names[len(names)-1]
+		}
+
+		name = strings.ReplaceAll(name, ":", "_")
 		name = strings.ReplaceAll(name, "{", "_")
 		name = strings.ReplaceAll(name, "}", "_")
 		name = strings.ReplaceAll(name, "[", "_")
 		name = strings.ReplaceAll(name, "]", "_")
 		name = strings.ReplaceAll(name, "|", "_")
+		name = strings.ReplaceAll(name, "(", "_")
+		name = strings.ReplaceAll(name, ")", "_")
+		name = strings.ReplaceAll(name, " ", "_")
+		name = strings.ReplaceAll(name, "/", "_per_")
 		name = stringx.SnakeCase(name)
 
 		labels["metric_id"] = fmt.Sprintf("%v", metric.ID)
@@ -256,26 +302,27 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 			tm := time.Unix(sec, nsec)
 			for _, filter := range ins.Filters {
 				if filter == "current" {
-					slist.PushFront(types.NewSample("app_dynamics", name+"_current", val.Current, labels).SetTime(tm))
+					slist.PushFront(types.NewSample(inputName, name+"_current", val.Current, labels).SetTime(tm))
 				}
 				if filter == "max" {
-					slist.PushFront(types.NewSample("app_dynamics", name+"_max", val.Max, labels).SetTime(tm))
+					slist.PushFront(types.NewSample(inputName, name+"_max", val.Max, labels).SetTime(tm))
 				}
 				if filter == "min" {
-					slist.PushFront(types.NewSample("app_dynamics", name+"_min", val.Min, labels).SetTime(tm))
+					slist.PushFront(types.NewSample(inputName, name+"_min", val.Min, labels).SetTime(tm))
 				}
 				if filter == "count" {
-					slist.PushFront(types.NewSample("app_dynamics", name+"_count", val.Count, labels).SetTime(tm))
+					slist.PushFront(types.NewSample(inputName, name+"_count", val.Count, labels).SetTime(tm))
 				}
 				if filter == "sum" {
-					slist.PushFront(types.NewSample("app_dynamics", name+"_sum", val.Sum, labels).SetTime(tm))
+					slist.PushFront(types.NewSample(inputName, name+"_sum", val.Sum, labels).SetTime(tm))
 				}
 				if filter == "value" {
-					slist.PushFront(types.NewSample("app_dynamics", name+"_value", val.Value, labels).SetTime(tm))
+					slist.PushFront(types.NewSample(inputName, name+"_value", val.Value, labels).SetTime(tm))
 				}
 			}
 			if len(ins.Filters) == 0 {
-				slist.PushFront(types.NewSample("app_dynamics", name, val.Value, labels).SetTime(tm))
+				log.Printf("W! no filter specified, use default filter: current")
+				slist.PushFront(types.NewSample(inputName, name+"_current", val.Current, labels).SetTime(tm))
 			}
 		}
 	}

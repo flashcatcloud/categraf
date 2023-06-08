@@ -1,8 +1,9 @@
 #interval=15s
 
 [[instances]]
-urls = [
- #  "http://localhost:8080",
+url_base = "http://{{.ip}}:{{.port}}/a.json?metric-path={{.metric_path}}&time-range-type=BETWEEN_TIMES&start-time={{.start_time}}&end-time={{.end_time}}&output=JSON"
+url_vars = [
+    { ip="127.0.0.1", port="8090", application="cms", metric_path="Application Infrastructure Performance|AdminServer|Individual Nodes|xxxxx|Agent|App|Availability", start_time="$START_TIME", end_time="$END_TIME"},
 ]
 # #从url中提取变量 
 # url_label_key="instance"
@@ -27,7 +28,7 @@ period = "1m"
 # # 想要添加的额外label
 labels = {application="cms"}
 # # 从返回中过滤哪些指标
-filters = ["current"]
+filters = ["current", "max", "min", "value","sum", "count"]
 
 # # 限制并发请求量, 最多同时有多少个请求
 # # 默认范围(0,100)
