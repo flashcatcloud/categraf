@@ -292,6 +292,7 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 		name = strings.ReplaceAll(name, "(", "_")
 		name = strings.ReplaceAll(name, ")", "_")
 		name = strings.ReplaceAll(name, " ", "_")
+		name = strings.ReplaceAll(name, "%", "_")
 		name = strings.ReplaceAll(name, "/", "_per_")
 		name = stringx.SnakeCase(name)
 
