@@ -55,6 +55,8 @@ func (s *MemStats) Gather(slist *types.SampleList) {
 
 	if s.CollectPlatformFields {
 		switch runtime.GOOS {
+		case "windows":
+			fields["free"] = vm.Free
 		case "darwin":
 			fields["active"] = vm.Active
 			fields["free"] = vm.Free
