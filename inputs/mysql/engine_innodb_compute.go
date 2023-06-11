@@ -8,6 +8,9 @@ import (
 )
 
 func (ins *Instance) gatherEngineInnodbStatusCompute(slist *types.SampleList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+	if ins.DisableExtraInnodbStatus {
+		return
+	}
 	tags := tagx.Copy(globalTags)
 
 	pageUsed := cache["innodb_buffer_pool_pages_total"] - cache["innodb_buffer_pool_pages_free"]
