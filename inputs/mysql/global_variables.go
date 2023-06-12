@@ -12,6 +12,9 @@ import (
 )
 
 func (ins *Instance) gatherGlobalVariables(slist *types.SampleList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+	if ins.DisableGlobalStatus {
+		return
+	}
 	rows, err := db.Query(SQL_GLOBAL_VARIABLES)
 	if err != nil {
 		log.Println("E! failed to query global variables:", err)

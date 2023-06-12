@@ -16,6 +16,9 @@ import (
 var globalStatusRE = regexp.MustCompile(`^(com|handler|connection_errors|innodb_buffer_pool_pages|innodb_rows|performance_schema)_(.*)$`)
 
 func (ins *Instance) gatherGlobalStatus(slist *types.SampleList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
+	if ins.DisableGlobalStatus {
+		return
+	}
 	rows, err := db.Query(SQL_GLOBAL_STATUS)
 	if err != nil {
 		log.Println("E! failed to query global status:", err)
