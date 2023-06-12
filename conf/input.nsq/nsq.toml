@@ -2,7 +2,7 @@
 #interval = 15
 
 [[instances]]
-## An array of Nginx stub_status URI to gather stats.
+## The Nsq API URI used to collect statistical information.
 #url = "http://127.0.0.1:8171/api/topics"
 
 ## append some labels for series
