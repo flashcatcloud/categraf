@@ -162,7 +162,6 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 	// acquire quota data of 3 mainstream distributed storage service provided by Xsky
 	switch ins.DssType {
 	case "oss": // object storage
-
 		// oss users
 		osUsers := OsUsers{}
 		urlUsers := server + "/v1/os-users"
@@ -191,6 +190,8 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		}
 
 		// oss buckets
+		labels = map[string]string{"server": server}
+		fields = make(map[string]interface{})
 		osBuckets := OsBuckets{}
 		urlBuckets := server + "/v1/os-buckets"
 
@@ -236,8 +237,6 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 				fmt.Printf("Parsing JSON string exception：%s\n", err)
 			}
 
-			labels := map[string]string{"server": server}
-
 			for _, dfsQuota := range dfsQuotas.DfsQuota {
 				labels["name"] = dfsQuota.DfsPath.Name
 				labels["id"] = strconv.Itoa(dfsQuota.DfsPath.ID)
@@ -251,7 +250,8 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		}
 
 		// gfs block volumes
-
+		labels = map[string]string{"server": server}
+		fields = make(map[string]interface{})
 		blockVolumes := BlockVolumes{}
 		urlBV := server + "/v1/block-volumes"
 
@@ -309,7 +309,8 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		}
 
 		// eus block volumes
-
+		labels = map[string]string{"server": server}
+		fields = make(map[string]interface{})
 		blockVolumes := BlockVolumes{}
 		urlBV := server + "/v1/block-volumes"
 
@@ -346,7 +347,9 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 func (ins *Instance) sendRequest(serverURL string, token string, offset int) ([]byte, float64, error) {
 	// Prepare URL
 	requestURL, _ := url.Parse(serverURL)
-	log.Println("D! now parseurl:", requestURL)
+	if config.Config.DebugMode {
+		log.Println("D! now parseurl:", requestURL)
+	}
 
 	// Prepare request query and body
 	data := url.Values{}
