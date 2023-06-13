@@ -53,6 +53,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/nfsclient"
 	_ "flashcat.cloud/categraf/inputs/nginx"
 	_ "flashcat.cloud/categraf/inputs/nginx_upstream_check"
+	_ "flashcat.cloud/categraf/inputs/nsq"
 	_ "flashcat.cloud/categraf/inputs/ntp"
 	_ "flashcat.cloud/categraf/inputs/nvidia_smi"
 	_ "flashcat.cloud/categraf/inputs/oracle"
