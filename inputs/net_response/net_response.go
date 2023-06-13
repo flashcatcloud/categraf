@@ -35,6 +35,8 @@ type Instance struct {
 	ReadTimeout config.Duration `toml:"read_timeout"`
 	Send        string          `toml:"send"`
 	Expect      string          `toml:"expect"`
+
+	Mappings map[string]map[string]string `toml:"mappings"`
 }
 
 func (ins *Instance) Init() error {
@@ -85,6 +87,8 @@ func (ins *Instance) Init() error {
 type NetResponse struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
+
+	Mappings map[string]map[string]string `toml:"mappings"`
 }
 
 func init() {
@@ -104,6 +108,18 @@ func (n *NetResponse) Name() string {
 func (n *NetResponse) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(n.Instances))
 	for i := 0; i < len(n.Instances); i++ {
+		if len(n.Instances[i].Mappings) == 0 {
+			n.Instances[i].Mappings = n.Mappings
+		} else {
+			m := make(map[string]map[string]string)
+			for k, v := range n.Mappings {
+				m[k] = v
+			}
+			for k, v := range n.Instances[i].Mappings {
+				m[k] = v
+			}
+			n.Instances[i].Mappings = m
+		}
 		ret[i] = n.Instances[i]
 	}
 	return ret
@@ -132,6 +148,11 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 
 	labels := map[string]string{"target": target}
 	fields := map[string]interface{}{}
+	if m, ok := ins.Mappings[target]; ok {
+		for k, v := range m {
+			labels[k] = v
+		}
+	}
 
 	defer func() {
 		for field, value := range fields {
