@@ -18,8 +18,9 @@ type HTTPCommonConfig struct {
 
 	Headers map[string]string `toml:"headers"`
 
-	Timeout         Duration `toml:"timeout"`
-	FollowRedirects bool     `toml:"follow_redirects"`
+	Timeout           Duration `toml:"timeout"`
+	FollowRedirects   *bool    `toml:"follow_redirects"`
+	DisableKeepAlives *bool    `toml:"disable_keepalives"`
 
 	tls.ClientConfig
 	HTTPProxy
@@ -44,6 +45,15 @@ func (hcc *HTTPCommonConfig) InitHTTPClientConfig() {
 	}
 	if len(hcc.Body) != 0 {
 		hcc.body = strings.NewReader(hcc.Body)
+	}
+
+	if hcc.DisableKeepAlives == nil {
+		hcc.DisableKeepAlives = new(bool)
+		*hcc.DisableKeepAlives = true
+	}
+	if hcc.FollowRedirects == nil {
+		hcc.FollowRedirects = new(bool)
+		*hcc.FollowRedirects = false
 	}
 }
 

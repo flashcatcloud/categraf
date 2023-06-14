@@ -187,6 +187,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 	client := httpx.CreateHTTPClient(httpx.TlsConfig(tlsCfg),
 		httpx.NetDialer(dialer), httpx.Proxy(proxy),
 		httpx.Timeout(time.Duration(ins.Timeout)),
-		httpx.FollowRedirects(ins.FollowRedirects))
+		httpx.DisableKeepAlives(*ins.DisableKeepAlives),
+		httpx.FollowRedirects(*ins.FollowRedirects))
 	return client, err
 }
