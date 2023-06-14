@@ -14,8 +14,8 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/httpx"
 	"flashcat.cloud/categraf/pkg/netx"
-	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -36,19 +36,15 @@ type Instance struct {
 
 	Targets                  []string        `toml:"targets"`
 	Interface                string          `toml:"interface"`
-	Method                   string          `toml:"method"`
 	ResponseTimeout          config.Duration `toml:"response_timeout"`
-	FollowRedirects          bool            `toml:"follow_redirects"`
-	Username                 string          `toml:"username"`
-	Password                 string          `toml:"password"`
 	Headers                  []string        `toml:"headers"`
 	Body                     string          `toml:"body"`
 	ExpectResponseSubstring  string          `toml:"expect_response_substring"`
 	ExpectResponseStatusCode *int            `toml:"expect_response_status_code"`
 	config.HTTPProxy
 
-	tls.ClientConfig
 	client httpClient
+	config.HTTPCommonConfig
 }
 
 type httpClient interface {
@@ -63,10 +59,8 @@ func (ins *Instance) Init() error {
 	if ins.ResponseTimeout < config.Duration(time.Second) {
 		ins.ResponseTimeout = config.Duration(time.Second * 3)
 	}
-
-	if ins.Method == "" {
-		ins.Method = "GET"
-	}
+	ins.InitHTTPClientConfig()
+	ins.Timeout = ins.ResponseTimeout
 
 	client, err := ins.createHTTPClient()
 	if err != nil {
@@ -84,6 +78,9 @@ func (ins *Instance) Init() error {
 		if addr.Scheme != "http" && addr.Scheme != "https" {
 			return fmt.Errorf("only http and https are supported, target: %s", target)
 		}
+	}
+	if ins.HTTPCommonConfig.Headers == nil {
+		ins.HTTPCommonConfig.Headers = make(map[string]string)
 	}
 
 	return nil
@@ -109,29 +106,12 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		return nil, err
 	}
 
-	trans := &http.Transport{
-		Proxy:             proxy,
-		DialContext:       dialer.DialContext,
-		DisableKeepAlives: true,
-		TLSClientConfig:   tlsCfg,
-	}
-
-	if ins.UseTLS {
-		trans.TLSClientConfig = tlsCfg
-	}
-
-	client := &http.Client{
-		Transport: trans,
-		Timeout:   time.Duration(ins.ResponseTimeout),
-	}
-
-	if !ins.FollowRedirects {
-		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		}
-	}
-
-	return client, nil
+	client := httpx.CreateHTTPClient(httpx.TlsConfig(tlsCfg),
+		httpx.NetDialer(dialer), httpx.Proxy(proxy),
+		httpx.DisableKeepAlives(true),
+		httpx.Timeout(time.Duration(ins.Timeout)),
+		httpx.FollowRedirects(ins.FollowRedirects))
+	return client, err
 }
 
 type HTTPResponse struct {
@@ -217,16 +197,11 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 		return nil, nil, err
 	}
 
+	// compatible with old config
 	for i := 0; i < len(ins.Headers); i += 2 {
-		request.Header.Add(ins.Headers[i], ins.Headers[i+1])
-		if ins.Headers[i] == "Host" {
-			request.Host = ins.Headers[i+1]
-		}
+		ins.HTTPCommonConfig.Headers[ins.Headers[i]] = ins.Headers[i+1]
 	}
-
-	if ins.Username != "" || ins.Password != "" {
-		request.SetBasicAuth(ins.Username, ins.Password)
-	}
+	ins.SetHeaders(request)
 
 	// Start Timer
 	start := time.Now()
