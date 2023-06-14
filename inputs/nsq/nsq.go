@@ -189,5 +189,6 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		httpx.Timeout(time.Duration(ins.Timeout)),
 		httpx.DisableKeepAlives(*ins.DisableKeepAlives),
 		httpx.FollowRedirects(*ins.FollowRedirects))
+
 	return client, err
 }

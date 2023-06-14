@@ -18,6 +18,7 @@ type HTTPCommonConfig struct {
 
 	Headers map[string]string `toml:"headers"`
 
+
 	Timeout           Duration `toml:"timeout"`
 	FollowRedirects   *bool    `toml:"follow_redirects"`
 	DisableKeepAlives *bool    `toml:"disable_keepalives"`
@@ -55,6 +56,7 @@ func (hcc *HTTPCommonConfig) InitHTTPClientConfig() {
 		hcc.FollowRedirects = new(bool)
 		*hcc.FollowRedirects = false
 	}
+
 }
 
 func (hcc *HTTPCommonConfig) GetBody() io.Reader {
