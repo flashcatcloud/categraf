@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/httpx"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -57,24 +59,34 @@ func (pt *Nsq) GetInstances() []inputs.Instance {
 type Instance struct {
 	config.InstanceConfig
 	URL string `toml:"url"`
+
+	config.HTTPCommonConfig
+
+	client *http.Client
 }
 
 func (ins *Instance) Init() error {
 	if len(ins.URL) == 0 {
 		return types.ErrInstancesEmpty
 	}
+	ins.InitHTTPClientConfig()
+
+	client, err := ins.createHTTPClient()
+	if err != nil {
+		return err
+	}
+	ins.client = client
 	return nil
 }
 
 func (ins *Instance) GetTopicInfo() ([]string, error) {
-	client := http.Client{Timeout: 5 * time.Second}
-	req, err := http.NewRequest("GET", ins.URL, nil)
+	req, err := http.NewRequest(ins.Method, ins.URL, ins.GetBody())
 	if err != nil {
 		return nil, err
 	}
-	//req.SetBasicAuth(username, password)
+	ins.SetHeaders(req)
 
-	resp, err := client.Do(req)
+	resp, err := ins.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -93,17 +105,16 @@ func (ins *Instance) GetTopicInfo() ([]string, error) {
 	return apidata.Topics, nil
 }
 
-func getQueuesInfo(URL, topicName string) (int, error) {
-	client := http.Client{Timeout: 5 * time.Second}
-	urlAll := fmt.Sprintf("%s/%s", URL, topicName)
+func (ins *Instance) getQueuesInfo(topicName string) (int, error) {
+	urlAll := fmt.Sprintf("%s/%s", ins.URL, topicName)
 
-	req, err := http.NewRequest("GET", urlAll, nil)
+	req, err := http.NewRequest(ins.Method, urlAll, ins.GetBody())
 	if err != nil {
 		return 0, err
 	}
-	//req.SetBasicAuth(username, password)
+	ins.SetHeaders(req)
 
-	resp, err := client.Do(req)
+	resp, err := ins.client.Do(req)
 	if err != nil {
 		return 0, err
 	}
@@ -143,7 +154,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		log.Println("Failed to obtain the topic list error:", err)
 	} else {
 		for _, topic := range topics {
-			v, err := getQueuesInfo(ins.URL, topic)
+			v, err := ins.getQueuesInfo(topic)
 			if err != nil {
 				v = 0
 				log.Println("Failed to obtain topic depth value error:", err)
@@ -158,4 +169,24 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			slist.PushSamples("nsq", fields, tags)
 		}
 	}
+}
+
+func (ins *Instance) createHTTPClient() (*http.Client, error) {
+	tlsCfg, err := ins.ClientConfig.TLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	dialer := &net.Dialer{}
+
+	proxy, err := ins.Proxy()
+	if err != nil {
+		return nil, err
+	}
+
+	client := httpx.CreateHTTPClient(httpx.TlsConfig(tlsCfg),
+		httpx.NetDialer(dialer), httpx.Proxy(proxy),
+		httpx.Timeout(time.Duration(ins.Timeout)),
+		httpx.FollowRedirects(ins.FollowRedirects))
+	return client, err
 }
