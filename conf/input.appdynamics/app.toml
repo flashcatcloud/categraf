@@ -9,7 +9,7 @@
 # # 指定url_vars中哪些key 作为最终的label附加
 # url_var_label_keys= []
 
-# #从url中提取变量 
+# #从url中提取变量
 # url_label_key="instance"
 # url_label_value="{{.Host}}"
 # #自定义 http header
