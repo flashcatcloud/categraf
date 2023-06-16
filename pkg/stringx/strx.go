@@ -13,9 +13,15 @@ func SnakeCase(in string) string {
 		if runes[i] == '.' {
 			continue
 		}
-		if i > 0 && unicode.IsUpper(runes[i]) && ((i+1 < length && unicode.IsLower(runes[i+1])) || unicode.IsLower(runes[i-1])) {
-			if runes[i-1] != '_' {
-				out = append(out, '_')
+		if i > 0 {
+			if (runes[i] == '_' && runes[i-1] == '_') ||
+				(i == length-1 && runes[i] == '_') {
+				continue
+			}
+			if unicode.IsUpper(runes[i]) && ((i+1 < length && unicode.IsLower(runes[i+1])) || unicode.IsLower(runes[i-1])) {
+				if runes[i-1] != '_' {
+					out = append(out, '_')
+				}
 			}
 		}
 		out = append(out, unicode.ToLower(runes[i]))
