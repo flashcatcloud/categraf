@@ -179,13 +179,8 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 
 	dialer := &net.Dialer{}
 
-	proxy, err := ins.Proxy()
-	if err != nil {
-		return nil, err
-	}
-
 	client := httpx.CreateHTTPClient(httpx.TlsConfig(tlsCfg),
-		httpx.NetDialer(dialer), httpx.Proxy(proxy),
+		httpx.NetDialer(dialer), httpx.Proxy(httpx.GetProxyFunc(ins.HTTPProxyURL)),
 		httpx.Timeout(time.Duration(ins.Timeout)),
 		httpx.DisableKeepAlives(*ins.DisableKeepAlives),
 		httpx.FollowRedirects(*ins.FollowRedirects))
