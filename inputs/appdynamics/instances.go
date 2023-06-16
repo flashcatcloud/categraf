@@ -299,7 +299,6 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 		name = stringx.SnakeCase(replacer.Replace(name))
 
 		labels["metric_id"] = fmt.Sprintf("%v", metric.ID)
-		labels["metric_path"] = metric.Path
 		for _, val := range metric.Values {
 			sec := val.Timestamp / 1000
 			nsec := (val.Timestamp - sec*1000) * 1e6
