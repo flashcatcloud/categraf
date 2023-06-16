@@ -26,8 +26,9 @@ type (
 		config.InstanceConfig
 
 		config.HTTPProxy
-		URLBase string              `toml:"url_base"`
-		URLVars []map[string]string `toml:"url_vars"`
+		URLBase   string              `toml:"url_base"`
+		URLVars   []map[string]string `toml:"url_vars"`
+		URLVarKey []string            `toml:"url_var_label_keys"`
 
 		URLs            []string          `toml:"-"`
 		Headers         map[string]string `toml:"headers"`
@@ -73,6 +74,8 @@ type (
 )
 
 var _ inputs.SampleGatherer = new(Instance)
+var replacer = strings.NewReplacer(":", "_", "{", "_", "}", "_", "[", "_", "]", "_", "|", "_", "(", "_", ")",
+	"_", " ", "_", "%", "_", "/", "_per_")
 
 func (ins *Instance) Drop() {
 }
@@ -199,17 +202,28 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	wg := new(sync.WaitGroup)
-	for _, target := range ins.URLs {
+	for idx, target := range ins.URLs {
 		wg.Add(1)
-		go func(target string) {
+		go func(idx int, target string) {
 			defer wg.Done()
-			ins.gather(slist, target)
-		}(target)
+			labels := map[string]string{}
+			for k, v := range ins.URLVars[idx] {
+				if len(ins.URLVarKey) == 0 {
+					labels[k] = v
+				}
+				for _, key := range ins.URLVarKey {
+					if k == key {
+						labels[k] = v
+					}
+				}
+			}
+			ins.gather(slist, target, labels)
+		}(idx, target)
 	}
 	wg.Wait()
 }
 
-func (ins *Instance) gather(slist *types.SampleList, link string) {
+func (ins *Instance) gather(slist *types.SampleList, link string, labels map[string]string) {
 	now := time.Now()
 	end := now.Add(-1 * time.Duration(ins.Delay))
 	start := end.Add(-1 * time.Duration(ins.Period))
@@ -237,7 +251,6 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 	}
 
 	ins.setHeaders(req)
-	labels := map[string]string{}
 
 	if ins.LabelValue != "" {
 		urlKey, urlVal, err := ins.GenerateLabel(u)
@@ -283,18 +296,7 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 			name = names[len(names)-1]
 		}
 
-		name = strings.ReplaceAll(name, ":", "_")
-		name = strings.ReplaceAll(name, "{", "_")
-		name = strings.ReplaceAll(name, "}", "_")
-		name = strings.ReplaceAll(name, "[", "_")
-		name = strings.ReplaceAll(name, "]", "_")
-		name = strings.ReplaceAll(name, "|", "_")
-		name = strings.ReplaceAll(name, "(", "_")
-		name = strings.ReplaceAll(name, ")", "_")
-		name = strings.ReplaceAll(name, " ", "_")
-		name = strings.ReplaceAll(name, "%", "_")
-		name = strings.ReplaceAll(name, "/", "_per_")
-		name = stringx.SnakeCase(name)
+		name = stringx.SnakeCase(replacer.Replace(name))
 
 		labels["metric_id"] = fmt.Sprintf("%v", metric.ID)
 		labels["metric_path"] = metric.Path

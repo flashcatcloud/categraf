@@ -6,6 +6,7 @@
 #    { ip="127.0.0.1", port="8090", application="cms", metric_path="Application Infrastructure Performance|AdminServer|Individual Nodes|xxxxx|Agent|App|Availability", start_time="$START_TIME", end_time="$END_TIME"},
 #]
 # #从url中提取变量 
+# url_var_label_keys= []
 # url_label_key="instance"
 # url_label_value="{{.Host}}"
 # #自定义 http header
