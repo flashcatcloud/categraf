@@ -231,6 +231,7 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 	e = e - e%60
 	s := start.Unix()
 	s = s - s%60
+	tm := time.Unix(s, 0)
 	if ins.Precision == "ms" {
 		e = e * 1000
 		s = s * 1000
@@ -263,13 +264,13 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 
 	res, err := ins.client.Do(req)
 	if err != nil {
-		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(time.Now()))
+		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(tm))
 		log.Println("E! failed to query url:", u.String(), "error:", err)
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(time.Now()))
+		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(tm))
 		log.Println("E! failed to query url:", u.String(), "status code:", res.StatusCode)
 		return
 	}
@@ -278,12 +279,12 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(time.Now()))
+		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(tm))
 		log.Println("E! failed to read response body, url:", u.String(), "error:", err)
 		return
 	}
 
-	slist.PushFront(types.NewSample("", "up", 1, labels).SetTime(time.Now()))
+	slist.PushFront(types.NewSample("", "up", 1, labels).SetTime(tm))
 	metrics := []Metric{}
 	err = json.Unmarshal(body, &metrics)
 	if err != nil {
@@ -300,9 +301,6 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 
 		labels["metric_id"] = fmt.Sprintf("%v", metric.ID)
 		for _, val := range metric.Values {
-			sec := val.Timestamp / 1000
-			nsec := (val.Timestamp - sec*1000) * 1e6
-			tm := time.Unix(sec, nsec)
 			for _, filter := range ins.Filters {
 				if filter == "current" {
 					slist.PushFront(types.NewSample(inputName, name+"_current", val.Current, labels).SetTime(tm))
