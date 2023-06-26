@@ -651,18 +651,15 @@ func Start() {
 	{
 		// Termination handler.
 		term := make(chan os.Signal, 1)
-		signal.Notify(term, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGPIPE)
+		signal.Notify(term, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 		cancel := make(chan struct{})
 		g.Add(
 			func() error {
 				// Don't forget to release the reloadReady channel so that waiting blocks can exit normally.
 				select {
 				case sig := <-term:
-					level.Warn(logger).Log("msg", "Received "+sig.String())
-					if sig != syscall.SIGPIPE {
-						level.Warn(logger).Log("msg", "exiting gracefully...")
-						reloadReady.Close()
-					}
+					level.Warn(logger).Log("msg", "Received "+sig.String()+" exiting gracefully...")
+					reloadReady.Close()
 				case <-webHandler.Quit():
 					level.Warn(logger).Log("msg", "Received termination request via web service, exiting gracefully...")
 				case <-cancel:
@@ -734,7 +731,7 @@ func Start() {
 		// Make sure that sighup handler is registered with a redirect to the channel before the potentially
 		// long and synchronous tsdb init.
 		hup := make(chan os.Signal, 1)
-		signal.Notify(hup, syscall.SIGHUP)
+		signal.Notify(hup, syscall.SIGHUP, syscall.SIGPIPE)
 		cancel := make(chan struct{})
 		g.Add(
 			func() error {
@@ -742,7 +739,11 @@ func Start() {
 
 				for {
 					select {
-					case <-hup:
+					case ch := <-hup:
+						if ch == syscall.SIGPIPE {
+							// broken pipe , do nothing
+							continue
+						}
 						if err := reloadConfig(cfg.configFile, cfg.enableExpandExternalLabels, cfg.tsdb.EnableExemplarStorage, logger, reloaders...); err != nil {
 							level.Error(logger).Log("msg", "Error reloading config", "err", err)
 						}
