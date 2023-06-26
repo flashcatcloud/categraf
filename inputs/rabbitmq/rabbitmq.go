@@ -208,7 +208,7 @@ type Queue struct {
 	MessageStats           `json:"message_stats"`
 	Memory                 int64
 	Consumers              int64
-	ConsumerUtilisation    float64 `json:"consumer_utilisation"`
+	ConsumerUtilisation    interface{} `json:"consumer_utilisation"`
 	Name                   string
 	Node                   string
 	Vhost                  string
