@@ -165,15 +165,16 @@ func commandRun(command string, timeout time.Duration) ([]byte, []byte, error) {
 		return nil, nil, fmt.Errorf("exec %s timeout", command)
 	}
 
+	if stderr.Len() > 0 {
+		stderr = removeWindowsCarriageReturns(stderr)
+		stderr = truncate(stderr)
+	}
+
 	if runError != nil {
 		return nil, stderr.Bytes(), runError
 	}
 
 	out = removeWindowsCarriageReturns(out)
-	if stderr.Len() > 0 {
-		stderr = removeWindowsCarriageReturns(stderr)
-		stderr = truncate(stderr)
-	}
 
 	return out.Bytes(), stderr.Bytes(), nil
 }
