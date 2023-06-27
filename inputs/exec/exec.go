@@ -166,7 +166,7 @@ func commandRun(command string, timeout time.Duration) ([]byte, []byte, error) {
 	}
 
 	if runError != nil {
-		return nil, nil, runError
+		return nil, stderr.Bytes(), runError
 	}
 
 	out = removeWindowsCarriageReturns(out)
