@@ -133,6 +133,9 @@ func (ins *Instance) gatherCommandValues(slist *types.SampleList, tags map[strin
 			continue
 		}
 
+		if len(cmd.Metric) == 0 {
+			continue
+		}
 		fval, err := conv.ToFloat64(val)
 		if err != nil {
 			log.Println("E! failed to convert result of command:", cmd.Command, "error:", err)
