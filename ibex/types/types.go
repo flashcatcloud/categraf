@@ -3,10 +3,11 @@
 package types
 
 type TaskMetaResponse struct {
-	Message string
-	Script  string
-	Args    string
-	Account string
+	Message   string
+	Script    string
+	Args      string
+	Account   string
+	EventTags string
 }
 
 type ReportTask struct {

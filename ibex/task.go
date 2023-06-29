@@ -4,10 +4,12 @@ package ibex
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os/exec"
 	"os/user"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -32,9 +34,11 @@ type Task struct {
 	Cmd    *exec.Cmd
 	Stdout bytes.Buffer
 	Stderr bytes.Buffer
+	Stdin  *bytes.Reader
 
-	Args    string
-	Account string
+	Args      string
+	Account   string
+	EventTags string
 }
 
 func (t *Task) SetStatus(status string) {
@@ -145,11 +149,20 @@ func (t *Task) prepare() error {
 			return err
 		}
 
+		tagsFile := path.Join(IdDir, "tags")
+		tags, err := file.ReadStringTrim(tagsFile)
+		if err != nil {
+			log.Printf("E: read %s fail %v", tagsFile, err)
+			return err
+		}
+
 		t.Args = args
 		t.Account = account
+		t.EventTags = tags
+
 	} else {
 		// 从远端读取，再写入磁盘
-		script, args, account, err := client.Meta(t.Id)
+		script, args, account, event_tags, err := client.Meta(t.Id)
 		if err != nil {
 			log.Println("E! query task meta fail:", err)
 			return err
@@ -191,6 +204,13 @@ func (t *Task) prepare() error {
 			return err
 		}
 
+		tagsFile := path.Join(IdDir, "tags")
+		_, err = file.WriteString(tagsFile, event_tags)
+		if err != nil {
+			log.Printf("E: write tags to %s fail: %v", tagsFile, err)
+			return err
+		}
+
 		_, err = file.WriteString(writeFlag, "")
 		if err != nil {
 			log.Printf("E! create %s flag file fail: %v", writeFlag, err)
@@ -199,7 +219,30 @@ func (t *Task) prepare() error {
 
 		t.Args = args
 		t.Account = account
+		t.EventTags = event_tags
 	}
+
+	tagsArr := strings.Split(t.EventTags, ",,")
+	tagsMap := make(map[string]string)
+	for i := 0; i < len(tagsArr); i++ {
+		pair := strings.TrimSpace(tagsArr[i])
+		if pair == "" {
+			continue
+		}
+
+		arr := strings.Split(pair, "=")
+		if len(arr) != 2 {
+			continue
+		}
+
+		tagsMap[arr[0]] = arr[1]
+	}
+	tags, err := json.Marshal(tagsMap)
+	if err != nil {
+		log.Printf("E: failed to marshal tags to json: %v", tagsMap)
+		return err
+	}
+	t.Stdin = bytes.NewReader(tags)
 
 	return nil
 }
@@ -261,6 +304,7 @@ func (t *Task) start() {
 
 	cmd.Stdout = &t.Stdout
 	cmd.Stderr = &t.Stderr
+	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
 	err = CmdStart(cmd)
