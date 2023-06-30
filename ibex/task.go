@@ -36,9 +36,9 @@ type Task struct {
 	Stderr bytes.Buffer
 	Stdin  *bytes.Reader
 
-	Args      string
-	Account   string
-	EventTags string
+	Args     string
+	Account  string
+	StdinStr string
 }
 
 func (t *Task) SetStatus(status string) {
@@ -149,20 +149,20 @@ func (t *Task) prepare() error {
 			return err
 		}
 
-		tagsFile := path.Join(IdDir, "tags")
-		tags, err := file.ReadStringTrim(tagsFile)
+		stdinFile := path.Join(IdDir, "stdin")
+		stdin, err := file.ReadStringTrim(stdinFile)
 		if err != nil {
-			log.Printf("E: read %s fail %v", tagsFile, err)
+			log.Printf("E: read %s fail %v", stdinFile, err)
 			return err
 		}
 
 		t.Args = args
 		t.Account = account
-		t.EventTags = tags
+		t.StdinStr = stdin
 
 	} else {
 		// 从远端读取，再写入磁盘
-		script, args, account, event_tags, err := client.Meta(t.Id)
+		script, args, account, stdin, err := client.Meta(t.Id)
 		if err != nil {
 			log.Println("E! query task meta fail:", err)
 			return err
@@ -204,10 +204,10 @@ func (t *Task) prepare() error {
 			return err
 		}
 
-		tagsFile := path.Join(IdDir, "tags")
-		_, err = file.WriteString(tagsFile, event_tags)
+		stdinFile := path.Join(IdDir, "stdin")
+		_, err = file.WriteString(stdinFile, stdin)
 		if err != nil {
-			log.Printf("E: write tags to %s fail: %v", tagsFile, err)
+			log.Printf("E: write tags to %s fail: %v", stdinFile, err)
 			return err
 		}
 
@@ -219,13 +219,13 @@ func (t *Task) prepare() error {
 
 		t.Args = args
 		t.Account = account
-		t.EventTags = event_tags
+		t.StdinStr = stdin
 	}
 
-	tagsArr := strings.Split(t.EventTags, ",,")
-	tagsMap := make(map[string]string)
-	for i := 0; i < len(tagsArr); i++ {
-		pair := strings.TrimSpace(tagsArr[i])
+	stdinArr := strings.Split(t.StdinStr, ",,")
+	stdinMap := make(map[string]string)
+	for i := 0; i < len(stdinArr); i++ {
+		pair := strings.TrimSpace(stdinArr[i])
 		if pair == "" {
 			continue
 		}
@@ -235,14 +235,14 @@ func (t *Task) prepare() error {
 			continue
 		}
 
-		tagsMap[arr[0]] = arr[1]
+		stdinMap[arr[0]] = arr[1]
 	}
-	tags, err := json.Marshal(tagsMap)
+	stdin, err := json.Marshal(stdinMap)
 	if err != nil {
-		log.Printf("E: failed to marshal tags to json: %v", tagsMap)
+		log.Printf("E: failed to marshal stdin to json: %v", stdinMap)
 		return err
 	}
-	t.Stdin = bytes.NewReader(tags)
+	t.Stdin = bytes.NewReader(stdin)
 
 	return nil
 }
