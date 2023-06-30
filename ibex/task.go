@@ -8,6 +8,7 @@ import (
 	"log"
 	"os/exec"
 	"os/user"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -32,9 +33,11 @@ type Task struct {
 	Cmd    *exec.Cmd
 	Stdout bytes.Buffer
 	Stderr bytes.Buffer
+	Stdin  *bytes.Reader
 
-	Args    string
-	Account string
+	Args     string
+	Account  string
+	StdinStr string
 }
 
 func (t *Task) SetStatus(status string) {
@@ -145,11 +148,20 @@ func (t *Task) prepare() error {
 			return err
 		}
 
+		stdinFile := path.Join(IdDir, "stdin")
+		stdin, err := file.ReadStringTrim(stdinFile)
+		if err != nil {
+			log.Printf("E: read %s fail %v", stdinFile, err)
+			return err
+		}
+
 		t.Args = args
 		t.Account = account
+		t.StdinStr = stdin
+
 	} else {
 		// 从远端读取，再写入磁盘
-		script, args, account, err := client.Meta(t.Id)
+		script, args, account, stdin, err := client.Meta(t.Id)
 		if err != nil {
 			log.Println("E! query task meta fail:", err)
 			return err
@@ -191,6 +203,13 @@ func (t *Task) prepare() error {
 			return err
 		}
 
+		stdinFile := path.Join(IdDir, "stdin")
+		_, err = file.WriteString(stdinFile, stdin)
+		if err != nil {
+			log.Printf("E: write tags to %s fail: %v", stdinFile, err)
+			return err
+		}
+
 		_, err = file.WriteString(writeFlag, "")
 		if err != nil {
 			log.Printf("E! create %s flag file fail: %v", writeFlag, err)
@@ -199,7 +218,10 @@ func (t *Task) prepare() error {
 
 		t.Args = args
 		t.Account = account
+		t.StdinStr = stdin
 	}
+
+	t.Stdin = bytes.NewReader([]byte(t.StdinStr))
 
 	return nil
 }
@@ -261,6 +283,7 @@ func (t *Task) start() {
 
 	cmd.Stdout = &t.Stdout
 	cmd.Stderr = &t.Stderr
+	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
 	err = CmdStart(cmd)
