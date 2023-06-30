@@ -322,6 +322,16 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *it
 
 	if info.State.Health != nil {
 		slist.PushSample("docker_container", "health_failing_streak", info.ContainerJSONBase.State.Health.FailingStreak, tags)
+		var containerHealthStatesNum int
+		switch info.ContainerJSONBase.State.Health.Status {
+		case "healthy":
+			containerHealthStatesNum = 0
+		case "starting":
+			containerHealthStatesNum = 1
+		default:
+			containerHealthStatesNum = 2
+		}
+		slist.PushSample("docker_container", "health_status", containerHealthStatesNum, tags)
 	}
 
 	ins.parseContainerStats(v, slist, tags, daemonOSType)
