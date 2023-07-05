@@ -444,7 +444,7 @@ func parseURL(uri string) (string, error) {
 	return strings.Join(kvs, " "), nil
 }
 
-var kvMatcher, _ = regexp.Compile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
+var kvMatcher, _ = regexp.Compile(`(username|password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 
 // SanitizedAddress utility function to strip sensitive information from the connection string.
 func (ins *Instance) SanitizedAddress() (sanitizedAddress string, err error) {

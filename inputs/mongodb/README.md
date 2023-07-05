@@ -19,6 +19,12 @@ mongodb 监控采集插件，由mongodb-exporter（https://github.com/percona/mo
       }
 
     ```
+  一个简单配置
+    ```
+    mongo -h xxx -u xxx -p xxx --authenticationDatabase admin
+    > use admin
+    > db.createUser({user:"categraf",pwd:"categraf",roles: [{role:"read",db:"local"},{"role":"clusterMonitor","db":"admin"}]})
+    ```
     更详细的权限配置请参考[官方文档](https://www.mongodb.com/docs/manual/reference/built-in-roles/#mongodb-authrole-clusterMonitor)
 
 ## 监控大盘和告警规则
