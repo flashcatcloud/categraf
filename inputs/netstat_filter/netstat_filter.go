@@ -105,6 +105,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			counts[netcon.Status] = c + 1
 		}
 	}
+	Entries, _ := Parse("tcp")
+	// 对连接信息进行过滤
+	send, recv := FilterEntries(Entries, ins.Laddr_IP, ins.Laddr_Port, ins.Raddr_IP, ins.Raddr_Port)
 
 	fields := map[string]interface{}{
 		"tcp_established": counts["ESTABLISHED"],
@@ -119,6 +122,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		"tcp_listen":      counts["LISTEN"],
 		"tcp_closing":     counts["CLOSING"],
 		"tcp_none":        counts["NONE"],
+		"tcp_send_q":      send,
+		"tcp_recv_q":      recv,
 	}
 
 	slist.PushSamples(inputName, fields, tags)
