@@ -17,7 +17,7 @@ grant select on all tables in schema public to categraf ;
 ## configuration
 
 ```toml
-[[inputs.postgresql]]
+[[instances]]
 address = ""
 # labels = { region="", zone="" }
 ## postgresql 的连接信息
