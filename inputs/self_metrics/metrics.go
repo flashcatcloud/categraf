@@ -10,6 +10,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/types"
+	"flashcat.cloud/categraf/writer"
 )
 
 const (
@@ -44,7 +45,19 @@ func (ins *Categraf) Gather(slist *types.SampleList) {
 	vTag := map[string]string{
 		"version": config.Version,
 	}
+	labels := ins.GetLabels()
+	for k, v := range labels {
+		vTag[k] = v
+	}
 	slist.PushSample(defaultPrefix, "info", 1, vTag)
+
+	// queue metrics
+	ss := writer.QueueMetrics()
+	slist.PushSample(defaultPrefix, "metrics_enqueue_sum", ss.TotalCount, labels)
+	slist.PushSample(defaultPrefix, "metrics_enqueue_failed_sum", ss.FailTotal, labels)
+	slist.PushSample(defaultPrefix, "metrics_enqueue_failed_count", ss.FailCount, labels)
+	slist.PushSample(defaultPrefix, "current_queue_size", ss.QueueSize, labels)
+
 	for _, mf := range mfs {
 		metricName := mf.GetName()
 		for _, m := range mf.Metric {
