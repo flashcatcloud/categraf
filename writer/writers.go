@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/prometheus/prompb"
@@ -95,21 +94,23 @@ func WriteSamples(samples []*types.Sample) {
 		}
 		items = append(items, item)
 	}
-	flag := writers.queue.PushFrontN(items)
+	success := writers.queue.PushFrontN(items)
 	l := writers.queue.Len()
-	if !flag {
-		atomic.AddUint64(&writers.FailCount, 1)
-		atomic.AddUint64(&writers.FailTotal, uint64(len(items)))
+	if !success {
 		log.Printf("E! write %d samples failed, please increase queue size(%d)", len(items), l)
 	}
-	go snapshot(uint64(len(items)), uint64(l))
+	go snapshot(uint64(len(items)), uint64(l), success)
 }
 
-func snapshot(count, size uint64) {
+func snapshot(count, size uint64, success bool) {
 	writers.Lock()
 	defer writers.Unlock()
 	writers.TotalCount += count
 	writers.QueueSize = size
+	if !success {
+		writers.FailCount++
+		writers.FailTotal += uint64(count)
+	}
 }
 
 func QueueMetrics() *Snapshot {
