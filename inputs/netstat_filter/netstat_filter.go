@@ -12,7 +12,7 @@ import (
 )
 
 const inputName = "netstat_filter"
-
+var executed = false
 type NetStatFilter struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
@@ -115,7 +115,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		send = value.Txq
 		recv = value.Rxq
 	} else {
-		log.Println("E! Key not matched, TCP_ Send_ Queue, TCP_ Recv_Queue，  The queue value is 0")
+		if !executed {
+			// 执行只需要在启动后执行一次的代码
+			log.Println("E! init Key not matched, TCP_ Send_ Queue, TCP_ Recv_Queue，  The queue value is 0,key:", key)
+			executed = true
+		}
 	}
 
 	fields := map[string]interface{}{
