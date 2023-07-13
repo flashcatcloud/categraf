@@ -2,6 +2,7 @@ package writer
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -100,7 +101,10 @@ func WriteSamples(samples []*types.Sample) {
 		}
 		items = append(items, item)
 	}
-	writers.queue.PushFrontN(items)
+	flag := writers.queue.PushFrontN(items)
+	if !flag {
+		log.Printf("E! write %d samples failed, please increase queue size(%d)", len(items), writers.queue.Len())
+	}
 }
 
 // WriteTimeSeries write prompb.TimeSeries to all writers
