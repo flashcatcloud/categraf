@@ -61,7 +61,7 @@ func (ins *Categraf) Gather(slist *types.SampleList) {
 	for _, mf := range mfs {
 		metricName := mf.GetName()
 		for _, m := range mf.Metric {
-			tags := metrics.MakeLabels(m, ins.GetLabels())
+			tags := metrics.MakeLabels(m, vTag)
 
 			if mf.GetType() == dto.MetricType_SUMMARY {
 				metrics.HandleSummary(defaultPrefix, m, tags, metricName, nil, slist)
