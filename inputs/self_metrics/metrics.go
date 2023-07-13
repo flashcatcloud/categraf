@@ -53,10 +53,10 @@ func (ins *Categraf) Gather(slist *types.SampleList) {
 
 	// queue metrics
 	ss := writer.QueueMetrics()
-	slist.PushSample(defaultPrefix, "metrics_enqueue_sum", ss.TotalCount, labels)
-	slist.PushSample(defaultPrefix, "metrics_enqueue_failed_sum", ss.FailTotal, labels)
-	slist.PushSample(defaultPrefix, "metrics_enqueue_failed_count", ss.FailCount, labels)
-	slist.PushSample(defaultPrefix, "current_queue_size", ss.QueueSize, labels)
+	slist.PushSample(defaultPrefix, "metrics_enqueue_sum", ss.TotalCount, vTag)
+	slist.PushSample(defaultPrefix, "metrics_enqueue_failed_sum", ss.FailTotal, vTag)
+	slist.PushSample(defaultPrefix, "metrics_enqueue_failed_count", ss.FailCount, vTag)
+	slist.PushSample(defaultPrefix, "current_queue_size", ss.QueueSize, vTag)
 
 	for _, mf := range mfs {
 		metricName := mf.GetName()
