@@ -128,7 +128,7 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 				delete(ss[i].Labels, k)
 				continue
 			}
-			ss[i].Labels[k] = expand(v)
+			ss[i].Labels[k] = Expand(v)
 		}
 
 		// add global labels

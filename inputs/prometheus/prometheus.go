@@ -68,9 +68,7 @@ func (ins *Instance) Init() error {
 	}
 
 	for i := range ins.URLs {
-		ins.URLs[i] = strings.Replace(ins.URLs[i], "$hostname", config.Config.GetHostname(), -1)
-		ins.URLs[i] = strings.Replace(ins.URLs[i], "$ip", config.Config.Global.IP, -1)
-		ins.URLs[i] = os.Expand(ins.URLs[i], config.GetEnv)
+		ins.URLs[i] = config.Expand(ins.URLs[i])
 	}
 
 	if ins.Timeout <= 0 {

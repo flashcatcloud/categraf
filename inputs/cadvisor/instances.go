@@ -80,9 +80,7 @@ func (ins *Instance) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
-	ins.URL = strings.Replace(ins.URL, "$hostname", config.Config.GetHostname(), -1)
-	ins.URL = strings.Replace(ins.URL, "$ip", config.Config.Global.IP, -1)
-	ins.URL = os.Expand(ins.URL, config.GetEnv)
+	ins.URL = config.Expand(ins.URL)
 	u, err := url.Parse(ins.URL)
 	if err != nil {
 		return fmt.Errorf("failed to parse scrape url: %s, error: %s", ins.URL, err)

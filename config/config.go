@@ -231,12 +231,12 @@ func GetOutboundIP() (net.IP, error) {
 func GlobalLabels() map[string]string {
 	ret := make(map[string]string)
 	for k, v := range Config.Global.Labels {
-		ret[k] = expand(v)
+		ret[k] = Expand(v)
 	}
 	return ret
 }
 
-func expand(nv string) string {
+func Expand(nv string) string {
 	nv = strings.Replace(nv, "$hostname", Config.GetHostname(), -1)
 	nv = strings.Replace(nv, "$ip", Config.Global.IP, -1)
 	nv = os.Expand(nv, GetEnv)
