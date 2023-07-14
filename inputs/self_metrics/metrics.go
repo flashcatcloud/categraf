@@ -45,10 +45,6 @@ func (ins *Categraf) Gather(slist *types.SampleList) {
 	vTag := map[string]string{
 		"version": config.Version,
 	}
-	labels := ins.GetLabels()
-	for k, v := range labels {
-		vTag[k] = v
-	}
 	slist.PushSample(defaultPrefix, "info", 1, vTag)
 
 	// queue metrics
