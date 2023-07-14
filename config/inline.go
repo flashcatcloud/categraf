@@ -132,9 +132,9 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 		}
 
 		// add global labels
-		for k, v := range Config.Global.Labels {
+		for k, v := range GlobalLabels() {
 			if _, has := ss[i].Labels[k]; !has {
-				ss[i].Labels[k] = expand(v)
+				ss[i].Labels[k] = v
 			}
 		}
 
