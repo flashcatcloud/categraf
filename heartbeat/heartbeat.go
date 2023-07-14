@@ -102,7 +102,6 @@ func work(version string, ps *system.SystemPS, client *http.Client) {
 		"cpu_util":      cpuUsagePercent,
 		"mem_util":      memUsagePercent,
 		"unixtime":      time.Now().UnixMilli(),
-		"global_tags":   config.GlobalLabels(),
 	}
 
 	bs, err := json.Marshal(data)
