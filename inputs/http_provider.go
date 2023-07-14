@@ -180,7 +180,7 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 
 	// build query parameters
 	q := req.URL.Query()
-	for k, v := range config.Config.Global.Labels {
+	for k, v := range config.GlobalLabels() {
 		q.Add(k, v)
 	}
 	q.Add("timestamp", fmt.Sprint(time.Now().Unix()))

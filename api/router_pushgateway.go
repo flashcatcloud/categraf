@@ -51,7 +51,7 @@ func pushgateway(c *gin.Context) {
 
 		// add global labels
 		if !ignoreGlobalLabels {
-			for k, v := range config.Config.Global.Labels {
+			for k, v := range config.GlobalLabels() {
 				if _, has := samples[i].Labels[k]; has {
 					continue
 				}

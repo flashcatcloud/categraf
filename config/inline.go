@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/pkg/filter"
@@ -130,15 +128,11 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 				delete(ss[i].Labels, k)
 				continue
 			}
-			nv := v
-			nv = strings.Replace(nv, "$hostname", Config.GetHostname(), -1)
-			nv = strings.Replace(nv, "$ip", Config.Global.IP, -1)
-			nv = os.Expand(nv, GetEnv)
-			ss[i].Labels[k] = nv
+			ss[i].Labels[k] = Expand(v)
 		}
 
 		// add global labels
-		for k, v := range Config.Global.Labels {
+		for k, v := range GlobalLabels() {
 			if _, has := ss[i].Labels[k]; !has {
 				ss[i].Labels[k] = v
 			}
