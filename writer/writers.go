@@ -15,10 +15,24 @@ import (
 )
 
 // Writers manage all writers and metric queue
-type Writers struct {
-	writerMap map[string]Writer
-	queue     *types.SafeListLimited[*prompb.TimeSeries]
-}
+type (
+	Writers struct {
+		writerMap map[string]Writer
+		queue     *types.SafeListLimited[*prompb.TimeSeries]
+
+		Snapshot
+	}
+
+	Snapshot struct {
+		sync.Mutex
+
+		FailCount  uint64
+		FailTotal  uint64
+		TotalCount uint64
+
+		QueueSize uint64
+	}
+)
 
 var writers Writers
 
@@ -59,27 +73,6 @@ func (ws Writers) LoopRead() {
 	}
 }
 
-// WriteSample convert sample to prompb.TimeSeries and write to queue
-// Note: Use WriteSamples for batch write for better performance
-func WriteSample(sample *types.Sample) {
-	if sample == nil {
-		return
-	}
-	if config.Config.TestMode {
-		printTestMetric(sample)
-		return
-	}
-	if config.Config.DebugMode {
-		printTestMetric(sample)
-	}
-
-	item := sample.ConvertTimeSeries(config.Config.Global.Precision)
-	if item == nil || len(item.Labels) == 0 {
-		return
-	}
-	writers.queue.PushFront(item)
-}
-
 // WriteSamples convert samples to []prompb.TimeSeries and batch write to queue
 func WriteSamples(samples []*types.Sample) {
 	if len(samples) == 0 {
@@ -101,10 +94,30 @@ func WriteSamples(samples []*types.Sample) {
 		}
 		items = append(items, item)
 	}
-	flag := writers.queue.PushFrontN(items)
-	if !flag {
-		log.Printf("E! write %d samples failed, please increase queue size(%d)", len(items), writers.queue.Len())
+	success := writers.queue.PushFrontN(items)
+	l := writers.queue.Len()
+	if !success {
+		log.Printf("E! write %d samples failed, please increase queue size(%d)", len(items), l)
 	}
+	go snapshot(uint64(len(items)), uint64(l), success)
+}
+
+func snapshot(count, size uint64, success bool) {
+	writers.Lock()
+	defer writers.Unlock()
+	writers.TotalCount += count
+	writers.QueueSize = size
+	if !success {
+		writers.FailCount++
+		writers.FailTotal += uint64(count)
+	}
+}
+
+func QueueMetrics() *Snapshot {
+	writers.Lock()
+	defer writers.Unlock()
+	ss := writers.Snapshot
+	return &ss
 }
 
 // WriteTimeSeries write prompb.TimeSeries to all writers
