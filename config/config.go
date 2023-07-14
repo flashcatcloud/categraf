@@ -178,10 +178,6 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 }
 
 func (c *ConfigType) fillIP() error {
-	if !strings.Contains(c.Global.Hostname, "$ip") {
-		return nil
-	}
-
 	ip, err := GetOutboundIP()
 	if err != nil {
 		return err
