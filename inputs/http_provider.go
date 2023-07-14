@@ -208,11 +208,18 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 	}
 
 	// set checksum for each config
+	newCfg := make(map[string]map[string]*cfg.ConfigWithFormat)
 	for k := range confResp.Configs {
+		lk := strings.ToLower(k)
+		if _, ok := newCfg[lk]; !ok {
+			newCfg[lk] = make(map[string]*cfg.ConfigWithFormat)
+		}
 		for kk, vv := range confResp.Configs[k] {
 			vv.SetCheckSum(kk)
+			newCfg[lk][kk] = vv
 		}
 	}
+	confResp.Configs = newCfg
 
 	return confResp, nil
 }
