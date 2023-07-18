@@ -82,9 +82,9 @@ import (
 )
 
 type MetricsAgent struct {
-	InputFilters  map[string]struct{}
-	InputReaders  *Readers
-	InputProvider inputs.Provider
+	InputFilters   map[string]struct{}
+	InputReaders   *Readers
+	InputProviders []inputs.Provider
 }
 
 type Readers struct {
@@ -145,7 +145,7 @@ func NewMetricsAgent() AgentModule {
 		log.Println("E! init metrics agent error: ", err)
 		return nil
 	}
-	agent.InputProvider = provider
+	agent.InputProviders = provider
 	return agent
 }
 
@@ -160,12 +160,22 @@ func (ma *MetricsAgent) FilterPass(inputKey string) bool {
 }
 
 func (ma *MetricsAgent) Start() error {
-	if _, err := ma.InputProvider.LoadConfig(); err != nil {
+	for idx := range ma.InputProviders {
+		err := ma.start(idx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (ma *MetricsAgent) start(idx int) error {
+	if _, err := ma.InputProviders[idx].LoadConfig(); err != nil {
 		log.Println("E! input provider load config get err: ", err)
 	}
-	ma.InputProvider.StartReloader()
+	ma.InputProviders[idx].StartReloader()
 
-	names, err := ma.InputProvider.GetInputs()
+	names, err := ma.InputProviders[idx].GetInputs()
 	if err != nil {
 		return err
 	}
@@ -181,19 +191,21 @@ func (ma *MetricsAgent) Start() error {
 			continue
 		}
 
-		configs, err := ma.InputProvider.GetInputConfig(name)
+		configs, err := ma.InputProviders[idx].GetInputConfig(name)
 		if err != nil {
 			log.Println("E! failed to get configuration of plugin:", name, "error:", err)
 			continue
 		}
 
-		ma.RegisterInput(name, configs)
+		ma.RegisterInput(inputs.FormatInputName(ma.InputProviders[idx].Name(), name), configs)
 	}
 	return nil
 }
 
 func (ma *MetricsAgent) Stop() error {
-	ma.InputProvider.StopReloader()
+	for idx := range ma.InputProviders {
+		ma.InputProviders[idx].StopReloader()
+	}
 	for name := range ma.InputReaders.Iter() {
 		inputs, _ := ma.InputReaders.GetInput(name)
 		for sum, r := range inputs {
@@ -205,7 +217,7 @@ func (ma *MetricsAgent) Stop() error {
 }
 
 func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithFormat) {
-	_, inputKey := inputs.ParseInputName(name)
+	typ, inputKey := inputs.ParseInputName(name)
 	if !ma.FilterPass(inputKey) {
 		return
 	}
@@ -216,7 +228,17 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 		return
 	}
 
-	newInputs, err := ma.InputProvider.LoadInputConfig(configs, creator())
+	idx := -1
+	for i := range ma.InputProviders {
+		if ma.InputProviders[i].Name() == typ {
+			idx = i
+		}
+	}
+	if idx == -1 {
+		log.Println("E! input provider:", typ, "not found")
+		// hint and panic next line
+	}
+	newInputs, err := ma.InputProviders[idx].LoadInputConfig(configs, creator())
 	if err != nil {
 		log.Println("E! failed to load configuration of plugin:", name, "error:", err)
 		return
