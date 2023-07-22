@@ -12,6 +12,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
+	"flashcat.cloud/categraf/pkg/set"
 	"flashcat.cloud/categraf/pkg/tls"
 )
 
@@ -340,8 +341,9 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string]map[string]*cfg.Conf
 
 	for inputKey, configMap := range cache.iter() {
 		if oldConfigMap, has := hrp.cache.get(inputKey); has {
-			new := NewSet().Load(configMap)
-			add, del := new.Diff(NewSet().Load(oldConfigMap))
+			new := set.NewWithLoad[string, cfg.ConfigWithFormat](configMap)
+			old := set.NewWithLoad[string, cfg.ConfigWithFormat](oldConfigMap)
+			add, _, del := new.Diff(old)
 			for sum := range add {
 				if config.Config.DebugMode {
 					log.Println("D!: add config:", inputKey, "config sum:", sum)

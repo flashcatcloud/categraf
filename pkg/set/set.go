@@ -1,43 +1,41 @@
-package inputs
-
-import (
-	"flashcat.cloud/categraf/pkg/cfg"
-)
+package set
 
 type (
-	Empty struct{}
-	Set   map[string]Empty
+	Empty                          struct{}
+	Set[R comparable]              map[R]Empty
+	Rangeable[K comparable, V any] map[K]V
 )
 
-func NewSet() Set {
-	return make(Set)
+func New[R comparable]() Set[R] {
+	return make(Set[R])
 }
 
-func (s Set) Add(elem string) {
+func (s Set[R]) Add(elem R) {
 	s[elem] = Empty{}
 }
 
-func (s Set) Has(elem string) bool {
+func (s Set[R]) Has(elem R) bool {
 	_, ok := s[elem]
 	return ok
 }
 
-func (s Set) Load(elems map[string]cfg.ConfigWithFormat) Set {
+func NewWithLoad[R comparable, V any](elems map[R]V) Set[R] {
+	s := New[R]()
 	for k := range elems {
 		s.Add(k)
 	}
 	return s
 }
 
-func (s Set) Clear() Set {
+func (s Set[R]) Clear() Set[R] {
 	for k := range s {
 		delete(s, k)
 	}
 	return s
 }
 
-func (src Set) Diff(dst Set) (add, del Set) {
-	record := map[string]int{}
+func (src Set[R]) Diff(dst Set[R]) (add, intersection, del Set[R]) {
+	record := map[R]int{}
 	for elem := range src {
 		record[elem]++
 	}
@@ -45,7 +43,7 @@ func (src Set) Diff(dst Set) (add, del Set) {
 		record[elem]++
 	}
 
-	intersection := NewSet()
+	intersection = New[R]()
 	for k, v := range record {
 		if v == 2 {
 			intersection.Add(k)
@@ -53,7 +51,7 @@ func (src Set) Diff(dst Set) (add, del Set) {
 	}
 
 	// del := dst - interaction
-	del = NewSet()
+	del = New[R]()
 	for elem := range dst {
 		if intersection.Has(elem) {
 			continue
@@ -61,12 +59,12 @@ func (src Set) Diff(dst Set) (add, del Set) {
 		del.Add(elem)
 	}
 	// add := src - interaction
-	add = NewSet()
+	add = New[R]()
 	for elem := range src {
 		if intersection.Has(elem) {
 			continue
 		}
 		add.Add(elem)
 	}
-	return add, del
+	return add, intersection, del
 }

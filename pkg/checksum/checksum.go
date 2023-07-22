@@ -40,7 +40,7 @@ func New(data interface{}) Checksum {
 
 // Get returns calculated checksum of checkpoint data
 func getChecksum(data interface{}) uint64 {
-	hash := fnv.New32a()
+	hash := fnv.New64a()
 	hashutil.DeepHashObject(hash, data)
-	return uint64(hash.Sum32())
+	return hash.Sum64()
 }
