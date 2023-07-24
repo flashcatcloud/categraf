@@ -62,8 +62,8 @@ type (
 		// 企业云监控配置项
 		// batchSize int `toml:"batchSize"`
 
-		metricCache *metricCache      `toml:"-"`
-		metaCache   *cache.BasicCache `toml:"-"`
+		metricCache *metricCache              `toml:"-"`
+		metaCache   *cache.BasicCache[string] `toml:"-"`
 
 		EcsAgentHostTag string `toml:"ecs_host_tag"`
 	}
@@ -136,7 +136,7 @@ func (ins *Instance) Init() error {
 	if len(ins.EcsAgentHostTag) == 0 {
 		ins.EcsAgentHostTag = "agent_hostname"
 	}
-	ins.metaCache = cache.NewBasicCache()
+	ins.metaCache = cache.NewBasicCache[string]()
 
 	err := ins.initialize()
 	if err != nil {
