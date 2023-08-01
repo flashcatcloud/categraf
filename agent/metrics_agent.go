@@ -77,6 +77,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/systemd"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
 	_ "flashcat.cloud/categraf/inputs/vsphere"
+	_ "flashcat.cloud/categraf/inputs/whois"
 	_ "flashcat.cloud/categraf/inputs/xskyapi"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
 )
