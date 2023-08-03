@@ -17,6 +17,10 @@ import (
 	"github.com/toolkits/pkg/file"
 )
 
+const (
+	defaultProbeAddr = "223.5.5.5:80"
+)
+
 var envVarEscaper = strings.NewReplacer(
 	`"`, `\"`,
 	`\`, `\\`,
@@ -254,8 +258,8 @@ func GetOutboundIP() (net.IP, error) {
 		if len(v.Url) != 0 {
 			u, err := url.Parse(v.Url)
 			if err != nil {
-				log.Printf("W! parse writers url %s error %s, use 223.5.5.5:80 as default address", v.Url, err)
-				addr = "223.5.5.5:80"
+				log.Printf("W! parse writers url %s error %s, use %s as default address", v.Url, err, defaultProbeAddr)
+				addr = defaultProbeAddr
 			} else {
 				if len(u.Port()) == 0 {
 					if u.Scheme == "http" {
