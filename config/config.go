@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -14,6 +15,10 @@ import (
 	"flashcat.cloud/categraf/pkg/tls"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/toolkits/pkg/file"
+)
+
+const (
+	defaultProbeAddr = "223.5.5.5:80"
 )
 
 var envVarEscaper = strings.NewReplacer(
@@ -248,7 +253,29 @@ func getLocalIP() (net.IP, error) {
 
 // Get preferred outbound ip of this machine
 func GetOutboundIP() (net.IP, error) {
-	conn, err := net.Dial("udp", "223.5.5.5:80")
+	var addr string
+	for _, v := range Config.Writers {
+		if len(v.Url) != 0 {
+			u, err := url.Parse(v.Url)
+			if err != nil {
+				log.Printf("W! parse writers url %s error %s, use %s as default address", v.Url, err, defaultProbeAddr)
+				addr = defaultProbeAddr
+			} else {
+				if len(u.Port()) == 0 {
+					if u.Scheme == "http" {
+						u.Host = u.Host + ":80"
+					}
+					if u.Scheme == "https" {
+						u.Host = u.Host + ":443"
+					}
+				}
+				addr = u.Host
+			}
+			break
+		}
+	}
+
+	conn, err := net.Dial("udp", addr)
 	if err != nil {
 		ip, err := getLocalIP()
 		if err != nil {
