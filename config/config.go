@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"path"
@@ -215,11 +216,45 @@ func GetInterval() time.Duration {
 	return time.Duration(Config.Global.Interval)
 }
 
+func getLocalIP() (net.IP, error) {
+	ifs, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, iface := range ifs {
+		if (iface.Flags & net.FlagUp) == 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			log.Println("W! iface address error", err)
+			continue
+		}
+		for _, addr := range addrs {
+			if ip, ok := addr.(*net.IPNet); ok && ip.IP.IsLoopback() {
+				continue
+			} else {
+				ip4 := ip.IP.To4()
+				if ip4 == nil {
+					continue
+				}
+				return ip4, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("no local ip found")
+}
+
 // Get preferred outbound ip of this machine
 func GetOutboundIP() (net.IP, error) {
 	conn, err := net.Dial("udp", "223.5.5.5:80")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get outbound ip: %v", err)
+		ip, err := getLocalIP()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get local ip: %v", err)
+		}
+		return ip, nil
 	}
 	defer conn.Close()
 
