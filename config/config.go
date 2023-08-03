@@ -253,13 +253,16 @@ func getLocalIP() (net.IP, error) {
 
 // Get preferred outbound ip of this machine
 func GetOutboundIP() (net.IP, error) {
-	var addr string
+	addr := defaultProbeAddr
+	if len(Config.Writers) == 0 {
+		log.Printf("E! writers is not configured, use %s as default probe address", defaultProbeAddr)
+	}
 	for _, v := range Config.Writers {
 		if len(v.Url) != 0 {
 			u, err := url.Parse(v.Url)
 			if err != nil {
-				log.Printf("W! parse writers url %s error %s, use %s as default address", v.Url, err, defaultProbeAddr)
-				addr = defaultProbeAddr
+				log.Printf("W! parse writers url %s error %s", v.Url, err)
+				continue
 			} else {
 				if len(u.Port()) == 0 {
 					if u.Scheme == "http" {
@@ -270,8 +273,8 @@ func GetOutboundIP() (net.IP, error) {
 					}
 				}
 				addr = u.Host
+				break
 			}
-			break
 		}
 	}
 
