@@ -196,13 +196,15 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 
 	labels := map[string]string{}
 
-	urlKey, urlVal, err := ins.GenerateLabel(u)
-	if err != nil {
-		log.Println("E! failed to generate url label value:", err)
-		return
-	}
+	if ins.UrlLabel.LabelKey != "-" {
+		urlKey, urlVal, err := ins.GenerateLabel(u)
+		if err != nil {
+			log.Println("E! failed to generate url label value:", err)
+			return
+		}
 
-	labels[urlKey] = urlVal
+		labels[urlKey] = urlVal
+	}
 
 	for key, val := range uri.Tags {
 		labels[key] = val
