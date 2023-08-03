@@ -254,7 +254,7 @@ func GetOutboundIP() (net.IP, error) {
 		if len(v.Url) != 0 {
 			u, err := url.Parse(v.Url)
 			if err != nil {
-				log.Println("W! parse writers url error", err)
+				log.Printf("W! parse writers url %s error %s, use 223.5.5.5:80 as default address", v.Url, err)
 				addr = "223.5.5.5:80"
 			} else {
 				if len(u.Port()) == 0 {
