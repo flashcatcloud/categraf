@@ -4,11 +4,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/likexian/whois"
+	whoisparser "github.com/likexian/whois-parser"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/likexian/whois"
-	whoisparser "github.com/likexian/whois-parser"
 )
 
 const inputName = "whois"
@@ -43,6 +44,21 @@ func (wh *Whois) GetInstances() []inputs.Instance {
 type Instance struct {
 	config.InstanceConfig
 	Domain string `toml:"domain"`
+}
+
+func (ins *Instance) Empty() bool {
+	if len(ins.Domain) > 0 {
+		return false
+	}
+
+	return true
+}
+func (ins *Instance) Init() error {
+	if ins.Empty() {
+		return types.ErrInstancesEmpty
+	}
+
+	return nil
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {

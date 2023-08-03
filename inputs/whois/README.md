@@ -6,11 +6,12 @@
 ## Configuration
 
 最核心的配置就是 domain 配置，配置目标地址，比如想要监控一个地址：
+默认保持注释状态，注释状态下，插件默认不启用
 
 ```toml
-[[instances]]
+# [[instances]]
 ## Used to collect domain name information.
-domain = "baidu.com"
+# domain = "baidu.com"
 ```
 请注意这里配置的是域名不是URL
 

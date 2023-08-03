@@ -151,13 +151,13 @@ func (ins *Instance) getQueuesInfo(topicName string) (int, error) {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	topics, err := ins.GetTopicInfo()
 	if err != nil {
-		log.Println("Failed to obtain the topic list error:", err)
+		log.Println("E! Failed to obtain the topic list error:", err)
 	} else {
 		for _, topic := range topics {
 			v, err := ins.getQueuesInfo(topic)
 			if err != nil {
 				v = 0
-				log.Println("Failed to obtain topic depth value error:", err)
+				log.Println("E! Failed to obtain topic depth value error:", err)
 			}
 			fields := map[string]interface{}{
 				"channel_depth": v,
@@ -166,7 +166,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				"topic_name": topic,
 			}
 
-			slist.PushSamples("nsq", fields, tags)
+			slist.PushSamples(inputName, fields, tags)
 		}
 	}
 }
