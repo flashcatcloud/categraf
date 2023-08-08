@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"net"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -13,6 +15,10 @@ import (
 	"flashcat.cloud/categraf/pkg/tls"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/toolkits/pkg/file"
+)
+
+const (
+	defaultProbeAddr = "223.5.5.5:80"
 )
 
 var envVarEscaper = strings.NewReplacer(
@@ -215,11 +221,70 @@ func GetInterval() time.Duration {
 	return time.Duration(Config.Global.Interval)
 }
 
+func getLocalIP() (net.IP, error) {
+	ifs, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, iface := range ifs {
+		if (iface.Flags & net.FlagUp) == 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			log.Println("W! iface address error", err)
+			continue
+		}
+		for _, addr := range addrs {
+			if ip, ok := addr.(*net.IPNet); ok && ip.IP.IsLoopback() {
+				continue
+			} else {
+				ip4 := ip.IP.To4()
+				if ip4 == nil {
+					continue
+				}
+				return ip4, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("no local ip found")
+}
+
 // Get preferred outbound ip of this machine
 func GetOutboundIP() (net.IP, error) {
-	conn, err := net.Dial("udp", "223.5.5.5:80")
+	addr := defaultProbeAddr
+	if len(Config.Writers) == 0 {
+		log.Printf("E! writers is not configured, use %s as default probe address", defaultProbeAddr)
+	}
+	for _, v := range Config.Writers {
+		if len(v.Url) != 0 {
+			u, err := url.Parse(v.Url)
+			if err != nil {
+				log.Printf("W! parse writers url %s error %s", v.Url, err)
+				continue
+			} else {
+				if len(u.Port()) == 0 {
+					if u.Scheme == "http" {
+						u.Host = u.Host + ":80"
+					}
+					if u.Scheme == "https" {
+						u.Host = u.Host + ":443"
+					}
+				}
+				addr = u.Host
+				break
+			}
+		}
+	}
+
+	conn, err := net.Dial("udp", addr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get outbound ip: %v", err)
+		ip, err := getLocalIP()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get local ip: %v", err)
+		}
+		return ip, nil
 	}
 	defer conn.Close()
 
