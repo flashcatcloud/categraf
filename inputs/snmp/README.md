@@ -2,6 +2,8 @@ forked from [telegraf/snmp](https://github.com/influxdata/telegraf/tree/master/p
 
 目前只修改了netsnmp的部分 ，配置中为了兼容，保留了path参数。
 
+snmp_up代表设备是否存活，1 存活 0不存活，依赖ICMP
+
 配置示例
 ```
 [[instances]]

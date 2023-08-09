@@ -3,8 +3,11 @@ package snmp
 import (
 	"fmt"
 	"log"
+	"net"
 	"sync"
+	"time"
 
+	"github.com/freedomkk-qfeng/go-fastping"
 	"github.com/gosnmp/gosnmp"
 
 	"flashcat.cloud/categraf/config"
@@ -106,6 +109,18 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					log.Printf("agent %s ins: gathering table %s error: %s", agent, t.Name, err)
 				}
 			}
+			//进行icmp探测
+
+			up := Ping(gs.Host(), 300)
+			fields := map[string]interface{}{
+				"icmp_up": up,
+			}
+			tags := map[string]string{
+				ins.AgentHostTag: gs.Host(),
+			}
+
+			slist.PushSamples(inputName, fields, tags)
+
 		}(i, agent)
 	}
 	wg.Wait()
@@ -188,4 +203,37 @@ func (ins *Instance) getConnection(idx int) (snmpConnection, error) {
 	}
 
 	return gs, nil
+}
+
+func Ping(ip string, timeout int) float64 {
+	rtt, _ := fastPingRtt(ip, timeout)
+	if rtt == -1 {
+		return 0
+	}
+	return 1
+}
+
+func fastPingRtt(ip string, timeout int) (float64, error) {
+	var rt float64
+	rt = -1
+	p := fastping.NewPinger()
+	ra, err := net.ResolveIPAddr("ip4:icmp", ip)
+	if err != nil {
+		return -1, err
+	}
+	p.AddIPAddr(ra)
+	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
+		rt = float64(rtt.Nanoseconds()) / 1000000.0
+		//fmt.Printf("IP Addr: %s receive, RTT: %v\n", addr.String(), rtt)
+	}
+	p.OnIdle = func() {
+		//fmt.Println("finish")
+	}
+	p.MaxRTT = time.Millisecond * time.Duration(timeout)
+	err = p.Run()
+	if err != nil {
+		return -1, err
+	}
+
+	return rt, err
 }
