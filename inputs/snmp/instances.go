@@ -113,7 +113,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 			up := Ping(gs.Host(), 300)
 			fields := map[string]interface{}{
-				"up": up,
+				"icmp_up": up,
 			}
 			tags := map[string]string{
 				ins.AgentHostTag: gs.Host(),
