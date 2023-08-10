@@ -50,6 +50,25 @@ builds:
     ldflags:
       - -s -w
       - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
+  - id: linux-slim
+    main: ./
+    binary: categraf
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    tags:
+      - no_ibex 
+      - no_prometheus 
+      - no_traces
+      - no_logs
+    ldflags:
+      - -s -w
+      - -X flashcat.cloud/categraf/config.Version=slim-{{ .Tag }}-{{.Commit}}
+
   - id: windows
     main: ./
     binary: categraf
@@ -77,6 +96,7 @@ archives:
     wrap_in_directory: true
     files:
       - conf/*
+
   - id: categraf-common
     rlcp: true
     builds:
@@ -88,6 +108,19 @@ archives:
       - goos: windows
         format: zip
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    wrap_in_directory: true
+    files:
+      - conf/*
+
+  - id: categraf-slim
+    rlcp: true
+    builds:
+      - linux-slim
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: "{{ .ProjectName }}-slim-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
     files:
       - conf/*
@@ -105,6 +138,35 @@ dockers:
     goarch: amd64
     ids:
       - linux-amd64
+    dockerfile: docker/Dockerfile.goreleaser
+    extra_files:
+      - docker/entrypoint.sh
+      - docker/nsswitch.conf
+      - conf/config.toml
+      - conf/logs.toml
+      - conf/input.cpu/cpu.toml
+      - conf/input.mem/mem.toml
+      - conf/input.disk/disk.toml
+      - conf/input.diskio/diskio.toml
+      - conf/input.kernel/kernel.toml
+      - conf/input.linux_sysctl_fs/linux_sysctl_fs.toml
+      - conf/input.system/system.toml
+      - conf/input.kernel_vmstat/kernel_vmstat.toml
+      - conf/input.netstat/netstat.toml
+      - conf/input.net/net.toml
+      - conf/input.docker/docker.toml
+      - conf/input.kubernetes/kubernetes.toml
+      - conf/input.processes/processes.toml
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+
+  - image_templates:
+      - flashcatcloud/categraf:slim-{{ .Tag }}-amd64
+    goos: linux
+    goarch: amd64
+    ids:
+      - linux-slim
     dockerfile: docker/Dockerfile.goreleaser
     extra_files:
       - docker/entrypoint.sh
@@ -156,14 +218,49 @@ dockers:
     use: buildx
     build_flag_templates:
       - "--platform=linux/arm64/v8"
-docker_manifests:
 
+  - image_templates:
+      - flashcatcloud/categraf:slim-{{ .Tag }}-arm64v8
+    goos: linux
+    goarch: arm64
+    ids:
+      - linux-slim
+    dockerfile: docker/Dockerfile.goreleaser.arm64
+    extra_files:
+      - docker/entrypoint.sh
+      - docker/nsswitch.conf
+      - conf/config.toml
+      - conf/logs.toml
+      - conf/input.cpu/cpu.toml
+      - conf/input.mem/mem.toml
+      - conf/input.disk/disk.toml
+      - conf/input.diskio/diskio.toml
+      - conf/input.kernel/kernel.toml
+      - conf/input.linux_sysctl_fs/linux_sysctl_fs.toml
+      - conf/input.system/system.toml
+      - conf/input.kernel_vmstat/kernel_vmstat.toml
+      - conf/input.netstat/netstat.toml
+      - conf/input.net/net.toml
+      - conf/input.docker/docker.toml
+      - conf/input.kubernetes/kubernetes.toml
+      - conf/input.processes/processes.toml
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+
+docker_manifests:
   - name_template: flashcatcloud/categraf:{{ .Tag }}
     image_templates:
       - flashcatcloud/categraf:{{ .Tag }}-amd64
       - flashcatcloud/categraf:{{ .Tag }}-arm64v8
 
+  - name_template: flashcatcloud/categraf:slim-{{ .Tag }}
+    image_templates:
+      - flashcatcloud/categraf:slim-{{ .Tag }}-amd64
+      - flashcatcloud/categraf:slim-{{ .Tag }}-arm64v8
+
   - name_template: flashcatcloud/categraf:latest
     image_templates:
       - flashcatcloud/categraf:{{ .Tag }}-amd64
       - flashcatcloud/categraf:{{ .Tag }}-arm64v8
+
