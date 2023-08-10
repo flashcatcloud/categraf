@@ -62,7 +62,6 @@ builds:
       - arm64
     tags:
       - no_ibex 
-      - no_prometheus 
       - no_traces
       - no_logs
     ldflags:
