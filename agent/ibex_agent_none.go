@@ -4,7 +4,7 @@ package agent
 
 type IbexAgent struct{}
 
-func NewIbexAgent() *IbexAgent {
+func NewIbexAgent() *AgentModule {
 	return nil
 }
 
