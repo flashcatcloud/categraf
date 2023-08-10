@@ -1,4 +1,4 @@
-//go:build !no_logs && systemd
+//go:build !no_logs && linux && amd64
 
 // Unless explicitly stated otherwise all files in this repository are licensed
 // under the Apache License Version 2.0.
@@ -10,6 +10,7 @@ package journald
 import (
 	"log"
 
+	config "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/auditor"
 	"flashcat.cloud/categraf/logs/pipeline"
 	"flashcat.cloud/categraf/logs/restart"
