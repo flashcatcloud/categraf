@@ -153,6 +153,8 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 		Config.WriterOpt.Batch = 1000
 	}
 
+	Config.Global.Hostname = strings.TrimSpace(Config.Global.Hostname)
+
 	if err := Config.fillIP(); err != nil {
 		return err
 	}
