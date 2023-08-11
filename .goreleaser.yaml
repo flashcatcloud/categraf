@@ -154,7 +154,6 @@ dockers:
       - conf/input.kernel_vmstat/kernel_vmstat.toml
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
-      - conf/input.docker/docker.toml
       - conf/input.kubernetes/kubernetes.toml
       - conf/input.processes/processes.toml
     use: buildx
@@ -183,7 +182,6 @@ dockers:
       - conf/input.kernel_vmstat/kernel_vmstat.toml
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
-      - conf/input.docker/docker.toml
       - conf/input.kubernetes/kubernetes.toml
       - conf/input.processes/processes.toml
     use: buildx
@@ -212,7 +210,6 @@ dockers:
       - conf/input.kernel_vmstat/kernel_vmstat.toml
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
-      - conf/input.docker/docker.toml
       - conf/input.kubernetes/kubernetes.toml
       - conf/input.processes/processes.toml
     use: buildx
@@ -241,7 +238,6 @@ dockers:
       - conf/input.kernel_vmstat/kernel_vmstat.toml
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
-      - conf/input.docker/docker.toml
       - conf/input.kubernetes/kubernetes.toml
       - conf/input.processes/processes.toml
     use: buildx
