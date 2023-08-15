@@ -19,6 +19,13 @@ interval = 15
 # input provider settings; optional: local / http
 providers = ["local"]
 
+# The concurrency setting controls the number of concurrent tasks spawned for each input. 
+# By default, it is set to runtime.NumCPU() * 10. This setting is particularly useful when dealing
+# with configurations that involve extensive instances of input like ping, net_response, or http_response.
+# As multiple goroutines run simultaneously, the "ResponseTime" metric might appear larger than expected. 
+# However, utilizing the concurrency setting can help mitigate this issue and optimize the response time.
+concurrency = -1
+
 [global.labels]
 # region = "shanghai"
 # env = "localhost"

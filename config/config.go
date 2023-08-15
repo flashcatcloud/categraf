@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"runtime"
 	"strings"
 	"time"
 
@@ -35,6 +36,7 @@ type Global struct {
 	Precision    string            `toml:"precision"`
 	Interval     Duration          `toml:"interval"`
 	Providers    []string          `toml:"providers"`
+	Concurrency  int               `toml:"concurrency"`
 }
 
 type Log struct {
@@ -221,6 +223,13 @@ func GetInterval() time.Duration {
 	}
 
 	return time.Duration(Config.Global.Interval)
+}
+
+func GetConcurrency() int {
+	if Config.Global.Concurrency <= 0 {
+		return runtime.NumCPU() * 10
+	}
+	return Config.Global.Concurrency
 }
 
 func getLocalIP() (net.IP, error) {
