@@ -67,8 +67,9 @@ type (
 		CacheTTL   config.Duration `toml:"cache_ttl"`
 		RateLimit  int             `toml:"ratelimit"`
 
-		SdkRateLimitTokens int `toml:"sdk_ratelimit_tokens"`
-		RetryMaxAttempts   int `toml:"retry_max_attempts"`
+		SdkRateLimitTokens int      `toml:"sdk_ratelimit_tokens"`
+		RetryMaxAttempts   int      `toml:"retry_max_attempts"`
+		DebugMode          []string `toml:"debug_mode"`
 
 		RecentlyActive string `toml:"recently_active"`
 		BatchSize      int    `toml:"batch_size"`
@@ -240,7 +241,29 @@ func (ins *Instance) initializeCloudWatch() error {
 		// Disable logging
 		options.ClientLogMode = 0
 		if config.Config.DebugMode {
-			options.ClientLogMode = aws.LogRequest | aws.LogRetries | aws.LogResponse
+			for _, mode := range ins.DebugMode {
+				switch mode {
+				case "LogRequest":
+					options.ClientLogMode |= aws.LogRequest
+				case "LogRequestWithBody":
+					options.ClientLogMode |= aws.LogRequestWithBody
+				case "LogRequestEventMessage":
+					options.ClientLogMode |= aws.LogRequestEventMessage
+				case "LogRetries":
+					options.ClientLogMode |= aws.LogRetries
+				case "LogResponse":
+					options.ClientLogMode |= aws.LogResponse
+				case "LogResponseWithBody":
+					options.ClientLogMode |= aws.LogResponseWithBody
+				case "LogResponseEventMessage":
+					options.ClientLogMode |= aws.LogResponseEventMessage
+				case "LogSigning":
+					options.ClientLogMode |= aws.LogSigning
+				case "LogDeprecatedUsage":
+					options.ClientLogMode |= aws.LogDeprecatedUsage
+				}
+
+			}
 		}
 		options.Retryer = retry.NewStandard(func(options *retry.StandardOptions) {
 			options.MaxAttempts = ins.RetryMaxAttempts
