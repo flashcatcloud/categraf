@@ -86,8 +86,8 @@ func (r *InputReader) gatherOnce() {
 		return
 	}
 
-	concorrency := config.GetConcurrency()
-	concurrencyLimiter := make(chan struct{}, concorrency)
+	concurrency := config.GetConcurrency()
+	concurrencyLimiter := make(chan struct{}, concurrency)
 
 	atomic.AddUint64(&r.runCounter, 1)
 
