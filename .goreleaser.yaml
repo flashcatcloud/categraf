@@ -64,6 +64,25 @@ builds:
       - no_ibex 
       - no_traces
       - no_logs
+      - no_prometheus
+    ldflags:
+      - -s -w
+      - -X flashcat.cloud/categraf/config.Version=slim-{{ .Tag }}-{{.Commit}}
+
+  - id: linux-metrics-agent
+    main: ./
+    binary: categraf
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    tags:
+      - no_ibex 
+      - no_traces
+      - no_logs
     ldflags:
       - -s -w
       - -X flashcat.cloud/categraf/config.Version=slim-{{ .Tag }}-{{.Commit}}
@@ -220,7 +239,7 @@ dockers:
     goos: linux
     goarch: arm64
     ids:
-      - linux-slim
+      - linux-metrics-agent
     dockerfile: docker/Dockerfile.goreleaser.arm64
     extra_files:
       - docker/entrypoint.sh
