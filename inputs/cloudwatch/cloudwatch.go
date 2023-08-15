@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/ratelimit"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	cwClient "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 
@@ -57,15 +59,19 @@ type (
 
 		internalProxy.HTTPProxy
 
-		Period         config.Duration `toml:"period"`
-		Delay          config.Duration `toml:"delay"`
-		Namespace      string          `toml:"namespace" deprecated:"1.25.0;use 'namespaces' instead"`
-		Namespaces     []string        `toml:"namespaces"`
-		Metrics        []*Metric       `toml:"metrics"`
-		CacheTTL       config.Duration `toml:"cache_ttl"`
-		RateLimit      int             `toml:"ratelimit"`
-		RecentlyActive string          `toml:"recently_active"`
-		BatchSize      int             `toml:"batch_size"`
+		Period     config.Duration `toml:"period"`
+		Delay      config.Duration `toml:"delay"`
+		Namespace  string          `toml:"namespace" deprecated:"1.25.0;use 'namespaces' instead"`
+		Namespaces []string        `toml:"namespaces"`
+		Metrics    []*Metric       `toml:"metrics"`
+		CacheTTL   config.Duration `toml:"cache_ttl"`
+		RateLimit  int             `toml:"ratelimit"`
+
+		SdkRateLimitTokens int `toml:"sdk_ratelimit_tokens"`
+		RetryMaxAttempts   int `toml:"retry_max_attempts"`
+
+		RecentlyActive string `toml:"recently_active"`
+		BatchSize      int    `toml:"batch_size"`
 
 		client          cloudwatchClient
 		statFilter      filter.Filter
@@ -125,6 +131,12 @@ func (ins *Instance) Init() error {
 	}
 	if len(ins.Namespace) != 0 {
 		ins.Namespaces = append(ins.Namespaces, ins.Namespace)
+	}
+	if ins.RetryMaxAttempts <= 0 {
+		ins.RetryMaxAttempts = 20
+	}
+	if ins.SdkRateLimitTokens <= 0 {
+		ins.SdkRateLimitTokens = 1000000
 	}
 
 	if len(ins.Namespaces) == 0 {
@@ -195,7 +207,7 @@ func (ins *Instance) Gather(slist *internalTypes.SampleList) {
 				defer wg.Done()
 				result, err := ins.gatherMetrics(ins.getDataInputs(inm))
 				if err != nil {
-					log.Println("E!", err)
+					log.Printf("E! gather namespace:%s error:%s", n, err)
 					return
 				}
 
@@ -227,6 +239,13 @@ func (ins *Instance) initializeCloudWatch() error {
 	ins.client = cwClient.NewFromConfig(cfg, func(options *cwClient.Options) {
 		// Disable logging
 		options.ClientLogMode = 0
+		if config.Config.DebugMode {
+			options.ClientLogMode = aws.LogRequest | aws.LogRetries | aws.LogResponse
+		}
+		options.Retryer = retry.NewStandard(func(options *retry.StandardOptions) {
+			options.MaxAttempts = ins.RetryMaxAttempts
+			options.RateLimiter = ratelimit.NewTokenRateLimit(uint(ins.SdkRateLimitTokens))
+		})
 
 		options.HTTPClient = &http.Client{
 			// use values from DefaultTransport
