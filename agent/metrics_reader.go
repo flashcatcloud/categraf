@@ -86,15 +86,22 @@ func (r *InputReader) gatherOnce() {
 		return
 	}
 
+	concorrency := config.GetConcurrency()
+	concurrencyLimiter := make(chan struct{}, concorrency)
+
 	atomic.AddUint64(&r.runCounter, 1)
 
 	for i := 0; i < len(instances); i++ {
 		if !instances[i].Initialized() {
 			continue
 		}
+		concurrencyLimiter <- struct{}{}
 		r.waitGroup.Add(1)
 		go func(ins inputs.Instance) {
-			defer r.waitGroup.Done()
+			defer func() {
+				r.waitGroup.Done()
+				<- concurrencyLimiter
+			}()
 
 			it := ins.GetIntervalTimes()
 			if it > 0 {
