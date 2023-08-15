@@ -158,12 +158,23 @@ func (ins *Instance) readTimeSeriesValue(slist *types.SampleList, filter string)
 		if labels["resource_type"] == "gce_instance" {
 			labels[ins.GceHostTag] = labels["instance_name"]
 		}
-		metric := strings.ReplaceAll(labels["metric_type"], ".googleapis.com/", "")
-		metric = strings.ReplaceAll(labels["metric_type"], "/", "_")
+		metric := strings.ReplaceAll(labels["metric_type"], "/", "_")
+		// metric = strings.ReplaceAll(labels["metric_type"], ".googleapis.com/", "")
 		samples := make([]*types.Sample, 0, len(resp.GetPoints()))
+		var val interface{}
 		for _, point := range resp.GetPoints() {
+			val = 0
+			switch point.GetValue().GetValue().(type) {
+			case *monitoringpb.TypedValue_DoubleValue:
+				val = point.GetValue().GetDoubleValue()
+			case *monitoringpb.TypedValue_Int64Value:
+				val = point.GetValue().GetInt64Value()
+			case *monitoringpb.TypedValue_DistributionValue:
+				val = point.GetValue().GetDistributionValue().GetCount()
+				metric = metric + "_sum"
+			}
 			samples = append(samples,
-				types.NewSample("gcp", metric, point.GetValue().GetDoubleValue(), labels).
+				types.NewSample("gcp", metric, val, labels).
 					SetTime(time.Unix(point.GetInterval().GetEndTime().GetSeconds(), 0)))
 		}
 		slist.PushFrontN(samples)
