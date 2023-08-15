@@ -535,9 +535,16 @@ func (ins *Instance) aggregateMetrics(
 			}
 		}
 	}
+	samples := make([]*internalTypes.Sample, 0, len(grouper.Metrics()))
 	for _, metric := range grouper.Metrics() {
-		slist.PushSamples(metric.Name(), metric.Fields(), metric.Tags())
+		for name, value := range metric.Fields() {
+			sample := internalTypes.NewSample(metric.Name(), name, value, metric.Tags()).
+				SetTime(metric.Time().Local())
+
+			samples = append(samples, sample)
+		}
 	}
+	slist.PushFrontN(samples)
 
 	return nil
 }
