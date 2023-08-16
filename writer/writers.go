@@ -33,7 +33,7 @@ type (
 	}
 )
 
-var writers Writers
+var writers *Writers
 
 func InitWriters() error {
 	writerMap := map[string]Writer{}
@@ -46,7 +46,7 @@ func InitWriters() error {
 		writerMap[opt.Url] = writer
 	}
 
-	writers = Writers{
+	writers = &Writers{
 		writerMap: writerMap,
 		queue:     types.NewSafeListLimited[*prompb.TimeSeries](config.Config.WriterOpt.ChanSize),
 	}
@@ -55,7 +55,7 @@ func InitWriters() error {
 	return nil
 }
 
-func (ws Writers) LoopRead() {
+func (ws *Writers) LoopRead() {
 	for {
 		series := ws.queue.PopBackN(config.Config.WriterOpt.Batch)
 		if len(series) == 0 {
@@ -108,7 +108,7 @@ func snapshot(count, size uint64, success bool) {
 	writers.QueueSize = size
 	if !success {
 		writers.FailCount++
-		writers.FailTotal += uint64(count)
+		writers.FailTotal += count
 	}
 }
 
