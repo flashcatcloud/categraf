@@ -19,13 +19,12 @@ type (
 	Writers struct {
 		writerMap map[string]Writer
 		queue     *types.SafeListLimited[*prompb.TimeSeries]
+		sync.Mutex
 
 		Snapshot
 	}
 
 	Snapshot struct {
-		sync.Mutex
-
 		FailCount  uint64
 		FailTotal  uint64
 		TotalCount uint64
