@@ -167,6 +167,18 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 	fields := map[string]interface{}{}
 
 	defer func() {
+		certTag, lok := labels["cert_name"]
+		if lok {
+			delete(labels, "cert_name")
+		}
+		if certField, ok := fields["cert_expire_timestamp"]; ok {
+			delete(fields, "cert_expire_timestamp")
+			certLabel := map[string]string{}
+			if lok {
+				certLabel["cert_name"] = certTag
+			}
+			slist.PushSample(inputName, "cert_expire_timestamp", certField, labels, certLabel)
+		}
 		slist.PushSamples(inputName, fields, labels)
 	}()
 
