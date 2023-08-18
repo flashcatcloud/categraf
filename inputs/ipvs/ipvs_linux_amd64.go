@@ -43,6 +43,7 @@ func (i *IPVS) Gather(slist *types.SampleList) {
 		h, err := ipvs.New("")
 		if err != nil {
 			log.Printf("E! Unable to open IPVS handle: %v\n", err)
+			return
 		}
 		i.handle = h
 	}
@@ -52,6 +53,7 @@ func (i *IPVS) Gather(slist *types.SampleList) {
 		i.handle.Close()
 		i.handle = nil // trigger a reopen on next call to gather
 		log.Printf("E! Failed to list IPVS services: %v\n", err)
+		return
 	}
 	for _, s := range services {
 		fields := map[string]interface{}{
