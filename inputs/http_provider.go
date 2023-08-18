@@ -390,7 +390,11 @@ func (hrp *HTTPProvider) LoadInputConfig(configs []cfg.ConfigWithFormat, input I
 		nInput := input.Clone()
 		err := cfg.LoadSingleConfig(c, nInput)
 		if err != nil {
-			return nil, err
+			log.Println("E! load http config error:", err)
+			if config.Config.DebugMode {
+				log.Printf("D! config:%+v load error:%s", c, err)
+			}
+			continue
 		}
 		inputs[c.CheckSum()] = nInput
 	}
