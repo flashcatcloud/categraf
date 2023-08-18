@@ -129,7 +129,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.12
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.5.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.3
+	github.com/bmatcuk/doublestar/v3 v3.0.0
 	github.com/coreos/go-systemd/v22 v22.3.2
+	github.com/karrick/godirwalk v1.10.3
 	github.com/likexian/whois v1.15.0
 	github.com/likexian/whois-parser v1.24.8
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter v0.54.0
