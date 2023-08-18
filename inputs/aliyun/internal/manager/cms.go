@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	cms20190101 "github.com/alibabacloud-go/cms-20190101/v8/client"
 	cms2021101 "github.com/alibabacloud-go/cms-export-20211101/v2/client"
@@ -78,6 +79,7 @@ func pageCaculator(totalCount int) (size, num int32) {
 
 func (m *Manager) dataPointConverter(metricName, ns, datapoints string) ([]types.Point, error) {
 	points := make([]types.Point, 0, 100)
+	datapoints = strings.Replace(datapoints, "\"Value\":\"\"", "\"Value\":0", -1)
 	err := json.Unmarshal([]byte(datapoints), &points)
 	if err != nil {
 		return nil, err
