@@ -38,11 +38,12 @@ func (i *IPVS) Name() string {
 }
 
 // Gather gathers the stats
-func (i *IPVS) Gather(slist *types.SampleList) error {
+func (i *IPVS) Gather(slist *types.SampleList) {
 	if i.handle == nil {
 		h, err := ipvs.New("")
 		if err != nil {
-			return fmt.Errorf("unable to open IPVS handle: %v", err)
+			log.Printf("E! Unable to open IPVS handle: %v\n", err)
+			return
 		}
 		i.handle = h
 	}
@@ -51,7 +52,8 @@ func (i *IPVS) Gather(slist *types.SampleList) error {
 	if err != nil {
 		i.handle.Close()
 		i.handle = nil // trigger a reopen on next call to gather
-		return fmt.Errorf("failed to list IPVS services: %v", err)
+		log.Printf("E! Failed to list IPVS services: %v\n", err)
+		return
 	}
 	for _, s := range services {
 		fields := map[string]interface{}{
@@ -97,8 +99,6 @@ func (i *IPVS) Gather(slist *types.SampleList) error {
 			slist.PushSamples(inputName, fields, destTags)
 		}
 	}
-
-	return nil
 }
 
 // helper: given a Service, return tags that identify it
