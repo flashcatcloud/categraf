@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"net/textproto"
 	"strings"
@@ -53,15 +54,15 @@ func (ins *Instance) Init() error {
 	}
 
 	if ins.ReadTimeout == 0 {
-		ins.ReadTimeout = config.Duration(time.Second)
+		ins.ReadTimeout = config.Duration(3 * time.Second)
 	}
 
 	if ins.Protocol == "udp" && ins.Send == "" {
-		return errors.New("send string cannot be empty when protocol is udp")
+		ins.Send = "X"
 	}
 
 	if ins.Protocol == "udp" && ins.Expect == "" {
-		return errors.New("expected string cannot be empty when protocol is udp")
+		ins.Expect = ""
 	}
 
 	for i := 0; i < len(ins.Targets); i++ {
@@ -286,6 +287,22 @@ func (ins *Instance) UDPGather(address string) (map[string]string, map[string]in
 	// Set read timeout
 	if gerr := conn.SetReadDeadline(time.Now().Add(time.Duration(ins.ReadTimeout))); gerr != nil {
 		return nil, nil, gerr
+	}
+	if ins.Expect == "" {
+		t := math.Max(float64(time.Duration(ins.ReadTimeout)/time.Second), 3)
+		for i := 0; i < int(t); i++ {
+			time.Sleep(1 * time.Second)
+			_, err = conn.Write(msg)
+			if err != nil && config.Config.DebugMode {
+				log.Printf("E! write udp failed, address: %s, error: %s", address, err)
+			}
+			if err != nil && strings.Contains(err.Error(), "refused") {
+				fields["result_code"] = ConnectionFailed
+				return tags, fields, nil
+			}
+		}
+		fields["result_code"] = Success
+		return tags, fields, nil
 	}
 	// Read
 	buf := make([]byte, 1024)
