@@ -30,7 +30,6 @@ var envVarEscaper = strings.NewReplacer(
 type Global struct {
 	PrintConfigs bool              `toml:"print_configs"`
 	Hostname     string            `toml:"hostname"`
-	IP           string            `toml:"-"`
 	OmitHostname bool              `toml:"omit_hostname"`
 	Labels       map[string]string `toml:"labels"`
 	Precision    string            `toml:"precision"`
@@ -157,11 +156,7 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 
 	Config.Global.Hostname = strings.TrimSpace(Config.Global.Hostname)
 
-	if err := Config.fillIP(); err != nil {
-		return err
-	}
-
-	if err := InitHostname(); err != nil {
+	if err := InitHostInfo(); err != nil {
 		return err
 	}
 
@@ -187,27 +182,25 @@ func InitConfig(configDir string, debugMode, testMode bool, interval int64, inpu
 	return nil
 }
 
-func (c *ConfigType) fillIP() error {
-	ip, err := GetOutboundIP()
-	if err != nil {
-		return err
-	}
-
-	c.Global.IP = fmt.Sprint(ip)
-	return nil
-}
-
 func (c *ConfigType) GetHostname() string {
 	ret := c.Global.Hostname
 
-	name := Hostname.Get()
+	name := HostInfo.GetHostname()
 	if ret == "" {
 		return name
 	}
 
 	ret = strings.Replace(ret, "$hostname", name, -1)
-	ret = strings.Replace(ret, "$ip", c.Global.IP, -1)
+	ret = strings.Replace(ret, "$ip", c.GetHostIP(), -1)
 	ret = os.Expand(ret, GetEnv)
+
+	return ret
+}
+func (c *ConfigType) GetHostIP() string {
+	ret := HostInfo.GetIP()
+	if ret == "" {
+		return c.GetHostname()
+	}
 
 	return ret
 }
@@ -275,6 +268,9 @@ func GetOutboundIP() (net.IP, error) {
 				log.Printf("W! parse writers url %s error %s", v.Url, err)
 				continue
 			} else {
+				if strings.Contains(u.Host, "localhost") || strings.Contains(u.Host, "127.0.0.1") {
+					continue
+				}
 				if len(u.Port()) == 0 {
 					if u.Scheme == "http" {
 						u.Host = u.Host + ":80"
@@ -314,7 +310,7 @@ func GlobalLabels() map[string]string {
 
 func Expand(nv string) string {
 	nv = strings.Replace(nv, "$hostname", Config.GetHostname(), -1)
-	nv = strings.Replace(nv, "$ip", Config.Global.IP, -1)
+	nv = strings.Replace(nv, "$ip", Config.GetHostIP(), -1)
 	nv = os.Expand(nv, GetEnv)
 	return nv
 }
