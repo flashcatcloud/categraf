@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"sync"
 	"time"
 
@@ -217,7 +218,7 @@ func (ins *Instance) getFilteredMetrics() ([]filteredMetric, error) {
 						}
 						if isSelected(metric, name, f.Dimensions, f.Namespace) {
 							metrics = append(metrics, internalTypes.Metric{
-								MetricName: name,
+								MetricName: metric.MetricName,
 								Namespace:  metric.Namespace,
 								Dimensions: metric.Dimensions,
 								LabelStr:   metric.LabelStr,
@@ -406,7 +407,8 @@ func (ins *Instance) fetchNamespaceMetrics(namespaces []string) ([]internalTypes
 }
 
 func isSelected(metric internalTypes.Metric, name, dimensions, namespace string) bool {
-	if len(name) != 0 && name != metric.MetricName {
+	reg := regexp.MustCompile(name)
+	if len(name) != 0 && name != metric.MetricName && !reg.MatchString(metric.MetricName) {
 		return false
 	}
 	if len(dimensions) != 0 && metric.Dimensions != dimensions {
