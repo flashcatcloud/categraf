@@ -180,18 +180,18 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	}(resp.Body)
 
 	fields := map[string]interface{}{
-		"nginx_up": 1,
+		"up": 1,
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		fields["nginx_up"] = 0
+		fields["up"] = 0
 		pushList(addr, slist, fields)
 		return fmt.Errorf("the HTTP response status exception, url: %s, status: %s", addr.String(), resp.Status)
 	}
 
 	err = parseResponseBody(resp.Body, fields)
 	if err != nil {
-		fields["nginx_up"] = 0
+		fields["up"] = 0
 	}
 	pushList(addr, slist, fields)
 	return err
