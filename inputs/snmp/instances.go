@@ -86,7 +86,7 @@ func (ins *Instance) up(slist *types.SampleList, i int, topTags, extraTags map[s
 	oid := ".1.3.6.1.2.1.1.1.0"
 	gs, err := ins.getConnection(i)
 	if err != nil {
-		slist.PushSample(inputName, "up", 100, topTags, extraTags)
+		slist.PushSample(inputName, "up", 0, topTags, extraTags)
 		return
 	}
 	_, err = gs.Get([]string{oid})
