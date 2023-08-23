@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"sync"
 	"time"
 
@@ -76,9 +77,10 @@ type (
 	}
 
 	MetricFilter struct {
-		MetricNames []string `toml:"metric_names"`
-		Dimensions  string   `toml:"dimensions"`
-		Namespace   string   `toml:"namespace"`
+		MetricNames  []string                  `toml:"metric_names"`
+		Dimensions   string                    `toml:"dimensions"`
+		Namespace    string                    `toml:"namespace"`
+		MetricRegexp map[string]*regexp.Regexp `toml:"-"`
 	}
 
 	filteredMetric struct {
@@ -137,6 +139,13 @@ func (ins *Instance) Init() error {
 		ins.EcsAgentHostTag = "agent_hostname"
 	}
 	ins.metaCache = cache.NewBasicCache[string]()
+	for i := 0; i < len(ins.Filters); i++ {
+		ins.Filters[i].MetricRegexp = make(map[string]*regexp.Regexp)
+		for j := 0; j < len(ins.Filters[i].MetricNames); j++ {
+			metricname := ins.Filters[i].MetricNames[j]
+			ins.Filters[i].MetricRegexp[metricname] = regexp.MustCompile(metricname)
+		}
+	}
 
 	err := ins.initialize()
 	if err != nil {
@@ -215,9 +224,9 @@ func (ins *Instance) getFilteredMetrics() ([]filteredMetric, error) {
 						if len(name) == 0 {
 							name = metric.MetricName
 						}
-						if isSelected(metric, name, f.Dimensions, f.Namespace) {
+						if isSelected(metric, name, f.Dimensions, f.Namespace, f.MetricRegexp[name]) {
 							metrics = append(metrics, internalTypes.Metric{
-								MetricName: name,
+								MetricName: metric.MetricName,
 								Namespace:  metric.Namespace,
 								Dimensions: metric.Dimensions,
 								LabelStr:   metric.LabelStr,
@@ -225,7 +234,7 @@ func (ins *Instance) getFilteredMetrics() ([]filteredMetric, error) {
 						}
 					}
 				} else {
-					if isSelected(metric, "", f.Dimensions, f.Namespace) {
+					if isSelected(metric, "", f.Dimensions, f.Namespace, nil) {
 						metrics = append(metrics, internalTypes.Metric{
 							MetricName: metric.MetricName,
 							Namespace:  metric.Namespace,
@@ -405,9 +414,11 @@ func (ins *Instance) fetchNamespaceMetrics(namespaces []string) ([]internalTypes
 	return result, nil
 }
 
-func isSelected(metric internalTypes.Metric, name, dimensions, namespace string) bool {
-	if len(name) != 0 && name != metric.MetricName {
-		return false
+func isSelected(metric internalTypes.Metric, name, dimensions, namespace string, metricregex *regexp.Regexp) bool {
+	if metricregex != nil {
+		if len(name) != 0 && name != metric.MetricName && !metricregex.MatchString(metric.MetricName) {
+			return false
+		}
 	}
 	if len(dimensions) != 0 && metric.Dimensions != dimensions {
 		return false
