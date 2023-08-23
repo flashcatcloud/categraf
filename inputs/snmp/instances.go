@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -74,13 +76,36 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
+func (ins *Instance) up(slist *types.SampleList, i int, topTags, extraTags map[string]string) {
+	host := ins.Agents[i]
+	u, err := url.Parse(ins.Agents[i])
+	if err == nil {
+		host = u.Hostname()
+	}
+	extraTags[ins.AgentHostTag] = host
+	oid := ".1.3.6.1.2.1.1.1.0"
+	gs, err := ins.getConnection(i)
+	if err != nil {
+		slist.PushSample(inputName, "up", 100, topTags, extraTags)
+		return
+	}
+	_, err = gs.Get([]string{oid})
+	if err != nil {
+		if strings.Contains(err.Error(), "refused") || strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "reset") {
+			slist.PushSample(inputName, "up", 0, topTags, extraTags)
+			return
+		}
+	}
+	slist.PushSample(inputName, "up", 1, topTags, extraTags)
+}
+
 // Gather retrieves all the configured fields and tables.
 // Any error encountered does not halt the process. The errors are accumulated
 // and returned at the end.
 func (ins *Instance) Gather(slist *types.SampleList) {
 	var wg sync.WaitGroup
 	for i, agent := range ins.Agents {
-		wg.Add(1)
+		wg.Add(2)
 		go func(i int, agent string) {
 			defer wg.Done()
 			gs, err := ins.getConnection(i)
@@ -94,11 +119,15 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				Name:   ins.Name,
 				Fields: ins.Fields,
 			}
-			topTags := map[string]string{}
+			topTags := ins.GetLabels()
 			extraTags := map[string]string{}
 			if m, ok := ins.Mappings[agent]; ok {
 				extraTags = m
 			}
+			go func() {
+				defer wg.Done()
+				ins.up(slist, i, topTags, extraTags)
+			}()
 			if err := ins.gatherTable(slist, gs, t, topTags, extraTags, false); err != nil {
 				log.Printf("agent %s ins: %s", agent, err)
 			}
@@ -109,7 +138,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					log.Printf("agent %s ins: gathering table %s error: %s", agent, t.Name, err)
 				}
 			}
-			//进行icmp探测
+			// 进行icmp探测
 
 			up := Ping(gs.Host(), 300)
 			fields := map[string]interface{}{
@@ -206,7 +235,10 @@ func (ins *Instance) getConnection(idx int) (snmpConnection, error) {
 }
 
 func Ping(ip string, timeout int) float64 {
-	rtt, _ := fastPingRtt(ip, timeout)
+	rtt, err := fastPingRtt(ip, timeout)
+	if err != nil {
+		log.Printf("W! snmp ping %s error:%s", ip, err)
+	}
 	if rtt == -1 {
 		return 0
 	}
@@ -224,10 +256,8 @@ func fastPingRtt(ip string, timeout int) (float64, error) {
 	p.AddIPAddr(ra)
 	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
 		rt = float64(rtt.Nanoseconds()) / 1000000.0
-		//fmt.Printf("IP Addr: %s receive, RTT: %v\n", addr.String(), rtt)
 	}
 	p.OnIdle = func() {
-		//fmt.Println("finish")
 	}
 	p.MaxRTT = time.Millisecond * time.Duration(timeout)
 	err = p.Run()
