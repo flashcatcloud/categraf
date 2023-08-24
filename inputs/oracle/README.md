@@ -56,6 +56,8 @@ cd /opt/categraf
 nohup ./categraf &> stdout.log &
 ```
 
+如果遇到报错 `ORA-01804: Error while trying to retrieve text for error ORA-01804` 请添加`ORACLE_HOME`环境变量
+
 ## 监控大盘
 
 本 README 文件的同级目录下，提供了 dashboard.json 就是 Oracle 的监控大盘，可以导入夜莺使用。
