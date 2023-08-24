@@ -83,6 +83,12 @@ func (ins *Instance) up(slist *types.SampleList, i int, topTags, extraTags map[s
 		host = u.Hostname()
 	}
 	extraTags[ins.AgentHostTag] = host
+
+	// icmp probe
+	up := Ping(host, 300)
+	slist.PushSample(inputName, "icmp_up", up, topTags, extraTags)
+
+	// snmp probe
 	oid := ".1.3.6.1.2.1.1.1.0"
 	gs, err := ins.getConnection(i)
 	if err != nil {
@@ -138,18 +144,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					log.Printf("agent %s ins: gathering table %s error: %s", agent, t.Name, err)
 				}
 			}
-			// 进行icmp探测
-
-			up := Ping(gs.Host(), 300)
-			fields := map[string]interface{}{
-				"icmp_up": up,
-			}
-			tags := map[string]string{
-				ins.AgentHostTag: gs.Host(),
-			}
-
-			slist.PushSamples(inputName, fields, tags)
-
 		}(i, agent)
 	}
 	wg.Wait()
