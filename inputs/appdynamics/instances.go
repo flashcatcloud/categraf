@@ -253,15 +253,13 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 
 	ins.setHeaders(req)
 
-	if ins.LabelKey != "-" {
-		if ins.LabelValue != "" {
-			urlKey, urlVal, err := ins.GenerateLabel(u)
-			if err != nil {
-				log.Println("E! failed to generate url label value:", err)
-				return
-			}
-			labels[urlKey] = urlVal
-		}
+	gTags, err := ins.GenerateLabel(u)
+	if err != nil {
+		log.Println("E! failed to generate url label value:", err)
+		return
+	}
+	for k, v := range gTags {
+		labels[k] = v
 	}
 
 	res, err := ins.client.Do(req)
