@@ -8,10 +8,10 @@ import (
 	"google.golang.org/genproto/googleapis/api/distribution"
 )
 
-func GenerateHistogramBuckets(dist *distribution.Distribution) (buckets, error) {
-	opts := dist.BucketOptions.Options
-
+func GenerateHistogramBuckets(dist *distribution.Distribution) (quantileContainer, error) {
 	var bucketKeys []float64
+
+	opts := dist.BucketOptions.Options
 	switch o := opts.(type) {
 	case *distribution.Distribution_BucketOptions_ExponentialBuckets:
 		exponential := o.ExponentialBuckets
@@ -22,6 +22,7 @@ func GenerateHistogramBuckets(dist *distribution.Distribution) (buckets, error) 
 		for i := 0; i <= num; i++ {
 			bucketKeys[i] = exponential.GetScale() * math.Pow(exponential.GetGrowthFactor(), float64(i))
 		}
+
 	case *distribution.Distribution_BucketOptions_LinearBuckets:
 		linear := o.LinearBuckets
 		// 线性桶
@@ -30,13 +31,15 @@ func GenerateHistogramBuckets(dist *distribution.Distribution) (buckets, error) 
 		for i := 0; i <= num; i++ {
 			bucketKeys[i] = linear.GetOffset() + (float64(i) * linear.GetWidth())
 		}
+
 	case *distribution.Distribution_BucketOptions_ExplicitBuckets:
 		explicit := o.ExplicitBuckets
 		// 自定义桶
 		bucketKeys = make([]float64, len(explicit.GetBounds())+1)
 		copy(bucketKeys, explicit.GetBounds())
+
 	default:
-		return nil, errors.New("Unknown distribution bts")
+		return quantileContainer{}, errors.New("Unknown distribution buckets type")
 	}
 
 	// 最后一个桶为无穷大
@@ -58,7 +61,13 @@ func GenerateHistogramBuckets(dist *distribution.Distribution) (buckets, error) 
 			})
 		}
 	}
-	return bs, nil
+
+	qc := bucketQuantile([]float64{.50, .75, .90, .95, .99, .999}, bs)
+	if qc.isNan {
+		return quantileContainer{}, errors.New("bucket quantile value is Nan")
+	}
+
+	return qc, nil
 }
 
 type bucket struct {
@@ -81,11 +90,7 @@ func (q quantileContainer) GetQuantiles() []float64 {
 	return q.qs
 }
 
-func (q quantileContainer) IsNan() bool {
-	return q.isNan
-}
-
-func BucketQuantile(qs []float64, buckets buckets) quantileContainer {
+func bucketQuantile(qs []float64, buckets buckets) quantileContainer {
 	quantile := quantileContainer{
 		qs:    make([]float64, 0, len(qs)),
 		isNan: true,
@@ -130,7 +135,6 @@ func BucketQuantile(qs []float64, buckets buckets) quantileContainer {
 		if b == 0 && buckets[0].upperBound <= 0 {
 			quantile.qs = append(quantile.qs, buckets[0].upperBound)
 			continue
-			//return buckets[0].upperBound
 		}
 		var (
 			bucketStart float64
@@ -143,7 +147,6 @@ func BucketQuantile(qs []float64, buckets buckets) quantileContainer {
 			rank -= buckets[b-1].count
 		}
 		quantile.qs = append(quantile.qs, bucketStart+(bucketEnd-bucketStart)*(rank/count))
-		//return bucketStart + (bucketEnd-bucketStart)*(rank/count)
 	}
 	quantile.isNan = false
 	return quantile
@@ -166,13 +169,13 @@ func coalesceBuckets(buckets buckets) buckets {
 }
 
 func ensureMonotonic(buckets buckets) {
-	max := buckets[0].count
+	maxN := buckets[0].count
 	for i := 1; i < len(buckets); i++ {
 		switch {
-		case buckets[i].count > max:
-			max = buckets[i].count
-		case buckets[i].count < max:
-			buckets[i].count = max
+		case buckets[i].count > maxN:
+			maxN = buckets[i].count
+		case buckets[i].count < maxN:
+			buckets[i].count = maxN
 		}
 	}
 }

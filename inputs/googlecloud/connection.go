@@ -190,23 +190,21 @@ func (ins *Instance) readTimeSeriesValue(slist *types.SampleList, filter string)
 				)
 
 				// try to calculate quantile value
-				if bks, err := internal.GenerateHistogramBuckets(point.GetValue().GetDistributionValue()); err != nil {
+				if quantile, err := internal.GenerateHistogramBuckets(point.GetValue().GetDistributionValue()); err != nil {
 					samples = append(
 						samples,
 						types.NewSample("gcp", metric, val, labels).SetTime(pointTS),
 					)
 				} else {
-					if quantile := internal.BucketQuantile([]float64{.50, .75, .90, .95, .99, .999}, bks); !quantile.IsNan() {
-						// append mean quantile to slice
-						for i, qt := range append(
-							quantile.GetQuantiles(),
-							point.GetValue().GetDistributionValue().Mean,
-						) {
-							// add new quantile label to identify quantile
-							lbs := labels
-							lbs["quantile"] = distributionQuantileBuckets[i]
-							samples = append(samples, types.NewSample("gcp", metric, qt, lbs).SetTime(pointTS))
-						}
+					// append mean quantile to slice
+					for i, qt := range append(
+						quantile.GetQuantiles(),
+						point.GetValue().GetDistributionValue().Mean,
+					) {
+						// add new quantile label to identify quantile
+						lbs := labels
+						lbs["quantile"] = distributionQuantileBuckets[i]
+						samples = append(samples, types.NewSample("gcp", metric, qt, lbs).SetTime(pointTS))
 					}
 				}
 
