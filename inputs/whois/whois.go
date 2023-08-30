@@ -2,8 +2,8 @@ package whois
 
 import (
 	"log"
-	"time"
 
+	"github.com/araddon/dateparse"
 	"github.com/likexian/whois"
 	whoisparser "github.com/likexian/whois-parser"
 
@@ -115,7 +115,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 // ParseTimeToUTCTimestamp 将时间字符串解析为 UTC 时间戳
 func ParseTimeToUTCTimestamp(timeStr string) (int64, error) {
 	// 解析时间字符串
-	parsedTime, err := time.Parse(time.RFC3339, timeStr)
+	parsedTime, err := dateparse.ParseAny(timeStr)
 	if err != nil {
 		return 0, err
 	}
