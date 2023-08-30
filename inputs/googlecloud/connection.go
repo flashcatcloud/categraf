@@ -6,9 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
 	"flashcat.cloud/categraf/inputs/googlecloud/internal"
 	"flashcat.cloud/categraf/types"
+
+	"cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/api/iterator"
 )
@@ -199,7 +200,7 @@ func (ins *Instance) readTimeSeriesValue(slist *types.SampleList, filter string)
 					// append mean quantile to slice
 					for i, qt := range append(
 						quantile.GetQuantiles(),
-						point.GetValue().GetDistributionValue().Mean,
+						point.GetValue().GetDistributionValue().GetMean(),
 					) {
 						// add new quantile label to identify quantile
 						lbs := labels
