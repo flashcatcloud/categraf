@@ -1,6 +1,11 @@
 # # collect interval
 # interval = 15
 
+## Set the mapping of extra tags in batches
+[mappings]
+# "http://localhost" = { "job" = "local" }
+# "https://www.baidu.com" = { "job" = "baidu" }
+
 [[instances]]
 targets = [
 #     "http://localhost",
