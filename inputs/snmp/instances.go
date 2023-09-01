@@ -114,12 +114,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		wg.Add(2)
 		go func(i int, agent string) {
 			defer wg.Done()
-			gs, err := ins.getConnection(i)
-			if err != nil {
-				log.Printf("agent %s ins: %s", agent, err)
-				return
-			}
-
 			// First is the top-level fields. We treat the fields as table prefixes with an empty index.
 			t := Table{
 				Name:   ins.Name,
@@ -134,6 +128,12 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				defer wg.Done()
 				ins.up(slist, i, topTags, extraTags)
 			}()
+
+			gs, err := ins.getConnection(i)
+			if err != nil {
+				log.Printf("agent %s ins: %s", agent, err)
+				return
+			}
 			if err := ins.gatherTable(slist, gs, t, topTags, extraTags, false); err != nil {
 				log.Printf("agent %s ins: %s", agent, err)
 			}
