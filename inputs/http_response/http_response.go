@@ -45,6 +45,9 @@ type Instance struct {
 
 	client httpClient
 	config.HTTPCommonConfig
+
+	// Mappings Set the mapping of extra tags in batches
+	Mappings map[string]map[string]string `toml:"mappings"`
 }
 
 type httpClient interface {
@@ -118,6 +121,8 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 type HTTPResponse struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
+
+	Mappings map[string]map[string]string `toml:"mappings"`
 }
 
 func init() {
@@ -137,6 +142,18 @@ func (h *HTTPResponse) Name() string {
 func (h *HTTPResponse) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(h.Instances))
 	for i := 0; i < len(h.Instances); i++ {
+		if len(h.Instances[i].Mappings) == 0 {
+			h.Instances[i].Mappings = h.Mappings
+		} else {
+			m := make(map[string]map[string]string)
+			for k, v := range h.Mappings {
+				m[k] = v
+			}
+			for k, v := range h.Instances[i].Mappings {
+				m[k] = v
+			}
+			h.Instances[i].Mappings = m
+		}
 		ret[i] = h.Instances[i]
 	}
 	return ret
@@ -165,6 +182,12 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 
 	labels := map[string]string{"target": target}
 	fields := map[string]interface{}{}
+	// Add extra tags in batches
+	if m, ok := ins.Mappings[target]; ok {
+		for k, v := range m {
+			labels[k] = v
+		}
+	}
 
 	defer func() {
 		certTag, lok := labels["cert_name"]
