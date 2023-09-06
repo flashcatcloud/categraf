@@ -167,8 +167,14 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 		request.SetBasicAuth(ins.Username, ins.Password)
 	}
 
+	fields := map[string]interface{}{
+		"up": 1,
+	}
+
 	resp, err := ins.client.Do(request)
 	if err != nil {
+		fields["up"] = 0
+		pushList(addr, slist, fields)
 		return fmt.Errorf("failed to request the url: %s, error: %s", addr.String(), err)
 	}
 
@@ -178,10 +184,6 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 			log.Println("E! failed to close the body of client:", err)
 		}
 	}(resp.Body)
-
-	fields := map[string]interface{}{
-		"up": 1,
-	}
 
 	if resp.StatusCode != http.StatusOK {
 		fields["up"] = 0
