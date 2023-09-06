@@ -1,4 +1,4 @@
-# # collect interval
+## collect interval
 # interval = 15
 
 ## Set the mapping of extra tags in batches
@@ -12,10 +12,10 @@ targets = [
 #     "https://www.baidu.com"
 ]
 
-# # append some labels for series
+## append some labels for series
 # labels = { region="cloud", product="n9e" }
 
-# # interval = global.interval * interval_times
+## interval = global.interval * interval_times
 # interval_times = 1
 
 ## Set http_proxy (categraf uses the system wide proxy settings if it's is not set)
@@ -45,11 +45,16 @@ targets = [
 # {'fake':'data'}
 # '''
 
-## Optional substring match in body of the response (case sensitive)
+## Optional substring or regular expression match in body of the response(substring case sensitive).
+## When both of the following parameters are enabled, one of them can be satisfied.
 # expect_response_substring = "ok"
+# expect_response_regular_expression = "green|yellow"
 
-## Optional expected response status code.
+## Optional expected response status codes.
+## "expect_response_status_codes" Supports adding multiple codes by delimiter("|" or ",").
+## When both of the following parameters are enabled, one of them can be satisfied.
 # expect_response_status_code = 0
+# expect_response_status_codes = "200|301"
 
 ## Optional TLS Config
 # use_tls = false
