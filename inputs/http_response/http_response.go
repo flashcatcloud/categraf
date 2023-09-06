@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,13 +36,15 @@ const (
 type Instance struct {
 	config.InstanceConfig
 
-	Targets                  []string        `toml:"targets"`
-	Interface                string          `toml:"interface"`
-	ResponseTimeout          config.Duration `toml:"response_timeout"`
-	Headers                  []string        `toml:"headers"`
-	Body                     string          `toml:"body"`
-	ExpectResponseSubstring  string          `toml:"expect_response_substring"`
-	ExpectResponseStatusCode *int            `toml:"expect_response_status_code"`
+	Targets                         []string        `toml:"targets"`
+	Interface                       string          `toml:"interface"`
+	ResponseTimeout                 config.Duration `toml:"response_timeout"`
+	Headers                         []string        `toml:"headers"`
+	Body                            string          `toml:"body"`
+	ExpectResponseSubstring         string          `toml:"expect_response_substring"`
+	ExpectResponseRegularExpression string          `toml:"expect_response_regular_expression"`
+	ExpectResponseStatusCode        *int            `toml:"expect_response_status_code"`
+	ExpectResponseStatusCodes       string          `toml:"expect_response_status_codes"`
 	config.HTTPProxy
 
 	client httpClient
@@ -296,18 +300,14 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 		return tags, fields, nil
 	}
 
-	if len(ins.ExpectResponseSubstring) > 0 {
-		if !strings.Contains(string(bs), ins.ExpectResponseSubstring) {
-			log.Println("E! body mismatch, response body:", string(bs))
-			fields["result_code"] = BodyMismatch
-		}
+	if !((len(ins.ExpectResponseSubstring) > 0 && strings.Contains(string(bs), ins.ExpectResponseSubstring)) || (len(ins.ExpectResponseRegularExpression) > 0 && regexp.MustCompile(ins.ExpectResponseRegularExpression).Match(bs))) {
+		log.Println("E! body mismatch, response body:", string(bs))
+		fields["result_code"] = BodyMismatch
 	}
 
-	if ins.ExpectResponseStatusCode != nil {
-		if *ins.ExpectResponseStatusCode != resp.StatusCode {
-			log.Println("E! status code mismatch, response stats code:", resp.StatusCode)
-			fields["result_code"] = CodeMismatch
-		}
+	if !((ins.ExpectResponseStatusCode != nil && *ins.ExpectResponseStatusCode == resp.StatusCode) || (len(ins.ExpectResponseStatusCodes) > 0 && strings.Contains(ins.ExpectResponseStatusCodes, strconv.Itoa(resp.StatusCode)))) {
+		log.Println("E! status code mismatch, response stats code:", resp.StatusCode)
+		fields["result_code"] = CodeMismatch
 	}
 
 	return tags, fields, nil
