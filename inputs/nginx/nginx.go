@@ -24,6 +24,8 @@ const inputName = "nginx"
 type Nginx struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
+
+	Mappings map[string]map[string]string `toml:"mappings"`
 }
 
 func init() {
@@ -43,6 +45,18 @@ func (ngx *Nginx) Name() string {
 func (ngx *Nginx) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(ngx.Instances))
 	for i := 0; i < len(ngx.Instances); i++ {
+		if len(ngx.Instances[i].Mappings) == 0 {
+			ngx.Instances[i].Mappings = ngx.Mappings
+		} else {
+			m := make(map[string]map[string]string)
+			for k, v := range ngx.Mappings {
+				m[k] = v
+			}
+			for k, v := range ngx.Instances[i].Mappings {
+				m[k] = v
+			}
+			ngx.Instances[i].Mappings = m
+		}
 		ret[i] = ngx.Instances[i]
 	}
 	return ret
@@ -58,6 +72,9 @@ type Instance struct {
 	Username        string          `toml:"username"`
 	Password        string          `toml:"password"`
 	Headers         []string        `toml:"headers"`
+
+	// Mappings Set the mapping of extra tags in batches
+	Mappings map[string]map[string]string `toml:"mappings"`
 
 	tls.ClientConfig
 
@@ -167,8 +184,21 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 		request.SetBasicAuth(ins.Username, ins.Password)
 	}
 
+	fields := map[string]interface{}{
+		"up": 1,
+	}
+	tags := map[string]string{}
+	// Add extra tags in batches
+	if m, ok := ins.Mappings[addr.String()]; ok {
+		for k, v := range m {
+			tags[k] = v
+		}
+	}
+
 	resp, err := ins.client.Do(request)
 	if err != nil {
+		fields["up"] = 0
+		pushList(addr, slist, fields, tags)
 		return fmt.Errorf("failed to request the url: %s, error: %s", addr.String(), err)
 	}
 
@@ -179,13 +209,9 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 		}
 	}(resp.Body)
 
-	fields := map[string]interface{}{
-		"up": 1,
-	}
-
 	if resp.StatusCode != http.StatusOK {
 		fields["up"] = 0
-		pushList(addr, slist, fields)
+		pushList(addr, slist, fields, tags)
 		return fmt.Errorf("the HTTP response status exception, url: %s, status: %s", addr.String(), resp.Status)
 	}
 
@@ -193,11 +219,11 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	if err != nil {
 		fields["up"] = 0
 	}
-	pushList(addr, slist, fields)
+	pushList(addr, slist, fields, tags)
 	return err
 }
 
-func pushList(addr *url.URL, slist *types.SampleList, fields map[string]interface{}) {
+func pushList(addr *url.URL, slist *types.SampleList, fields map[string]interface{}, tags map[string]string) {
 	host, port, err := net.SplitHostPort(addr.Host)
 	if err != nil {
 		host = addr.Host
@@ -210,10 +236,9 @@ func pushList(addr *url.URL, slist *types.SampleList, fields map[string]interfac
 		}
 	}
 
-	tags := map[string]string{
-		"server": host,
-		"port":   port,
-	}
+	tags["server"] = host
+	tags["port"] = port
+	tags["target"] = addr.String()
 
 	slist.PushSamples(inputName, fields, tags)
 }
