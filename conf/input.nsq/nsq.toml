@@ -1,9 +1,9 @@
 # # collect interval
 # interval = 15
 
-[[instances]]
+# [[instances]]
 ## The Nsq API URI used to collect statistical information.
-# url = ["http://localhost:8151"]
+# targets = ["http://localhost:4151"]
  
 # headers={Authorization="", X-Forwarded-For="", Host=""}
  

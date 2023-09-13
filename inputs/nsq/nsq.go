@@ -53,7 +53,8 @@ func (pt *Nsq) GetInstances() []inputs.Instance {
 
 type Instance struct {
 	config.InstanceConfig
-	URL []string `toml:"url"`
+	Targets []string `toml:"targets"`
+	URL     string   `toml:"url"`
 
 	config.HTTPCommonConfig
 
@@ -61,9 +62,13 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
-	if len(ins.URL) == 0 {
+	if len(ins.URL) != 0 {
+		log.Println("W! url is deprecated, please use targets")
+	}
+	if len(ins.Targets) == 0 && len(ins.URL) == 0 {
 		return types.ErrInstancesEmpty
 	}
+
 	ins.InitHTTPClientConfig()
 
 	client, err := ins.createHTTPClient()
@@ -75,16 +80,44 @@ func (ins *Instance) Init() error {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
-	var wg sync.WaitGroup
-	for _, e := range ins.URL {
-		wg.Add(1)
-		go func(e string) {
-			defer wg.Done()
-			ins.gatherEndpoint(e, slist)
-		}(e)
+	if len(ins.Targets) != 0 {
+		var wg sync.WaitGroup
+		for _, e := range ins.Targets {
+			wg.Add(1)
+			go func(e string) {
+				defer wg.Done()
+				ins.gatherEndpoint(e, slist)
+			}(e)
+		}
+
+		wg.Wait()
+
+	}
+	// 兼容了旧的方法
+	if len(ins.URL) != 0 {
+		topics, err := ins.GetTopicInfo()
+		if err != nil {
+			log.Println("E! Failed to obtain the topic list error:", err)
+		} else {
+			for _, topic := range topics {
+				v, err := ins.getQueuesInfo(topic)
+				if err != nil {
+					v = 0
+					log.Println("E! Failed to obtain topic depth value error:", err)
+				}
+				fields := map[string]interface{}{
+					"depth": v,
+				}
+				tags := map[string]string{
+					"topic_name": topic,
+				}
+
+				slist.PushSamples(inputName, fields, tags)
+			}
+		}
+
 	}
 
-	wg.Wait()
 }
 
 func (ins *Instance) gatherEndpoint(e string, slist *types.SampleList) {
@@ -309,4 +342,86 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		httpx.FollowRedirects(*ins.FollowRedirects))
 
 	return client, err
+}
+
+// 兼容旧的方法
+type Topic struct {
+	Name     string `json:"name"`
+	Channels []struct {
+		Depth int `json:"depth"`
+	} `json:"channels"`
+}
+
+type ApiData struct {
+	Topics  []string `json:"topics"`
+	Message string   `json:"message"`
+}
+
+func (ins *Instance) GetTopicInfo() ([]string, error) {
+	req, err := http.NewRequest(ins.Method, ins.URL, ins.GetBody())
+	if err != nil {
+		return nil, err
+	}
+	ins.SetHeaders(req)
+
+	resp, err := ins.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var apidata ApiData
+	if err := json.Unmarshal(body, &apidata); err != nil {
+		return nil, err
+	}
+
+	return apidata.Topics, nil
+}
+
+func (ins *Instance) getQueuesInfo(topicName string) (int, error) {
+	urlAll := fmt.Sprintf("%s/%s", ins.URL, topicName)
+
+	req, err := http.NewRequest(ins.Method, urlAll, ins.GetBody())
+	if err != nil {
+		return 0, err
+	}
+	ins.SetHeaders(req)
+
+	resp, err := ins.client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal(body, &data); err != nil {
+		return 0, err
+	}
+
+	channels, ok := data["channels"].([]interface{})
+	if !ok || len(channels) == 0 {
+		return 0, nil
+	}
+
+	channel, ok := channels[0].(map[string]interface{})
+	if !ok {
+		return 0, nil
+	}
+
+	depth, ok := channel["depth"].(float64)
+	if !ok {
+		return 0, nil
+	}
+
+	return int(depth), nil
 }
