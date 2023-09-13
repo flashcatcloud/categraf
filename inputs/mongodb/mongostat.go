@@ -668,6 +668,12 @@ type StatLine struct {
 	UptimeNanos int64
 	// network
 	NetworkInBytes, NetworkOutBytes int64
+	// global lock
+	GlobalLockTotalTime, GlobalLockLockTime int64
+	GlobalLockCurrentQueue                  int64
+	GlobalLockActiveClientsTotal            int64
+	GlobalLockActiveClientsWriters          int64
+	GlobalLockActiveClientsReaders          int64
 
 	// The time at which this StatLine was generated.
 	Time time.Time
@@ -961,9 +967,21 @@ func NewStatLine(oldMongo, newMongo MongoStatus, key string, all bool, sampleSec
 	returnVal.AvailableC = newStat.Connections.Available
 	returnVal.TotalCreatedC = newStat.Connections.TotalCreated
 
-	if newStat.Network != nil && newStat.Network != nil {
+	if newStat.Network != nil {
 		returnVal.NetworkOutBytes = newStat.Network.BytesOut
 		returnVal.NetworkInBytes = newStat.Network.BytesIn
+	}
+	if newStat.GlobalLock != nil {
+		returnVal.GlobalLockTotalTime = newStat.GlobalLock.TotalTime
+		returnVal.GlobalLockLockTime = newStat.GlobalLock.LockTime
+		if newStat.GlobalLock.CurrentQueue != nil {
+			returnVal.GlobalLockCurrentQueue = newStat.GlobalLock.CurrentQueue.Total
+		}
+		if newStat.GlobalLock.ActiveClients != nil {
+			returnVal.GlobalLockActiveClientsTotal = newStat.GlobalLock.ActiveClients.Total
+			returnVal.GlobalLockActiveClientsReaders = newStat.GlobalLock.ActiveClients.Readers
+			returnVal.GlobalLockActiveClientsWriters = newStat.GlobalLock.ActiveClients.Writers
+		}
 	}
 	// set the storage engine appropriately
 	if newStat.StorageEngine != nil && newStat.StorageEngine.Name != "" {

@@ -1,26 +1,36 @@
 {
     "name": "MongoDB",
     "tags": "Prometheus MongoDB",
+    "ident": "",
     "configs": {
         "var": [
             {
-                "name": "cluster",
-                "type": "query",
-                "definition": "label_values(mongodb_uptime_ns,cluster)"
+                "name": "datasource",
+                "type": "datasource",
+                "definition": "prometheus",
+                "defaultValue": 2
             },
             {
-                "name": "cl_role",
+                "name": "cluster",
                 "type": "query",
-                "definition": "label_values(mongodb_uptime_ns{cluster=~\"$cluster\", ident=~\"n9ecollector\"}, cl_role)"
+                "datasource": {
+                    "cate": "prometheus",
+                    "value": "${datasource}"
+                },
+                "definition": "label_values(mongodb_up,cluster)"
             },
             {
                 "name": "instance",
                 "type": "query",
-                "definition": "label_values(mongodb_uptime_ns{cluster=~\"$cluster\", ident=~\"n9ecollector\", cl_role=~\"$cl_role\"}, instance)",
+                "datasource": {
+                    "cate": "prometheus",
+                    "value": "${datasource}"
+                },
+                "definition": "label_values(mongodb_up{cluster=~\"$cluster\"}, instance)",
                 "multi": false
             }
         ],
-        "version": "2.0.0",
+        "version": "3.0.0",
         "panels": [
             {
                 "id": "939298f2-b21f-4e2f-9142-c10946cc4032",
@@ -47,11 +57,19 @@
                     "i": "91970d24-3f04-4424-a1ed-73e7d28f5706",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
                         "expr": "mongodb_up{cluster=\"$cluster\", instance=\"$instance\"}"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Up",
@@ -103,11 +121,19 @@
                     "i": "c7b52e8e-b417-4c61-a15e-e2f186fccd67",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_uptime_ns{cluster=\"$cluster\", instance=\"$instance\"}"
+                        "expr": "mongodb_uptime_ns{cluster=\"$cluster\", instance=\"$instance\"}/10e9"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Uptime",
@@ -168,12 +194,20 @@
                     "i": "8446dded-9e11-4ee9-bdad-769b193ddf3e",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_resident_megabytes{cluster='$cluster', cl_role=\"mongos\"} * 1024 * 1024",
+                        "expr": "mongodb_resident_megabytes{cluster='$cluster',instance=\"$instance\"} *1024*1024",
                         "legend": "{{instance}}"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Memory",
@@ -223,12 +257,20 @@
                     "i": "3eda28e7-2480-4ddc-b346-89ced1c33034",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_page_faults{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
+                        "expr": "rate(mongodb_page_faults{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
                         "legend": "page faults"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Page Faults",
@@ -279,17 +321,25 @@
                     "i": "528d0485-f947-470d-95f3-59eae157ebb6",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_network_bytes_out{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
+                        "expr": "rate(mongodb_network_bytes_out{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
                         "legend": "bytesOut"
                     },
                     {
                         "expr": "rate(mongodb_network_bytes_in{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
                         "refId": "B",
                         "legend": "bytesIn"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Network I/O",
@@ -339,12 +389,20 @@
                     "i": "067e97c3-4e57-447f-a9dc-a49627b6ce18",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_connections_current{cluster=\"$cluster\", conn_type=\"current\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+                        "expr": "mongodb_connections_current{cluster=\"$cluster\", instance=~\"$instance\"}",
                         "legend": "Connections"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Connections",
@@ -392,16 +450,34 @@
                     "i": "9e9b7356-cf0e-4e5f-95f5-00258c576bf4",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_assert_warning{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
-                        "legend": "{{assert_type}}"
+                        "expr": "rate(mongodb_assert_warning{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+                        "legend": "warning"
+                    },
+                    {
+                        "expr": "rate(mongodb_assert_rollovers{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+                        "refId": "B",
+                        "legend": "rollovers"
+                    },
+                    {
+                        "expr": "rate(mongodb_assert_msg{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+                        "refId": "C",
+                        "legend": "msg"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Assert Events",
-                "description": "断言错误次数 Asserts are not important by themselves, but you can correlate spikes with other graphs.",
+                "description": "断言次数统计 Asserts are not important by themselves, but you can correlate spikes with other graphs.",
                 "options": {
                     "tooltip": {
                         "mode": "all",
@@ -445,12 +521,40 @@
                     "i": "2698f0f8-a76a-499b-99cf-30504f0f4db6",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_ss_globalLock_currentQueue{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
-                        "legend": "{{count_type}}"
+                        "expr": "mongodb_global_lock_current_queue{cluster=\"$cluster\", instance=~\"$instance\"}",
+                        "legend": "lock queue"
+                    },
+                    {
+                        "expr": "mongodb_global_lock_total_time{cluster=\"$cluster\",instance=\"$instance\"}",
+                        "refId": "B",
+                        "legend": "lock_total_time"
+                    },
+                    {
+                        "expr": "mongodb_global_lock_active_clients_readers{cluster=\"$cluster\",instance=\"$instance\"}",
+                        "refId": "C",
+                        "legend": "active_readers"
+                    },
+                    {
+                        "expr": "mongodb_global_lock_active_clients_writers{cluster=\"$cluster\",instance=\"$instance\"}",
+                        "refId": "D",
+                        "legend": "active_writers"
+                    },
+                    {
+                        "expr": "mongodb_global_lock_active_clients_total{cluster=\"$cluster\",instance=\"$instance\"}",
+                        "refId": "E",
+                        "legend": "active_client_total"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Lock Queue",
@@ -512,22 +616,30 @@
                     "i": "c2819508-95e7-4c63-aeae-ce19f92469cd",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_ss_opcounters{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\", legacy_op_type!=\"command\"}[1m])",
-                        "legend": "{{legacy_op_type}}"
+                        "expr": "rate(mongodb_queries{cluster=\"$cluster\",  instance=~\"$instance\"}[1m])",
+                        "legend": "queries"
                     },
                     {
-                        "expr": "rate(mongodb_ss_opcountersRepl{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\", legacy_op_type!~\"(command|query|getmore)\"}[1m])",
+                        "expr": "rate(mongodb_repl_queries{cluster=\"$cluster\", instance=~\"$instance\"}[1m])",
                         "refId": "B",
-                        "legend": "repl_{{legacy_op_type}}"
+                        "legend": "repl_queries"
                     },
                     {
-                        "expr": "rate(mongodb_ss_metrics_ttl_deletedDocuments{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[1m])",
+                        "expr": "rate(mongodb_ttl_deletes{cluster=\"$cluster\", instance=~\"$instance\"}[1m])",
                         "refId": "C",
                         "legend": "ttl_delete"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Command Operations",
@@ -575,12 +687,35 @@
                     "i": "7030d97a-d69f-4916-a415-ec57503ab1ed",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_ss_metrics_document{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
-                        "legend": "{{doc_op_type}}"
+                        "expr": "rate(mongodb_document_inserted{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+                        "legend": "inserted"
+                    },
+                    {
+                        "expr": "rate(mongodb_document_updated{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+                        "refId": "B",
+                        "legend": "updated"
+                    },
+                    {
+                        "expr": "rate(mongodb_document_deleted{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+                        "refId": "C",
+                        "legend": "deleted"
+                    },
+                    {
+                        "expr": "rate(mongodb_document_returned{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+                        "refId": "D",
+                        "legend": "returned"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Document Operations",
@@ -628,12 +763,25 @@
                     "i": "1c3b73d5-c25c-449f-995d-26acc9c621e1",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_ss_opLatencies_latency{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / rate(mongodb_ss_opLatencies_ops{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / 1000",
-                        "legend": "{{op_type}}"
+                        "expr": "rate(mongodb_latency_reads{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / rate(mongodb_latency_reads_count{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / 1000",
+                        "legend": "read latancy"
+                    },
+                    {
+                        "expr": "rate(mongodb_latency_writes{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / rate(mongodb_latency_writes_count{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / 1000",
+                        "refId": "B",
+                        "legend": "write"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Response Time",
@@ -683,7 +831,9 @@
                     "i": "e642183c-8ba2-4f60-abc6-c65de49e7577",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
@@ -694,6 +844,12 @@
                         "expr": "sum(increase(mongodb_ss_metrics_queryExecutor_scanned{cluster=\"$cluster\"}[5m])) / sum(increase(mongodb_ss_metrics_document{cluster=\"$cluster\", doc_op_type=\"returned\"}[5m]))",
                         "refId": "B",
                         "legend": "Index"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Query Efficiency",
@@ -743,12 +899,20 @@
                     "i": "8b5a4f44-3291-4822-ab73-f56be6c62674",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_ss_metrics_cursor_open{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
-                        "legend": "{{csr_type}}"
+                        "expr": "mongodb_cursor_total{cluster=\"$cluster\", instance=~\"$instance\"}",
+                        "legend": ""
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Cursors",
@@ -811,27 +975,35 @@
                     "i": "bb0ae571-43a1-430b-8f63-256f6f1ebee6",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_ss_wt_cache_bytes_currently_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+                        "expr": "mongodb_wtcache_current_bytes{cluster=\"$cluster\",  instance=~\"$instance\"}",
                         "legend": "total"
                     },
                     {
-                        "expr": "mongodb_ss_wt_cache_tracked_dirty_bytes_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+                        "expr": "mongodb_wtcache_modified_pages_evicted{cluster=\"$cluster\", instance=~\"$instance\"}",
                         "refId": "B",
                         "legend": "dirty"
                     },
                     {
-                        "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_internal_pages_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+                        "expr": "mongodb_wtcache_internal_pages_evicted{cluster=\"$cluster\", instance=~\"$instance\"}",
                         "refId": "C",
                         "legend": "internal_pages"
                     },
                     {
-                        "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_leaf_pages_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+                        "expr": "mongodb_wtcache_server_evicting_pages{cluster=\"$cluster\", instance=~\"$instance\"}",
                         "refId": "D",
                         "legend": "leaf_pages"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Cache Size",
@@ -881,17 +1053,25 @@
                     "i": "f1ffd169-2a1a-42bc-9647-0e6621be0fef",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_ss_wt_cache_bytes_read_into_cache{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
+                        "expr": "rate(mongodb_wtcache_bytes_read_into{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
                         "legend": "read"
                     },
                     {
-                        "expr": "rate(mongodb_ss_wt_cache_bytes_written_from_cache{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
+                        "expr": "rate(mongodb_wtcache_bytes_written_from{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
                         "refId": "B",
                         "legend": "written"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Cache I/O",
@@ -941,15 +1121,23 @@
                     "i": "43ee140d-ae6d-474a-9892-fa4743d7f97e",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "100 * sum(mongodb_ss_wt_cache_tracked_dirty_pages_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}) / sum(mongodb_ss_wt_cache_pages_currently_held_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"})",
+                        "expr": "100 * sum(mongodb_wtcache_tracked_dirty_bytes{cluster=\"$cluster\", instance=~\"$instance\"}) / sum(mongodb_wtcache_current_bytes{cluster=\"$cluster\", instance=~\"$instance\"})",
                         "legend": "dirty rate"
                     }
                 ],
-                "name": "Cache Dirty Pages Rate",
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
+                    }
+                ],
+                "name": "Cache Dirty Rate (bytes)",
                 "description": "缓存脏页占比",
                 "options": {
                     "tooltip": {
@@ -996,12 +1184,20 @@
                     "i": "1a22c31a-859a-400c-af2a-ae83c308d0f2",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "rate(mongodb_mongod_wiredtiger_cache_evicted_total{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
+                        "expr": "rate(mongodb_wtcache_modified_pages_evicted{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
                         "legend": "evicted pages"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Cache Evicted Pages",
@@ -1063,11 +1259,19 @@
                     "i": "6187ceee-7c25-43f2-be1b-c44ad612ab52",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
                         "expr": "time() - mongodb_mongod_replset_member_election_date{cluster=\"$cluster\", instance=\"$instance\"}"
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Replset Election",
@@ -1127,12 +1331,20 @@
                     "i": "f73fd0cd-ecbe-41f0-a2dc-4e02f7eaef1c",
                     "isResizable": true
                 },
-                "version": "2.0.0",
+                "version": "3.0.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "mongodb_mongod_replset_member_replication_lag{cluster=\"$cluster\"}",
-                        "legend": "{{set}} {{name}}"
+                        "expr": "mongodb_repl_lag{cluster=\"$cluster\"}",
+                        "legend": ""
+                    }
+                ],
+                "transformations": [
+                    {
+                        "id": "organize",
+                        "options": {}
                     }
                 ],
                 "name": "Replset Lag Seconds",
