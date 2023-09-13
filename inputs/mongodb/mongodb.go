@@ -1,15 +1,22 @@
 package mongodb
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/url"
+	"strings"
+	"sync"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/inputs/mongodb/exporter"
+	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/sirupsen/logrus"
 )
 
 const inputName = "mongodb"
@@ -46,81 +53,140 @@ func (r *MongoDB) Drop() {
 		if i == nil {
 			continue
 		}
-
-		if i.e != nil {
-			i.e.Close()
+		for _, server := range i.clients {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			if err := server.client.Disconnect(ctx); err != nil {
+				log.Printf("E! Disconnecting from %q failed: %v", server.hostname, err)
+			}
+			cancel()
 		}
 	}
+}
+
+type Ssl struct {
+	Enabled bool     `toml:"ssl_enabled" deprecated:"1.3.0;use 'tls_*' options instead"`
+	CaCerts []string `toml:"cacerts" deprecated:"1.3.0;use 'tls_ca' instead"`
 }
 
 type Instance struct {
 	config.InstanceConfig
 
-	LogLevel string `toml:"log_level"`
+	// telegraf
+	Servers                     []string
+	Ssl                         Ssl
+	GatherClusterStatus         bool `toml:"enable_cluster_status,omitempty"`
+	EnableReplicasetStatus      bool `toml:"enable_replicaset_status,omitempty"`
+	EnableDBStats               bool `toml:"enable_db_stats,omitempty"`
+	EnableCollStats             bool `toml:"enable_coll_stats,omitempty"`
+	EnableTopMetrics            bool `toml:"enable_top_metrics,omitempty"`
+	DisconnectedServersBehavior string
+	ColStatsDbs                 []string `toml:"coll_stats_namespaces,omitempty"`
+	CollectAll                  bool     `toml:"collect_all,omitempty"`
+
+	clients []*Server
+	//
+	tls.ClientConfig
 
 	// Address (host:port) of MongoDB server.
-	MongodbURI                    string   `toml:"mongodb_uri,omitempty"`
+	MongodbURI                    string   `toml:"mongodb_uri,omitempty"` // deprecated
 	Username                      string   `toml:"username,omitempty"`
 	Password                      string   `toml:"password,omitempty"`
-	CollStatsNamespaces           []string `toml:"coll_stats_namespaces,omitempty"`
-	IndexStatsCollections         []string `toml:"index_stats_collections,omitempty"`
+	IndexStatsCollections         []string `toml:"index_stats_collections,omitempty"` // 保留 ，就加过滤逻辑
 	CollStatsLimit                int      `toml:"coll_stats_limit,omitempty"`
 	CompatibleMode                bool     `toml:"compatible_mode,omitempty"`
 	DirectConnect                 bool     `toml:"direct_connect,omitempty"`
 	DiscoveringMode               bool     `toml:"discovering_mode,omitempty"`
-	CollectAll                    bool     `toml:"collect_all,omitempty"`
-	EnableDBStats                 bool     `toml:"enable_db_stats,omitempty"`
 	EnableDiagnosticData          bool     `toml:"enable_diagnostic_data,omitempty"`
-	EnableReplicasetStatus        bool     `toml:"enable_replicaset_status,omitempty"`
-	EnableTopMetrics              bool     `toml:"enable_top_metrics,omitempty"`
 	EnableIndexStats              bool     `toml:"enable_index_stats,omitempty"`
-	EnableCollStats               bool     `toml:"enable_coll_stats,omitempty"`
 	EnableOverrideDescendingIndex bool     `toml:"enable_override_descending_index,omitempty"`
 
-	e *exporter.Exporter `toml:"-"`
+	Queries []QueryConfig
+}
+
+type QueryConfig struct {
+	Mesurement    string          `toml:"mesurement"`
+	LabelFields   []string        `toml:"label_fields"`
+	MetricFields  []string        `toml:"metric_fields"`
+	FieldToAppend string          `toml:"field_to_append"`
+	Timeout       config.Duration `toml:"timeout"`
+	Request       string          `toml:"request"`
 }
 
 func (ins *Instance) Init() error {
-	if len(ins.MongodbURI) == 0 {
+	if len(ins.MongodbURI) != 0 {
+		log.Printf("W! mongodb_uri is deprecated, use servers instead")
+		ins.Servers = append(ins.Servers, ins.MongodbURI)
+	}
+	if len(ins.Servers) == 0 {
 		return types.ErrInstancesEmpty
 	}
-
-	if len(ins.LogLevel) == 0 {
-		ins.LogLevel = "info"
+	if ins.UseTLS {
+		_, err := ins.ClientConfig.TLSConfig()
+		if err != nil {
+			return err
+		}
 	}
-	level, err := logrus.ParseLevel(ins.LogLevel)
+
+	for _, connURL := range ins.Servers {
+		if err := ins.setupConnection(connURL); err != nil {
+			return err
+		}
+	}
+	if ins.CollectAll {
+
+		ins.EnableTopMetrics = true
+		ins.EnableDBStats = true
+		ins.EnableCollStats = true
+		ins.EnableReplicasetStatus = true
+		ins.GatherClusterStatus = true
+	}
+
+	return nil
+}
+
+func (ins *Instance) setupConnection(connURL string) error {
+	if !strings.HasPrefix(connURL, "mongodb://") && !strings.HasPrefix(connURL, "mongodb+srv://") {
+		// Preserve backwards compatibility for hostnames without a
+		// scheme, broken in go 1.8. Remove in Telegraf 2.0
+		connURL = "mongodb://" + connURL
+		log.Printf("Using %q as connection URL; please update your configuration to use an URL", connURL)
+	}
+
+	u, err := url.Parse(connURL)
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to parse connection URL: %w", err)
 	}
 
-	l := logrus.New()
-	l.SetLevel(level)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	e, err := exporter.New(&exporter.Opts{
-		URI:                           string(ins.MongodbURI),
-		Username:                      ins.Username,
-		Password:                      ins.Password,
-		CollStatsNamespaces:           ins.CollStatsNamespaces,
-		IndexStatsCollections:         ins.IndexStatsCollections,
-		CollStatsLimit:                0,
-		CompatibleMode:                ins.CompatibleMode,
-		DirectConnect:                 ins.DirectConnect,
-		DiscoveringMode:               ins.DiscoveringMode,
-		CollectAll:                    ins.CollectAll,
-		EnableDBStats:                 ins.EnableDBStats,
-		EnableDiagnosticData:          ins.EnableDiagnosticData,
-		EnableReplicasetStatus:        ins.EnableReplicasetStatus,
-		EnableTopMetrics:              ins.EnableTopMetrics,
-		EnableIndexStats:              ins.EnableIndexStats,
-		EnableCollStats:               ins.EnableCollStats,
-		EnableOverrideDescendingIndex: ins.EnableOverrideDescendingIndex,
-		Logger:                        l,
-	})
+	opts := options.Client().ApplyURI(connURL)
+	if ins.UseTLS {
+		opts.TLSConfig, _ = ins.ClientConfig.TLSConfig()
+	}
+	if opts.ReadPreference == nil {
+		opts.ReadPreference = readpref.Nearest()
+	}
+
+	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		return fmt.Errorf("could not instantiate mongodb lag exporter: %w", err)
+		return fmt.Errorf("unable to connect to MongoDB: %w", err)
 	}
 
-	ins.e = e
+	err = client.Ping(ctx, opts.ReadPreference)
+	if err != nil {
+		if ins.DisconnectedServersBehavior == "error" {
+			return fmt.Errorf("unable to ping MongoDB: %w", err)
+		}
+
+		log.Printf("E! Unable to ping MongoDB: %s", err)
+	}
+
+	server := &Server{
+		client:   client,
+		hostname: u.Host,
+	}
+	ins.clients = append(ins.clients, server)
 	return nil
 }
 
@@ -129,8 +195,28 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		slist.PushSample(inputName, "scrape_use_seconds", time.Since(begun).Seconds())
 	}(time.Now())
 
-	err := inputs.Collect(ins.e, slist)
-	if err != nil {
-		log.Println("E! failed to collect metrics:", err)
+	tags := ins.GetLabels()
+	var wg sync.WaitGroup
+	for _, client := range ins.clients {
+		wg.Add(1)
+		go func(srv *Server) {
+			defer wg.Done()
+			tags["instance"] = srv.hostname
+			if err := srv.ping(); err != nil {
+				log.Printf("E! Failed to ping server: %s", err)
+				slist.PushSample(inputName, "up", 0, tags)
+				return
+			}
+			slist.PushSample(inputName, "up", 1, tags)
+
+			err := srv.gatherData(slist, ins.GatherClusterStatus,
+				ins.EnableReplicasetStatus, ins.EnableDBStats, ins.EnableCollStats,
+				ins.EnableTopMetrics, ins.ColStatsDbs, ins.GetLabels())
+			if err != nil {
+				log.Printf("E! Failed to gather data: %s", err)
+			}
+		}(client)
 	}
+
+	wg.Wait()
 }
