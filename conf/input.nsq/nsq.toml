@@ -1,9 +1,9 @@
 # # collect interval
 # interval = 15
 
-[[instances]]
+# [[instances]]
 ## The Nsq API URI used to collect statistical information.
-# url = "http://127.0.0.1:8171/api/topics"
+# targets = ["http://localhost:4151"]
  
 # headers={Authorization="", X-Forwarded-For="", Host=""}
  
@@ -14,7 +14,7 @@
 # password=""
 
 ## append some labels for series
-# labels = { region="shanghai", product="nsq" }
+# labels = { product="nsq" }
 
 ## interval = global.interval * interval_times
 # interval_times = 1
