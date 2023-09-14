@@ -3,15 +3,18 @@
 log_level = "info"
 # append some const labels to metrics
 # NOTICE! the instance label is required for dashboards
-labels = { instance="mongo-cluster-01" }
+labels = { cluster="mongo-cluster-01" }
 
 # mongodb dsn, see https://www.mongodb.com/docs/manual/reference/connection-string/
 # mongodb_uri = "mongodb://admin:abcdef@127.0.0.1:27017/?connect=direct&authSource=admin&tlsinsecure=true"
 # servers = ["mongodb://admin:1234@127.0.0.1:27017/?connect=direct&authSource=admin&tlsinsecure=true"]
-# if you don't specify the username or password in the mongodb_uri, you can set here. 
+# if you don't specify the username or password in the mongodb_uri, you can set here.
 # This will overwrite the dsn, it would be helpful when special characters existing in the username or password and you don't want to encode them.
 # NOTICE! this user must be granted enough rights to query needed stats, see ../inputs/mongodb/README.md
+username = "username@Bj"
+password = "password@Bj"
 # if set to true, use the direct connection way
+# direct_connect = true
 
 # collect all means you collect all the metrics, if set, all below enable_xxx flags in this section will be ignored
 collect_all = true
@@ -20,7 +23,7 @@ collect_all = true
 # if set to true, collect getDiagnosticData metrics
 # enable_diagnostic_data = true
 # if set to true, collect replSetGetStatus metrics
-#  enable_replicaset_status = false
+# enable_replicaset_status = true
 # if set to true, collect top metrics by admin command
 # enable_top_metrics = true
 # enable_coll_stats = true
@@ -40,4 +43,3 @@ collect_all = true
 # labels = { instance="mongo-cluster-02" }
 # mongodb_uri = "mongodb://username:password@127.0.0.1:27017"
 # collect_all = true
-# compatible_mode = true

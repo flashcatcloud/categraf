@@ -114,7 +114,7 @@ type QueryConfig struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.MongodbURI) != 0 {
-		log.Printf("W! mongodb_uri is deprecated, use servers instead")
+		log.Printf("W! ins.mongodb_uri is deprecated, use ins.servers instead")
 		ins.Servers = append(ins.Servers, ins.MongodbURI)
 	}
 	if len(ins.Servers) == 0 {
@@ -132,8 +132,8 @@ func (ins *Instance) Init() error {
 			return err
 		}
 	}
-	if ins.CollectAll {
 
+	if ins.CollectAll {
 		ins.EnableTopMetrics = true
 		ins.EnableDBStats = true
 		ins.EnableCollStats = true
@@ -166,6 +166,15 @@ func (ins *Instance) setupConnection(connURL string) error {
 	}
 	if opts.ReadPreference == nil {
 		opts.ReadPreference = readpref.Nearest()
+	}
+
+	opts.SetDirect(ins.DirectConnect)
+	opts.SetAppName("categraf")
+	if len(ins.Username) > 0 || len(ins.Password) > 0 {
+		opts.SetAuth(options.Credential{
+			Username: ins.Username,
+			Password: ins.Password,
+		})
 	}
 
 	client, err := mongo.Connect(ctx, opts)
