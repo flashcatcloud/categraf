@@ -33,7 +33,7 @@ func queryPidWithWinServiceName(winServiceName string) (uint32, error) {
 	defer func(srv *mgr.Service) {
 		err := srv.Close()
 		if err != nil {
-			fmt.Printf("Close srv error: %s", err)
+			log.Printf("E! Close srv error: %s", err)
 		}
 	}(srv)
 	
