@@ -15,7 +15,7 @@ func (ins *Instance) gatherSchemaSize(slist *types.SampleList, db *sql.DB, globa
 
 	rows, err := db.Query(SQL_QUERY_SCHEMA_SIZE)
 	if err != nil {
-		log.Println("E! failed to get schema size:", err)
+		log.Println("E! failed to get schema size of", ins.Address, err)
 		return
 	}
 
@@ -29,7 +29,7 @@ func (ins *Instance) gatherSchemaSize(slist *types.SampleList, db *sql.DB, globa
 
 		err = rows.Scan(&schema, &size)
 		if err != nil {
-			log.Println("E! failed to scan rows:", err)
+			log.Println("E! failed to scan rows of", ins.Address, err)
 			return
 		}
 
