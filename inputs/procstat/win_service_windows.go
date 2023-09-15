@@ -4,6 +4,7 @@
 package procstat
 
 import (
+	"log"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -36,7 +37,7 @@ func queryPidWithWinServiceName(winServiceName string) (uint32, error) {
 			log.Printf("E! Close srv error: %s", err)
 		}
 	}(srv)
-	
+
 	var p *windows.SERVICE_STATUS_PROCESS
 	var bytesNeeded uint32
 	var buf []byte
