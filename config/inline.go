@@ -8,7 +8,6 @@ import (
 	"github.com/prometheus/prometheus/model/relabel"
 
 	"flashcat.cloud/categraf/pkg/filter"
-	// "flashcat.cloud/categraf/pkg/relabel"
 	"flashcat.cloud/categraf/types"
 )
 
