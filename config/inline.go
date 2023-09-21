@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	modelLabel "github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/prometheus/model/relabel"
+
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/types"
 )
@@ -34,7 +37,10 @@ type InternalConfig struct {
 
 	// whether instance initial success
 	inited bool `toml:"-"`
+
+	RelabelConfig
 }
+type RelabelConfig []*relabel.Config
 
 func (ic *InternalConfig) GetLabels() map[string]string {
 	if ic.Labels != nil {
@@ -143,6 +149,19 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 			if !Config.Global.OmitHostname {
 				ss[i].Labels[agentHostnameLabelKey] = Config.GetHostname()
 			}
+		}
+		// relabel
+		if len(ic.RelabelConfig) != 0 {
+			all := make(modelLabel.Labels, len(ss[i].Labels))
+			for k, v := range ss[i].Labels {
+				all = append(all, modelLabel.Label{Name: k, Value: v})
+			}
+			newAll := relabel.Process(all, ic.RelabelConfig...)
+			newLabel := make(map[string]string, len(newAll))
+			for _, l := range newAll {
+				newLabel[l.Name] = l.Value
+			}
+			ss[i].Labels = newLabel
 		}
 
 		nlst.PushFront(ss[i])

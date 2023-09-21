@@ -3,7 +3,6 @@ module flashcat.cloud/categraf
 go 1.18
 
 require (
-	github.com/AlekSi/pointer v1.2.0
 	github.com/Shopify/sarama v1.36.0
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137
 	github.com/chai2010/winsvc v0.0.0-20200705094454-db7ec320025c
@@ -48,14 +47,13 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinreceiver v0.54.0
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/percona/percona-toolkit v0.0.0-20211210121818-b2860eee3152
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/client_model v0.3.0
 	github.com/prometheus/common v0.39.0
 	github.com/prometheus/prometheus v0.37.0
 	github.com/shirou/gopsutil/v3 v3.22.5
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/stretchr/testify v1.8.3
 	github.com/toolkits/pkg v1.3.0
 	github.com/ulricqin/gosnmp v0.0.1
@@ -306,7 +304,6 @@ require (
 	github.com/rs/cors v1.8.2 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da // indirect
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.9 // indirect
-	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
@@ -359,7 +356,6 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
-	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gotest.tools/v3 v3.2.0 // indirect
