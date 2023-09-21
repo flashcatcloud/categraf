@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -52,6 +51,8 @@ type Instance struct {
 
 	// Mappings Set the mapping of extra tags in batches
 	Mappings map[string]map[string]string `toml:"mappings"`
+
+	regularExpression *regexp.Regexp `toml:"-"`
 }
 
 type httpClient interface {
@@ -88,6 +89,9 @@ func (ins *Instance) Init() error {
 	}
 	if ins.HTTPCommonConfig.Headers == nil {
 		ins.HTTPCommonConfig.Headers = make(map[string]string)
+	}
+	if len(ins.ExpectResponseRegularExpression) > 0 {
+		ins.regularExpression = regexp.MustCompile(ins.ExpectResponseRegularExpression)
 	}
 
 	return nil
@@ -300,12 +304,14 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 		return tags, fields, nil
 	}
 
-	if !((len(ins.ExpectResponseSubstring) > 0 && strings.Contains(string(bs), ins.ExpectResponseSubstring)) || (len(ins.ExpectResponseRegularExpression) > 0 && regexp.MustCompile(ins.ExpectResponseRegularExpression).Match(bs))) {
+	if len(ins.ExpectResponseSubstring) > 0 && !strings.Contains(string(bs), ins.ExpectResponseSubstring) ||
+		ins.regularExpression != nil && !ins.regularExpression.Match(bs) {
 		log.Println("E! body mismatch, response body:", string(bs))
 		fields["result_code"] = BodyMismatch
 	}
 
-	if !((ins.ExpectResponseStatusCode != nil && *ins.ExpectResponseStatusCode == resp.StatusCode) || (len(ins.ExpectResponseStatusCodes) > 0 && strings.Contains(ins.ExpectResponseStatusCodes, strconv.Itoa(resp.StatusCode)))) {
+	if ins.ExpectResponseStatusCode != nil && *ins.ExpectResponseStatusCode != resp.StatusCode ||
+		len(ins.ExpectResponseStatusCodes) > 0 && !strings.Contains(ins.ExpectResponseStatusCodes, fmt.Sprintf("%d", resp.StatusCode)) {
 		log.Println("E! status code mismatch, response stats code:", resp.StatusCode)
 		fields["result_code"] = CodeMismatch
 	}
