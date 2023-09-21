@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/prometheus/common/model"
-	modelLabel "github.com/prometheus/prometheus/model/labels"
-	"github.com/prometheus/prometheus/model/relabel"
 
 	"flashcat.cloud/categraf/pkg/filter"
+	modelLabel "flashcat.cloud/categraf/pkg/prom/labels"
+	"flashcat.cloud/categraf/pkg/relabel"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -206,7 +206,10 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 			for k, v := range ss[i].Labels {
 				all = append(all, modelLabel.Label{Name: k, Value: v})
 			}
-			newAll := relabel.Process(all, ic.relabelConfigs...)
+			newAll, keep := relabel.Process(all, ic.relabelConfigs...)
+			if !keep {
+				continue
+			}
 			newLabel := make(map[string]string, len(newAll))
 			for _, l := range newAll {
 				newLabel[l.Name] = l.Value
