@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	modelLabel "github.com/prometheus/prometheus/model/labels"
-	"github.com/prometheus/prometheus/model/relabel"
+	"github.com/prometheus/common/model"
 
 	"flashcat.cloud/categraf/pkg/filter"
+	modelLabel "flashcat.cloud/categraf/pkg/prom/labels"
+	"flashcat.cloud/categraf/pkg/relabel"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -38,9 +39,27 @@ type InternalConfig struct {
 	// whether instance initial success
 	inited bool `toml:"-"`
 
-	RelabelConfig
+	RelabelConfigs []*RelabelConfig  `toml:"relabel_configs"`
+	relabelConfigs []*relabel.Config `toml:"-"`
 }
-type RelabelConfig []*relabel.Config
+type RelabelConfig struct {
+	// A list of labels from which values are taken and concatenated
+	// with the configured separator in order.
+	SourceLabels model.LabelNames `toml:"source_labels,flow,omitempty"`
+	// Separator is the string between concatenated values from the source labels.
+	Separator string `toml:"separator,omitempty"`
+	// Regex against which the concatenation is matched.
+	Regex string `toml:"regex,omitempty"`
+	// Modulus to take of the hash of concatenated values from the source labels.
+	Modulus uint64 `toml:"modulus,omitempty"`
+	// TargetLabel is the label to which the resulting string is written in a replacement.
+	// Regexp interpolation is allowed for the replace action.
+	TargetLabel string `toml:"target_label,omitempty"`
+	// Replacement is the regex replacement pattern to be used.
+	Replacement string `toml:"replacement,omitempty"`
+	// Action is the action to be performed for the relabeling.
+	Action relabel.Action `toml:"action,omitempty"`
+}
 
 func (ic *InternalConfig) GetLabels() map[string]string {
 	if ic.Labels != nil {
@@ -74,6 +93,37 @@ func (ic *InternalConfig) InitInternalConfig() error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+	if len(ic.RelabelConfigs) != 0 {
+		for _, rc := range ic.RelabelConfigs {
+			if len(rc.Regex) == 0 {
+				rc.Regex = "(.*)"
+			}
+			if len(rc.Action) == 0 {
+				rc.Action = relabel.Replace
+			}
+			if len(rc.Replacement) == 0 {
+				rc.Replacement = "$1"
+			}
+			if rc.Separator == "" {
+				rc.Separator = ";"
+			}
+			reg, err := relabel.NewRegexp(rc.Regex)
+			if err != nil {
+				msg := fmt.Errorf("relabel_configs regex:%s compile error:%s", rc.Regex, err)
+				return msg
+			}
+			r := &relabel.Config{
+				SourceLabels: rc.SourceLabels,
+				Separator:    rc.Separator,
+				Regex:        reg,
+				Modulus:      rc.Modulus,
+				TargetLabel:  rc.TargetLabel,
+				Replacement:  rc.Replacement,
+				Action:       rc.Action,
+			}
+			ic.relabelConfigs = append(ic.relabelConfigs, r)
 		}
 	}
 
@@ -151,12 +201,15 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 			}
 		}
 		// relabel
-		if len(ic.RelabelConfig) != 0 {
+		if len(ic.relabelConfigs) != 0 {
 			all := make(modelLabel.Labels, len(ss[i].Labels))
 			for k, v := range ss[i].Labels {
 				all = append(all, modelLabel.Label{Name: k, Value: v})
 			}
-			newAll := relabel.Process(all, ic.RelabelConfig...)
+			newAll, keep := relabel.Process(all, ic.relabelConfigs...)
+			if !keep {
+				continue
+			}
 			newLabel := make(map[string]string, len(newAll))
 			for _, l := range newAll {
 				newLabel[l.Name] = l.Value
