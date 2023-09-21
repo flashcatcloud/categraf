@@ -150,7 +150,7 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 				ss[i].Labels[agentHostnameLabelKey] = Config.GetHostname()
 			}
 		}
-		// 添加rable
+		// relabel
 		if len(ic.RelabelConfig) != 0 {
 			all := make(modelLabel.Labels, len(ss[i].Labels))
 			for k, v := range ss[i].Labels {
