@@ -109,18 +109,22 @@ func (n *NetResponse) Name() string {
 func (n *NetResponse) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(n.Instances))
 	for i := 0; i < len(n.Instances); i++ {
-		if len(n.Instances[i].Mappings) == 0 {
-			n.Instances[i].Mappings = n.Mappings
-		} else {
-			m := make(map[string]map[string]string)
-			for k, v := range n.Mappings {
-				m[k] = v
-			}
-			for k, v := range n.Instances[i].Mappings {
-				m[k] = v
-			}
-			n.Instances[i].Mappings = m
+		m := make(map[string]map[string]string)
+		for k, v := range n.Mappings {
+			m[k] = v
 		}
+		for k, v := range n.Instances[i].Mappings {
+			m[k] = v
+		}
+		n.Instances[i].Mappings = m
+		labels := make(map[string]string)
+		for k, v := range n.GetLabels() {
+			labels[k] = v
+		}
+		for k, v := range n.Instances[i].GetLabels() {
+			labels[k] = v
+		}
+		n.Instances[i].Labels = labels
 		ret[i] = n.Instances[i]
 	}
 	return ret
@@ -203,8 +207,10 @@ func (ins *Instance) TCPGather(address string) (map[string]string, map[string]in
 	if err != nil {
 		if e, ok := err.(net.Error); ok && e.Timeout() {
 			fields["result_code"] = Timeout
+			fields["response_time"] = -1
 		} else {
 			fields["result_code"] = ConnectionFailed
+			fields["response_time"] = -1
 		}
 		return tags, fields, nil
 	}
@@ -264,6 +270,7 @@ func (ins *Instance) UDPGather(address string) (map[string]string, map[string]in
 	// Handle error
 	if err != nil {
 		fields["result_code"] = ConnectionFailed
+		fields["response_time"] = -1
 		// Error encoded in result
 		//nolint:nilerr
 		return tags, fields, nil
@@ -273,11 +280,13 @@ func (ins *Instance) UDPGather(address string) (map[string]string, map[string]in
 	// Handle error
 	if err != nil {
 		fields["result_code"] = ConnectionFailed
+		fields["response_time"] = -1
 		// Error encoded in result
 		//nolint:nilerr
 		return tags, fields, nil
 	}
 	defer conn.Close()
+	responseTime := time.Since(start).Seconds()
 	// Send string
 	msg := []byte(ins.Send)
 	if _, gerr := conn.Write(msg); gerr != nil {
@@ -298,21 +307,24 @@ func (ins *Instance) UDPGather(address string) (map[string]string, map[string]in
 			}
 			if err != nil && strings.Contains(err.Error(), "refused") {
 				fields["result_code"] = ConnectionFailed
+				fields["response_time"] = -1
 				return tags, fields, nil
 			}
 		}
 		fields["result_code"] = Success
+		fields["response_time"] = time.Since(start).Seconds()
 		return tags, fields, nil
 	}
 	// Read
 	buf := make([]byte, 1024)
 	_, _, err = conn.ReadFromUDP(buf)
 	// Stop timer
-	responseTime := time.Since(start).Seconds()
+	responseTime = time.Since(start).Seconds()
 	// Handle error
 	if err != nil {
 		log.Printf("E! read udp failed, address: %s, error: %s", address, err)
 		fields["result_code"] = ReadFailed
+		fields["response_time"] = -1
 		// Error encoded in result
 		//nolint:nilerr
 		return tags, fields, nil
