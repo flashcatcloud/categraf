@@ -19,7 +19,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4
 	github.com/gosnmp/gosnmp v1.35.0
-	github.com/hashicorp/consul/api v1.13.0
+	github.com/hashicorp/consul/api v1.15.3
 	github.com/influxdata/line-protocol/v2 v2.2.1
 	github.com/jackc/pgx/v4 v4.17.2
 	github.com/jmoiron/sqlx v1.3.5
