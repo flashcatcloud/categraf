@@ -266,7 +266,7 @@ func (ma *MetricsAgent) inputGo(name string, sum string, input inputs.Input) {
 	}
 
 	instances := inputs.MayGetInstances(input)
-	if instances != nil {
+	if len(instances) > 0 {
 		empty := true
 		for i := 0; i < len(instances); i++ {
 			if err := instances[i].InitInternalConfig(); err != nil {
