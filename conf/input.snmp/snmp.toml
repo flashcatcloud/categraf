@@ -73,13 +73,13 @@ agents = [
 #oid = "RFC1213-MIB::sysName.0"
 #name = "source"
 #is_tag = true
-# filters = ["A:ifIndex:^2$","B:ifOperStatus:1", "C:ifDescr:^eno*"]
-# filters_expression = "(A && B) || C"
 
 #[[instances.table]]
 #oid = "IF-MIB::ifTable"
 #name = "interface"
 #inherit_tags = ["source"]
+# filters = ["A:ifIndex:^2$","B:ifOperStatus:1", "C:ifDescr:^eno*"]
+# filters_expression = "(A && B) || C"
 
 #[[instances.table.field]]
 #oid = "IF-MIB::ifDescr"
