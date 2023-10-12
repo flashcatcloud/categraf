@@ -330,7 +330,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				} else if errors.Is(err, gosnmp.ErrDecryption) {
 					return nil, fmt.Errorf("decryption error (priv_protocol, priv_password)")
 				} else {
-					return nil, fmt.Errorf("performing get on field %s: %w", f.Name, err)
+					return nil, fmt.Errorf("performing get on field %s(%s): %w", f.Name, oid, err)
 				}
 			} else if pkt != nil && len(pkt.Variables) > 0 {
 				ent := pkt.Variables[0]
@@ -398,7 +398,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				// If this error isn't a walkError, we know it's not
 				// from the callback
 				if _, ok := err.(*walkError); !ok {
-					return nil, fmt.Errorf("performing bulk walk for field %s: %w", f.Name, err)
+					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
 				}
 			}
 		}
