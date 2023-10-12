@@ -121,7 +121,7 @@ func (ins *Instance) up(slist *types.SampleList, i int) {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	var wg sync.WaitGroup
 	for i, agent := range ins.Agents {
-		wg.Add(2)
+		wg.Add(1)
 		go func(i int, agent string) {
 			defer wg.Done()
 			// First is the top-level fields. We treat the fields as table prefixes with an empty index.
@@ -137,10 +137,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			if m, ok := ins.Mappings[agent]; ok {
 				extraTags = m
 			}
-			go func() {
-				defer wg.Done()
-				ins.up(slist, i)
-			}()
+			ins.up(slist, i)
 
 			gs, err := ins.getConnection(i)
 			if err != nil {
