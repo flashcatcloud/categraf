@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"github.com/toolkits/pkg/net/tcpx"
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"flashcat.cloud/categraf/agent"
@@ -84,6 +85,7 @@ func main() {
 	go api.Start()
 	go heartbeat.Work()
 
+	tcpx.WaitHosts()
 	ag, err := agent.NewAgent()
 	if err != nil {
 		fmt.Println("F! failed to init agent:", err)
