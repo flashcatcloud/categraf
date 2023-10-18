@@ -176,6 +176,11 @@ func serviceProcess() error {
 	}
 
 	if *remove {
+		if err := s.Stop(); err != nil {
+			log.Println("E! stop categraf service failed:", err)
+		} else {
+			log.Println("I! stop categraf service ok")
+		}
 		if err := s.Uninstall(); err != nil {
 			log.Println("E! remove categraf service failed:", err)
 		} else {
