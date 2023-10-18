@@ -159,20 +159,19 @@ func isSystemd() bool {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	command := "ls -l /sbin/init"
-	cmd := exec.Command(command) //nolint:gosec
+	cmd := exec.Command("ls", "-l", "/sbin/init") //nolint:gosec
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
 	err, timeout := cmdx.RunTimeout(cmd, time.Second*2)
 	if timeout {
-		log.Printf("E! run command: %s timeout", command)
+		log.Printf("E! run command: %s timeout", cmd)
 		return false
 	}
 
 	if err != nil {
 		fmt.Errorf("failed to run command: %s | error: %v | stdout: %s | stderr: %s",
-			command, err, stdout.String(), stderr.String())
+			cmd, err, stdout.String(), stderr.String())
 		return false
 	}
 
