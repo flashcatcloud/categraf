@@ -167,6 +167,18 @@ func serviceProcess() error {
 	}
 
 	if *stop {
+		if sts, err := s.Status(); err != nil {
+			log.Println("W! show categraf service status failed:", err)
+		} else {
+			switch sts {
+			case service.StatusRunning:
+				log.Println("I! categraf service status: running")
+			case service.StatusStopped:
+				log.Println("I! categraf service status: stopped")
+			default:
+				log.Println("I! categraf service status: unknown")
+			}
+		}
 		if err := s.Stop(); err != nil {
 			log.Println("E! stop categraf service failed:", err)
 		} else {
@@ -176,8 +188,20 @@ func serviceProcess() error {
 	}
 
 	if *remove {
+		if sts, err := s.Status(); err != nil {
+			log.Println("W! show categraf service status failed:", err)
+		} else {
+			switch sts {
+			case service.StatusRunning:
+				log.Println("I! categraf service status: running")
+			case service.StatusStopped:
+				log.Println("I! categraf service status: stopped")
+			default:
+				log.Println("I! categraf service status: unknown")
+			}
+		}
 		if err := s.Stop(); err != nil {
-			log.Println("E! stop categraf service failed:", err)
+			log.Println("W! stop categraf service failed:", err)
 		} else {
 			log.Println("I! stop categraf service ok")
 		}
@@ -190,6 +214,18 @@ func serviceProcess() error {
 	}
 
 	if *install {
+		if sts, err := s.Status(); err != nil {
+			log.Println("W! show categraf service status failed:", err)
+		} else {
+			switch sts {
+			case service.StatusRunning:
+				log.Println("I! categraf service status: running")
+			case service.StatusStopped:
+				log.Println("I! categraf service status: stopped")
+			default:
+				log.Println("I! categraf service status: unknown")
+			}
+		}
 		if err := s.Install(); err != nil {
 			log.Println("E! install categraf service failed:", err)
 		} else {
@@ -199,6 +235,18 @@ func serviceProcess() error {
 	}
 
 	if *start {
+		if sts, err := s.Status(); err != nil {
+			log.Println("W! show categraf service status failed:", err)
+		} else {
+			switch sts {
+			case service.StatusRunning:
+				log.Println("I! categraf service status: running")
+			case service.StatusStopped:
+				log.Println("I! categraf service status: stopped")
+			default:
+				log.Println("I! categraf service status: unknown")
+			}
+		}
 		if err := s.Start(); err != nil {
 			log.Println("E! start categraf service failed:", err)
 		} else {
