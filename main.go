@@ -205,13 +205,17 @@ func serviceProcess() error {
 		if sts, err := s.Status(); err != nil {
 			log.Println("E! show categraf service status failed:", err)
 		} else {
-			log.Println("I! show categraf service status:", string(sts))
+			switch sts {
+			case service.StatusRunning:
+				log.Println("I! show categraf service status: running")
+			case service.StatusStopped:
+				log.Println("I! show categraf service status: stopped")
+			default:
+				log.Println("I! show categraf service status: unknown")
+			}
 		}
-	}
-	err = s.Run()
-	if err != nil {
-		log.Println(err)
-		return err
+
+		return nil
 	}
 	return nil
 }
