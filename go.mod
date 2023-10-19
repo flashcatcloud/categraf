@@ -130,6 +130,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.3
 	github.com/bmatcuk/doublestar/v3 v3.0.0
 	github.com/coreos/go-systemd/v22 v22.3.2
+	github.com/kardianos/service v1.2.2
 	github.com/karrick/godirwalk v1.10.3
 	github.com/likexian/whois v1.15.0
 	github.com/likexian/whois-parser v1.24.8
