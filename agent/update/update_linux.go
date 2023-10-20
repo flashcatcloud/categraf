@@ -84,7 +84,7 @@ func Update(tar string) error {
 	if err != nil {
 		log.Println("E! clean file:", "./"+fname, "error:", err)
 	} else {
-		log.Println("E! clean file:", "./"+fname, "success")
+		log.Println("I! clean file:", "./"+fname, "success")
 	}
 	return os.Chmod(ov, fm.Mode().Perm())
 }
