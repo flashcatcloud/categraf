@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/chai2010/winsvc"
@@ -18,6 +19,7 @@ import (
 
 	"flashcat.cloud/categraf/agent"
 	agentInstall "flashcat.cloud/categraf/agent/install"
+	agentUpdate "flashcat.cloud/categraf/agent/update"
 	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/heartbeat"
@@ -38,6 +40,8 @@ var (
 	start        = flag.Bool("start", false, "Start categraf service")
 	stop         = flag.Bool("stop", false, "Stop categraf service")
 	status       = flag.Bool("status", false, "Show categraf service status")
+	update       = flag.Bool("update", false, "Update categraf binary")
+	updateFile   = flag.String("update_url", "", "new version for categraf to download")
 )
 
 func init() {
@@ -78,7 +82,7 @@ func main() {
 		fmt.Println(config.Version)
 		os.Exit(0)
 	}
-	if *install || *remove || *start || *stop || *status {
+	if *install || *remove || *start || *stop || *status || *update {
 		err := serviceProcess()
 		if err != nil {
 			log.Println("E!", err)
@@ -269,6 +273,37 @@ func serviceProcess() error {
 		}
 
 		return nil
+	}
+	if *update {
+		if *updateFile == "" {
+			return fmt.Errorf("please input update_url")
+		}
+		if sts, err := s.Status(); err != nil {
+			if strings.Contains(err.Error(), "not installed") {
+				log.Println("E! update only support mode that running in service mode")
+			}
+			return nil
+		} else {
+			switch sts {
+			case service.StatusRunning:
+				log.Println("I! categraf service status: running, version:", config.Version)
+			case service.StatusStopped:
+				log.Println("I! categraf service status: stopped, version:", config.Version)
+			default:
+				log.Println("I! categraf service status: unknown, version:", config.Version)
+			}
+		}
+		err := agentUpdate.Update(*updateFile)
+		if err != nil {
+			log.Println("E! update categraf failed:", err)
+			return nil
+		}
+		err = s.Restart()
+		if err != nil {
+			log.Println("E! restart categraf failed:", err)
+			return nil
+		}
+		log.Println("I! update categraf success")
 	}
 	return nil
 }
