@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -203,8 +205,7 @@ func ServiceConfig() *service.Config {
 		option["SysvScript"] = sysvScript
 		option["LogOutput"] = true
 	}
-
-	return &service.Config{
+	cfg := &service.Config{
 		// 服务显示名称
 		Name: ServiceName,
 		// 服务名称
@@ -216,4 +217,15 @@ func ServiceConfig() *service.Config {
 		Dependencies: depends, //
 		Option:       option,
 	}
+
+	ov, err := os.Executable()
+	if err == nil {
+		if len(filepath.Dir(ov)) != 0 {
+			cfg.WorkingDirectory = filepath.Dir(ov)
+		}
+	} else {
+		log.Println("E! get exeutable path error:", err)
+	}
+	cfg.Arguments = []string{"-configs", filepath.Dir(ov) + "/conf"}
+	return cfg
 }
