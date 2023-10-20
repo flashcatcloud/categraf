@@ -77,28 +77,44 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	// 输出解析后的信息
-	if parsedResult.Domain.CreatedDate != "" && parsedResult.Domain.ExpirationDate != "" && parsedResult.Domain.ExpirationDate != "" {
-		CreatedDate, err := ParseTimeToUTCTimestamp(parsedResult.Domain.CreatedDate)
-		if err != nil {
-			log.Println("E! parsing creation time:", parsedResult.Domain.CreatedDate, "time string failure:", err)
-			return
-		}
-		UpdatedDate, err := ParseTimeToUTCTimestamp(parsedResult.Domain.UpdatedDate)
-		if err != nil {
-			log.Println("E! parsing update time:", parsedResult.Domain.UpdatedDate, "time string failure:", err)
-			return
-		}
-		ExpirationDate, err := ParseTimeToUTCTimestamp(parsedResult.Domain.ExpirationDate)
-		if err != nil {
-			log.Println("E! parsing expiration time:", parsedResult.Domain.ExpirationDate, "time string failure:", err)
+	if parsedResult.Domain.CreatedDate != "" || parsedResult.Domain.UpdatedDate != "" || parsedResult.Domain.ExpirationDate != "" {
+		var CreatedDate, UpdatedDate, ExpirationDate int64
+		fields := make(map[string]interface{})
+		if parsedResult.Domain.CreatedDate != "" {
+			CreatedDate, err = ParseTimeToUTCTimestamp(parsedResult.Domain.CreatedDate)
+			if err != nil {
+				log.Println("E! parsing creation time:", parsedResult.Domain.CreatedDate, "time string failure:", err)
+				return
+			}
+			fields["domain_createddate"] = CreatedDate
+		} else {
+			log.Println("E! creation time is null")
 			return
 		}
 
-		fields := map[string]interface{}{
-			"domain_createddate":    CreatedDate,
-			"domain_updateddate":    UpdatedDate,
-			"domain_expirationdate": ExpirationDate,
+		// 有些域名不会返回UpdatedDate
+		if parsedResult.Domain.UpdatedDate != "" {
+			UpdatedDate, err = ParseTimeToUTCTimestamp(parsedResult.Domain.UpdatedDate)
+			if err != nil {
+				log.Println("E! parsing update time:", parsedResult.Domain.UpdatedDate, "time string failure:", err)
+			}
+			fields["domain_updateddate"] = UpdatedDate
+		} else {
+			log.Println("W! update time is null")
 		}
+
+		if parsedResult.Domain.ExpirationDate != "" {
+			ExpirationDate, err = ParseTimeToUTCTimestamp(parsedResult.Domain.ExpirationDate)
+			if err != nil {
+				log.Println("E! parsing expiration time:", parsedResult.Domain.ExpirationDate, "time string failure:", err)
+				return
+			}
+			fields["domain_expirationdate"] = ExpirationDate
+		} else {
+			log.Println("E! expiration time is null")
+			return
+		}
+
 		tags := map[string]string{
 			"domain": ins.Domain,
 		}
@@ -106,7 +122,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		slist.PushSamples(inputName, fields, tags)
 
 	} else {
-		log.Println("E! creation or expiration time is null")
+		log.Println("E! creation、update、expiration time is all null")
 		return
 	}
 
