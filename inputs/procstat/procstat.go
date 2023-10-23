@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -32,6 +33,12 @@ type Instance struct {
 	GatherPerPid           bool     `toml:"gather_per_pid"`
 	GatherMoreMetrics      []string `toml:"gather_more_metrics"`
 
+	SearchExecRegexp string         `toml:"search_exec_regexp"`
+	searchExecRegexp *regexp.Regexp `toml:"-"`
+
+	SearchCmdLineRegexp string         `toml:"search_cmdline_regexp"`
+	searchCmdLineRegexp *regexp.Regexp `toml:"-"`
+
 	searchString string
 	solarisMode  bool
 	procs        map[PID]Process
@@ -55,6 +62,14 @@ func (ins *Instance) Init() error {
 	} else if ins.SearchWinService != "" {
 		ins.searchString = ins.SearchWinService
 		log.Println("I! procstat: search_win_service:", ins.SearchWinService)
+	} else if ins.SearchExecRegexp != "" {
+		ins.searchExecRegexp = regexp.MustCompile(ins.SearchExecRegexp)
+		ins.searchString = ins.SearchExecRegexp
+		log.Println("I! procstat: search_exec_regexp:", ins.SearchExecRegexp)
+	} else if ins.SearchCmdLineRegexp != "" {
+		ins.searchCmdLineRegexp = regexp.MustCompile(ins.SearchCmdLineRegexp)
+		ins.searchString = ins.SearchCmdLineRegexp
+		log.Println("I! procstat: search_cmdline_regexp:", ins.SearchCmdLineRegexp)
 	} else {
 		return errors.New("the fields should not be all blank: search_exec_substring, search_cmdline_substring, search_win_service")
 	}
@@ -100,6 +115,24 @@ func UserFilter(username string) Filter {
 	}
 }
 
+func ExeFilter(reg *regexp.Regexp) Filter {
+	return func(p *process.Process) bool {
+		if e, _ := p.Exe(); reg.MatchString(e) {
+			return true
+		}
+		return false
+	}
+}
+
+func CmdLineFilter(reg *regexp.Regexp) Filter {
+	return func(p *process.Process) bool {
+		if c, _ := p.Cmdline(); reg.MatchString(c) {
+			return true
+		}
+		return false
+	}
+}
+
 func (ins *Instance) Gather(slist *types.SampleList) {
 	var (
 		pids []PID
@@ -111,11 +144,17 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.SearchUser != "" {
 		opts = append(opts, UserFilter(ins.SearchUser))
 	}
+	if ins.searchExecRegexp != nil {
+		opts = append(opts, ExeFilter(ins.searchExecRegexp))
+	}
+	if ins.searchCmdLineRegexp != nil {
+		opts = append(opts, CmdLineFilter(ins.searchCmdLineRegexp))
+	}
 
 	pg, _ := NewNativeFinder()
-	if ins.SearchExecSubstring != "" {
+	if ins.SearchExecSubstring != "" || ins.searchExecRegexp != nil {
 		pids, err = pg.Pattern(ins.SearchExecSubstring, opts...)
-	} else if ins.SearchCmdlineSubstring != "" {
+	} else if ins.SearchCmdlineSubstring != "" || ins.searchCmdLineRegexp != nil {
 		pids, err = pg.FullPattern(ins.SearchCmdlineSubstring, opts...)
 	} else if ins.SearchWinService != "" {
 		pids, err = ins.winServicePIDs()
