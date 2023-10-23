@@ -115,7 +115,7 @@ func UserFilter(username string) Filter {
 	}
 }
 
-func ExeFilter(reg *regexp.Regexp) Filter {
+func ExecFilter(reg *regexp.Regexp) Filter {
 	return func(p *process.Process) bool {
 		if e, _ := p.Exe(); reg.MatchString(e) {
 			return true
@@ -145,7 +145,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		opts = append(opts, UserFilter(ins.SearchUser))
 	}
 	if ins.searchExecRegexp != nil {
-		opts = append(opts, ExeFilter(ins.searchExecRegexp))
+		opts = append(opts, ExecFilter(ins.searchExecRegexp))
 	}
 	if ins.searchCmdLineRegexp != nil {
 		opts = append(opts, CmdLineFilter(ins.searchCmdLineRegexp))
