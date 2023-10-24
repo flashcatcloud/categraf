@@ -2,6 +2,7 @@ package types
 
 import (
 	"container/list"
+	"reflect"
 )
 
 type SampleList struct {
@@ -21,8 +22,19 @@ func (l *SampleList) PushSample(prefix, metric string, value interface{}, labels
 func (l *SampleList) PushSamples(prefix string, fields map[string]interface{}, labels ...map[string]string) {
 	vs := make([]*Sample, 0, len(fields))
 	for metric, value := range fields {
-		v := NewSample(prefix, metric, value, labels...)
+		v := NewSample(prefix, metric, convertPtrToValue(value), labels...)
 		vs = append(vs, v)
 	}
 	l.PushFrontN(vs)
+}
+
+func convertPtrToValue(value interface{}) interface{} {
+	if value == nil {
+		return value
+	}
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	return v.Interface()
 }
