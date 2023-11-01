@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/message"
 )
 
@@ -40,14 +41,34 @@ func (j *jsonEncoder) Encode(msg *message.Message, redactedMsg []byte) ([]byte, 
 	if !msg.Timestamp.IsZero() {
 		ts = msg.Timestamp
 	}
+	precision := config.Config.Logs.Precision
+	if msg.Origin.LogSource.Config.Precision != "" {
+		precision = msg.Origin.LogSource.Config.Precision
+	}
+	if precision == "" {
+		precision = "ms"
+	}
+	timestamp := ts.UnixMilli()
+	switch precision {
+	case "s":
+		timestamp = timestamp / 1000 * 1000
+	case "m":
+		ts := timestamp / 1000 * 1000 // ms
+		timestamp = ts - ts%60000
+	}
+	topic := config.Config.Logs.Topic
+	if msg.Origin.LogSource.Config.Topic != "" {
+		topic = msg.Origin.LogSource.Config.Topic
+	}
+
 	return json.Marshal(jsonPayload{
 		Message:   toValidUtf8(redactedMsg),
 		Status:    msg.GetStatus(),
-		Timestamp: ts.UnixNano() / nanoToMillis,
+		Timestamp: timestamp,
 		Hostname:  msg.GetHostname(),
 		Service:   msg.Origin.Service(),
 		Source:    msg.Origin.Source(),
 		Tags:      msg.Origin.TagsToJsonString(),
-		Topic:     msg.Origin.LogSource.Config.Topic,
+		Topic:     topic,
 	})
 }
