@@ -41,20 +41,19 @@ func (j *jsonEncoder) Encode(msg *message.Message, redactedMsg []byte) ([]byte, 
 	if !msg.Timestamp.IsZero() {
 		ts = msg.Timestamp
 	}
-	precision := config.Config.Logs.Precision
-	if msg.Origin.LogSource.Config.Precision != "" {
-		precision = msg.Origin.LogSource.Config.Precision
+	accuracy := config.Config.Logs.Accuracy
+	if msg.Origin.LogSource.Config.Accuracy != "" {
+		accuracy = msg.Origin.LogSource.Config.Accuracy
 	}
-	if precision == "" {
-		precision = "ms"
+	if accuracy == "" {
+		accuracy = "ms"
 	}
 	timestamp := ts.UnixMilli()
-	switch precision {
+	switch accuracy {
 	case "s":
-		timestamp = timestamp / 1000 * 1000
+		timestamp = timestamp / 1000
 	case "m":
-		ts := timestamp / 1000 * 1000 // ms
-		timestamp = ts - ts%60000
+		timestamp = timestamp / 60000
 	}
 	topic := config.Config.Logs.Topic
 	if msg.Origin.LogSource.Config.Topic != "" {
