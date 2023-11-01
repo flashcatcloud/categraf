@@ -32,7 +32,7 @@ type (
 		ContainerExclude      []string                     `json:"container_exclude" toml:"container_exclude"`
 		GlobalProcessingRules []*logsconfig.ProcessingRule `json:"processing_rules" toml:"processing_rules"`
 		Items                 []*logsconfig.LogsConfig     `json:"items" toml:"items"`
-		Precision             string                       `toml:"precision" json:"precision"`
+		Accuracy              string                       `toml:"accuracy" json:"accuracy"`
 		KafkaConfig
 		KubeConfig
 	}

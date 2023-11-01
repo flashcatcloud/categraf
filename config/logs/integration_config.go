@@ -49,7 +49,7 @@ type (
 		IdleTimeout string `mapstructure:"idle_timeout" json:"idle_timeout" toml:"idle_timeout"` // Network
 		Path        string // File, Journald
 		Topic       string `mapstructure:"topic" json:"topic" toml:"topic"`
-		Precision   string `mapstructure:"precision" json:"precision" toml:"precision"`
+		Accuracy    string `mapstructure:"accuracy" json:"accuracy" toml:"accuracy"`
 
 		Encoding     string   `mapstructure:"encoding" json:"encoding" toml:"encoding"`                   // File
 		ExcludePaths []string `mapstructure:"exclude_paths" json:"exclude_paths" toml:"exclude_paths"`    // File
