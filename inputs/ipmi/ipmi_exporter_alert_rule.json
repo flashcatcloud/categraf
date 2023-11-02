@@ -1,0 +1,2261 @@
+[
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "XXX业务线-计算应用-物理机-硬件-CPU处理器温度高于90",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      1
+    ],
+    "disabled": 0,
+    "prom_for_duration": 5,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ipmi_temperature_celsius{busigroup=~\"biz-xxx.*\",name=~\"Temp\"}>90",
+          "severity": 1
+        }
+      ]
+    },
+    "prom_eval_interval": 5,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "00:00",
+    "enable_etimes": [
+      "00:00"
+    ],
+    "enable_days_of_week": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 5,
+    "recover_duration": 60,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "XXX业务线-计算应用-物理机-硬件-CPU处理器运行状态异常",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      1
+    ],
+    "disabled": 0,
+    "prom_for_duration": 5,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ipmi_sensor_state{busigroup=~\"biz-xxx.*\",name=~\"Status\",type=~\"Processor\"}!=0",
+          "severity": 1
+        }
+      ]
+    },
+    "prom_eval_interval": 5,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "00:00",
+    "enable_etimes": [
+      "00:00"
+    ],
+    "enable_days_of_week": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 5,
+    "recover_duration": 60,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "XXX业务线-计算应用-物理机-硬件-内存条运行状态异常",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      1
+    ],
+    "disabled": 0,
+    "prom_for_duration": 5,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ipmi_sensor_state{busigroup=~\"biz-xxx.*\",type=~\"Memory\"}!=0\n",
+          "severity": 1
+        }
+      ]
+    },
+    "prom_eval_interval": 5,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "00:00",
+    "enable_etimes": [
+      "00:00"
+    ],
+    "enable_days_of_week": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 5,
+    "recover_duration": 60,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "XXX业务线-计算应用-物理机-硬件-电压功率低于230V",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      1
+    ],
+    "disabled": 0,
+    "prom_for_duration": 5,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ipmi_voltage_volts{busigroup=~\"biz-xxx.*\",name=~\"Voltage.*\"}<220\n",
+          "severity": 1
+        }
+      ]
+    },
+    "prom_eval_interval": 5,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "00:00",
+    "enable_etimes": [
+      "00:00"
+    ],
+    "enable_days_of_week": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 5,
+    "recover_duration": 60,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "XXX业务线-计算应用-物理机-硬件-电池CMOS运行状态异常",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      1
+    ],
+    "disabled": 0,
+    "prom_for_duration": 5,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ipmi_sensor_state{busigroup=~\"biz-xxx.*\",type=\"Battery\"}!=0",
+          "severity": 1
+        }
+      ]
+    },
+    "prom_eval_interval": 5,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "00:00",
+    "enable_etimes": [
+      "00:00"
+    ],
+    "enable_days_of_week": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 5,
+    "recover_duration": 60,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "XXX业务线-计算应用-物理机-硬件-电源运行状态异常",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      1
+    ],
+    "disabled": 0,
+    "prom_for_duration": 5,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ipmi_sensor_state{busigroup=~\"biz-xxx.*\",name=\"Status\",type=\"Power Supply\"}!=0\n",
+          "severity": 1
+        }
+      ]
+    },
+    "prom_eval_interval": 5,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "00:00",
+    "enable_etimes": [
+      "00:00"
+    ],
+    "enable_days_of_week": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 5,
+    "recover_duration": 60,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "XXX业务线-计算应用-物理机-硬件-磁盘运行状态异常",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      1
+    ],
+    "disabled": 0,
+    "prom_for_duration": 5,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ipmi_sensor_state{busigroup=~\"biz-xxx.*\",type=~\"Drive Slot\"}!=0\n",
+          "severity": 1
+        }
+      ]
+    },
+    "prom_eval_interval": 5,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "00:00",
+    "enable_etimes": [
+      "00:00"
+    ],
+    "enable_days_of_week": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 5,
+    "recover_duration": 60,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "XXX业务线-计算应用-物理机-硬件-远控运行状态异常",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      1
+    ],
+    "disabled": 0,
+    "prom_for_duration": 5,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ipmi_up{busigroup=~\"biz-xxx.*\",collector=~\"bmc\"}!=1\n",
+          "severity": 1
+        }
+      ]
+    },
+    "prom_eval_interval": 5,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "00:00",
+    "enable_etimes": [
+      "00:00"
+    ],
+    "enable_days_of_week": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 5,
+    "recover_duration": 60,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "XXX业务线-计算应用-物理机-硬件-风扇转速低于1千",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      1
+    ],
+    "disabled": 0,
+    "prom_for_duration": 5,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ipmi_fan_speed_rpm{busigroup=~\"biz-xxx.*\"}<=1000\n",
+          "severity": 1
+        }
+      ]
+    },
+    "prom_eval_interval": 5,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "00:00",
+    "enable_etimes": [
+      "00:00"
+    ],
+    "enable_days_of_week": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 5,
+    "recover_duration": 60,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "XXX业务线-计算应用-物理机-硬件-风扇运行状态异常",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      1
+    ],
+    "disabled": 0,
+    "prom_for_duration": 5,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ipmi_fan_speed_state{busigroup=~\"biz-xxx.*\"}!=0\n",
+          "severity": 1
+        }
+      ]
+    },
+    "prom_eval_interval": 5,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "00:00",
+    "enable_etimes": [
+      "00:00"
+    ],
+    "enable_days_of_week": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 5,
+    "recover_duration": 60,
+    "callbacks": [],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-网络-网络丢包率-网卡发丢包数量大于1千",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "increase(net_drop_out{busigroup=~\"biz-xxx-*.*\"}[1m]) > 0",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 1,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-网络-网络丢包率-网卡收丢包数量大于1千",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "inhibit": false,
+      "queries": [
+        {
+          "prom_ql": "increase(net_drop_in{busigroup=~\"biz-xxx-*.*\"}[1m]) > 1000",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-网络-网络健康检测-ESTABLISHED增长异常",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "increase(netstat_tcp_established{busigroup=~\"biz-xxx-*.*\"}[1m]) >8000",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-网络-网络健康检测-PING地址探测失败",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ping_result_code{busigroup=~\"biz-xxx-*.*\"} != 0",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp",
+      "voice"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-网络-网络健康检测-网卡发包错误数量大于1千",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "increase(net_err_out{busigroup=~\"biz-xxx-*.*\"}[1m]) > 1000",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-网络-网络健康检测-网卡收包错误数量大于1千",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "increase(net_err_in{busigroup=~\"biz-xxx-*.*\"}[1m]) > 1000",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-网络-网络健康检测-网络地址探活失败",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "inhibit": true,
+      "queries": [
+        {
+          "prom_ql": "ping_result_code{busigroup=~\"biz-xxx-*.*\"} != 0",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp",
+      "voice"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-CPU空闲率低于10%",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "cpu_usage_idle{busigroup=~\"biz-xxx-*.*\",cpu=\"cpu-total\"} <= 10",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp",
+      "voice"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-CPU空闲率低于35%",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "cpu_usage_idle{busigroup=~\"biz-xxx-*.*\",cpu=\"cpu-total\"} <= 35",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-NTP时间偏移太大",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 120,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "ntp_offset_ms{busigroup=~\"biz-xxx-*.*\"} > 1000 or ntp_offset_ms{busigroup=~\"biz-xxx-*.*\"} < -1000",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 30,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-僵尸进程大于8个",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "processes_zombies{busigroup=~\"biz-xxx-*.*\"} >= 8",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-内存使用率高于90%",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "mem_used_percent{busigroup=~\"biz-xxx-*.*\"}>=90",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-内存可用低于200M",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "mem_available{busigroup=~\"biz-xxx-*.*\"} <= 200000000",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp",
+      "voice"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-机器负载(1m)使用超限1倍",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "((system_load1{busigroup=~\"biz-xxx-*.*\"}) / (system_n_cpus{busigroup=~\"biz-xxx-*.*\"}))>=1",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-机器负载(1m)使用超限3倍",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "((system_load1{busigroup=~\"biz-xxx-*.*\"}) / (system_n_cpus{busigroup=~\"biz-xxx-*.*\"}))>=3",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp",
+      "voice"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-机器负载(1m)使用过半",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "((system_load1{busigroup=~\"biz-xxx-*.*\"}) /(system_n_cpus{busigroup=~\"biz-xxx-*.*\"}) >=0.75) and ((system_load1{busigroup=~\"biz-xxx-*.*\"}) /(system_n_cpus{busigroup=~\"biz-xxx-*.*\"}) <1)",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-监控对象失联",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 0,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "max_over_time(system_uptime{busigroup=~\"biz-xxx-*.*\"}[6s]) == 0",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-磁盘IO繁忙度超过99%",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "rate(diskio_io_time{busigroup=~\"biz-xxx-*.*\"}[1m])/10 > 99",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-磁盘使用超过85%",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 3600,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "disk_used_percent{busigroup=~\"biz-xxx-*.*\"} >= 85",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 7200,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-磁盘可用空间低于5G",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "disk_free{ident=~\".*mysql.*|archery.*\"} <= 5368709120",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-进程句柄限制低于2048",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "procstat_rlimit_num_fds_soft{busigroup=~\"biz-xxx-*.*\"} < 2048",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  },
+  {
+    "cate": "prometheus",
+    "datasource_ids": [
+      0
+    ],
+    "name": "服务器层-虚拟化-OS-进程句柄限制超过8万",
+    "note": "",
+    "prod": "metric",
+    "algorithm": "",
+    "algo_params": null,
+    "delay": 0,
+    "severity": 0,
+    "severities": [
+      3
+    ],
+    "disabled": 1,
+    "prom_for_duration": 6,
+    "prom_ql": "",
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "procstat_rlimit_num_fds_soft{busigroup=~\"biz-xxx-*.*\"} >= 80000",
+          "severity": 3
+        }
+      ]
+    },
+    "prom_eval_interval": 2,
+    "enable_stime": "00:00",
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etime": "23:59",
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_week": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "0"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "0"
+      ]
+    ],
+    "enable_in_bg": 0,
+    "notify_recovered": 1,
+    "notify_channels": [
+      "weixinworkApp"
+    ],
+    "notify_repeat_step": 5,
+    "notify_max_number": 0,
+    "recover_duration": 60,
+    "callbacks": [
+      "http://127.0.0.1:9712/monitorapi/api/Ops/monitor/v1/nightIngale/reciever"
+    ],
+    "runbook_url": "",
+    "append_tags": [],
+    "annotations": {},
+    "extra_config": null
+  }
+]
