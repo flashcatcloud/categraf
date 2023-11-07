@@ -61,6 +61,8 @@ type WriterOption struct {
 	Timeout             int64 `toml:"timeout"`
 	DialTimeout         int64 `toml:"dial_timeout"`
 	MaxIdleConnsPerHost int   `toml:"max_idle_conns_per_host"`
+
+	tls.ClientConfig
 }
 
 type HTTP struct {

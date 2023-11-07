@@ -53,6 +53,14 @@ chan_size = 1000000
 [[writers]]
 url = "http://127.0.0.1:17000/prometheus/v1/write"
 
+## Optional TLS Config
+# tls_min_version = "1.2"
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = true
+
 # Basic auth username
 basic_auth_user = ""
 
