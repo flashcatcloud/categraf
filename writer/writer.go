@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -24,17 +25,25 @@ type Writer struct {
 
 // newWriter creates a new Writer from config.WriterOption
 func newWriter(opt config.WriterOption) (Writer, error) {
+	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout: time.Duration(opt.DialTimeout) * time.Millisecond,
+		}).DialContext,
+		ResponseHeaderTimeout: time.Duration(opt.Timeout) * time.Millisecond,
+		MaxIdleConnsPerHost:   opt.MaxIdleConnsPerHost,
+	}
+	if opt.UseTLS || strings.HasPrefix(opt.Url, "https") {
+		opt.UseTLS = true
+		tlsConfig, err := opt.TLSConfig()
+		if err != nil {
+			return Writer{}, err
+		}
+		tr.TLSClientConfig = tlsConfig
+	}
 	cli, err := api.NewClient(api.Config{
-		Address: opt.Url,
-		RoundTripper: &http.Transport{
-			// TLSClientConfig: tlsConfig,
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout: time.Duration(opt.DialTimeout) * time.Millisecond,
-			}).DialContext,
-			ResponseHeaderTimeout: time.Duration(opt.Timeout) * time.Millisecond,
-			MaxIdleConnsPerHost:   opt.MaxIdleConnsPerHost,
-		},
+		Address:      opt.Url,
+		RoundTripper: tr,
 	})
 
 	if err != nil {
