@@ -128,7 +128,7 @@
       "severity": 3,
       "disabled": 0,
       "prom_for_duration": 0,
-      "prom_ql": "redis_uptime_in_seconds < 600",
+      "prom_ql": "redis_uptime_in_seconds < 60",
       "prom_eval_interval": 15,
       "enable_stime": "00:00",
       "enable_etime": "23:59",
