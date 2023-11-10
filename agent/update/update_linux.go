@@ -60,12 +60,12 @@ func Update(tar string) error {
 	if err != nil {
 		return err
 	}
-	fi, err := os.Stat(ov)
+	fi, err := os.Stat(nv)
 	if err != nil {
 		return err
 	}
 	if fi.Mode().IsDir() {
-		return fmt.Errorf("%s is directory", ov)
+		return fmt.Errorf("%s is directory", nv)
 	}
 	log.Printf("I! replace old version:%s with new version:%s", ov, "./"+nv)
 
