@@ -1,6 +1,7 @@
 package http_response
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -262,26 +263,27 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 		// metric: result_code
 		fields["result_code"] = ConnectionFailed
 
-		if timeoutError, ok := err.(net.Error); ok && timeoutError.Timeout() {
+		var netError net.Error
+		if errors.As(err, &netError) && netError.Timeout() {
 			fields["result_code"] = Timeout
 			return tags, fields, nil
 		}
 
-		if urlErr, isURLErr := err.(*url.Error); isURLErr {
-			if opErr, isNetErr := (urlErr.Err).(*net.OpError); isNetErr {
-				switch (opErr.Err).(type) {
-				case *net.DNSError:
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			var opErr *net.OpError
+			if errors.As(urlErr, &opErr) {
+				var dnsErr *net.DNSError
+				var parseErr *net.ParseError
+				if errors.As(opErr, &dnsErr) {
 					fields["result_code"] = DNSError
 					return tags, fields, nil
-				case *net.ParseError:
-					// Parse error has to do with parsing of IP addresses, so we
-					// group it with address errors
+				} else if errors.As(opErr, &parseErr) {
 					fields["result_code"] = AddressError
 					return tags, fields, nil
 				}
 			}
 		}
-
 		return tags, fields, nil
 	} else {
 		fields["result_code"] = Success
