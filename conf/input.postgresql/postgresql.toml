@@ -47,3 +47,11 @@
   # request = '''
   # SELECT status, type, COUNT(*) as value FROM v$session GROUP BY status, type
   # '''
+  #
+  # [[instances.metrics]]
+  # mesurement = "connections"
+  # metric_fields = [ "count" ]
+  # timeout = "3s"
+  # request = '''
+  # SELECT count(*) FROM pg_stat_activity;
+  # '''
