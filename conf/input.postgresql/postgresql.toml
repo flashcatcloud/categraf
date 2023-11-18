@@ -49,9 +49,9 @@
   # '''
   #
   # [[instances.metrics]]
-  # mesurement = "connections"
-  # metric_fields = [ "count" ]
+  # mesurement = "sessions"
+  # metric_fields = [ "active" ]
   # timeout = "3s"
   # request = '''
-  # SELECT count(*) FROM pg_stat_activity;
+  # select count(*) as active from pg_stat_activity;
   # '''
