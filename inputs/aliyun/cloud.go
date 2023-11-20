@@ -364,6 +364,9 @@ func (ins *Instance) makeLabels(point internalTypes.Point, labels ...map[string]
 	if len(point.NodeID) != 0 {
 		result["node_id"] = point.NodeID
 	}
+	if len(point.Device) != 0 {
+		result["device"] = point.Device
+	}
 	return result
 }
 
