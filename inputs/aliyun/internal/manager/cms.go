@@ -93,6 +93,7 @@ func (m *Manager) dataPointConverter(metricName, ns, datapoints string) ([]types
 		r.InstanceID = point.InstanceID
 		r.Namespace = ns
 		r.Timestamp = point.Timestamp
+		r.Device = point.Device
 
 		if point.Val != nil {
 			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "value")
