@@ -24,6 +24,8 @@ type (
 		Dimensions string `json:"-"`
 		Namespace  string `json:"-"`
 		MetricName string `json:"-"`
+
+		Device string `json:"device"`
 	}
 )
 
