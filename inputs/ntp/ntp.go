@@ -7,7 +7,6 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-	"github.com/toolkits/pkg/nux"
 )
 
 const inputName = "ntp"
@@ -15,6 +14,7 @@ const inputName = "ntp"
 type NTPStat struct {
 	config.PluginConfig
 	NTPServers []string `toml:"ntp_servers"`
+	TimeOut    int64    `toml:"timeout"`
 	server     string
 }
 
@@ -46,7 +46,7 @@ func (n *NTPStat) Gather(slist *types.SampleList) {
 		}
 
 		orgTime := time.Now()
-		serverReciveTime, serverTransmitTime, err := nux.NtpTwoTime(n.server)
+		serverReciveTime, serverTransmitTime, err := getTwoTime(n.server, 4, n.TimeOut)
 		if err != nil {
 			log.Println("E! failed to connect ntp server:", n.server, "error:", err)
 			n.server = ""
