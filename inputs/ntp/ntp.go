@@ -7,6 +7,8 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+
+	"github.com/toolkits/pkg/nux"
 )
 
 const inputName = "ntp"
@@ -20,7 +22,10 @@ type NTPStat struct {
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
-		return &NTPStat{}
+		return &NTPStat{
+			// default timeout is 5 seconds
+			TimeOut: 5,
+		}
 	})
 }
 
@@ -46,7 +51,7 @@ func (n *NTPStat) Gather(slist *types.SampleList) {
 		}
 
 		orgTime := time.Now()
-		serverReciveTime, serverTransmitTime, err := getTwoTime(n.server, 4, n.TimeOut)
+		serverReciveTime, serverTransmitTime, err := nux.NtpTwoTime(n.server, n.TimeOut)
 		if err != nil {
 			log.Println("E! failed to connect ntp server:", n.server, "error:", err)
 			n.server = ""

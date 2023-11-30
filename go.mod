@@ -55,7 +55,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.22.5
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/stretchr/testify v1.8.3
-	github.com/toolkits/pkg v1.3.5
+	github.com/toolkits/pkg v1.3.7
 	github.com/ulricqin/gosnmp v0.0.1
 	github.com/xdg/scram v1.0.5
 	go.mongodb.org/mongo-driver v1.9.1

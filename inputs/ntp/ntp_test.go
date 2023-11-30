@@ -4,12 +4,14 @@ import (
 	"log"
 	"testing"
 	"time"
+
+	"github.com/toolkits/pkg/nux"
 )
 
 func TestGetTwoTime(t *testing.T) {
 	orgTime := time.Now()
 	log.Println("Begin")
-	serverReciveTime, serverTransmitTime, err := getTwoTime("ntp1.aliyun.com", 4, 20)
+	serverReciveTime, serverTransmitTime, err := nux.NtpTwoTime("ntp1.aliyun.com", 20)
 	if err != nil {
 		log.Println(err)
 		return
