@@ -9,6 +9,9 @@ urls = [
 url_label_key = "instance"
 url_label_value = "{{.Host}}"
 
+## metrics duplication allowed, default false
+#  duplication_allowed=true
+ 
 ## Scrape Services available in Consul Catalog
 # [instances.consul]
 #   enabled = false

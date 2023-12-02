@@ -1,8 +1,11 @@
 package prometheus
 
 import (
+	"log"
 	"math"
+	"mime"
 	"net/http"
+	"strings"
 
 	dto "github.com/prometheus/client_model/go"
 
@@ -17,15 +20,18 @@ type Parser struct {
 	Header                http.Header
 	IgnoreMetricsFilter   filter.Filter
 	IgnoreLabelKeysFilter filter.Filter
+	DuplicationAllowed    bool
 }
 
-func NewParser(namePrefix string, defaultTags map[string]string, header http.Header, ignoreMetricsFilter, ignoreLabelKeysFilter filter.Filter) *Parser {
+func NewParser(namePrefix string, defaultTags map[string]string, header http.Header,
+	duplicationAllowed bool, ignoreMetricsFilter, ignoreLabelKeysFilter filter.Filter) *Parser {
 	return &Parser{
 		NamePrefix:            namePrefix,
 		DefaultTags:           defaultTags,
 		Header:                header,
 		IgnoreMetricsFilter:   ignoreMetricsFilter,
 		IgnoreLabelKeysFilter: ignoreLabelKeysFilter,
+		DuplicationAllowed:    duplicationAllowed,
 	}
 }
 
@@ -33,7 +39,7 @@ func EmptyParser() *Parser {
 	return &Parser{}
 }
 
-func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
+func (p *Parser) parse(buf []byte, slist *types.SampleList) error {
 	metricFamilies, err := util.Parse(buf, p.Header)
 	if err != nil {
 		return err
@@ -54,6 +60,25 @@ func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
 			} else {
 				util.HandleGaugeCounter(p.NamePrefix, m, tags, metricName, nil, slist)
 			}
+		}
+	}
+
+	return nil
+}
+func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
+	mediatype, _, _ := mime.ParseMediaType(p.Header.Get("Content-Type"))
+	if mediatype == "application/vnd.google.protobuf" || !p.DuplicationAllowed {
+		return p.parse(buf, slist)
+	}
+
+	metrics := strings.Split(string(buf), "# HELP ")
+	for i := range metrics {
+		if i != 0 {
+			metrics[i] = "# HELP " + metrics[i]
+		}
+		err := p.parse([]byte(metrics[i]), slist)
+		if err != nil {
+			log.Println("E! parse metrics failed, error:", err, "metrics:", metrics[i])
 		}
 	}
 
