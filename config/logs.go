@@ -3,9 +3,10 @@
 package config
 
 import (
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
+	"flashcat.cloud/categraf/pkg/tls"
 )
 
 const (
@@ -40,6 +41,19 @@ type (
 		Topic   string   `json:"topic" toml:"topic"`
 		Brokers []string `json:"brokers" toml:"brokers"`
 		*sarama.Config
+
+		KafkaVersion     string `toml:"kafka_version"`
+		SaslEnable       bool   `toml:"sasl_enable"`
+		SaslMechanism    string `toml:"sasl_mechanism"`
+		SaslVersion      int16  `toml:"sasl_version"`
+		SaslHandshake    bool   `toml:"sasl_handshake"`
+		SaslUser         string `toml:"sasl_user"`
+		SaslPassword     string `toml:"sasl_password"`
+		SaslAuthIdentity string `toml:"sasl_auth_identity"`
+
+		CertificateAuth []string `toml:"certificate_authorities"`
+		tls.ClientConfig
+		PartitionStrategy string `toml:"partition_strategy"`
 	}
 	KubeConfig struct {
 		KubeletHTTPPort  int    `json:"kubernetes_http_kubelet_port" toml:"kubernetes_http_kubelet_port"`

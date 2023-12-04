@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	json "github.com/mailru/easyjson"
 
 	coreconfig "flashcat.cloud/categraf/config"
@@ -78,7 +78,48 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 	if coreconfig.Config.Logs.Config == nil {
 		coreconfig.Config.Logs.Config = sarama.NewConfig()
 		coreconfig.Config.Logs.Producer.Partitioner = sarama.NewRandomPartitioner
+		if coreconfig.Config.Logs.PartitionStrategy == "round_robin" {
+			coreconfig.Config.Logs.Producer.Partitioner = sarama.NewRoundRobinPartitioner
+		}
+		if coreconfig.Config.Logs.PartitionStrategy == "random" {
+			coreconfig.Config.Logs.Producer.Partitioner = sarama.NewRandomPartitioner
+		}
+		if coreconfig.Config.Logs.PartitionStrategy == "hash" {
+			coreconfig.Config.Logs.Producer.Partitioner = sarama.NewHashPartitioner
+		}
+
 		coreconfig.Config.Logs.Producer.Return.Successes = true
+	}
+
+	if coreconfig.Config.Logs.SendWithTLS && coreconfig.Config.Logs.SendType == "kafka" {
+		coreconfig.Config.Logs.Config.Net.TLS.Enable = true
+		coreconfig.Config.Logs.UseTLS = true
+		var err error
+		coreconfig.Config.Logs.Net.TLS.Config, err = coreconfig.Config.Logs.KafkaConfig.ClientConfig.TLSConfig()
+		if err != nil {
+			panic(err)
+		}
+	}
+	if coreconfig.Config.Logs.SaslEnable {
+		coreconfig.Config.Logs.Config.Net.SASL.Enable = true
+		coreconfig.Config.Logs.Config.Net.SASL.User = coreconfig.Config.Logs.SaslUser
+		coreconfig.Config.Logs.Config.Net.SASL.Password = coreconfig.Config.Logs.SaslPassword
+		coreconfig.Config.Logs.Config.Net.SASL.Mechanism = sarama.SASLMechanism(coreconfig.Config.Logs.SaslMechanism)
+		coreconfig.Config.Logs.Config.Net.SASL.Version = coreconfig.Config.Logs.SaslVersion
+		coreconfig.Config.Logs.Config.Net.SASL.Handshake = coreconfig.Config.Logs.SaslHandshake
+		coreconfig.Config.Logs.Config.Net.SASL.AuthIdentity = coreconfig.Config.Logs.SaslAuthIdentity
+	}
+
+	if len(coreconfig.Config.Logs.KafkaVersion) != 0 {
+		for _, v := range sarama.SupportedVersions {
+			if v.String() == coreconfig.Config.Logs.KafkaVersion {
+				coreconfig.Config.Logs.Config.Version = v
+				break
+			}
+		}
+	}
+	if coreconfig.Config.DebugMode {
+		log.Printf("D! saram config: %+v", coreconfig.Config.Logs.Config)
 	}
 
 	brokers := strings.Split(endpoint.Addr, ",")
@@ -148,7 +189,11 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 	if data.Topic != "" {
 		topic = data.Topic
 	}
-	err = NewBuilder().WithMessage(d.apiKey, encodedPayload).WithTopic(topic).Send(d.client)
+	msgKey := d.apiKey
+	if data.MsgKey != "" {
+		msgKey = data.MsgKey
+	}
+	err = NewBuilder().WithMessage(msgKey, encodedPayload).WithTopic(topic).Send(d.client)
 	if err != nil {
 		log.Printf("W! send message to kafka error %s, topic:%s", err, topic)
 		if ctx.Err() == context.Canceled {
