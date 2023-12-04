@@ -9,9 +9,12 @@ package processor
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"os"
 	"sync"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/diagnostic"
 	"flashcat.cloud/categraf/logs/message"
@@ -93,6 +96,9 @@ func (p *Processor) processMessage(msg *message.Message) {
 		if err != nil {
 			log.Println("unable to encode msg ", err)
 			return
+		}
+		if coreconfig.Config.DebugMode {
+			fmt.Fprintf(os.Stdout, "D! log item: %s", string(content))
 		}
 		msg.Content = content
 		p.outputChan <- msg

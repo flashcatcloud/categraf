@@ -33,6 +33,7 @@ type jsonPayload struct {
 	Source    string `json:"fcsource"`
 	Tags      string `json:"fctags"`
 	Topic     string `json:"topic"`
+	MsgKey    string `json:"msg_key"`
 }
 
 // Encode encodes a message into a JSON byte array.
@@ -59,6 +60,10 @@ func (j *jsonEncoder) Encode(msg *message.Message, redactedMsg []byte) ([]byte, 
 	if msg.Origin.LogSource.Config.Topic != "" {
 		topic = msg.Origin.LogSource.Config.Topic
 	}
+	msgKey := config.Config.Logs.APIKey
+	if config.Config.Logs.SendType == "kafka" {
+		msgKey = msg.GetHostname() + "/" + msg.Origin.GetIdentifier()
+	}
 
 	return json.Marshal(jsonPayload{
 		Message:   toValidUtf8(redactedMsg),
@@ -69,5 +74,6 @@ func (j *jsonEncoder) Encode(msg *message.Message, redactedMsg []byte) ([]byte, 
 		Source:    msg.Origin.Source(),
 		Tags:      msg.Origin.TagsToJsonString(),
 		Topic:     topic,
+		MsgKey:    msgKey,
 	})
 }
