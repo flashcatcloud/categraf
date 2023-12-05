@@ -9,6 +9,7 @@ import (
 // easyjson:json
 type (
 	Data struct {
-		Topic string `json:"topic"`
+		Topic  string `json:"topic"`
+		MsgKey string `json:"msg_key"`
 	}
 )

@@ -22,7 +22,25 @@ open_files_limit = 100
 scan_period = 10
 ## read buffer of udp 
 frame_size = 9000
+
+# 是否开启sasl模式
+sasl_enable = false
+sasl_user = "admin"
+sasl_password = "admin"
+# PLAIN
+sasl_mechanism= "PLAIN"
+# v1
+sasl_version=1
+# set true
+sasl_handshake = true
+# optional
+# sasl_auth_identity=""
+#
 ##
+# v0.3.39以上版本新增,是否开启pod日志采集
+enable_collect_container=false
+
+# 是否采集所有pod的stdout stderr
 collect_container_all = true
   ## glog processing rules
   # [[logs.Processing_rules]]

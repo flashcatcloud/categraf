@@ -9,6 +9,7 @@ package message
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"strings"
 
@@ -141,4 +142,16 @@ func (o *Origin) Service() string {
 		return o.LogSource.Config.Service
 	}
 	return o.service
+}
+
+func (o *Origin) GetIdentifier() string {
+	switch o.LogSource.GetSourceType() {
+	case logsconfig.DockerType, logsconfig.KubernetesSourceType:
+		return o.LogSource.Config.Identifier
+	case logsconfig.FileType:
+		return o.LogSource.Config.Path
+	case logsconfig.TCPType, logsconfig.UDPType:
+		return fmt.Sprintf("%d", o.LogSource.Config.Port)
+	}
+	return ""
 }
