@@ -54,8 +54,8 @@ require (
 	github.com/prometheus/prometheus v0.37.0
 	github.com/shirou/gopsutil/v3 v3.22.5
 	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/toolkits/pkg v1.3.7
 	github.com/stretchr/testify v1.8.4
-	github.com/toolkits/pkg v1.3.5
 	github.com/ulricqin/gosnmp v0.0.1
 	github.com/xdg/scram v1.0.5
 	go.mongodb.org/mongo-driver v1.9.1
