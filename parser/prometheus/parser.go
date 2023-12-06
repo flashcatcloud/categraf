@@ -1,17 +1,21 @@
 package prometheus
 
 import (
+	"bytes"
 	"log"
 	"math"
 	"mime"
 	"net/http"
-	"strings"
 
 	dto "github.com/prometheus/client_model/go"
 
 	"flashcat.cloud/categraf/pkg/filter"
 	util "flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/types"
+)
+
+const (
+	MetricHeader = "# HELP "
 )
 
 type Parser struct {
@@ -66,17 +70,18 @@ func (p *Parser) parse(buf []byte, slist *types.SampleList) error {
 	return nil
 }
 func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
+	var MetricHeaderBytes = []byte(MetricHeader)
 	mediatype, _, _ := mime.ParseMediaType(p.Header.Get("Content-Type"))
 	if mediatype == "application/vnd.google.protobuf" || !p.DuplicationAllowed {
 		return p.parse(buf, slist)
 	}
 
-	metrics := strings.Split(string(buf), "# HELP ")
+	metrics := bytes.Split(buf, MetricHeaderBytes)
 	for i := range metrics {
 		if i != 0 {
-			metrics[i] = "# HELP " + metrics[i]
+			metrics[i] = append(append([]byte(nil), MetricHeaderBytes...), metrics[i]...)
 		}
-		err := p.parse([]byte(metrics[i]), slist)
+		err := p.parse(metrics[i], slist)
 		if err != nil {
 			log.Println("E! parse metrics failed, error:", err, "metrics:", metrics[i])
 		}
