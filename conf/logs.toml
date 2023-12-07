@@ -28,7 +28,7 @@ frame_size = 9000
 chan_size = 1000
 ## pipeline num , default 4
 ## 有多少线程处理日志
-pipelin=4
+pipeline=4
 ## configuration for kafka
 ## 指定kafka版本
 kafka_version="3.3.2"
