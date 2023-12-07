@@ -9,9 +9,7 @@ package processor
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"os"
 	"sync"
 
 	coreconfig "flashcat.cloud/categraf/config"
@@ -98,7 +96,7 @@ func (p *Processor) processMessage(msg *message.Message) {
 			return
 		}
 		if coreconfig.Config.DebugMode {
-			fmt.Fprintf(os.Stdout, "D! log item: %s", string(content))
+			log.Println("D! log item:", string(content))
 		}
 		msg.Content = content
 		p.outputChan <- msg

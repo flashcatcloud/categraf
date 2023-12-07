@@ -159,10 +159,9 @@ func BuildHTTPEndpointsWithConfig(endpointPrefix string, intakeTrackType logscon
 	}
 
 	batchWait := time.Duration(logsConfig.BatchWait) * time.Second
-	// TODO support custom param
-	batchMaxConcurrentSend := 0
-	batchMaxSize := 100
-	batchMaxContentSize := 1000000
+	batchMaxConcurrentSend := coreconfig.BatchConcurrence()
+	batchMaxSize := coreconfig.BatchMaxSize()
+	batchMaxContentSize := coreconfig.BatchMaxContentSize()
 
 	return NewEndpointsWithBatchSettings(main, false, "http", batchWait, batchMaxConcurrentSend, batchMaxSize, batchMaxContentSize), nil
 }

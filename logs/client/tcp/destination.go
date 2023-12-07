@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/client"
 )
@@ -86,7 +87,7 @@ func (d *Destination) Send(payload []byte) error {
 func (d *Destination) SendAsync(payload []byte) {
 	// host := d.connManager.endpoint.Host
 	d.once.Do(func() {
-		inputChan := make(chan []byte, logsconfig.ChanSize)
+		inputChan := make(chan []byte, coreconfig.ChanSize())
 		d.inputChan = inputChan
 		go d.runAsync()
 	})

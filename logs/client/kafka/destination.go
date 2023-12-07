@@ -25,16 +25,13 @@ const (
 	JSONContentType = "application/json"
 )
 
-// HTTP errors.
+// errors.
 var (
 	errClient = errors.New("client error")
 	errServer = errors.New("server error")
 )
 
-// emptyPayload is an empty payload used to check HTTP connectivity without sending logs.
-var emptyPayload []byte
-
-// Destination sends a payload over HTTP.
+// Destination sends a payload over Kafka.
 type Destination struct {
 	topic   string
 	brokers []string
@@ -59,7 +56,7 @@ type Destination struct {
 // there is no concurrency and the background sending pipeline will block while sending each payload.
 // TODO: add support for SOCKS5
 func NewDestination(endpoint logsconfig.Endpoint, contentType string, destinationsContext *client.DestinationsContext, maxConcurrentBackgroundSends int) *Destination {
-	return newDestination(endpoint, contentType, destinationsContext, time.Second*10, maxConcurrentBackgroundSends)
+	return newDestination(endpoint, contentType, destinationsContext, time.Duration(coreconfig.ClientTimeout())*time.Second, maxConcurrentBackgroundSends)
 }
 
 func newDestination(endpoint logsconfig.Endpoint, contentType string, destinationsContext *client.DestinationsContext, timeout time.Duration, maxConcurrentBackgroundSends int) *Destination {
@@ -90,6 +87,8 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 
 		coreconfig.Config.Logs.Producer.Return.Successes = true
 	}
+
+	coreconfig.Config.Logs.Config.Producer.Timeout = timeout
 
 	if coreconfig.Config.Logs.SendWithTLS && coreconfig.Config.Logs.SendType == "kafka" {
 		coreconfig.Config.Logs.Config.Net.TLS.Enable = true
@@ -152,7 +151,7 @@ func errorToTag(err error) string {
 	}
 }
 
-// Send sends a payload over HTTP,
+// Send sends a payload over Kafka,
 // the error returned can be retryable and it is the responsibility of the callee to retry.
 func (d *Destination) Send(payload []byte) error {
 	if d.blockedUntil.After(time.Now()) {
@@ -208,7 +207,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 // SendAsync sends a payload in background.
 func (d *Destination) SendAsync(payload []byte) {
 	d.once.Do(func() {
-		payloadChan := make(chan []byte, logsconfig.ChanSize)
+		payloadChan := make(chan []byte, coreconfig.ChanSize())
 		d.sendInBackground(payloadChan)
 		d.payloadChan = payloadChan
 	})

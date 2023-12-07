@@ -36,6 +36,15 @@ type (
 		Accuracy              string                       `toml:"accuracy" json:"accuracy"`
 		KafkaConfig
 		KubeConfig
+
+		ChanSize            int `toml:"chan_size" json:"chan_size"`
+		Pipeline            int `toml:"pipeline" json:"pipeline"`
+		BatchMaxSize        int `toml:"batch_max_size" json:"batch_max_size"`
+		BatchMaxContentSize int `toml:"batch_max_content_size" json:"batch_max_content_size"`
+		BatchConcurrence    int `toml:"batch_max_concurrence" json:"batch_max_concurrence"`
+		ProducerTimeout     int `toml:"producer_timeout" json:"producer_timeout"`
+
+		EnableCollectContainer bool `json:"enable_collect_container" toml:"enable_collect_container"`
 	}
 	KafkaConfig struct {
 		Topic   string   `json:"topic" toml:"topic"`
@@ -92,6 +101,44 @@ func LogFrameSize() int {
 		Config.Logs.FrameSize = 9000
 	}
 	return Config.Logs.FrameSize
+}
+func NumberOfPipelines() int {
+	if Config.Logs.Pipeline == 0 {
+		Config.Logs.Pipeline = 4
+	}
+	return Config.Logs.Pipeline
+}
+
+func ChanSize() int {
+	if Config.Logs.ChanSize == 0 {
+		Config.Logs.ChanSize = 100
+	}
+	return Config.Logs.ChanSize
+}
+
+func BatchMaxSize() int {
+	if Config.Logs.BatchMaxSize == 0 {
+		Config.Logs.BatchMaxSize = 100
+	}
+	return Config.Logs.BatchMaxSize
+}
+
+func BatchMaxContentSize() int {
+	if Config.Logs.BatchMaxContentSize == 0 {
+		Config.Logs.BatchMaxContentSize = 1000000
+	}
+	return Config.Logs.BatchMaxContentSize
+}
+
+func BatchConcurrence() int {
+	return Config.Logs.BatchConcurrence
+}
+
+func ClientTimeout() int {
+	if Config.Logs.ProducerTimeout == 0 {
+		Config.Logs.ProducerTimeout = 10
+	}
+	return Config.Logs.ProducerTimeout
 }
 
 func ValidatePodContainerID() bool {

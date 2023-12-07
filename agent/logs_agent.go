@@ -98,7 +98,7 @@ func NewLogsAgent() AgentModule {
 	diagnosticMessageReceiver := diagnostic.NewBufferedMessageReceiver()
 
 	// setup the pipeline provider that provides pairs of processor and sender
-	pipelineProvider := pipeline.NewProvider(logsconfig.NumberOfPipelines, auditor, diagnosticMessageReceiver, processingRules, endpoints, destinationsCtx)
+	pipelineProvider := pipeline.NewProvider(coreconfig.NumberOfPipelines(), auditor, diagnosticMessageReceiver, processingRules, endpoints, destinationsCtx)
 
 	validatePodContainerID := coreconfig.ValidatePodContainerID()
 	//

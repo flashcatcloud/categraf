@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/pkg/backoff"
@@ -185,7 +186,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 // SendAsync sends a payload in background.
 func (d *Destination) SendAsync(payload []byte) {
 	d.once.Do(func() {
-		payloadChan := make(chan []byte, logsconfig.ChanSize)
+		payloadChan := make(chan []byte, coreconfig.ChanSize())
 		d.sendInBackground(payloadChan)
 		d.payloadChan = payloadChan
 	})

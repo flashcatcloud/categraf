@@ -23,6 +23,24 @@ scan_period = 10
 ## read buffer of udp 
 frame_size = 9000
 
+## channal size, default 100
+## 读取日志缓冲区，行数
+chan_size = 1000
+## pipeline num , default 4
+## 有多少线程处理日志
+pipelin=4
+## configuration for kafka
+## 指定kafka版本
+kafka_version="3.3.2"
+# 默认0 表示串行,如果对日志顺序有要求,保持默认配置
+batch_max_concurrence = 0
+# 最大并发批次, 默认100
+batch_max_size=100
+# 每次最大发送的内容上限 默认1000000
+batch_max_contentsize=1000000
+# client timeout in seconds
+producer_timeout= 10
+
 # 是否开启sasl模式
 sasl_enable = false
 sasl_user = "admin"
