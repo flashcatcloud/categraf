@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	config "flashcat.cloud/categraf/config/logs"
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/message"
 )
 
@@ -96,7 +96,7 @@ func (a *RegistryAuditor) Stop() {
 func (a *RegistryAuditor) createChannels() {
 	a.chansMutex.Lock()
 	defer a.chansMutex.Unlock()
-	a.inputChan = make(chan *message.Message, config.ChanSize)
+	a.inputChan = make(chan *message.Message, config.ChanSize())
 	a.done = make(chan struct{})
 }
 

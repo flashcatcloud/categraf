@@ -10,6 +10,7 @@ package pipeline
 import (
 	"context"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/logs/client/http"
@@ -65,14 +66,14 @@ func NewPipeline(outputChan chan *message.Message, processingRules []*logsconfig
 		encoder = processor.RawEncoder
 	}
 
-	senderChan := make(chan *message.Message, logsconfig.ChanSize)
+	senderChan := make(chan *message.Message, coreconfig.ChanSize())
 	sender := sender.NewSender(senderChan, outputChan, destinations, strategy)
 
 	if endpoints.UseProto {
 		encoder = processor.ProtoEncoder
 	}
 
-	inputChan := make(chan *message.Message, logsconfig.ChanSize)
+	inputChan := make(chan *message.Message, coreconfig.ChanSize())
 	processor := processor.New(inputChan, senderChan, processingRules, encoder, diagnosticMessageReceiver)
 
 	return &Pipeline{

@@ -7,12 +7,6 @@
 
 package logs
 
-// Pipeline constraints
-const (
-	ChanSize          = 100
-	NumberOfPipelines = 4
-)
-
 const (
 	// DateFormat is the default date format.
 	DateFormat = "2006-01-02T15:04:05.000000000Z"

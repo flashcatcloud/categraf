@@ -13,7 +13,6 @@ import (
 	"time"
 
 	coreconfig "flashcat.cloud/categraf/config"
-	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/message"
 )
 
@@ -44,13 +43,13 @@ type Filters struct {
 // NewBufferedMessageReceiver creates a new MessageReceiver
 func NewBufferedMessageReceiver() *BufferedMessageReceiver {
 	return &BufferedMessageReceiver{
-		inputChan: make(chan messagePair, logsconfig.ChanSize),
+		inputChan: make(chan messagePair, coreconfig.ChanSize()),
 	}
 }
 
 // Start opens new input channel
 func (b *BufferedMessageReceiver) Start() {
-	b.inputChan = make(chan messagePair, logsconfig.ChanSize)
+	b.inputChan = make(chan messagePair, coreconfig.ChanSize())
 }
 
 // Stop closes the input channel
@@ -99,7 +98,7 @@ func (b *BufferedMessageReceiver) HandleMessage(m message.Message, redactedMsg [
 
 // Filter writes the buffered events from the input channel formatted as a string to the output channel
 func (b *BufferedMessageReceiver) Filter(filters *Filters, done <-chan struct{}) <-chan string {
-	out := make(chan string, logsconfig.ChanSize)
+	out := make(chan string, coreconfig.ChanSize())
 	go func() {
 		defer close(out)
 		for {
