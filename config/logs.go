@@ -120,6 +120,9 @@ func BatchMaxSize() int {
 	if Config.Logs.BatchMaxSize == 0 {
 		Config.Logs.BatchMaxSize = 100
 	}
+	if Config.Logs.BatchMaxSize < Config.Logs.ChanSize {
+		Config.Logs.BatchMaxSize = Config.Logs.ChanSize
+	}
 	return Config.Logs.BatchMaxSize
 }
 

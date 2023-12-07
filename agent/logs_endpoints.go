@@ -187,11 +187,11 @@ func NewEndpoints(main logsconfig.Endpoint, useProto bool, typ string) *logsconf
 		Additionals: nil,
 		UseProto:    useProto,
 		Type:        typ,
-		BatchWait:   time.Duration(logsConfig.BatchWait) * time.Second,
-		// TODO support custom param
-		BatchMaxConcurrentSend: 0,
-		BatchMaxSize:           100,
-		BatchMaxContentSize:    1000000,
+
+		BatchWait:              time.Duration(logsConfig.BatchWait) * time.Second,
+		BatchMaxConcurrentSend: coreconfig.BatchConcurrence(),
+		BatchMaxSize:           coreconfig.BatchMaxSize(),
+		BatchMaxContentSize:    coreconfig.BatchMaxContentSize(),
 	}
 }
 
