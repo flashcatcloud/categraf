@@ -698,7 +698,7 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 		return v, nil
 	}
 
-	// 55 57 57 51 46 56 32 77 66   may be the ascii rune arr for string ->  7993.8 MB
+	// 55 57 57 51 46 56 32 77 66   may be the ascii arr for string ->  7993.8 MB
 	if conv == "asciitobytes" {
 
 		input, ok := v.([]uint8)
@@ -706,13 +706,8 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 			return nil, fmt.Errorf("invalid type of %v (not rune arr)", v)
 		}
 
-		// 将 []uint8 转换为字符切片
-		chars := make([]rune, len(input))
-		for i, val := range input {
-			chars[i] = rune(val)
-		}
-		// 将字符切片转换为字符串
-		asciiStr := string(chars)
+		// 将ascii字符切片转换为字符串
+		asciiStr := string(input)
 
 		// 提取数值
 		var numericStr string
@@ -737,14 +732,24 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 		case "B":
 			result = value
 		case "KB":
-			result = value * 1024
+			result = value * 1000
 		case "MB":
-			result = value * 1024 * 1024
+			result = value * 1000 * 1000
 		case "GB":
-			result = value * 1024 * 1024 * 1024
+			result = value * 1000 * 1000 * 1000
 		case "TB":
-			result = value * 1024 * 1024 * 1024 * 1024
+			result = value * 1000 * 1000 * 1000 * 1000
 		case "PB":
+			result = value * 1000 * 1000 * 1000 * 1000 * 1000
+		case "KIB":
+			result = value * 1024
+		case "MIB":
+			result = value * 1024 * 1024
+		case "GIB":
+			result = value * 1024 * 1024 * 1024
+		case "TIB":
+			result = value * 1024 * 1024 * 1024 * 1024
+		case "PIB":
 			result = value * 1024 * 1024 * 1024 * 1024 * 1024
 		default:
 			return nil, fmt.Errorf("invalid unit of %s", unit)
