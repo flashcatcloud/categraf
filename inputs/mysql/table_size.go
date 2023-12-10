@@ -33,9 +33,9 @@ func (ins *Instance) gatherTableSize(slist *types.SampleList, db *sql.DB, global
 
 	for rows.Next() {
 		var schema, table string
-		var indexSize, dataSize int64
+		var indexSize, dataSize, dataFree int64
 
-		err = rows.Scan(&schema, &table, &indexSize, &dataSize)
+		err = rows.Scan(&schema, &table, &indexSize, &dataSize, &dataFree)
 		if err != nil {
 			log.Println("E! failed to scan rows:", err)
 			return
@@ -43,5 +43,6 @@ func (ins *Instance) gatherTableSize(slist *types.SampleList, db *sql.DB, global
 
 		slist.PushFront(types.NewSample(inputName, "table_size_index_bytes", indexSize, labels, map[string]string{"schema": schema, "table": table}))
 		slist.PushFront(types.NewSample(inputName, "table_size_data_bytes", dataSize, labels, map[string]string{"schema": schema, "table": table}))
+		slist.PushFront(types.NewSample(inputName, "table_size_free_data_bytes", dataFree, labels, map[string]string{"schema": schema, "table": table}))
 	}
 }
