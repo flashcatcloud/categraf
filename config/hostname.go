@@ -56,9 +56,13 @@ func InitHostInfo() error {
 		return err
 	}
 
-	ip, err := GetOutboundIP()
-	if err != nil {
-		return err
+	var ip string
+	if ip = os.Getenv("HOSTIP"); ip == "" {
+		nip, err := GetOutboundIP()
+		if err != nil {
+			return err
+		}
+		ip = fmt.Sprint(nip)
 	}
 
 	HostInfo = &HostInfoCache{

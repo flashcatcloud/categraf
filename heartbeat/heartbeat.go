@@ -26,12 +26,6 @@ func Work() {
 		return
 	}
 
-	version := config.Version
-	versions := strings.Split(version, "-")
-	if len(versions) > 1 {
-		version = versions[0]
-	}
-
 	ps := system.NewSystemPS()
 
 	interval := conf.Interval
@@ -48,7 +42,7 @@ func Work() {
 	duration := time.Second * time.Duration(interval-collinterval)
 
 	for {
-		work(version, ps, client)
+		work(ps, client)
 		time.Sleep(duration)
 	}
 }
@@ -88,13 +82,26 @@ func newHTTPClient() (*http.Client, error) {
 	return client, nil
 }
 
-func work(version string, ps *system.SystemPS, client *http.Client) {
+func version() string {
+	components := strings.Split(config.Version, "-")
+	switch len(components) {
+	case 2:
+		return components[0]
+	case 3, 4:
+		return components[0] + "-" + components[1]
+	}
+	return config.Version
+}
+
+func work(ps *system.SystemPS, client *http.Client) {
 	cpuUsagePercent := cpuUsage(ps)
 	hostname := config.Config.GetHostname()
 	memUsagePercent := memUsage(ps)
 
+	shortVersion := version()
+	hostIP := config.Config.GetHostIP()
 	data := map[string]interface{}{
-		"agent_version": version,
+		"agent_version": shortVersion,
 		"os":            runtime.GOOS,
 		"arch":          runtime.GOARCH,
 		"hostname":      hostname,
@@ -102,6 +109,13 @@ func work(version string, ps *system.SystemPS, client *http.Client) {
 		"cpu_util":      cpuUsagePercent,
 		"mem_util":      memUsagePercent,
 		"unixtime":      time.Now().UnixMilli(),
+		"host_ip":       hostIP,
+	}
+
+	if ext, err := collectSystemInfo(); err == nil {
+		data["extend_info"] = ext
+	} else {
+		log.Println("E! failed to collect system info:", err)
 	}
 
 	bs, err := json.Marshal(data)
@@ -121,6 +135,9 @@ func work(version string, ps *system.SystemPS, client *http.Client) {
 		log.Println("E! failed to close gzip buffer:", err)
 		return
 	}
+	if config.Config.DebugMode {
+		log.Printf("D! heartbeat request: %s\n", string(bs))
+	}
 
 	req, err := http.NewRequest("POST", config.Config.Heartbeat.Url, &buf)
 	if err != nil {
@@ -130,7 +147,7 @@ func work(version string, ps *system.SystemPS, client *http.Client) {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
-	req.Header.Set("User-Agent", "categraf/"+version)
+	req.Header.Set("User-Agent", "categraf/"+hostIP)
 
 	for i := 0; i < len(config.Config.Heartbeat.Headers); i += 2 {
 		req.Header.Add(config.Config.Heartbeat.Headers[i], config.Config.Heartbeat.Headers[i+1])
