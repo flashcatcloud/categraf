@@ -91,7 +91,7 @@ servers = ["127.0.0.1:20090"]
 meta_dir = "./meta"
 
 [heartbeat]
-enable = false
+enable = true
 
 # report os version cpu.util mem.util metadata
 url = "http://127.0.0.1:17000/v1/n9e/heartbeat"
