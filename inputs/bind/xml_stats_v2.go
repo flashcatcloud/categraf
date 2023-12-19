@@ -2,11 +2,12 @@ package bind
 
 import (
 	"encoding/xml"
-	"flashcat.cloud/categraf/types"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+
+	"flashcat.cloud/categraf/types"
 )
 
 type v2Root struct {

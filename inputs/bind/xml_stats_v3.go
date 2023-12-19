@@ -2,12 +2,13 @@ package bind
 
 import (
 	"encoding/xml"
-	"flashcat.cloud/categraf/types"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"flashcat.cloud/categraf/types"
 )
 
 // XML path: //statistics
