@@ -235,7 +235,7 @@ func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Po
 		if isExposed(port) {
 			IP := net.ParseIP(port.IP)
 			if IP == nil {
-				log.Println("Unable to parse IP: %v for container: %s", port.IP, container)
+				log.Printf("Unable to parse IP: %v for container: %s", port.IP, container)
 				continue
 			}
 			addrList = append(addrList, containers.NetworkAddress{
@@ -253,12 +253,12 @@ func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Po
 	// Retieve IPs from network settings for the cached ports
 	for _, network := range netSettings.Networks {
 		if network.IPAddress == "" {
-			log.Println("No IP found for container %s in network %s", container, network.NetworkID)
+			log.Printf("No IP found for container %s in network %s", container, network.NetworkID)
 			continue
 		}
 		IP := net.ParseIP(network.IPAddress)
 		if IP == nil {
-			log.Println("Unable to parse IP: %v for container: %s", network.IPAddress, container)
+			log.Printf("Unable to parse IP: %v for container: %s", network.IPAddress, container)
 			continue
 		}
 		for _, addr := range tempAddrList {

@@ -136,7 +136,7 @@ func work(ps *system.SystemPS, client *http.Client) {
 		return
 	}
 	if config.Config.DebugMode {
-		log.Printf("D! heartbeat request: %s\n", string(bs))
+		log.Printf("D! heartbeat request: %s", string(bs))
 	}
 
 	req, err := http.NewRequest("POST", config.Config.Heartbeat.Url, &buf)

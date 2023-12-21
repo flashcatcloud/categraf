@@ -118,7 +118,7 @@ func (d *DockerUtil) LatestContainerEvents(ctx context.Context, since time.Time)
 		case msg := <-msgChan:
 			event, err := d.processContainerEvent(ctx, msg)
 			if err != nil {
-				log.Println("W! error parsing docker message: %s", err)
+				log.Println("W! error parsing docker message: ", err)
 				continue
 			} else if event == nil {
 				continue

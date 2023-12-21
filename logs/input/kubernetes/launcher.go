@@ -71,7 +71,7 @@ func IsAvailable() (bool, *retry.Retrier) {
 		log.Println("Kubernetes launcher is available")
 		return true, nil
 	}
-	log.Printf("Kubernetes launcher is not available: %v", retrier.LastError())
+	log.Println("Kubernetes launcher is not available: ", retrier.LastError())
 	return false, retrier
 }
 
@@ -79,7 +79,7 @@ func IsAvailable() (bool, *retry.Retrier) {
 func NewLauncher(sources *logsconfig.LogSources, services *service.Services, collectAll bool) *Launcher {
 	kubeutil, err := kubelet.GetKubeUtil()
 	if err != nil {
-		log.Printf("KubeUtil not available, failed to create launcher", err)
+		log.Println("KubeUtil not available, failed to create launcher: ", err)
 		return nil
 	}
 	launcher := &Launcher{
@@ -153,7 +153,7 @@ func (l *Launcher) scheduleServiceForRetry(svc *service.Service) {
 func (l *Launcher) delayRetry(ops *retryOps) {
 	delay := ops.backoff.NextBackOff()
 	if delay == backoff.Stop {
-		log.Println("Unable to add source for container %v", ops.service.GetEntityID())
+		log.Println("Unable to add source for container ", ops.service.GetEntityID())
 		delete(l.pendingRetries, ops.service.GetEntityID())
 		return
 	}
@@ -177,7 +177,7 @@ func (l *Launcher) addSource(svc *service.Service) {
 	if err != nil {
 		if errors.IsRetriable(err) {
 			// Attempt to reschedule the source later
-			log.Println("Failed to fetch pod info for container %v, will retry: %v", svc.Identifier, err)
+			log.Printf("Failed to fetch pod info for container %v, will retry: %v", svc.Identifier, err)
 			l.scheduleServiceForRetry(svc)
 			return
 		}
@@ -192,7 +192,7 @@ func (l *Launcher) addSource(svc *service.Service) {
 	source, err := l.getSource(pod, container)
 	if err != nil {
 		if err != errCollectAllDisabled {
-			log.Println("Invalid configuration for pod %v, container %v: %v", pod.Metadata.Name, container.Name, err)
+			log.Printf("Invalid configuration for pod %v, container %v: %v", pod.Metadata.Name, container.Name, err)
 		}
 		return
 	}
