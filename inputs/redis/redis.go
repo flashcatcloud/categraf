@@ -36,6 +36,10 @@ type Instance struct {
 	PoolSize int       `toml:"pool_size"`
 	Commands []Command `toml:"commands"`
 
+	GatherSlowLog     bool  `toml:"gather_slowlog"`
+	SlowLogMaxLen     int64 `toml:"slowlog_max_len"`
+	SlowLogTimeWindow int64 `toml:"slowlog_time_window"`
+
 	tls.ClientConfig
 	client *redis.Client
 }
@@ -61,6 +65,10 @@ func (ins *Instance) Init() error {
 	}
 
 	ins.client = redis.NewClient(redisOptions)
+
+	if ins.SlowLogTimeWindow == 0 {
+		ins.SlowLogTimeWindow = 300
+	}
 	return nil
 }
 
@@ -121,7 +129,33 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	ins.gatherInfoAll(slist, tags)
+	ins.gatherSlowLog(slist, tags)
 	ins.gatherCommandValues(slist, tags)
+}
+
+func (ins *Instance) gatherSlowLog(slist *types.SampleList, tags map[string]string) {
+	if !ins.GatherSlowLog {
+		return
+	}
+	info, err := ins.client.SlowLogGet(context.Background(), ins.SlowLogMaxLen).Result()
+	if err != nil {
+		log.Println("E! get slow log err:", err)
+		return
+	}
+	now := time.Now().Unix()
+	for i := range info {
+		if now-info[i].Time.Unix() > ins.SlowLogTimeWindow {
+			continue
+		}
+		duration := info[i].Duration / time.Microsecond
+		labels := map[string]string{
+			"client_addr": info[i].ClientAddr,
+			"client_name": info[i].ClientName,
+			"log_id":      fmt.Sprint(info[i].ID),
+			"cmd":         strings.Join(info[i].Args, " "),
+		}
+		slist.PushFront(types.NewSample(inputName, "slow_log", duration, labels).SetTime(info[i].Time))
+	}
 }
 
 func (ins *Instance) gatherCommandValues(slist *types.SampleList, tags map[string]string) {
