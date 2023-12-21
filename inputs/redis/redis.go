@@ -147,14 +147,14 @@ func (ins *Instance) gatherSlowLog(slist *types.SampleList, tags map[string]stri
 		if now-info[i].Time.Unix() > ins.SlowLogTimeWindow {
 			continue
 		}
-		duration := info[i].Duration / time.Microsecond
+		val := info[i].Duration.Microseconds()
 		labels := map[string]string{
 			"client_addr": info[i].ClientAddr,
 			"client_name": info[i].ClientName,
 			"log_id":      fmt.Sprint(info[i].ID),
 			"cmd":         strings.Join(info[i].Args, " "),
 		}
-		slist.PushFront(types.NewSample(inputName, "slow_log", duration, labels).SetTime(info[i].Time))
+		slist.PushFront(types.NewSample(inputName, "slow_log", val, labels).SetTime(info[i].Time))
 	}
 }
 
