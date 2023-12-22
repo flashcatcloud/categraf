@@ -187,7 +187,7 @@ func (a *RegistryAuditor) recoverRegistry() map[string]*RegistryEntry {
 	mr, err := ioutil.ReadFile(a.registryPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			log.Println("I! Could not find state file at %q, will start with default offsets", a.registryPath)
+			log.Printf("I! Could not find state file at %q, will start with default offsets", a.registryPath)
 		} else {
 			log.Println("E!", err)
 		}

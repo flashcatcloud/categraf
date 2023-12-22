@@ -256,7 +256,7 @@ func anythingEnabled(ex []string) bool {
 func newFilterOrPanic(include []string, exclude []string) filter.Filter {
 	f, err := filter.NewIncludeExcludeFilter(include, exclude)
 	if err != nil {
-		log.Printf("E! Include/exclude filters are invalid: ", err)
+		log.Println("E! Include/exclude filters are invalid: ", err)
 		return nil
 	}
 	return f
@@ -571,9 +571,9 @@ func (e *Endpoint) complexMetadataSelect(ctx context.Context, res *resourceKind,
 	}
 
 	instInfoMux := sync.Mutex{}
-	te,err := NewThrottledExecutor(e.Parent.DiscoverConcurrency)
-	if err !=nil {
-		log.Println("E! NewThrottledExecutor",err.Error())
+	te, err := NewThrottledExecutor(e.Parent.DiscoverConcurrency)
+	if err != nil {
+		log.Println("E! NewThrottledExecutor", err.Error())
 		return
 	}
 	for _, obj := range sampledObjects {
@@ -953,9 +953,9 @@ func submitChunkJob(ctx context.Context, te *ThrottledExecutor, job queryJob, pq
 }
 
 func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Time, latest time.Time, job queryJob) {
-	te, err:= NewThrottledExecutor(e.Parent.CollectConcurrency)
-	if err!= nil {
-		log.Println("E! NewThrottledExecutor",err.Error())
+	te, err := NewThrottledExecutor(e.Parent.CollectConcurrency)
+	if err != nil {
+		log.Println("E! NewThrottledExecutor", err.Error())
 		return
 	}
 	maxMetrics := e.Parent.MaxQueryMetrics

@@ -15,7 +15,7 @@ import (
 func TestGetExpvar(tb testing.TB, name string) expvar.Var {
 	tb.Helper()
 	v := expvar.Get(name)
-	log.Println("Var %q is %v", name, v)
+	log.Printf("Var %s is %v", name, v)
 	return v
 }
 

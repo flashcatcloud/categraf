@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"flashcat.cloud/categraf/pkg/stringx"
 	"fmt"
 	"log"
 	"os"
@@ -16,6 +15,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"flashcat.cloud/categraf/pkg/stringx"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/types"
@@ -343,7 +344,7 @@ func gatherIntelNVMeDisk(slist *types.SampleList, timeout config.Duration, usesu
 
 	_, er := exitStatus(e)
 	if er != nil {
-		log.Printf("E! failed to run command '%s %s': %w - %s", nvme, strings.Join(args, " "), e, outStr)
+		log.Printf("E! failed to run command '%s %s': %v - %s", nvme, strings.Join(args, " "), e, outStr)
 		return
 	}
 
@@ -412,7 +413,7 @@ func (m *Instance) gatherDisk(slist *types.SampleList, device string, wg *sync.W
 	// Ignore all exit statuses except if it is a command line parse error
 	exitStatus, er := exitStatus(e)
 	if er != nil {
-		log.Printf("E! failed to run command '%s %s': %w - %s", m.PathSmartctl, strings.Join(args, " "), e, outStr)
+		log.Printf("E! failed to run command '%s %s': %v - %s", m.PathSmartctl, strings.Join(args, " "), e, outStr)
 		return
 	}
 
@@ -547,7 +548,7 @@ func (m *Instance) gatherDisk(slist *types.SampleList, device string, wg *sync.W
 					}
 
 					if err := parse(fields, deviceFields, metric, matches[2]); err != nil {
-						log.Printf("E!error parsing %s: %q: %w", attr.Name, matches[2], err)
+						log.Printf("E!error parsing %s: %q: %v", attr.Name, matches[2], err)
 						continue
 					}
 					// if the field is classified as an attribute, only add it
