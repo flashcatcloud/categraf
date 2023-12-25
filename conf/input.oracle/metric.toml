@@ -104,3 +104,12 @@ timeout = "3s"
 request = '''
 select METRIC_NAME,VALUE from v$sysmetric where group_id=2
 '''
+
+
+[[metrics]]
+mesurement = "archivelog"
+metric_fields = [ "count" ]
+timeout = "3s"
+request = '''
+select  count(*) as count from v$archived_log  group by trunc(completion_time)
+'''
