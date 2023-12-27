@@ -1,3 +1,6 @@
+//go:build !windows
+// +build !windows
+
 // Copyright 2021 The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -138,38 +141,6 @@ func checkOverflow(m map[string]interface{}, ctx string) error {
 	return nil
 }
 
-/*
-
-// UnmarshalYAML implements the yaml.Unmarshaler interface.
-func (s *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type plain Config
-	if err := unmarshal((*plain)(s)); err != nil {
-		return err
-	}
-	if err := checkOverflow(s.XXX, "config"); err != nil {
-		return err
-	}
-	return nil
-}
-*/
-// UnmarshalYAML implements the yaml.Unmarshaler interface.
-func (s *IPMIConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	*s = defaultConfig
-	type plain IPMIConfig
-	if err := unmarshal((*plain)(s)); err != nil {
-		return err
-	}
-	if err := checkOverflow(s.XXX, "modules"); err != nil {
-		return err
-	}
-	for _, c := range s.Collectors {
-		if err := c.IsValid(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (c IPMIConfig) GetCollectors() []Collector {
 	result := []Collector{}
 	for _, co := range c.Collectors {
@@ -212,74 +183,3 @@ func (c IPMIConfig) GetFreeipmiConfig() string {
 	}
 	return b.String()
 }
-
-/*
-// ReloadConfig reloads the config in a concurrency-safe way. If the configFile
-// is unreadable or unparsable, an error is returned and the old config is kept.
-func (sc *SafeConfig) ReloadConfig(configFile string) error {
-	var c = &Config{}
-	var config []byte
-	var err error
-
-	if configFile != "" {
-		config, err = os.ReadFile(configFile)
-		if err != nil {
-			log.Println("msg", "Error reading config file", "error", err)
-			return err
-		}
-	} else {
-		config = []byte("# use empty file as default")
-	}
-
-	if err = yaml.Unmarshal(config, c); err != nil {
-		return err
-	}
-
-	sc.Lock()
-	sc.C = c
-	sc.Unlock()
-
-	if configFile != "" {
-		log.Println("msg", "Loaded config file", "path", configFile)
-	}
-	return nil
-}
-
-// HasModule returns true if a given module is configured. It is concurrency-safe.
-func (sc *SafeConfig) HasModule(module string) bool {
-	sc.Lock()
-	defer sc.Unlock()
-
-	_, ok := sc.C.Modules[module]
-	return ok
-}
-
-// ConfigForTarget returns the config for a given target/module, or the
-// default. It is concurrency-safe.
-func (sc *SafeConfig) ConfigForTarget(target, module string) IPMIConfig {
-	sc.Lock()
-	defer sc.Unlock()
-
-	var config IPMIConfig
-	var ok = false
-
-	if module != "default" {
-		config, ok = sc.C.Modules[module]
-		if !ok {
-			log.Println("msg", "Requested module not found, using default", "module", module, "target", targetName(target))
-		}
-	}
-
-	// If nothing found, fall back to defaults
-	if !ok {
-		config, ok = sc.C.Modules["default"]
-		if !ok {
-			// This is probably fine for running locally, so not making this a warning
-			log.Println("msg", "Needed default config for, but none configured, using FreeIPMI defaults", "target", targetName(target))
-			config = defaultConfig
-		}
-	}
-
-	return config
-}
-*/

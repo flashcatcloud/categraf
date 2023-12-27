@@ -1,13 +1,15 @@
 package ipmi
 
 import (
+	"log"
+
+	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/ipmi/exporter"
 	util "flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/types"
-	"github.com/prometheus/client_golang/prometheus"
-	dto "github.com/prometheus/client_model/go"
-	"log"
 )
 
 // Instance stores the configuration values for the ipmi_sensor input plugin
