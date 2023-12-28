@@ -22,7 +22,6 @@ type Instance struct {
 }
 
 func (m *Instance) Init() error {
-	log.Printf("debug: %+v", *m)
 	if len(m.Target) == 0 {
 		return types.ErrInstancesEmpty
 	}
