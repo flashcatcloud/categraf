@@ -72,6 +72,7 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	github.com/alecthomas/participle v0.4.1 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
 	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
 	github.com/alibabacloud-go/endpoint-util v1.1.0 // indirect
@@ -80,6 +81,7 @@ require (
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.0 // indirect
 	github.com/alibabacloud-go/tea-xml v1.1.2 // indirect
 	github.com/aliyun/credentials-go v1.2.6 // indirect
+	github.com/awnumar/memcall v0.2.0 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.22 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.28 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.22 // indirect
@@ -127,6 +129,7 @@ require (
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.0
 	github.com/alibabacloud-go/tea v1.1.19
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+	github.com/awnumar/memguard v0.22.4
 	github.com/aws/aws-sdk-go-v2 v1.17.4
 	github.com/aws/aws-sdk-go-v2/config v1.18.12
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.12
@@ -142,6 +145,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.54.0
 	github.com/percona/percona-toolkit v0.0.0-20211210121818-b2860eee3152
 	github.com/prometheus-community/pro-bing v0.1.0
+	github.com/sleepinggenius2/gosmi v0.4.4
 	github.com/tidwall/gjson v1.14.4
 	github.com/vmware/govmomi v0.29.0
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
