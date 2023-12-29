@@ -72,6 +72,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/self_metrics"
 	_ "flashcat.cloud/categraf/inputs/smart"
 	_ "flashcat.cloud/categraf/inputs/snmp"
+	_ "flashcat.cloud/categraf/inputs/snmp_trap"
 	_ "flashcat.cloud/categraf/inputs/sockstat"
 	_ "flashcat.cloud/categraf/inputs/sqlserver"
 	_ "flashcat.cloud/categraf/inputs/switch_legacy"
