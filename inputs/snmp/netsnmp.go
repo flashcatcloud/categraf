@@ -3,8 +3,9 @@ package snmp
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
-	"log" //nolint:revive
+	"log"
 	"os/exec"
 	"strings"
 	"sync"
@@ -58,7 +59,6 @@ var snmpTableCachesLock sync.Mutex
 
 // snmpTable resolves the given OID as a table, providing information about the
 // table and fields within.
-//nolint:revive
 func (n *netsnmpTranslator) SnmpTable(oid string) (
 	mibName string, oidNum string, oidText string,
 	fields []Field,
@@ -79,7 +79,6 @@ func (n *netsnmpTranslator) SnmpTable(oid string) (
 	return stc.mibName, stc.oidNum, stc.oidText, stc.fields, stc.err
 }
 
-//nolint:revive
 func (n *netsnmpTranslator) snmpTableCall(oid string) (
 	mibName string, oidNum string, oidText string,
 	fields []Field,
@@ -154,6 +153,7 @@ var snmpTranslateCachesLock sync.Mutex
 var snmpTranslateCaches map[string]snmpTranslateCache
 
 // snmpTranslate resolves the given OID.
+//
 //nolint:revive
 func (n *netsnmpTranslator) SnmpTranslate(oid string) (
 	mibName string, oidNum string, oidText string,
@@ -253,4 +253,8 @@ func snmpTranslateCall(oid string) (mibName string, oidNum string, oidText strin
 	}
 
 	return mibName, oidNum, oidText, conversion, nil
+}
+
+func (n *netsnmpTranslator) SnmpFormatEnum(_ string, _ interface{}, _ bool) (string, error) {
+	return "", errors.New("not implemented in netsnmp translator")
 }

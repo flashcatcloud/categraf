@@ -37,6 +37,8 @@ type Instance struct {
 
 	connectionCache []snmpConnection
 
+	Translator string `toml:"translator"`
+
 	translator Translator
 
 	Mappings map[string]map[string]string `toml:"mappings"`
@@ -48,7 +50,13 @@ func (ins *Instance) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
+	var err error
 	switch ins.Translator {
+	case "gosmi":
+		ins.translator, err = NewGosmiTranslator(ins.Path)
+		if err != nil {
+			return err
+		}
 	case "", "netsnmp":
 		ins.translator = NewNetsnmpTranslator()
 	default:
