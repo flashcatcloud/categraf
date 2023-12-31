@@ -29,6 +29,7 @@ agents = [
 ## Used by the gosmi translator.
 ## To add paths when translating with netsnmp, use the MIBDIRS environment variable
 # path = ["/usr/share/snmp/mibs"]
+# translator = "gosmi"
 
 ## SNMP community string.
 # community = "public"

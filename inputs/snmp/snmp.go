@@ -19,6 +19,11 @@ type Translator interface {
 		fields []Field,
 		err error,
 	)
+
+	SnmpFormatEnum(oid string, value interface{}, full bool) (
+		formatted string,
+		err error,
+	)
 }
 
 type ClientConfig struct {
