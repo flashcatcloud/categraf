@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -114,6 +115,12 @@ func work(ps *system.SystemPS, client *http.Client) {
 
 	if ext, err := collectSystemInfo(); err == nil {
 		data["extend_info"] = ext
+		if cpuInfo, ok := ext.CPU.(map[string]string); ok {
+			cpuNum := cpuInfo["cpu_cores"]
+			if num, err := strconv.Atoi(cpuNum); err == nil {
+				data["cpu_num"] = num
+			}
+		}
 	} else {
 		log.Println("E! failed to collect system info:", err)
 	}
