@@ -27,6 +27,7 @@
 # gather_table_size = false
 # gather_system_table_size = false
 # gather_slave_status = true
+# gather_auto_increment_columns = true
 
 # # timeout
 # timeout_seconds = 3
