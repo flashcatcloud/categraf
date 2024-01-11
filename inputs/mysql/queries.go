@@ -89,4 +89,31 @@ WHERE channel_name IN ('group_replication_applier', 'group_replication_recovery'
 	SQL_GROUP_REPLICATION_PLUGIN_STATUS = `
 SELECT plugin_status
 FROM information_schema.plugins WHERE plugin_name='group_replication'`
+
+	SQL_QUERY_AUTO_INCREMENT_CLOUMN = `
+SELECT
+  table_schema,
+  table_name,
+  column_name,
+  auto_increment,
+  CAST(
+    pow(
+      2,
+      case
+        data_type
+        when 'tinyint' then 7
+        when 'smallint' then 15
+        when 'mediumint' then 23
+        when 'int' then 31
+        when 'bigint' then 63
+      end +(column_type like '% unsigned')
+    ) - 1 AS DECIMAL(40, 0)
+  ) as max_int
+FROM
+  information_schema.columns c STRAIGHT_JOIN information_schema.tables t USING (table_schema, table_name)
+WHERE
+  t.TABLE_SCHEMA not in ('mysql','information_schema','performance_schema')
+  AND c.extra = 'auto_increment'
+  AND t.auto_increment IS NOT NULL;
+`
 )

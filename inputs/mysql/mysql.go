@@ -45,6 +45,7 @@ type Instance struct {
 	GatherTableSize                 bool `toml:"gather_table_size"`
 	GatherSystemTableSize           bool `toml:"gather_system_table_size"`
 	GatherSlaveStatus               bool `toml:"gather_slave_status"`
+	GatherAutoIncrementColumns      bool `toml:"gather_auto_increment_columns"`
 
 	DisableGlobalStatus      bool `toml:"disable_global_status"`
 	DisableGlobalVariables   bool `toml:"disable_global_variables"`
@@ -231,4 +232,5 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	ins.gatherTableSize(slist, db, tags, true)
 	ins.gatherSlaveStatus(slist, db, tags)
 	ins.gatherCustomQueries(slist, db, tags)
+	ins.gatherTableAutoIncrementColumns(slist, db, tags)
 }
