@@ -86,7 +86,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	// var diff_Clientinfo_Slice []model.MsgDiff_ClientInfo = []model.MsgDiff_ClientInfo{}
 	var diff_Clientinfo_Map = make(map[string]*MsgDiffClientInfo)
 
-	// 按照queue聚合msgDiff
+	// 按照broker:queue聚合msgDiff
 	// var MsgDiff_Queue_Slice []model.MsgDiff_Queue = []model.MsgDiff_Queue{}
 	var diff_Queue_Map = make(map[string]*MsgDiffQueue)
 
@@ -204,9 +204,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					diff_Broker_Map[brokerName] = diff_Broker
 				}
 
-				// 按照queueId进行msgDiff聚合
-				queuestr := brokerName + ":" + string(queueId)
-				if _, ok := diff_Queue_Map[string(queueId)]; ok {
+				// 按照brokerName:queueId进行msgDiff聚合
+				queuestr := brokerName + ":" + fmt.Sprint(queueId)
+				if _, ok := diff_Queue_Map[queuestr]; ok {
 					diff_Queue_Map[queuestr].Diff = diff_Queue_Map[queuestr].Diff + diff
 				} else {
 					var diff_Queue *MsgDiffQueue = new(MsgDiffQueue)

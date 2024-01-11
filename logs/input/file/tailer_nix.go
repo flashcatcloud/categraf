@@ -53,7 +53,7 @@ func (t *Tailer) read() (int, error) {
 	if err != nil && err != io.EOF {
 		// an unexpected error occurred, stop the tailor
 		t.file.Source.Status.Error(err)
-		return 0, fmt.Errorf("E! Unexpected error occurred while reading file: ", err)
+		return 0, fmt.Errorf("E! Unexpected error occurred while reading file: %v", err)
 	}
 	if n == 0 {
 		return 0, nil

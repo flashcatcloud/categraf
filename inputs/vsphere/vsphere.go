@@ -214,7 +214,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 	if err != nil {
 		// acc.AddError(err)
-		log.Printf("E! fail to gather\n", err)
+		log.Println("E! fail to gather: ", err)
 	}
 
 }

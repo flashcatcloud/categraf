@@ -200,7 +200,7 @@ func NewClient(ctx context.Context, vSphereURL *url.URL, vs *Instance) (*Client,
 		log.Println("D! vCenter says max_query_metrics should be ", n)
 	}
 	if n < vs.MaxQueryMetrics {
-		log.Println("W! Configured max_query_metrics is %d, but server limits it to %d. Reducing.", vs.MaxQueryMetrics, n)
+		log.Printf("W! Configured max_query_metrics is %d, but server limits it to %d. Reducing.", vs.MaxQueryMetrics, n)
 		vs.MaxQueryMetrics = n
 	}
 	return client, nil
@@ -253,7 +253,7 @@ func (c *Client) GetMaxQueryMetrics(ctx context.Context) (int, error) {
 				v, err := strconv.Atoi(s)
 				if err == nil {
 					if config.Config.DebugMode {
-						log.Println("D! vCenter maxQueryMetrics is defined: %d", v)
+						log.Printf("D! vCenter maxQueryMetrics is defined: %d", v)
 					}
 					if v == -1 {
 						// Whatever the server says, we never ask for more metrics than this.
@@ -272,7 +272,7 @@ func (c *Client) GetMaxQueryMetrics(ctx context.Context) (int, error) {
 	ver := c.Client.Client.ServiceContent.About.Version
 	parts := strings.Split(ver, ".")
 	if len(parts) < 2 {
-		log.Println("W! vCenter returned an invalid version string: %s. Using default query size=64", ver)
+		log.Printf("W! vCenter returned an invalid version string: %s. Using default query size=64", ver)
 		return 64, nil
 	}
 	log.Println("I! vCenter version is: ", ver)

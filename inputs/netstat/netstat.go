@@ -57,7 +57,6 @@ func (s *NetStats) gatherSummary(slist *types.SampleList) {
 		return
 	}
 	if runtime.GOOS != "linux" {
-		log.Println("W! netstat_summary is only supported on linux")
 		return
 	}
 	tags := map[string]string{}

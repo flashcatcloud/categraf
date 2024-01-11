@@ -1,6 +1,6 @@
 # mongodb
 
-mongodb 监控采集插件，v0.3.30开始从telegraf/mongodb fork而来，支持mongodb 3.6+版本。
+mongodb 监控采集插件，由mongodb-exporter（https://github.com/percona/mongodb_exporter） 封装而来。v0.3.30-v0.3.42从telegraf/mongodb fork。
 
 ## Configuration
 

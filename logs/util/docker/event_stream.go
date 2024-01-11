@@ -111,7 +111,7 @@ CONNECT: // Outer loop handles re-connecting in case the docker daemon closes th
 					log.Println("D! Got EOF, re-connecting")
 				} else {
 					// Else, let's wait 10 seconds and try reconnecting
-					log.Println("W! Got error from docker, waiting for 10 seconds: %s", err)
+					log.Println("W! Got error from docker, waiting for 10 seconds: ", err)
 					time.Sleep(10 * time.Second)
 				}
 				cancelFunc()
@@ -120,7 +120,7 @@ CONNECT: // Outer loop handles re-connecting in case the docker daemon closes th
 				latestTimestamp = msg.Time
 				event, err := d.processContainerEvent(ctx, msg)
 				if err != nil {
-					log.Println("D! Skipping event: %s", err)
+					log.Println("D! Skipping event: ", err)
 					continue
 				}
 				if event == nil {

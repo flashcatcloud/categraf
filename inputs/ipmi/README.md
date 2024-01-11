@@ -1,7 +1,28 @@
 # IPMI 插件
 
+v0.3.44-pre 版本从[ipmi-exporter](https://github.com/prometheus-community/ipmi_exporter) fork 并修改.
 
-从[telegraf](https://github.com/influxdata/telegraf/blob/master/plugins/inputs/ipmi_sensor/README.md) fork的ipmi_sensor ，略作改动。 采集硬件温度、风扇转速、电压、功率等信息。
+工具依赖[freeipmi](https://www.gnu.org/software/freeipmi/) , 请确保以下工具被安装
+ - ipmimonitoring/ipmi-sensors
+ - ipmi-dcmi
+ - ipmi-raw
+ - bmc-info
+ - ipmi-sel
+ - ipmi-chassis
+
+请确保categraf运行账号有sudo 权限
+```
+categraf运行账号 ALL = NOPASSWD: /usr/sbin/ipmimonitoring,\
+                              /usr/sbin/ipmi-sensors,\
+                              /usr/sbin/ipmi-dcmi,\
+                              /usr/sbin/ipmi-raw,\
+                              /usr/sbin/bmc-info,\
+                              /usr/sbin/ipmi-chassis,\
+                              /usr/sbin/ipmi-sel
+```
+
+
+v0.3.44之前的版本从[telegraf](https://github.com/influxdata/telegraf/blob/master/plugins/inputs/ipmi_sensor/README.md) fork的ipmi_sensor ，略作改动。 采集硬件温度、风扇转速、电压、功率等信息。
 - 本插件依赖ipmitool
 - 采集的是ipmitool sdr的输出
   
