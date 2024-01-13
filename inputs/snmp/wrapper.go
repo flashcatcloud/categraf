@@ -40,20 +40,18 @@ func NewWrapper(s ClientConfig) (GosnmpWrapper, error) {
 	}
 
 	gs := GosnmpWrapper{&gosnmp.GoSNMP{
-		Timeout:        time.Duration(s.Timeout),
-		AppOpts:        s.AppOpts,
-		Logger:         logger,
-		MaxOids:        s.MaxOids,
-		MaxRepetitions: s.MaxRepetitions,
-		Retries:        s.Retries,
+		Timeout:                 time.Duration(s.Timeout),
+		AppOpts:                 s.AppOpts,
+		Logger:                  logger,
+		MaxOids:                 s.MaxOids,
+		MaxRepetitions:          s.MaxRepetitions,
+		Retries:                 s.Retries,
+		UseUnconnectedUDPSocket: s.UnconnectedUDPSocket,
 	}}
 
 	if gs.Timeout == 0 {
 		gs.Timeout = 6 * time.Second
 	}
-
-	gs.Retries = s.Retries
-	gs.UseUnconnectedUDPSocket = s.UnconnectedUDPSocket
 
 	switch s.Version {
 	case 3:
@@ -73,8 +71,6 @@ func NewWrapper(s ClientConfig) (GosnmpWrapper, error) {
 			gs.Community = s.Community
 		}
 	}
-
-	gs.MaxRepetitions = s.MaxRepetitions
 
 	if s.Version == 3 {
 		gs.ContextName = s.ContextName
