@@ -48,6 +48,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/mongodb"
 	_ "flashcat.cloud/categraf/inputs/mtail"
 	_ "flashcat.cloud/categraf/inputs/mysql"
+	_ "flashcat.cloud/categraf/inputs/nats"
 	_ "flashcat.cloud/categraf/inputs/net"
 	_ "flashcat.cloud/categraf/inputs/net_response"
 	_ "flashcat.cloud/categraf/inputs/netstat"
