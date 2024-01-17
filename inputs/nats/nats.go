@@ -56,8 +56,8 @@ func (ins *Instance) Init() error {
 	if ins.Server == "" {
 		return types.ErrInstancesEmpty
 	}
-	if ins.ResponseTimeout == 0 {
-		ins.ResponseTimeout = 5
+	if ins.ResponseTimeout <= 0 {
+		ins.ResponseTimeout = config.Duration(time.Second * 5)
 	}
 
 	ins.InitHTTPClientConfig()
