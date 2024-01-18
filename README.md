@@ -18,6 +18,9 @@
 
 Categraf 是一款 All-in-One 的开源的 telemetry 数据采集器，支持指标、日志采集；支持 Tracing 数据的收集；支持物理机、虚拟机、交换机、容器、K8s、多种中间件/数据库的数据采集，支持混合云架构、云原生架构、多云架构。汇聚领域最佳实践，开箱即用。
 
+## 特点
+![](./doc/why-choose-categraf.png)
+
 > ❇️ 我们推荐你使用快猫星云旗下的 [**Flashduty**](https://flashcat.cloud/product/flashduty/) 作为 OnCall 值班平台，Flashduty 支持告警聚合、降噪、认领、升级、排班，让告警的触达既高效，又确保告警处理不遗漏、件件有回响。
 
 ![flashduty](./doc/flashduty.png)
@@ -27,7 +30,7 @@ Categraf 是一款 All-in-One 的开源的 telemetry 数据采集器，支持指
 
 ![categraf-with-nightingale](./doc/categraf-usage.png)
 
-## 功能和特点
+## 功能
 1. 支持指标、日志的数据采集
 2. 支持 Tracing 数据的收集
 3. 支持 remote_write 写入协议，支持将数据写入 Promethues、M3DB、VictoriaMetrics、InfluxDB
