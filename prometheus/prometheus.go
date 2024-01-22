@@ -520,9 +520,33 @@ func Start() {
 	if len(cfg.agentStoragePath) == 0 {
 		cfg.agentStoragePath = "./data-agent"
 	}
-	if cfg.tsdb.MinBlockDuration == model.Duration(0) {
-		cfg.tsdb.MinBlockDuration = model.Duration(2 * time.Hour)
+	if coreconfig.Config.Prometheus.MinBlockDuration == coreconfig.Duration(0) {
+		// keep data in memory for 10min by default
+		cfg.tsdb.MinBlockDuration = model.Duration(10 * time.Minute)
+	} else {
+		cfg.tsdb.MinBlockDuration = model.Duration(coreconfig.Config.Prometheus.MinBlockDuration)
 	}
+	if coreconfig.Config.Prometheus.MaxBlockDuration == coreconfig.Duration(0) {
+		cfg.tsdb.MaxBlockDuration = model.Duration(20 * time.Minute)
+	} else {
+		cfg.tsdb.MaxBlockDuration = model.Duration(coreconfig.Config.Prometheus.MaxBlockDuration)
+	}
+	if coreconfig.Config.Prometheus.RetentionDuration == coreconfig.Duration(0) {
+		// reserve data for 24h by default
+		cfg.tsdb.RetentionDuration = model.Duration(24 * time.Hour)
+	} else {
+		cfg.tsdb.RetentionDuration = model.Duration(coreconfig.Config.Prometheus.RetentionDuration)
+	}
+	if len(coreconfig.Config.Prometheus.RetentionSize) == 0 {
+		// max size is 1GB by default
+		cfg.tsdb.MaxBytes = 1024 * 1024 * 1024
+	} else {
+		cfg.tsdb.MaxBytes, err = units.ParseBase2Bytes(coreconfig.Config.Prometheus.RetentionSize)
+		if err != nil {
+			panic(fmt.Sprintf("retention_size:%s format error %s", coreconfig.Config.Prometheus.RetentionSize, err))
+		}
+	}
+
 	if cfg.webTimeout == model.Duration(0) {
 		cfg.webTimeout = model.Duration(time.Minute * 5)
 	}
