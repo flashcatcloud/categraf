@@ -138,6 +138,10 @@ func (ins *Instance) ProcessCommand(slist *types.SampleList, command string, wg 
 		log.Println("E! exec_command:", command, "error:", runErr, "stderr:", string(errbuf))
 		return
 	}
+	if len(out) == 0 {
+		log.Println("E! exec_command:", command, "output is empty?, please check your command:", string(out))
+		return
+	}
 
 	err := ins.parser.Parse(out, slist)
 	if err != nil {
