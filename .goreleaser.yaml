@@ -45,7 +45,6 @@ builds:
     goarch:
       - amd64
     tags:
-      - enterprise
       - arppacket
     ldflags:
       - -s -w
