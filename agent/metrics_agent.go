@@ -17,6 +17,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/arp_packet"
 	_ "flashcat.cloud/categraf/inputs/bind"
 	_ "flashcat.cloud/categraf/inputs/cadvisor"
+	_ "flashcat.cloud/categraf/inputs/chrony"
 	_ "flashcat.cloud/categraf/inputs/clickhouse"
 	_ "flashcat.cloud/categraf/inputs/cloudwatch"
 	_ "flashcat.cloud/categraf/inputs/conntrack"
