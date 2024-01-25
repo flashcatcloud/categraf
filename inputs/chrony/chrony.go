@@ -2,7 +2,6 @@ package chrony
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"log"
 	"os/exec"
@@ -20,8 +19,8 @@ const inputName = "chrony"
 
 type Chrony struct {
 	config.PluginConfig
-	DNSLookup bool `toml:"dns_lookup"`
-	path      string
+	ChronycCommand string `toml:"chronyc_command"`
+	DNSLookup      bool   `toml:"dns_lookup"`
 }
 
 func init() {
@@ -39,15 +38,17 @@ func (c *Chrony) Name() string {
 }
 
 func (c *Chrony) Init() error {
-	var err error
-	c.path, err = exec.LookPath("chronyc")
-	if err != nil {
-		return errors.New("chronyc not found: verify that chrony is installed and that chronyc is in your PATH")
+	if c.ChronycCommand == "" {
+		return types.ErrInstancesEmpty
 	}
 	return nil
 }
 
 func (c *Chrony) Gather(slist *types.SampleList) {
+	if c.ChronycCommand == "" {
+		return
+	}
+
 	flags := []string{}
 	if !c.DNSLookup {
 		flags = append(flags, "-n")
@@ -56,7 +57,7 @@ func (c *Chrony) Gather(slist *types.SampleList) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := exec.Command(c.path, flags...)
+	cmd := exec.Command(c.ChronycCommand, flags...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
