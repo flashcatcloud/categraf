@@ -3,15 +3,17 @@ package ldap
 import (
 	"crypto/tls"
 	"errors"
-	"flashcat.cloud/categraf/config"
-	"flashcat.cloud/categraf/inputs"
-	commontls "flashcat.cloud/categraf/pkg/tls"
-	"flashcat.cloud/categraf/types"
 	"fmt"
-	"github.com/go-ldap/ldap/v3"
 	"log"
 	"net/url"
 	"time"
+
+	"github.com/go-ldap/ldap/v3"
+
+	commontls "flashcat.cloud/categraf/pkg/tls"
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/types"
 )
 
 const inputName = "ldap"

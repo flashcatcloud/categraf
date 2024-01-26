@@ -5,9 +5,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-ldap/ldap/v3"
+
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/types/metric"
-	"github.com/go-ldap/ldap/v3"
 )
 
 // Empty mappings are identity mappings

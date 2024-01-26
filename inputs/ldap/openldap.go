@@ -5,9 +5,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-ldap/ldap/v3"
+
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/types/metric"
-	"github.com/go-ldap/ldap/v3"
 )
 
 var attrMapOpenLDAP = map[string]string{
