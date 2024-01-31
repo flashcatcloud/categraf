@@ -135,7 +135,7 @@ func TestMetricToGraphite(t *testing.T) {
 	testutil.ExpectNoDiff(t, expected, r)
 
 	histogramMetric := metrics.NewMetric("hist", "prog", metrics.Histogram, metrics.Buckets, "xxx")
-	lv := &metrics.LabelValue{Labels: []string{"bar"}, Value: datum.MakeBuckets([]datum.Range{{0, 10}, {10, 20}}, time.Unix(0, 0))}
+	lv := &metrics.LabelValue{Labels: []string{"bar"}, Value: datum.MakeBuckets([]datum.Range{{Min: 0, Max: 10}, {Min: 10, Max: 20}}, time.Unix(0, 0))}
 	histogramMetric.AppendLabelValue(lv)
 	d, _ = histogramMetric.GetDatum("bar")
 	datum.SetFloat(d, 1, ts)

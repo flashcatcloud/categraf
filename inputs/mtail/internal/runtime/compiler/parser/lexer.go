@@ -114,7 +114,7 @@ func (l *Lexer) NextToken() Token {
 
 // emit passes a token to the client.
 func (l *Lexer) emit(kind Kind) {
-	pos := position.Position{l.name, l.line, l.startcol, l.col - 1}
+	pos := position.Position{Filename: l.name, Line: l.line, Startcol: l.startcol, Endcol: l.col - 1}
 	// glog.V(2).Infof("Emitting %v spelled %q at %v", kind, l.text.String(), pos)
 	l.tokens <- Token{kind, l.text.String(), pos}
 	// Reset the current token

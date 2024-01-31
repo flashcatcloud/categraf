@@ -617,27 +617,27 @@ var parsePositionTests = []struct {
 	positions []*position.Position
 }{
 	{
-		"empty",
-		"",
-		nil,
+		name:      "empty",
+		program:   "",
+		positions: nil,
 	},
 	{
-		"variable",
-		`counter foo`,
-		[]*position.Position{{"variable", 0, 8, 10}},
+		name:      "variable",
+		program:   `counter foo`,
+		positions: []*position.Position{{Filename: "variable", Line: 0, Startcol: 8, Endcol: 10}},
 	},
 	{
-		"pattern",
-		`const ID /foo/`,
-		[]*position.Position{{"pattern", 0, 9, 13}},
+		name:      "pattern",
+		program:   `const ID /foo/`,
+		positions: []*position.Position{{Filename: "pattern", Line: 0, Startcol: 9, Endcol: 13}},
 	},
 	{
-		"multiline regex",
-		"const ID\n" +
+		name: "multiline regex",
+		program: "const ID\n" +
 			"/foo/ +\n" +
 			"/bar/",
 		// TODO: Update position for the first token to `1, 0, 4` when position tracking is fixed
-		[]*position.Position{{"multiline regex", 1, 4, 4}, {"multiline regex", 2, 0, 4}},
+		positions: []*position.Position{{Filename: "multiline regex", Line: 1, Startcol: 4, Endcol: 4}, {Filename: "multiline regex", Line: 2, Startcol: 0, Endcol: 4}},
 	},
 }
 

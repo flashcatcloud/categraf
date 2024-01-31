@@ -69,7 +69,7 @@ type (
 		Sum     float64 `json:"sum"`
 		Value   float64 `json:"value"`
 
-		standardDiv float64 `json:"standardDeviation"`
+		StandardDiv float64 `json:"standardDeviation"`
 	}
 )
 
