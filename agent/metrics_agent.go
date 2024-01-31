@@ -267,6 +267,11 @@ func (ma *MetricsAgent) inputGo(name string, sum string, input inputs.Input) {
 	if err = inputs.MayInit(input); err != nil {
 		if !errors.Is(err, types.ErrInstancesEmpty) {
 			log.Println("E! failed to init input:", name, "error:", err)
+		} else {
+			if config.Config.DebugMode {
+				_, inputKey := inputs.ParseInputName(name)
+				log.Println("W! no instances for input: ", inputKey)
+			}
 		}
 		return
 	}

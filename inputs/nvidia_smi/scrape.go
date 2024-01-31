@@ -10,10 +10,10 @@ import (
 	"flashcat.cloud/categraf/pkg/cmdx"
 )
 
-func scrape(qFields []qField, nvidiaSmiCommand string) (*table, error) {
-	qFieldsJoined := strings.Join(QFieldSliceToStringSlice(qFields), ",")
+func (s *GPUStats) scrape() (*table, error) {
+	qFieldsJoined := strings.Join(QFieldSliceToStringSlice(s.qFields), ",")
 
-	cmdAndArgs := strings.Fields(nvidiaSmiCommand)
+	cmdAndArgs := strings.Fields(s.NvidiaSmiCommand)
 	cmdAndArgs = append(cmdAndArgs, fmt.Sprintf("--query-gpu=%s", qFieldsJoined))
 	cmdAndArgs = append(cmdAndArgs, "--format=csv")
 
@@ -24,7 +24,7 @@ func scrape(qFields []qField, nvidiaSmiCommand string) (*table, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err, timeout := cmdx.RunTimeout(cmd, time.Second*5)
+	err, timeout := cmdx.RunTimeout(cmd, time.Duration(s.QueryTimeOut))
 	if timeout {
 		return nil, fmt.Errorf("run command: %s timeout", strings.Join(cmdAndArgs, " "))
 	}
@@ -34,7 +34,7 @@ func scrape(qFields []qField, nvidiaSmiCommand string) (*table, error) {
 			strings.Join(cmdAndArgs, " "), err, stdout.String(), stderr.String())
 	}
 
-	t, err := parseCSVIntoTable(strings.TrimSpace(stdout.String()), qFields)
+	t, err := parseCSVIntoTable(strings.TrimSpace(stdout.String()), s.qFields)
 	if err != nil {
 		return nil, err
 	}
