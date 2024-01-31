@@ -3,7 +3,7 @@
 set -eo pipefail
 
 function main () {
-    local -r required_version="1.19"  # 设置所需的最低 Go 版本
+    local -r required_version="1.21"  # 设置所需的最低 Go 版本
 
     local -r current_version=$(go version | awk '{print $3}')  # 获取当前 Go 版本
 

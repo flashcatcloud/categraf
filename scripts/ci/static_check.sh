@@ -5,8 +5,8 @@ set -e
 # static check docs: https://staticcheck.dev/docs/checks/
 
 (
-GOOS=linux  go list ./... | xargs staticcheck -go=1.19 -tests=false -f binary
-GOOS=darwin go list ./... | xargs staticcheck -go=1.19 -tests=false -f binary
+GOOS=linux  go list ./... | xargs staticcheck -go=1.21 -tests=false -f binary
+GOOS=darwin go list ./... | xargs staticcheck -go=1.21 -tests=false -f binary
 ) | staticcheck -merge -f=text | tee static-check.log
 lines=$(cat static-check.log | wc -l)
 rm -f static-check.log
