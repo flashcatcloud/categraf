@@ -9,6 +9,8 @@ TAG=$(shell echo "${_GIT_VERSION}" |  awk -F"-" '{print $$1}')
 GIT_VERSION:="$(TAG)-$(GIT_COMMIT)"
 BUILD_VERSION:='flashcat.cloud/categraf/config.Version=$(GIT_VERSION)'
 LDFLAGS:="-w -s -X $(BUILD_VERSION)"
+STYLE_CHECK_GOFILE  := $$(find . -name '*.go')
+GO          := GO111MODULE=on go
 
 all: build
 
@@ -52,3 +54,9 @@ pack:build-linux build-windows
 	rm -rf $(APP)-$(TAG).zip
 	tar -zcvf $(APP)-$(TAG)-linux-amd64.tar.gz conf $(APP)
 	zip -r $(APP)-$(TAG)-windows-amd64.zip conf $(APP).exe
+
+go-version-check:
+	bash ./scripts/ci/go_version_check.sh
+
+go-vet-check:
+	bash ./scripts/ci/go_vet.sh

@@ -50,7 +50,7 @@ func (c *codegen) errorf(pos *position.Position, format string, args ...interfac
 
 func (c *codegen) emit(n ast.Node, opcode code.Opcode, operand interface{}) {
 	// glog.V(2).Infof("emitting `%s %v' from line %d node %#v\n", opcode, operand, n.Pos().Line, n)
-	c.obj.Program = append(c.obj.Program, code.Instr{opcode, operand, n.Pos().Line})
+	c.obj.Program = append(c.obj.Program, code.Instr{Opcode: opcode, Operand: operand, SourceLine: n.Pos().Line})
 }
 
 // newLabel creates a new label to jump to.
@@ -136,19 +136,19 @@ func (c *codegen) VisitBefore(node ast.Node) (ast.Visitor, ast.Node) {
 			}
 
 			if n.Buckets[0] > 0 {
-				m.Buckets = append(m.Buckets, datum.Range{0, n.Buckets[0]})
+				m.Buckets = append(m.Buckets, datum.Range{Max: n.Buckets[0]})
 			}
-			m.Buckets = append(m.Buckets, datum.Range{n.Buckets[0], n.Buckets[1]})
+			m.Buckets = append(m.Buckets, datum.Range{Min: n.Buckets[0], Max: n.Buckets[1]})
 			min := n.Buckets[1]
 			for _, max := range n.Buckets[2:] {
 				if max <= min {
 					c.errorf(n.Pos(), "buckets boundaries must be sorted")
 					return nil, n
 				}
-				m.Buckets = append(m.Buckets, datum.Range{min, max})
+				m.Buckets = append(m.Buckets, datum.Range{Min: min, Max: max})
 				min = max
 			}
-			m.Buckets = append(m.Buckets, datum.Range{min, math.Inf(+1)})
+			m.Buckets = append(m.Buckets, datum.Range{Min: min, Max: math.Inf(+1)})
 
 			if len(n.Keys) == 0 {
 				// Calling GetDatum here causes the storage to be allocated.

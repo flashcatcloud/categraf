@@ -73,7 +73,7 @@ func TestReadFromSocket(t *testing.T) {
 			lineCountCheck := m.ExpectExpvarDeltaWithDeadline("lines_total", 3)
 			time.Sleep(10 * time.Millisecond)
 
-			s, err := net.DialUnix(scheme, nil, &net.UnixAddr{logFile, scheme})
+			s, err := net.DialUnix(scheme, nil, &net.UnixAddr{Name: logFile, Net: scheme})
 			testutil.FatalIfErr(t, err)
 			defer func() {
 				testutil.FatalIfErr(t, s.Close())

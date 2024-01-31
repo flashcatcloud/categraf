@@ -192,7 +192,7 @@ foo{prog="test1"} 1
 				Program:     "test",
 				Kind:        metrics.Histogram,
 				Keys:        []string{"a"},
-				LabelValues: []*metrics.LabelValue{{Labels: []string{"bar"}, Value: datum.MakeBuckets([]datum.Range{{0, 1}, {1, 2}}, time.Unix(0, 0))}},
+				LabelValues: []*metrics.LabelValue{{Labels: []string{"bar"}, Value: datum.MakeBuckets([]datum.Range{{Min: 0, Max: 1}, {Min: 1, Max: 2}}, time.Unix(0, 0))}},
 				Source:      "location.mtail:37",
 			},
 		},
