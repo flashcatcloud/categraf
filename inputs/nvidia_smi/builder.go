@@ -45,15 +45,15 @@ func buildMetricInfo(rField rField) MetricInfo {
 	}
 }
 
-func buildQFieldToRFieldMap(qFieldsRaw string, nvidiaSmiCommand string) ([]qField, map[qField]rField, error) {
-	qFieldsSeparated := strings.Split(qFieldsRaw, ",")
+func (s *GPUStats) buildQFieldToRFieldMap() ([]qField, map[qField]rField, error) {
+	qFieldsSeparated := strings.Split(s.QueryFieldNames, ",")
 
 	qFields := toQFieldSlice(qFieldsSeparated)
 	qFields = append(qFields, requiredFields...)
 	qFields = removeDuplicateQFields(qFields)
 
 	if len(qFieldsSeparated) == 1 && qFieldsSeparated[0] == qFieldsAuto {
-		parsed, err := parseAutoQFields(nvidiaSmiCommand)
+		parsed, err := parseAutoQFields(s.NvidiaSmiCommand)
 		if err != nil {
 			log.Println("W! failed to auto-determine query field names, falling back to the built-in list. error:", err)
 			return getKeys(fallbackQFieldToRFieldMap), fallbackQFieldToRFieldMap, nil
@@ -62,7 +62,7 @@ func buildQFieldToRFieldMap(qFieldsRaw string, nvidiaSmiCommand string) ([]qFiel
 		qFields = parsed
 	}
 
-	resultTable, err := scrape(qFields, nvidiaSmiCommand)
+	resultTable, err := s.scrape()
 
 	var rFields []rField
 

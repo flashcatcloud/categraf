@@ -12,3 +12,6 @@ nvidia_smi_command = ""
 # You can find out possible fields by running `nvidia-smi --help-query-gpus`.
 # The value `AUTO` will automatically detect the fields to query.
 query_field_names = "AUTO"
+
+# query_timeout is used to set the query timeout to avoid the delay of date collection.
+query_timeout = "5s"
