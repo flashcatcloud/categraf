@@ -1,10 +1,11 @@
 package nvidia_smi
 
 import (
-	"flashcat.cloud/categraf/pkg/stringx"
 	"fmt"
 	"log"
 	"strings"
+
+	"flashcat.cloud/categraf/pkg/stringx"
 )
 
 func buildQFieldToMetricInfoMap(qFieldtoRFieldMap map[qField]rField) map[qField]MetricInfo {
