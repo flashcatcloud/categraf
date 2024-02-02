@@ -83,6 +83,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/systemd"
 	_ "flashcat.cloud/categraf/inputs/tengine"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
+	_ "flashcat.cloud/categraf/inputs/traffic_server"
 	_ "flashcat.cloud/categraf/inputs/vsphere"
 	_ "flashcat.cloud/categraf/inputs/whois"
 	_ "flashcat.cloud/categraf/inputs/xskyapi"
