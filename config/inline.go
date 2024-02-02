@@ -41,6 +41,9 @@ type InternalConfig struct {
 
 	RelabelConfigs []*RelabelConfig  `toml:"relabel_configs"`
 	relabelConfigs []*relabel.Config `toml:"-"`
+
+	// whether debug
+	DebugMod bool `toml:"-"`
 }
 type RelabelConfig struct {
 	// A list of labels from which values are taken and concatenated
@@ -77,6 +80,7 @@ func (ic *InternalConfig) InitInternalConfig() error {
 			return err
 		}
 	}
+	ic.DebugMod = Config.DebugMode
 
 	if len(ic.MetricsPass) > 0 {
 		var err error

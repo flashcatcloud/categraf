@@ -583,7 +583,7 @@ func (ins *Instance) ifstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip st
 		ifList, err = sw.ListIfStatsSnmpWalk(ip, ins.Community, int(ins.SnmpTimeoutMs)*5, ins.IgnoreIfaces, ins.SnmpRetries, !ins.GatherPkt, !ins.GatherOperStatus, !ins.GatherBroadcastPkt, !ins.GatherMulticastPkt, !ins.GatherDiscards, !ins.GatherErrors, !ins.GatherUnknownProtos, !ins.GatherOutQlen)
 	}
 
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! switch gather ifstat, ip:", ip, "use:", time.Since(start))
 	}
 

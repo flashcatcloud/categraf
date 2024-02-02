@@ -8,7 +8,6 @@ import (
 	"strings"
 	"text/template"
 
-	"flashcat.cloud/categraf/config"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -91,7 +90,7 @@ func (ins *Instance) UrlsFromConsul() ([]ScrapeUrl, error) {
 		return []ScrapeUrl{}, nil
 	}
 
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! get urls from consul:", ins.ConsulConfig.Agent)
 	}
 
@@ -111,13 +110,13 @@ func (ins *Instance) UrlsFromConsul() ([]ScrapeUrl, error) {
 		}
 
 		if len(consulServices) == 0 {
-			if config.Config.DebugMode {
+			if ins.DebugMod {
 				log.Println("D! query consul did not find any instances, service:", q.ServiceName, " tag:", q.ServiceTag)
 			}
 			continue
 		}
 
-		if config.Config.DebugMode {
+		if ins.DebugMod {
 			log.Println("D! query consul found", len(consulServices), "instances, service:", q.ServiceName, " tag:", q.ServiceTag)
 		}
 
@@ -161,7 +160,7 @@ func (ins *Instance) getConsulServiceURL(q *ConsulQuery, s *api.CatalogService) 
 		extraTags[tagName] = buffer.String()
 	}
 
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! found consul service:", serviceURL.String())
 	}
 

@@ -240,7 +240,7 @@ func (ins *Instance) initializeCloudWatch() error {
 	ins.client = cwClient.NewFromConfig(cfg, func(options *cwClient.Options) {
 		// Disable logging
 		options.ClientLogMode = 0
-		if config.Config.DebugMode {
+		if ins.DebugMod {
 			for _, mode := range ins.DebugMode {
 				switch mode {
 				case "LogRequest":
@@ -310,7 +310,7 @@ type filteredMetric struct {
 // getFilteredMetrics returns metrics specified in the config file or metrics listed from Cloudwatch.
 func getFilteredMetrics(c *Instance) ([]filteredMetric, error) {
 	if c.metricCache != nil && c.metricCache.isValid() {
-		if config.Config.DebugMode {
+		if c.DebugMod {
 			log.Printf("D! use filtered metrics cache for namespace %+v", c.Namespaces)
 		}
 		return c.metricCache.metrics, nil
@@ -513,7 +513,7 @@ func (ins *Instance) getDataQueries(filteredMetrics []filteredMetric) map[string
 	}
 
 	if len(dataQueries) == 0 {
-		if config.Config.DebugMode {
+		if ins.DebugMod {
 			log.Printf("D! no metrics found to collect for namespace:%+v", ins.Namespaces)
 		}
 		return nil

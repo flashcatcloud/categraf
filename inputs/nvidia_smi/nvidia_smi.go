@@ -97,7 +97,7 @@ func (s *GPUStats) Gather(slist *types.SampleList) {
 
 			num, err := transformRawValue(currentCell.rawValue, metricInfo.valueMultiplier)
 			if err != nil {
-				if config.Config.DebugMode {
+				if s.DebugMod {
 					log.Println("D! failed to transform gpu field:", currentCell.qField, "raw value:", currentCell.rawValue, "error:", err)
 				}
 				continue

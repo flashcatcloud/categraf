@@ -152,7 +152,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 // Gathers data from a particular server
 
 func (ins *Instance) gather(slist *types.SampleList, server string, token string) {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! xskyapi... server:", server)
 	}
 
@@ -362,7 +362,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 func (ins *Instance) sendRequest(serverURL string, token string, offset int, pageSize int) ([]byte, float64, error) {
 	// Prepare URL
 	requestURL, _ := url.Parse(serverURL)
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! now parseurl:", requestURL)
 	}
 

@@ -147,7 +147,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 }
 
 func (ins *Instance) gather(slist *types.SampleList, target string) {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! net_response... target:", target)
 	}
 
@@ -302,7 +302,7 @@ func (ins *Instance) UDPGather(address string) (map[string]string, map[string]in
 		for i := 0; i < int(t); i++ {
 			time.Sleep(1 * time.Second)
 			_, err = conn.Write(msg)
-			if err != nil && config.Config.DebugMode {
+			if err != nil && ins.DebugMod {
 				log.Printf("E! write udp failed, address: %s, error: %s", address, err)
 			}
 			if err != nil && strings.Contains(err.Error(), "refused") {

@@ -152,7 +152,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 }
 
 func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! tengine... url:", addr)
 	}
 	var tengineStatus TengineStatus

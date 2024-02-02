@@ -183,7 +183,7 @@ type NginxUpstreamCheckServer struct {
 }
 
 func (ins *Instance) gather(slist *types.SampleList, target string) {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! nginx_upstream_check... target:", target)
 	}
 
