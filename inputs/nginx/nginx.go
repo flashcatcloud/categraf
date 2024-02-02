@@ -163,7 +163,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 }
 
 func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! nginx... url:", addr)
 	}
 

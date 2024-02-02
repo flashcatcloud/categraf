@@ -60,7 +60,7 @@ func (s *KernelVmstat) Gather(slist *types.SampleList) {
 			// Convert the stat value into an integer.
 			m, err := strconv.ParseInt(string(dataFields[i+1]), 10, 64)
 			if err != nil {
-				if config.Config.DebugMode {
+				if s.DebugMod {
 					log.Println("D! failed to parse vmstat field:", string(dataFields[i]))
 				}
 				continue

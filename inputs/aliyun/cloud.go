@@ -252,7 +252,7 @@ func (ins *Instance) getFilteredMetrics() ([]filteredMetric, error) {
 		metrics: metrics,
 	})
 
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		for _, m := range metrics {
 			log.Println("D!", m.Namespace, m.MetricName, m.Dimensions)
 		}

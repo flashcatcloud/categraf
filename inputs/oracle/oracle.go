@@ -108,12 +108,12 @@ func (ins *Instance) Init() error {
 }
 
 func (ins *Instance) Drop() error {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! dropping oracle connection:", ins.Address)
 	}
 
 	if len(ins.Address) == 0 || ins.client == nil {
-		if config.Config.DebugMode {
+		if ins.DebugMod {
 			log.Println("D! oracle address is empty or client is nil, so there is no need to close")
 		}
 		return nil
@@ -128,7 +128,7 @@ func (ins *Instance) Drop() error {
 
 func (ins *Instance) Gather(slist *types.SampleList) {
 	if len(ins.Address) == 0 {
-		if config.Config.DebugMode {
+		if ins.DebugMod {
 			log.Println("D! oracle address is empty")
 		}
 		return
@@ -192,7 +192,7 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 		return
 	}
 
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! columns:", cols)
 	}
 

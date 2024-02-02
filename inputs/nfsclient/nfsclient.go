@@ -177,41 +177,41 @@ func (s *NfsClient) Init() error {
 	s.nfs4Ops = nfs4Ops
 
 	if len(s.IncludeMounts) > 0 {
-		if config.Config.DebugMode {
+		if s.DebugMod {
 			log.Println("D! Including these mount patterns:", s.IncludeMounts)
 		}
 	} else {
-		if config.Config.DebugMode {
+		if s.DebugMod {
 			log.Println("D! Including all mounts.")
 		}
 	}
 
 	if len(s.ExcludeMounts) > 0 {
-		if config.Config.DebugMode {
+		if s.DebugMod {
 			log.Println("D! Excluding these mount patterns:", s.ExcludeMounts)
 		}
 	} else {
-		if config.Config.DebugMode {
+		if s.DebugMod {
 			log.Println("D! Not excluding any mounts.")
 		}
 	}
 
 	if len(s.IncludeOperations) > 0 {
-		if config.Config.DebugMode {
+		if s.DebugMod {
 			log.Println("D! Including these operations:", s.IncludeOperations)
 		}
 	} else {
-		if config.Config.DebugMode {
+		if s.DebugMod {
 			log.Println("D! Including all operations.")
 		}
 	}
 
 	if len(s.ExcludeOperations) > 0 {
-		if config.Config.DebugMode {
+		if s.DebugMod {
 			log.Println("D! Excluding these mount patterns:", s.ExcludeOperations)
 		}
 	} else {
-		if config.Config.DebugMode {
+		if s.DebugMod {
 			log.Println("D! Not excluding any operations.")
 		}
 	}
@@ -222,7 +222,7 @@ func (s *NfsClient) Init() error {
 func (s *NfsClient) Gather(slist *types.SampleList) {
 	file, err := os.Open(s.mountstatsPath)
 	if err != nil {
-		if config.Config.DebugMode {
+		if s.DebugMod {
 			log.Println("D! Failed opening the", file, "file:", err)
 		}
 		return
@@ -494,7 +494,7 @@ func (s *NfsClient) getMountStatsPath() string {
 	if os.Getenv("MOUNT_PROC") != "" {
 		path = os.Getenv("MOUNT_PROC")
 	}
-	if config.Config.DebugMode {
+	if s.DebugMod {
 		log.Println("D! using [", path, "] for mountstats")
 	}
 	return path

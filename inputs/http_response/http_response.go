@@ -185,7 +185,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 }
 
 func (ins *Instance) gather(slist *types.SampleList, target string) {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! http_response... target:", target)
 	}
 

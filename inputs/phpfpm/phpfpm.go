@@ -122,7 +122,7 @@ func (ins *Instance) Gather(sList *types.SampleList) {
 }
 
 func (ins *Instance) gather(addr string, sList *types.SampleList) error {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! php-fpm... url:", addr)
 	}
 

@@ -51,7 +51,7 @@ func (rsmi *ROCmSMI) Name() string {
 // Gather implements the telegraf interface
 func (rsmi *ROCmSMI) Gather(slist *types.SampleList) {
 	if len(rsmi.BinPath) == 0 {
-		if config.Config.DebugMode {
+		if rsmi.DebugMod {
 			log.Printf("W! empty rocm-smi's bin_path, cannot query GPUs statistics")
 		}
 		return

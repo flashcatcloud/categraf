@@ -130,7 +130,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 }
 
 func (ins *Instance) gather(slist *types.SampleList, target string) {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! ping...", target)
 	}
 
@@ -158,7 +158,7 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 	fields["result_code"] = 0
 
 	if stats.PacketsSent == 0 {
-		if config.Config.DebugMode {
+		if ins.DebugMod {
 			log.Println("D! no packets sent, target:", target)
 		}
 		fields["result_code"] = 2
@@ -166,7 +166,7 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 	}
 
 	if stats.PacketsRecv == 0 {
-		if config.Config.DebugMode {
+		if ins.DebugMod {
 			log.Println("D! no packets received, target:", target)
 		}
 		fields["result_code"] = 1

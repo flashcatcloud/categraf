@@ -335,7 +335,7 @@ func (ins *Instance) makeLabels(m *dto.Metric, defaultLabels map[string]string) 
 					}
 				}
 			} else {
-				if config.Config.DebugMode {
+				if ins.DebugMod {
 					log.Println(cacheKey(namespace, podName), "not in cache")
 				}
 			}

@@ -378,7 +378,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 func (ins *Instance) requestEndpoint(u string) ([]byte, error) {
 	endpoint := ins.URL + u
 
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! requesting:", endpoint)
 	}
 

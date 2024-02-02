@@ -66,7 +66,7 @@ func (ss *SockStat) Gather(slist *types.SampleList) {
 
 	ns6, err := ParseNetSockstat6()
 	if err != nil {
-		if config.Config.DebugMode {
+		if ss.DebugMod {
 			log.Println("D! failed to get net sockstat6: ", err)
 			return
 		}

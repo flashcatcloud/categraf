@@ -68,7 +68,7 @@ func (ins *Instance) Init() error {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! nats... server:", ins.Server)
 	}
 	address, err := url.Parse(ins.Server)
