@@ -62,7 +62,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.7.0
 	go.uber.org/multierr v1.8.0
 	go.uber.org/zap v1.21.0
-	golang.org/x/net v0.17.0
+	golang.org/x/net v0.19.0
 	golang.org/x/sys v0.16.0
 	golang.org/x/text v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -92,10 +92,10 @@ require (
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
+	github.com/dennwc/ioctl v1.0.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.5 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
-	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.13.0 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
@@ -103,8 +103,11 @@ require (
 	github.com/jackc/pgproto3/v2 v2.3.1 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.12.0 // indirect
+	github.com/josharian/native v1.1.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/likexian/gokit v0.25.13 // indirect
+	github.com/mdlayher/genetlink v1.3.2 // indirect
+	github.com/mdlayher/socket v0.4.1 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/nats-io/jwt/v2 v2.5.3 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
@@ -113,6 +116,7 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/pkg/translator/prometheusremotewrite v0.54.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
+	github.com/siebenmann/go-kstat v0.0.0-20210513183136-173c9b0a9973 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tidwall/tinylru v1.1.0 // indirect
@@ -139,23 +143,40 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.12
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.5.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.3
+	github.com/beevik/ntp v1.3.1
 	github.com/bmatcuk/doublestar/v3 v3.0.0
 	github.com/coreos/go-systemd/v22 v22.3.2
+	github.com/dennwc/btrfs v0.0.0-20230312211831-a1f570bd01a1
+	github.com/ema/qdisc v1.0.0
 	github.com/go-ldap/ldap/v3 v3.4.6
+	github.com/godbus/dbus/v5 v5.0.4
+	github.com/hashicorp/go-envparse v0.1.0
+	github.com/hodgesds/perf-utils v0.7.0
+	github.com/illumos/go-kstat v0.0.0-20210513183136-173c9b0a9973
+	github.com/jsimonetti/rtnetlink v1.4.1
 	github.com/kardianos/service v1.2.2
 	github.com/karrick/godirwalk v1.10.3
 	github.com/likexian/whois v1.15.0
 	github.com/likexian/whois-parser v1.24.8
+	github.com/lufia/iostat v1.2.1
+	github.com/mattn/go-xmlrpc v0.0.3
+	github.com/mdlayher/ethtool v0.1.0
+	github.com/mdlayher/netlink v1.7.2
+	github.com/mdlayher/wifi v0.1.0
 	github.com/nats-io/nats-server/v2 v2.10.9
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusremotewriteexporter v0.54.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver v0.54.0
+	github.com/opencontainers/selinux v1.11.0
 	github.com/percona/percona-toolkit v0.0.0-20211210121818-b2860eee3152
+	github.com/prometheus-community/go-runit v0.1.0
 	github.com/prometheus-community/pro-bing v0.1.0
+	github.com/safchain/ethtool v0.3.0
 	github.com/sijms/go-ora/v2 v2.8.6
 	github.com/sleepinggenius2/gosmi v0.4.4
 	github.com/tidwall/gjson v1.14.4
 	github.com/vmware/govmomi v0.29.0
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+	howett.net/plist v1.0.1
 )
 
 replace gopkg.in/yaml.v2 => github.com/rfratto/go-yaml v0.0.0-20211119180816-77389c3526dc
@@ -315,7 +336,7 @@ require (
 	github.com/prometheus/common/assets v0.2.0 // indirect
 	github.com/prometheus/common/sigv4 v0.1.0 // indirect
 	github.com/prometheus/exporter-toolkit v0.7.3 // indirect
-	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/prometheus/procfs v0.8.0
 	github.com/prometheus/statsd_exporter v0.21.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/rs/cors v1.8.2 // indirect
