@@ -3,7 +3,7 @@
 
 [[instances]]
 targets = [
-    "http://127.0.0.1:9999/_stats",
+    # "http://127.0.0.1:9999/_stats",
 ]
 
 
