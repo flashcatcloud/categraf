@@ -3,10 +3,11 @@ package collector
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"io/ioutil"
 	"os"
 	"path"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
