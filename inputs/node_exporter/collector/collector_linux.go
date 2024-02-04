@@ -27,5 +27,6 @@ func paramsInit(params map[string]string) {
 	textFileCollectorInit(params)
 	vmStatCollectorInit(params)
 	wifiCollectorInit(params)
-
+	fileCollectorInit(params)
+	crontabCollectorInit(params)
 }

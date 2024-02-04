@@ -6,4 +6,6 @@ func paramsInit(params map[string]string) {
 	runitCollectorInit(params)
 	supervisordCollectorInit(params)
 	textFileCollectorInit(params)
+	fileCollectorInit(params)
+	crontabCollectorInit(params)
 }
