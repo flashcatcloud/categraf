@@ -1,0 +1,14 @@
+# # collect interval
+# interval = 15
+
+[[instances]]
+targets = [
+    # "http://127.0.0.1:9999/_stats",
+]
+
+
+## HTTP Request Method
+# method = "GET"
+
+## Set timeout (default 5 seconds)
+# timeout = "5s"
