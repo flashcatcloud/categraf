@@ -1,0 +1,2 @@
+#collectors=["--path.procfs=/host/proc", "--collector.cpu", "collector.ntp"]
+collectors=[]
