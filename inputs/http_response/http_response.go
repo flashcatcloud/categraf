@@ -41,6 +41,7 @@ type Instance struct {
 	ResponseTimeout                 config.Duration `toml:"response_timeout"`
 	Headers                         []string        `toml:"headers"`
 	Body                            string          `toml:"body"`
+	TlsRemoteAddr                   string          `toml:"tls_remote_addr"`
 	ExpectResponseSubstring         string          `toml:"expect_response_substring"`
 	ExpectResponseRegularExpression string          `toml:"expect_response_regular_expression"`
 	ExpectResponseStatusCode        *int            `toml:"expect_response_status_code"`
@@ -105,7 +106,6 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 	}
 
 	dialer := &net.Dialer{}
-
 	if ins.Interface != "" {
 		dialer.LocalAddr, err = netx.LocalAddressByInterfaceName(ins.Interface)
 		if err != nil {
@@ -120,7 +120,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 
 	client := httpx.CreateHTTPClient(httpx.TlsConfig(tlsCfg),
 		httpx.NetDialer(dialer), httpx.Proxy(proxy),
-
+		httpx.SetTransportTlsRemoteAddr(ins.TlsRemoteAddr, tlsCfg),
 		httpx.DisableKeepAlives(*ins.DisableKeepAlives),
 		httpx.Timeout(time.Duration(ins.Timeout)),
 		httpx.FollowRedirects(*ins.FollowRedirects))
@@ -247,7 +247,6 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 		ins.HTTPCommonConfig.Headers[ins.Headers[i]] = ins.Headers[i+1]
 	}
 	ins.SetHeaders(request)
-
 	// Start Timer
 	start := time.Now()
 	resp, err := ins.client.Do(request)
