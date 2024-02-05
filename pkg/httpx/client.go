@@ -112,6 +112,29 @@ func DisableKeepAlives(disableKeepAlives bool) Option {
 	}
 }
 
+
+func SetTransportTlsRemoteAddr(remoteAddr string, tlsConfig *tls.Config) Option {
+	return func(client *http.Client) {
+		if len(remoteAddr) > 0 && tlsConfig != nil {
+			client.Transport.(*http.Transport).DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				conn, err := client.Transport.(*http.Transport).DialContext(ctx, network, remoteAddr)
+				if err != nil {
+					return nil, err
+				}
+
+				// 建立 TLS 连接
+				tlsConn := tls.Client(conn, tlsConfig)
+				if err := tlsConn.Handshake(); err != nil {
+					conn.Close()
+					return nil, err
+				}
+
+				return tlsConn, nil
+			}
+		}
+	}
+}
+
 func CreateHTTPClient(opts ...Option) *http.Client {
 	client := &http.Client{
 		Transport: &http.Transport{},
