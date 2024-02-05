@@ -8,8 +8,8 @@
 
 [[instances]]
 targets = [
-#     "http://localhost",
-#     "https://www.baidu.com"
+    #     "http://localhost",
+    #     "https://www.baidu.com"
 ]
 
 ## append some labels for series
@@ -57,9 +57,11 @@ targets = [
 # expect_response_status_codes = "200|301"
 
 ## Optional TLS Config
-# use_tls = false
+# use_tls = true
+# tls_remote_addr = "10.10.10.10:443"
 # tls_ca = "/etc/categraf/ca.pem"
 # tls_cert = "/etc/categraf/cert.pem"
 # tls_key = "/etc/categraf/key.pem"
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = false
+# tls_server_name = "www.baidu.com"
