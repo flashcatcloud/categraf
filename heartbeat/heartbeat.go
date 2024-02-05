@@ -135,7 +135,6 @@ func work(ps *system.SystemPS, client *http.Client) {
 	g := gzip.NewWriter(&buf)
 	if _, err = g.Write(bs); err != nil {
 		log.Println("E! failed to write gzip buffer:", err)
-		return
 	}
 
 	if err = g.Close(); err != nil {
