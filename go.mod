@@ -336,7 +336,7 @@ require (
 	github.com/prometheus/common/assets v0.2.0 // indirect
 	github.com/prometheus/common/sigv4 v0.1.0 // indirect
 	github.com/prometheus/exporter-toolkit v0.7.3 // indirect
-	github.com/prometheus/procfs v0.8.0
+	github.com/prometheus/procfs v0.12.0
 	github.com/prometheus/statsd_exporter v0.21.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/rs/cors v1.8.2 // indirect
