@@ -38,7 +38,7 @@ targets = [
 # password = "pa$$word"
 
 ## Optional headers
-# headers = ["Header-Key-1", "Header-Value-1", "Header-Key-2", "Header-Value-2"]
+# headers = { "Accept-Encoding" = "Gzip" }
 
 ## Optional HTTP Request Body
 # body = '''
@@ -62,6 +62,6 @@ targets = [
 # tls_ca = "/etc/categraf/ca.pem"
 # tls_cert = "/etc/categraf/cert.pem"
 # tls_key = "/etc/categraf/key.pem"
+# tls_server_name = "www.baidu.com"
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = false
-# tls_server_name = "www.baidu.com"
