@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -39,7 +38,6 @@ type Instance struct {
 	Targets                         []string        `toml:"targets"`
 	Interface                       string          `toml:"interface"`
 	ResponseTimeout                 config.Duration `toml:"response_timeout"`
-	Headers                         []string        `toml:"headers"`
 	Body                            string          `toml:"body"`
 	TlsRemoteAddr                   string          `toml:"tls_remote_addr"`
 	ExpectResponseSubstring         string          `toml:"expect_response_substring"`
@@ -242,10 +240,6 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 		return nil, nil, err
 	}
 
-	// compatible with old config
-	for i := 0; i < len(ins.Headers); i += 2 {
-		ins.HTTPCommonConfig.Headers[ins.Headers[i]] = ins.Headers[i+1]
-	}
 	ins.SetHeaders(request)
 	// Start Timer
 	start := time.Now()
@@ -299,7 +293,7 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	// metric: response_code
 	fields["response_code"] = resp.StatusCode
 
-	bs, err := ioutil.ReadAll(resp.Body)
+	bs, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("E! failed to read response body:", err)
 		return tags, fields, nil
