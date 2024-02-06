@@ -6,6 +6,7 @@
 package httpx
 
 import (
+	"context"
 	"crypto/tls"
 	"log"
 	"net"
