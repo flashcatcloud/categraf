@@ -8,7 +8,6 @@ package httpx
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -122,7 +121,6 @@ func SetTransportRemoteAddr(remoteAddr string) Option {
 				if err != nil {
 					return nil, err
 				}
-				fmt.Println(conn.RemoteAddr(), conn.LocalAddr())
 				return conn, nil
 			}
 		}
