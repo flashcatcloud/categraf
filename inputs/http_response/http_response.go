@@ -1,10 +1,10 @@
 package http_response
 
 import (
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -39,13 +39,13 @@ type Instance struct {
 	Targets                         []string        `toml:"targets"`
 	Interface                       string          `toml:"interface"`
 	ResponseTimeout                 config.Duration `toml:"response_timeout"`
-	Headers                         []string        `toml:"headers"`
 	Body                            string          `toml:"body"`
+	HttpRemoteAddr                  string          `toml:"http_remote_addr"`
+	HttpsRemoteAddr                 string          `toml:"https_remote_addr"`
 	ExpectResponseSubstring         string          `toml:"expect_response_substring"`
 	ExpectResponseRegularExpression string          `toml:"expect_response_regular_expression"`
 	ExpectResponseStatusCode        *int            `toml:"expect_response_status_code"`
 	ExpectResponseStatusCodes       string          `toml:"expect_response_status_codes"`
-	config.HTTPProxy
 
 	client httpClient
 	config.HTTPCommonConfig
@@ -105,7 +105,6 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 	}
 
 	dialer := &net.Dialer{}
-
 	if ins.Interface != "" {
 		dialer.LocalAddr, err = netx.LocalAddressByInterfaceName(ins.Interface)
 		if err != nil {
@@ -113,14 +112,15 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		}
 	}
 
-	proxy, err := ins.Proxy()
-	if err != nil {
-		return nil, err
-	}
+	//proxy, err := ins.Proxy()
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	client := httpx.CreateHTTPClient(httpx.TlsConfig(tlsCfg),
-		httpx.NetDialer(dialer), httpx.Proxy(proxy),
-
+		httpx.NetDialer(dialer),
+		httpx.SetTransportRemoteAddr(ins.HttpRemoteAddr),
+		httpx.SetTransportTlsRemoteAddr(ins.HttpsRemoteAddr, tlsCfg),
 		httpx.DisableKeepAlives(*ins.DisableKeepAlives),
 		httpx.Timeout(time.Duration(ins.Timeout)),
 		httpx.FollowRedirects(*ins.FollowRedirects))
@@ -242,12 +242,7 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 		return nil, nil, err
 	}
 
-	// compatible with old config
-	for i := 0; i < len(ins.Headers); i += 2 {
-		ins.HTTPCommonConfig.Headers[ins.Headers[i]] = ins.Headers[i+1]
-	}
 	ins.SetHeaders(request)
-
 	// Start Timer
 	start := time.Now()
 	resp, err := ins.client.Do(request)
@@ -300,12 +295,27 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	// metric: response_code
 	fields["response_code"] = resp.StatusCode
 
-	bs, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("E! failed to read response body:", err)
-		return tags, fields, nil
+	var bs []byte
+	if resp.Header.Get("content-encode") == "gzip" {
+		var r *gzip.Reader
+		r, err = gzip.NewReader(resp.Body)
+		if err != nil {
+			log.Println("E! failed to read gzip response body:", err)
+			return tags, fields, nil
+		}
+		defer r.Close()
+		bs, err = io.ReadAll(r)
+		if err != nil {
+			log.Println("E! failed to read response body:", err)
+			return tags, fields, nil
+		}
+	} else {
+		bs, err = io.ReadAll(resp.Body)
+		if err != nil {
+			log.Println("E! failed to read response body:", err)
+			return tags, fields, nil
+		}
 	}
-
 	if len(ins.ExpectResponseSubstring) > 0 && !strings.Contains(string(bs), ins.ExpectResponseSubstring) ||
 		ins.regularExpression != nil && !ins.regularExpression.Match(bs) {
 		log.Println("E! body mismatch, response body:", string(bs))
