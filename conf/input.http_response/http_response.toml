@@ -8,8 +8,8 @@
 
 [[instances]]
 targets = [
-#     "http://localhost",
-#     "https://www.baidu.com"
+    #     "http://localhost",
+    #     "https://www.baidu.com"
 ]
 
 ## append some labels for series
@@ -18,8 +18,7 @@ targets = [
 ## interval = global.interval * interval_times
 # interval_times = 1
 
-## Set http_proxy (categraf uses the system wide proxy settings if it's is not set)
-# http_proxy = "http://localhost:8888"
+
 
 ## Interface to use when dialing an address
 # interface = "eth0"
@@ -38,7 +37,7 @@ targets = [
 # password = "pa$$word"
 
 ## Optional headers
-# headers = ["Header-Key-1", "Header-Value-1", "Header-Key-2", "Header-Value-2"]
+# headers = { "Accept-Encoding" = "Gzip" }
 
 ## Optional HTTP Request Body
 # body = '''
@@ -56,10 +55,16 @@ targets = [
 # expect_response_status_code = 0
 # expect_response_status_codes = "200|301"
 
+## Set http conn remote addr
+# http_remote_addr = "10.10.10.10:80"
+
 ## Optional TLS Config
-# use_tls = false
+# use_tls = true
+## Set https conn remote addr(required use_tls)
+# tls_remote_addr = "10.10.10.10:443"
 # tls_ca = "/etc/categraf/ca.pem"
 # tls_cert = "/etc/categraf/cert.pem"
 # tls_key = "/etc/categraf/key.pem"
+# tls_server_name = "www.baidu.com"
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = false
