@@ -6,6 +6,7 @@
 package httpx
 
 import (
+	"context"
 	"crypto/tls"
 	"log"
 	"net"
@@ -109,6 +110,41 @@ func FollowRedirects(followRedirects bool) Option {
 func DisableKeepAlives(disableKeepAlives bool) Option {
 	return func(client *http.Client) {
 		client.Transport.(*http.Transport).DisableKeepAlives = disableKeepAlives
+	}
+}
+func SetTransportRemoteAddr(remoteAddr string) Option {
+	return func(client *http.Client) {
+		if len(remoteAddr) > 0 {
+			client.Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				conn, err := net.Dial(network, remoteAddr)
+				//conn, err := client.Transport.(*http.Transport).DialContext(ctx, network, remoteAddr)
+				if err != nil {
+					return nil, err
+				}
+				return conn, nil
+			}
+		}
+	}
+}
+
+func SetTransportTlsRemoteAddr(remoteAddr string, tlsConfig *tls.Config) Option {
+	return func(client *http.Client) {
+		if len(remoteAddr) > 0 && tlsConfig != nil {
+			client.Transport.(*http.Transport).DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				conn, err := net.Dial(network, remoteAddr)
+				//conn, err := client.Transport.(*http.Transport).DialContext(ctx, network, remoteAddr)
+				if err != nil {
+					return nil, err
+				}
+				// 建立 TLS 连接
+				tlsConn := tls.Client(conn, tlsConfig)
+				if err := tlsConn.Handshake(); err != nil {
+					conn.Close()
+					return nil, err
+				}
+				return tlsConn, nil
+			}
+		}
 	}
 }
 
