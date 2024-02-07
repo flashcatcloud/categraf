@@ -296,7 +296,7 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	fields["response_code"] = resp.StatusCode
 
 	var bs []byte
-	if resp.Header.Get("content-encode") == "gzip" {
+	if resp.Header.Get("Content-Encoding") == "gzip" {
 		var r *gzip.Reader
 		r, err = gzip.NewReader(resp.Body)
 		if err != nil {
