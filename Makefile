@@ -39,7 +39,7 @@ build-windows:
 
 build-mac:
 	echo "Building version $(GIT_VERSION) for mac"
-	GOOS=darwin GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).mac
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).mac
 
 build-mac-arm:
 	echo "Building version $(GIT_VERSION) for mac"
