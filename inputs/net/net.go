@@ -22,6 +22,9 @@ type NetIOStats struct {
 	Interfaces           []string `toml:"interfaces"`
 
 	interfaceFilters filter.Filter
+
+	EnableLoopbackStats bool `toml:"enable_loopback_stats"`
+	EnableLinkDownStats bool `toml:"enable_link_down_stats"`
 }
 
 func init() {
@@ -92,13 +95,14 @@ func (s *NetIOStats) Gather(slist *types.SampleList) {
 			continue
 		}
 
-		if iface.Flags&net.FlagLoopback == net.FlagLoopback {
+		if !s.EnableLoopbackStats && (iface.Flags&net.FlagLoopback == net.FlagLoopback) {
 			continue
 		}
 
-		if iface.Flags&net.FlagUp == 0 {
+		if !s.EnableLinkDownStats && (iface.Flags&net.FlagUp == 0) {
 			continue
 		}
+
 		tags := map[string]string{
 			"interface": io.Name,
 		}
@@ -115,6 +119,7 @@ func (s *NetIOStats) Gather(slist *types.SampleList) {
 			"drop_in":      io.Dropin,
 			"drop_out":     io.Dropout,
 		}
+
 		speed, err := Speed(iface.Name)
 		if err == nil && speed >= 0 {
 			fields["speed"] = speed
