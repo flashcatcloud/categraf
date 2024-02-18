@@ -69,5 +69,3 @@ jobs:
         run: make build-linux && make build-linux-arm
       - name: go build windows
         run: make build-windows
-      - name: go build mac
-        run: make build-mac && make build-mac-arm
