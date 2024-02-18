@@ -57,15 +57,6 @@ var (
 )
 
 func registerCollector(collector string, isDefaultEnabled bool, factory func() (Collector, error)) {
-	var helpDefaultState string
-	if isDefaultEnabled {
-		helpDefaultState = "enabled"
-	} else {
-		helpDefaultState = "disabled"
-	}
-
-	log.Printf("I! collector.%s state (default: %s).", collector, helpDefaultState)
-
 	collectorState[collector] = &isDefaultEnabled
 
 	factories[collector] = factory
