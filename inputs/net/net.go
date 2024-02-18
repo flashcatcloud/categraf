@@ -99,13 +99,6 @@ func (s *NetIOStats) Gather(slist *types.SampleList) {
 		if iface.Flags&net.FlagUp == 0 {
 			continue
 		}
-		speed, err := Speed(iface.Name)
-		if err != nil {
-			continue
-		}
-		if speed < 0 {
-			continue
-		}
 		tags := map[string]string{
 			"interface": io.Name,
 		}
@@ -121,7 +114,12 @@ func (s *NetIOStats) Gather(slist *types.SampleList) {
 			"err_out":      io.Errout,
 			"drop_in":      io.Dropin,
 			"drop_out":     io.Dropout,
-			"speed":        speed,
+		}
+		speed, err := Speed(iface.Name)
+		if err == nil && speed >= 0 {
+			fields["speed"] = speed
+		} else {
+			fields["speed"] = -2
 		}
 
 		slist.PushSamples(inputName, fields, tags)
