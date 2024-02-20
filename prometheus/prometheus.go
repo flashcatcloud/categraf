@@ -465,6 +465,10 @@ var (
 	isRunning int32
 )
 
+func debug() bool {
+	return coreconfig.Config.DebugMode && strings.Contains(coreconfig.Config.InputFilters, "prometheus-agent")
+}
+
 func Start() {
 	var (
 		err error
@@ -485,7 +489,7 @@ func Start() {
 		},
 	}
 
-	if coreconfig.Config.DebugMode || coreconfig.Config.TestMode {
+	if debug() {
 		cfg.promlogConfig.Level.Set("debug")
 	} else {
 		cfg.promlogConfig.Level.Set(coreconfig.Config.Prometheus.LogLevel)

@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"flashcat.cloud/categraf/config"
 	"github.com/Knetic/govaluate"
 	"github.com/gosnmp/gosnmp"
 )
@@ -52,6 +51,8 @@ type Table struct {
 
 	filterFormat int                `toml:"-"`
 	filtersMap   map[string]*Filter `toml:"-"`
+
+	DebugMode bool
 }
 
 type Filter struct {
@@ -380,6 +381,8 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 						if err == nil {
 							// If no error translating, the original value for ent.Value should be replaced
 							ent.Value = oidText
+						} else {
+							log.Printf("E! translate error:%s, entOid:%s, oid:%s", err, entOid, oid)
 						}
 					}
 				}
@@ -399,7 +402,10 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				// If this error isn't a walkError, we know it's not
 				// from the callback
 				if _, ok := err.(*walkError); !ok {
+					log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
 					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
+				} else {
+					log.Printf("W! snmp walk error:%s, oid:%s", err, oid)
 				}
 			}
 		}
@@ -547,10 +553,6 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 			return string(bs), nil
 		}
 		return v, nil
-	}
-
-	if config.Config.DebugMode {
-		log.Printf("D! %s the value %v", conv, v)
 	}
 
 	var d int

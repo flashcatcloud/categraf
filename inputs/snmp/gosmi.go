@@ -10,6 +10,7 @@ import (
 )
 
 type gosmiTranslator struct {
+	DebugMode bool
 }
 
 func NewGosmiTranslator(paths []string) (*gosmiTranslator, error) {
@@ -18,6 +19,10 @@ func NewGosmiTranslator(paths []string) (*gosmiTranslator, error) {
 		return &gosmiTranslator{}, nil
 	}
 	return nil, err
+}
+
+func (g *gosmiTranslator) SetDebugMode(debug bool) {
+	g.DebugMode = debug
 }
 
 type gosmiSnmpTranslateCache struct {

@@ -12,10 +12,10 @@ import (
 	"log"
 	"sync"
 
-	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/diagnostic"
 	"flashcat.cloud/categraf/logs/message"
+	"flashcat.cloud/categraf/logs/util"
 )
 
 // A Processor updates messages from an inputChan and pushes
@@ -95,7 +95,7 @@ func (p *Processor) processMessage(msg *message.Message) {
 			log.Println("unable to encode msg ", err)
 			return
 		}
-		if coreconfig.Config.DebugMode {
+		if util.Debug() {
 			log.Println("D! log item:", string(content))
 		}
 		msg.Content = content

@@ -57,8 +57,10 @@ func (ins *Instance) Init() error {
 		if err != nil {
 			return err
 		}
+		ins.translator.SetDebugMode(ins.DebugMod)
 	case "", "netsnmp":
 		ins.translator = NewNetsnmpTranslator()
+		ins.translator.SetDebugMode(ins.DebugMod)
 	default:
 		return fmt.Errorf("invalid translator value")
 	}
@@ -136,6 +138,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			t := Table{
 				Name:   ins.Name,
 				Fields: ins.Fields,
+
+				DebugMode: ins.DebugMod,
+			}
+			for idx, f := range t.Fields {
+				t.Fields[idx].Oid = strings.TrimSpace(f.Oid)
 			}
 			topTags := map[string]string{}
 			for k, v := range ins.GetLabels() {

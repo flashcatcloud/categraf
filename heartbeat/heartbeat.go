@@ -94,6 +94,10 @@ func version() string {
 	return config.Version
 }
 
+func debug() bool {
+	return config.Config.DebugMode && strings.Contains(config.Config.InputFilters, "heartbeat")
+}
+
 func work(ps *system.SystemPS, client *http.Client) {
 	cpuUsagePercent := cpuUsage(ps)
 	hostname := config.Config.GetHostname()
@@ -141,7 +145,7 @@ func work(ps *system.SystemPS, client *http.Client) {
 		log.Println("E! failed to close gzip buffer:", err)
 		return
 	}
-	if config.Config.DebugMode {
+	if debug() {
 		log.Printf("D! heartbeat request: %s", string(bs))
 	}
 
@@ -184,7 +188,7 @@ func work(ps *system.SystemPS, client *http.Client) {
 		return
 	}
 
-	if config.Config.DebugMode {
+	if debug() {
 		log.Println("D! heartbeat response:", string(bs), "status code:", res.StatusCode)
 	}
 }
