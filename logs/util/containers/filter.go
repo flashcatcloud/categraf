@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	coreconfig "flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/logs/util"
 )
 
 const (
@@ -274,7 +275,7 @@ func (cf Filter) IsExcluded(containerName, containerImage, podNamespace string) 
 	// Check if excludeListed
 	for _, r := range cf.ImageExcludeList {
 		match := r.MatchString(containerImage)
-		if coreconfig.Config.DebugMode {
+		if util.Debug() {
 			log.Printf("D!, exclude item :%+v, container image:%s, %t\n", r, containerImage, match)
 		}
 		if match {

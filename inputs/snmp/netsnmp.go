@@ -9,17 +9,20 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
-
-	"flashcat.cloud/categraf/config"
 )
 
 // struct that implements the translator interface. This calls existing
 // code to exec netsnmp's snmptranslate program
 type netsnmpTranslator struct {
+	DebugMode bool
 }
 
 func NewNetsnmpTranslator() *netsnmpTranslator {
 	return &netsnmpTranslator{}
+}
+
+func (n *netsnmpTranslator) SetDebugMode(debug bool) {
+	n.DebugMode = debug
 }
 
 type snmpTableCache struct {
@@ -35,8 +38,8 @@ var execCommand = exec.Command
 
 // execCmd executes the specified command, returning the STDOUT content.
 // If command exits with error status, the output is captured into the returned error.
-func execCmd(arg0 string, args ...string) ([]byte, error) {
-	if config.Config.DebugMode {
+func (n *netsnmpTranslator) execCmd(arg0 string, args ...string) ([]byte, error) {
+	if n.DebugMode {
 		quoted := make([]string, 0, len(args))
 		for _, arg := range args {
 			quoted = append(quoted, fmt.Sprintf("%q", arg))
@@ -94,7 +97,7 @@ func (n *netsnmpTranslator) snmpTableCall(oid string) (
 	// first attempt to get the table's tags
 	tagOids := map[string]struct{}{}
 	// We have to guess that the "entry" oid is `oid+".1"`. snmptable and snmptranslate don't seem to have a way to provide the info.
-	if out, err := execCmd("snmptranslate", "-Td", oidFullName+".1"); err == nil {
+	if out, err := n.execCmd("snmptranslate", "-Td", oidFullName+".1"); err == nil {
 		scanner := bufio.NewScanner(bytes.NewBuffer(out))
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -120,7 +123,7 @@ func (n *netsnmpTranslator) snmpTableCall(oid string) (
 	}
 
 	// this won't actually try to run a query. The `-Ch` will just cause it to dump headers.
-	out, err := execCmd("snmptable", "-Ch", "-Cl", "-c", "public", "127.0.0.1", oidFullName)
+	out, err := n.execCmd("snmptable", "-Ch", "-Cl", "-c", "public", "127.0.0.1", oidFullName)
 	if err != nil {
 		return "", "", "", nil, fmt.Errorf("getting table columns: %w", err)
 	}
@@ -175,7 +178,7 @@ func (n *netsnmpTranslator) SnmpTranslate(oid string) (
 		// is worth it. Especially when it would slam the system pretty hard if lots
 		// of lookups are being performed.
 
-		stc.mibName, stc.oidNum, stc.oidText, stc.conversion, stc.err = snmpTranslateCall(oid)
+		stc.mibName, stc.oidNum, stc.oidText, stc.conversion, stc.err = n.snmpTranslateCall(oid)
 		snmpTranslateCaches[oid] = stc
 	}
 
@@ -185,12 +188,12 @@ func (n *netsnmpTranslator) SnmpTranslate(oid string) (
 }
 
 //nolint:revive
-func snmpTranslateCall(oid string) (mibName string, oidNum string, oidText string, conversion string, err error) {
+func (n *netsnmpTranslator) snmpTranslateCall(oid string) (mibName string, oidNum string, oidText string, conversion string, err error) {
 	var out []byte
 	if strings.ContainsAny(oid, ":abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") {
-		out, err = execCmd("snmptranslate", "-Td", "-Ob", oid)
+		out, err = n.execCmd("snmptranslate", "-Td", "-Ob", oid)
 	} else {
-		out, err = execCmd("snmptranslate", "-Td", "-Ob", "-m", "all", oid)
+		out, err = n.execCmd("snmptranslate", "-Td", "-Ob", "-m", "all", oid)
 		if err, ok := err.(*exec.Error); ok && err.Err == exec.ErrNotFound {
 			// Silently discard error if snmptranslate not found and we have a numeric OID.
 			// Meaning we can get by without the lookup.

@@ -35,7 +35,7 @@ func (gs GosnmpWrapper) Walk(oid string, fn gosnmp.WalkFunc) error {
 
 func NewWrapper(s ClientConfig) (GosnmpWrapper, error) {
 	var logger gosnmp.Logger
-	if coreconfig.Config.DebugMode {
+	if coreconfig.Config.DebugLevel > 4 {
 		logger = gosnmp.NewLogger(log.New(os.Stdout, "", 0))
 	}
 

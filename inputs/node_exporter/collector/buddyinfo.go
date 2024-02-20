@@ -61,7 +61,7 @@ func (c *buddyinfoCollector) Update(ch chan<- prometheus.Metric) error {
 		return fmt.Errorf("couldn't get buddyinfo: %w", err)
 	}
 
-	if coreconfig.Config.DebugMode {
+	if coreconfig.Config.DebugMode && coreconfig.Config.DebugLevel > 2 {
 		log.Println("D! set node_buddy buddyInfo", buddyInfo)
 	}
 	for _, entry := range buddyInfo {

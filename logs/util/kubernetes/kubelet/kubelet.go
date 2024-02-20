@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/errors"
+	"flashcat.cloud/categraf/logs/util"
 	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/logs/util/containers/providers"
 	"flashcat.cloud/categraf/pkg/cache"
@@ -214,7 +214,7 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*kubernetes.Pod, err
 			allContainers = append(allContainers, pod.Status.Containers...)
 			pod.Status.AllContainers = allContainers
 			if !ku.filterPod(pod) {
-				if coreconfig.Config.DebugMode {
+				if util.Debug() {
 					log.Printf("D! filter include, pod name: %s, pod namespace: %s. pod image:[%v]", pod.Metadata.Name, pod.Metadata.Namespace, pod.Spec.Containers)
 				}
 				tmpSlice = append(tmpSlice, pod)
@@ -232,7 +232,7 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*kubernetes.Pod, err
 func (ku *KubeUtil) filterPod(pod *kubernetes.Pod) bool {
 	for _, c := range pod.Status.GetAllContainers() {
 		if ku.filter.IsExcluded(c.Name, c.Image, pod.Metadata.Namespace) {
-			if coreconfig.Config.DebugMode {
+			if util.Debug() {
 				log.Printf("D! container name:%s image:%s, ns:%s, exclude:true", c.Name, c.Image, pod.Metadata.Namespace)
 			}
 			return true

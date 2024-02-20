@@ -26,6 +26,7 @@ import (
 	"flashcat.cloud/categraf/logs/pipeline"
 	"flashcat.cloud/categraf/logs/restart"
 	"flashcat.cloud/categraf/logs/status"
+	"flashcat.cloud/categraf/logs/util"
 
 	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
@@ -140,7 +141,7 @@ func (la *LogsAgent) Start() error {
 	la.startInner()
 	if coreconfig.GetContainerCollectAll() {
 		// collect container all
-		if coreconfig.Config.DebugMode {
+		if util.Debug() {
 			log.Println("Adding ContainerCollectAll source to the Logs Agent")
 		}
 		kubesource := logsconfig.NewLogSource(logsconfig.ContainerCollectAll,

@@ -16,6 +16,7 @@ import (
 	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/client"
+	"flashcat.cloud/categraf/logs/util"
 	"flashcat.cloud/categraf/pkg/backoff"
 )
 
@@ -117,7 +118,7 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 			}
 		}
 	}
-	if coreconfig.Config.DebugMode {
+	if util.Debug() {
 		log.Printf("D! saram config: %+v", coreconfig.Config.Logs.Config)
 	}
 

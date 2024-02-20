@@ -24,6 +24,8 @@ type Translator interface {
 		formatted string,
 		err error,
 	)
+
+	SetDebugMode(bool)
 }
 
 type ClientConfig struct {

@@ -20,8 +20,6 @@ import (
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
-
-	"flashcat.cloud/categraf/config"
 )
 
 // The highest number of metrics we can query for, no matter what settings
@@ -47,6 +45,8 @@ type Client struct {
 	Valid     bool
 	Timeout   time.Duration
 	closeGate sync.Once
+
+	DebugMode bool
 }
 
 // NewClientFactory creates a new ClientFactory and prepares it for use.
@@ -109,8 +109,8 @@ func (cf *ClientFactory) testClient(ctx context.Context) error {
 
 // NewClient creates a new vSphere client based on the url and setting passed as parameters.
 func NewClient(ctx context.Context, vSphereURL *url.URL, vs *Instance) (*Client, error) {
-	//sw := NewStopwatch("connect", vSphereURL.Host)
-	//defer sw.Stop()
+	// sw := NewStopwatch("connect", vSphereURL.Host)
+	// defer sw.Stop()
 
 	tlsCfg, err := vs.ClientConfig.TLSConfig()
 	if err != nil {
@@ -123,7 +123,7 @@ func NewClient(ctx context.Context, vSphereURL *url.URL, vs *Instance) (*Client,
 	if vs.Username != "" {
 		vSphereURL.User = url.UserPassword(vs.Username, vs.Password)
 	}
-	if config.Config.DebugMode {
+	if vs.DebugMod {
 		log.Println("D! Creating client: ", vSphereURL.Host)
 	}
 	soapClient := soap.NewClient(vSphereURL, tlsCfg.InsecureSkipVerify)
@@ -188,6 +188,8 @@ func NewClient(ctx context.Context, vSphereURL *url.URL, vs *Instance) (*Client,
 		Perf:    p,
 		Valid:   true,
 		Timeout: time.Duration(vs.Timeout),
+
+		DebugMode: vs.DebugMod,
 	}
 	// Adjust max query size if needed
 	ctx3, cancel3 := context.WithTimeout(ctx, time.Duration(vs.Timeout))
@@ -196,7 +198,7 @@ func NewClient(ctx context.Context, vSphereURL *url.URL, vs *Instance) (*Client,
 	if err != nil {
 		return nil, err
 	}
-	if config.Config.DebugMode {
+	if vs.DebugMod {
 		log.Println("D! vCenter says max_query_metrics should be ", n)
 	}
 	if n < vs.MaxQueryMetrics {
@@ -252,7 +254,7 @@ func (c *Client) GetMaxQueryMetrics(ctx context.Context) (int, error) {
 			if s, ok := res[0].GetOptionValue().Value.(string); ok {
 				v, err := strconv.Atoi(s)
 				if err == nil {
-					if config.Config.DebugMode {
+					if c.DebugMode {
 						log.Printf("D! vCenter maxQueryMetrics is defined: %d", v)
 					}
 					if v == -1 {

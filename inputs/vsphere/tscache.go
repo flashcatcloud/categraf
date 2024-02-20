@@ -5,8 +5,6 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	"flashcat.cloud/categraf/config"
 )
 
 // TSCache is a cache of timestamps used to determine the validity of datapoints
@@ -14,13 +12,15 @@ type TSCache struct {
 	ttl   time.Duration
 	table map[string]time.Time
 	mux   sync.RWMutex
+	debug bool
 }
 
 // NewTSCache creates a new TSCache with a specified time-to-live after which timestamps are discarded.
-func NewTSCache(ttl time.Duration) *TSCache {
+func NewTSCache(ttl time.Duration, debug bool) *TSCache {
 	return &TSCache{
 		ttl:   ttl,
 		table: make(map[string]time.Time),
+		debug: debug,
 	}
 }
 
@@ -35,7 +35,7 @@ func (t *TSCache) Purge() {
 			n++
 		}
 	}
-	if config.Config.DebugMode {
+	if t.debug {
 		log.Println(fmt.Sprintf("D! purged timestamp cache. %d deleted with %d remaining", n, len(t.table)))
 	}
 }
