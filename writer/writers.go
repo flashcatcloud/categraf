@@ -59,7 +59,7 @@ func (ws *Writers) LoopRead() {
 	for {
 		series := ws.queue.PopBackN(config.Config.WriterOpt.Batch)
 		if len(series) == 0 {
-			time.Sleep(time.Millisecond * 400)
+			time.Sleep(time.Millisecond * 100)
 			continue
 		}
 
@@ -125,6 +125,7 @@ func WriteTimeSeries(timeSeries []prompb.TimeSeries) {
 		return
 	}
 
+	now := time.Now()
 	wg := sync.WaitGroup{}
 	for key := range writers.writerMap {
 		wg.Add(1)
@@ -134,6 +135,10 @@ func WriteTimeSeries(timeSeries []prompb.TimeSeries) {
 		}(key)
 	}
 	wg.Wait()
+	if config.Config.DebugMode {
+		log.Println("D!, write", len(timeSeries), "time series to all writers, cost:",
+			time.Since(now).Milliseconds(), "ms")
+	}
 }
 
 func printTestMetrics(samples []*types.Sample) {
