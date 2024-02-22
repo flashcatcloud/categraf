@@ -91,6 +91,10 @@ func (ins *Instance) Init() error {
 	if ins.HTTPCommonConfig.Headers == nil {
 		ins.HTTPCommonConfig.Headers = make(map[string]string)
 	}
+	// compatible with old config
+	for i := 0; i < len(ins.Headers); i += 2 {
+		ins.HTTPCommonConfig.Headers[ins.Headers[i]] = ins.Headers[i+1]
+	}
 	if len(ins.ExpectResponseRegularExpression) > 0 {
 		ins.regularExpression = regexp.MustCompile(ins.ExpectResponseRegularExpression)
 	}
@@ -240,11 +244,6 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	request, err := http.NewRequest(ins.Method, target, body)
 	if err != nil {
 		return nil, nil, err
-	}
-
-	// compatible with old config
-	for i := 0; i < len(ins.Headers); i += 2 {
-		ins.HTTPCommonConfig.Headers[ins.Headers[i]] = ins.Headers[i+1]
 	}
 	ins.SetHeaders(request)
 
