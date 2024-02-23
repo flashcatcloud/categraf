@@ -40,6 +40,7 @@ func download(file string) (string, error) {
 }
 
 func Update(tar string) error {
+	return fmt.Errorf("linux support only")
 	// download
 	fname, err := download(tar)
 	if err != nil {
@@ -57,11 +58,11 @@ func Update(tar string) error {
 	}
 	fm, err := os.Stat(ov)
 	if err != nil {
-		return err
+		return fmt.Errorf("stat file %s error: %s", ov, err)
 	}
 	fi, err := os.Stat(nv)
 	if err != nil {
-		return err
+		return fmt.Errorf("stat file %s error: %s", nv, err)
 	}
 	if fi.Mode().IsDir() {
 		return fmt.Errorf("%s is directory", nv)
@@ -105,12 +106,9 @@ func UnTar(dst, src string) (target string, err error) {
 		// 构建文件解压后的路径
 		destPath := filepath.Join(dst, file.Name)
 
-		// 如果是目录，创建相应的目录
+		// skip directory
 		if file.FileInfo().IsDir() {
-			err := os.MkdirAll(destPath, os.ModePerm)
-			if err != nil {
-				return "", err
-			}
+			continue
 		}
 
 		// 打开 ZIP 文件中的每个文件
@@ -119,6 +117,13 @@ func UnTar(dst, src string) (target string, err error) {
 			return "", err
 		}
 		defer srcFile.Close()
+
+		// now create directory for files
+		err = os.MkdirAll(filepath.Dir(destPath), 0755)
+		if err != nil {
+			log.Printf("mdkir:%s, error:%s", filepath.Base(destPath), err)
+			return "", err
+		}
 
 		// 创建目标文件
 		dest, err := os.Create(destPath)
@@ -132,7 +137,7 @@ func UnTar(dst, src string) (target string, err error) {
 		if err != nil {
 			return "", err
 		}
-		if strings.HasSuffix(destPath, "categraf") {
+		if strings.HasSuffix(destPath, "categraf.exe") {
 			target = destPath
 		}
 	}
