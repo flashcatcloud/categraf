@@ -64,7 +64,7 @@ func (n *NTPStat) Gather(slist *types.SampleList) {
 		duration := ((serverReciveTime.UnixNano() - orgTime.UnixNano()) + (serverTransmitTime.UnixNano() - dstTime.UnixNano())) / 2
 
 		delta := duration / 1e6 // convert to ms
-		slist.PushSample("", "ntp_offset_ms", delta)
+		slist.PushFront(types.NewSample(inputName, "offset_ms", delta).SetTime(serverTransmitTime))
 		break
 	}
 }
