@@ -3,6 +3,9 @@
 ping 监控插件，探测远端目标地址能否 ping 通，如果机器没有禁 ping，这就是一个很好用的探测机器存活的手段
 
 ## Configuration
+这个插件有两种主要的操作方法：`exec` 和 `native`.推荐使用 `native` 方法，因为它具有更好的系统兼容性和性能.
+为了向后兼容和更精准的response_ms,`exec` 方法是默认的.
+使用 `method = "exec"`,将会调用系统ping程序来发送ping packets.
 
 要探测的机器配置到 targets 中，targets 是个数组，可以配置多个，当然也可以拆成多个 `[[instances]]` 配置段，比如：
 
@@ -82,3 +85,25 @@ When using `method = "native"`, you will need permissions similar to the executa
 
 大盘地址 [dashboard-2.0.json](https://github.com/flashcatcloud/categraf/tree/main/inputs/ping/dashboard-2.0.json)
 
+## Example Output
+
+```text
+ping_maximum_response_ms agent_hostname=zy-fat product=n9e region=cloud target=10.0.24.136 0.036
+ping_packets_transmitted agent_hostname=zy-fat product=n9e region=cloud target=10.0.24.136 1
+ping_packets_received agent_hostname=zy-fat product=n9e region=cloud target=10.0.24.136 1
+ping_average_response_ms agent_hostname=zy-fat product=n9e region=cloud target=10.0.24.136 0.036
+ping_minimum_response_ms agent_hostname=zy-fat product=n9e region=cloud target=10.0.24.136 0.036
+ping_standard_deviation_ms agent_hostname=zy-fat product=n9e region=cloud target=10.0.24.136 0
+ping_result_code agent_hostname=zy-fat product=n9e region=cloud target=10.0.24.136 0
+ping_percent_packet_loss agent_hostname=zy-fat product=n9e region=cloud target=10.0.24.136 0
+ping_ttl agent_hostname=zy-fat product=n9e region=cloud target=10.0.24.136 64
+ping_minimum_response_ms agent_hostname=zy-fat product=n9e region=cloud target=www.baidu.com 20.935
+ping_average_response_ms agent_hostname=zy-fat product=n9e region=cloud target=www.baidu.com 20.935
+ping_standard_deviation_ms agent_hostname=zy-fat product=n9e region=cloud target=www.baidu.com 0
+ping_result_code agent_hostname=zy-fat product=n9e region=cloud target=www.baidu.com 0
+ping_packets_transmitted agent_hostname=zy-fat product=n9e region=cloud target=www.baidu.com 1
+ping_packets_received agent_hostname=zy-fat product=n9e region=cloud target=www.baidu.com 1
+ping_ttl agent_hostname=zy-fat product=n9e region=cloud target=www.baidu.com 50
+ping_percent_packet_loss agent_hostname=zy-fat product=n9e region=cloud target=www.baidu.com 0
+ping_maximum_response_ms agent_hostname=zy-fat product=n9e region=cloud target=www.baidu.com 20.935
+```

@@ -20,6 +20,8 @@ const (
 	defaultPingDataBytesSize = 56
 )
 
+type HostPinger func(binary string, timeout float64, args ...string) (string, error)
+
 type Instance struct {
 	config.InstanceConfig
 
@@ -31,10 +33,17 @@ type Instance struct {
 	IPv6         bool     `toml:"ipv6"`          // Whether to resolve addresses using ipv6 or not.
 	Size         *int     `toml:"size"`          // Packet size
 	Conc         int      `toml:"concurrency"`   // max concurrency coroutine
+	Method       string   `toml:"method"`        // Method defines how to ping (native or exec)
+	Binary       string   `toml:"binary"`        // Ping executable binary
 
 	calcInterval  time.Duration
 	calcTimeout   time.Duration
 	sourceAddress string
+
+	// host ping function
+	pingHost HostPinger
+
+	Deadline int // Ping deadline, in seconds. 0 means no deadline. (ping -w <DEADLINE>)
 }
 
 func (ins *Instance) Init() error {
@@ -80,6 +89,11 @@ func (ins *Instance) Init() error {
 		}
 	}
 
+	if ins.Method == "exec" || ins.Method == "" {
+		ins.Method = "exec"
+	}
+
+	ins.pingHost = hostPinger
 	return nil
 }
 
@@ -115,6 +129,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		return
 	}
 
+	if ins.DebugMod {
+		log.Println("D! ping method", ins.Method)
+	}
 	wg := new(sync.WaitGroup)
 	ch := make(chan struct{}, ins.Conc)
 	for _, target := range ins.Targets {
@@ -122,7 +139,12 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		wg.Add(1)
 		go func(target string) {
 			defer wg.Done()
-			ins.gather(slist, target)
+			switch ins.Method {
+			case "native":
+				ins.gather(slist, target)
+			default:
+				ins.pingExec(slist, target)
+			}
 			<-ch
 		}(target)
 	}
