@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -33,6 +34,9 @@ func NewFileNotifyCollector() (Collector, error) {
 		),
 	}
 	for _, fileName := range strings.Split(*fileList, ",") {
+		if len(strings.TrimSpace(fileName)) == 0 {
+			continue
+		}
 		if data, err := f.readFile(fileName); err != nil {
 			panic(err.Error())
 		} else {
@@ -57,7 +61,11 @@ func (f *fileListCollector) readFile(fileName string) ([]byte, error) {
 func fileCollectorInit(params map[string]string) {
 	files, ok := params["collector.file.notifylist"]
 	if !ok {
-		*fileList = "/etc/passwd,/etc/shadow"
+		if runtime.GOOS == "linux" {
+			*fileList = "/etc/passwd,/etc/shadow"
+		} else {
+			*fileList = ""
+		}
 	} else {
 		*fileList = files
 	}
