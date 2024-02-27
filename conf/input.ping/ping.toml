@@ -14,14 +14,13 @@ targets = [
 ## to "exec" the systems ping command will be executed.  When set to "native"
 ## the plugin will send pings directly.
 ##
-## While the default is "exec" for backwards compatibility, new deployments
+## While the default is "native" for backwards compatibility, new deployments
 ## are encouraged to use the "native" method for improved compatibility and
 ## performance.
 # method = "exec"
-# method = "native"
 
 ## Specify the ping executable binary.
-binary = "ping"
+# binary = "ping"
 
 # # append some labels for series
 # labels = { region="cloud", product="n9e" }

@@ -1,18 +1,23 @@
 package ping
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net"
+	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
 
+	ping "github.com/prometheus-community/pro-bing"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/cmdx"
 	"flashcat.cloud/categraf/types"
-	ping "github.com/prometheus-community/pro-bing"
 )
 
 const (
@@ -89,8 +94,12 @@ func (ins *Instance) Init() error {
 		}
 	}
 
-	if ins.Method == "exec" || ins.Method == "" {
-		ins.Method = "exec"
+	if ins.Method == "" {
+		ins.Method = "native"
+	}
+
+	if ins.Method == "exec" && ins.Binary == "" {
+		ins.Binary = "ping"
 	}
 
 	ins.pingHost = hostPinger
@@ -140,10 +149,10 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		go func(target string) {
 			defer wg.Done()
 			switch ins.Method {
-			case "native":
-				ins.gather(slist, target)
+			case "exec":
+				ins.execGather(slist, target)
 			default:
-				ins.pingExec(slist, target)
+				ins.nativeGather(slist, target)
 			}
 			<-ch
 		}(target)
@@ -151,7 +160,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gather(slist *types.SampleList, target string) {
+func (ins *Instance) nativeGather(slist *types.SampleList, target string) {
 	if ins.DebugMod {
 		log.Println("D! ping...", target)
 	}
@@ -265,4 +274,24 @@ func (ins *Instance) ping(destination string) (*pingStats, error) {
 	ps.Statistics = *pinger.Statistics()
 
 	return ps, nil
+}
+
+func hostPinger(binary string, timeout float64, args ...string) (string, error) {
+	bin, err := exec.LookPath(binary)
+	if err != nil {
+		return "", err
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command(bin, args...)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err, to := cmdx.RunTimeout(cmd, time.Second*time.Duration(timeout+5))
+	if to {
+		log.Printf("E! run command: %s timeout", strings.Join(cmd.Args, " "))
+		return stderr.String(), errors.New("run command timeout")
+	}
+	return stdout.String(), err
 }

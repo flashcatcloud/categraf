@@ -1,8 +1,10 @@
+//go:build !windows
+
 package ping
 
 import (
-	"bytes"
 	"errors"
+	"flashcat.cloud/categraf/types"
 	"fmt"
 	"log"
 	"os/exec"
@@ -11,10 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
-
-	"flashcat.cloud/categraf/pkg/cmdx"
-	"flashcat.cloud/categraf/types"
 )
 
 type roundTripTimeStats struct {
@@ -31,7 +29,7 @@ type statistics struct {
 	roundTripTimeStats
 }
 
-func (ins *Instance) pingExec(slist *types.SampleList, target string) {
+func (ins *Instance) execGather(slist *types.SampleList, target string) {
 	if ins.DebugMod {
 		log.Println("D! ping...", target)
 	}
@@ -288,24 +286,4 @@ func freeBSDMajorVersion() int {
 	}
 
 	return majorVersion
-}
-
-func hostPinger(binary string, timeout float64, args ...string) (string, error) {
-	bin, err := exec.LookPath(binary)
-	if err != nil {
-		return "", err
-	}
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-	cmd := exec.Command(bin, args...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err, to := cmdx.RunTimeout(cmd, time.Second*time.Duration(timeout+5))
-	if to {
-		log.Printf("E! run command: %s timeout", strings.Join(cmd.Args, " "))
-		return stderr.String(), errors.New("run command timeout")
-	}
-	return stdout.String(), err
 }

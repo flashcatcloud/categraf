@@ -4,7 +4,7 @@ ping 监控插件，探测远端目标地址能否 ping 通，如果机器没有
 
 ## Configuration
 这个插件有两种主要的操作方法：`exec` 和 `native`.推荐使用 `native` 方法，因为它具有更好的系统兼容性和性能.
-为了向后兼容和更精准的response_ms,`exec` 方法是默认的.
+为了向后兼容和更精准的response_ms,`native` 方法是默认的.
 使用 `method = "exec"`,将会调用系统ping程序来发送ping packets.
 
 要探测的机器配置到 targets 中，targets 是个数组，可以配置多个，当然也可以拆成多个 `[[instances]]` 配置段，比如：
