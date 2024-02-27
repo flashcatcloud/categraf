@@ -4,7 +4,6 @@ package ping
 
 import (
 	"errors"
-	"flashcat.cloud/categraf/types"
 	"fmt"
 	"log"
 	"os/exec"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"flashcat.cloud/categraf/types"
 )
 
 type roundTripTimeStats struct {
