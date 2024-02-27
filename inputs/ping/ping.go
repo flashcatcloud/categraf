@@ -1,24 +1,31 @@
 package ping
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net"
+	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
 
+	ping "github.com/prometheus-community/pro-bing"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/cmdx"
 	"flashcat.cloud/categraf/types"
-	ping "github.com/prometheus-community/pro-bing"
 )
 
 const (
 	inputName                = "ping"
 	defaultPingDataBytesSize = 56
 )
+
+type HostPinger func(binary string, timeout float64, args ...string) (string, error)
 
 type Instance struct {
 	config.InstanceConfig
@@ -31,10 +38,17 @@ type Instance struct {
 	IPv6         bool     `toml:"ipv6"`          // Whether to resolve addresses using ipv6 or not.
 	Size         *int     `toml:"size"`          // Packet size
 	Conc         int      `toml:"concurrency"`   // max concurrency coroutine
+	Method       string   `toml:"method"`        // Method defines how to ping (native or exec)
+	Binary       string   `toml:"binary"`        // Ping executable binary
 
 	calcInterval  time.Duration
 	calcTimeout   time.Duration
 	sourceAddress string
+
+	// host ping function
+	pingHost HostPinger
+
+	Deadline int // Ping deadline, in seconds. 0 means no deadline. (ping -w <DEADLINE>)
 }
 
 func (ins *Instance) Init() error {
@@ -80,6 +94,15 @@ func (ins *Instance) Init() error {
 		}
 	}
 
+	if ins.Method == "" {
+		ins.Method = "native"
+	}
+
+	if ins.Method == "exec" && ins.Binary == "" {
+		ins.Binary = "ping"
+	}
+
+	ins.pingHost = hostPinger
 	return nil
 }
 
@@ -115,6 +138,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		return
 	}
 
+	if ins.DebugMod {
+		log.Println("D! ping method", ins.Method)
+	}
 	wg := new(sync.WaitGroup)
 	ch := make(chan struct{}, ins.Conc)
 	for _, target := range ins.Targets {
@@ -122,14 +148,19 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		wg.Add(1)
 		go func(target string) {
 			defer wg.Done()
-			ins.gather(slist, target)
+			switch ins.Method {
+			case "exec":
+				ins.execGather(slist, target)
+			default:
+				ins.nativeGather(slist, target)
+			}
 			<-ch
 		}(target)
 	}
 	wg.Wait()
 }
 
-func (ins *Instance) gather(slist *types.SampleList, target string) {
+func (ins *Instance) nativeGather(slist *types.SampleList, target string) {
 	if ins.DebugMod {
 		log.Println("D! ping...", target)
 	}
@@ -243,4 +274,24 @@ func (ins *Instance) ping(destination string) (*pingStats, error) {
 	ps.Statistics = *pinger.Statistics()
 
 	return ps, nil
+}
+
+func hostPinger(binary string, timeout float64, args ...string) (string, error) {
+	bin, err := exec.LookPath(binary)
+	if err != nil {
+		return "", err
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command(bin, args...)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err, to := cmdx.RunTimeout(cmd, time.Second*time.Duration(timeout+5))
+	if to {
+		log.Printf("E! run command: %s timeout", strings.Join(cmd.Args, " "))
+		return stderr.String(), errors.New("run command timeout")
+	}
+	return stdout.String(), err
 }
