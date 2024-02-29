@@ -62,7 +62,7 @@ func (s *GPUStats) buildQFieldToRFieldMap() ([]qField, map[qField]rField, error)
 		qFields = parsed
 	}
 
-	resultTable, err := s.scrape()
+	resultTable, err := s.scrape(qFields)
 
 	var rFields []rField
 

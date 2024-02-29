@@ -67,7 +67,7 @@ func (s *GPUStats) Gather(slist *types.SampleList) {
 		slist.PushFront(types.NewSample(inputName, "scrape_use_seconds", use))
 	}(begun)
 
-	currentTable, err := s.scrape()
+	currentTable, err := s.scrape(s.qFields)
 	if err != nil {
 		slist.PushFront(types.NewSample(inputName, "scraper_up", 0))
 		return
