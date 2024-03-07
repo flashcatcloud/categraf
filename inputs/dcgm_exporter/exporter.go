@@ -1,3 +1,5 @@
+//go:build dcgm
+
 package dcgm_exporter
 
 import (
