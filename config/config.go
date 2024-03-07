@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"flashcat.cloud/categraf/config/traces"
 	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/pkg/tls"
 	jsoniter "github.com/json-iterator/go"
@@ -112,7 +111,6 @@ type ConfigType struct {
 	WriterOpt  WriterOpt        `toml:"writer_opt"`
 	Writers    []WriterOption   `toml:"writers"`
 	Logs       Logs             `toml:"logs"`
-	Traces     *traces.Config   `toml:"traces"`
 	HTTP       *HTTP            `toml:"http"`
 	Prometheus *Prometheus      `toml:"prometheus"`
 	Ibex       *IbexConfig      `toml:"ibex"`
@@ -161,10 +159,6 @@ func InitConfig(configDir string, debugLevel int, debugMode, testMode bool, inte
 	Config.Global.Hostname = strings.TrimSpace(Config.Global.Hostname)
 
 	if err := InitHostInfo(); err != nil {
-		return err
-	}
-
-	if err := traces.Parse(Config.Traces); err != nil {
 		return err
 	}
 

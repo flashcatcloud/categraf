@@ -2,8 +2,9 @@ package node_exporter
 
 import (
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
 	"log"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
