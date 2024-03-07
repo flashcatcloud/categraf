@@ -46,6 +46,7 @@ builds:
       - amd64
     tags:
       - arppacket
+      - dcgm
     ldflags:
       - -s -w
       - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}

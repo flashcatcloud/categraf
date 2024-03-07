@@ -17,6 +17,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/prometheus/model/histogram"
+	"github.com/prometheus/prometheus/model/metadata"
+
 	coreconfig "flashcat.cloud/categraf/config"
 	"github.com/alecthomas/units"
 	"github.com/go-kit/log"
@@ -169,6 +172,14 @@ func (n notReadyAppender) Append(ref storage.SeriesRef, l labels.Labels, t int64
 }
 
 func (n notReadyAppender) AppendExemplar(ref storage.SeriesRef, l labels.Labels, e exemplar.Exemplar) (storage.SeriesRef, error) {
+	return 0, tsdb.ErrNotReady
+}
+
+func (n notReadyAppender) AppendHistogram(ref storage.SeriesRef, l labels.Labels, t int64, h *histogram.Histogram) (storage.SeriesRef, error) {
+	return 0, tsdb.ErrNotReady
+}
+
+func (n notReadyAppender) UpdateMetadata(ref storage.SeriesRef, l labels.Labels, m metadata.Metadata) (storage.SeriesRef, error) {
 	return 0, tsdb.ErrNotReady
 }
 
@@ -385,7 +396,7 @@ func (opts tsdbOptions) ToTSDBOptions() tsdb.Options {
 		RetentionDuration:              int64(time.Duration(opts.RetentionDuration) / time.Millisecond),
 		MaxBytes:                       int64(opts.MaxBytes),
 		NoLockfile:                     opts.NoLockfile,
-		AllowOverlappingBlocks:         opts.AllowOverlappingBlocks,
+		AllowOverlappingCompaction:     true,
 		WALCompression:                 opts.WALCompression,
 		HeadChunksWriteQueueSize:       opts.HeadChunksWriteQueueSize,
 		StripeSize:                     opts.StripeSize,
