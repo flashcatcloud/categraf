@@ -29,6 +29,8 @@ jobs:
           fetch-depth: 100
       - name: Run commitlint
         uses: wagoid/commitlint-github-action@v5
+        with:
+          configFile: .github/commitlint.config.js
   GoLint:
     name: "Code Analysis"
     runs-on: ubuntu-latest
