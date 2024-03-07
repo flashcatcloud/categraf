@@ -57,7 +57,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
-	github.com/NVIDIA/go-nvml v0.12.0-2 // indirect
 	github.com/alecthomas/participle v0.4.1 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.4 // indirect
 	github.com/alibabacloud-go/debug v0.0.0-20190504072949-9472017b5c68 // indirect
@@ -121,8 +120,8 @@ require (
 	github.com/AlekSi/pointer v1.2.0
 	github.com/IBM/sarama v1.42.1
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
-	github.com/NVIDIA/dcgm-exporter v0.0.0-20240301153252-9d2d633c4a6d
 	github.com/NVIDIA/go-dcgm v0.0.0-20240118201113-3385e277e49f
+	github.com/NVIDIA/go-nvml v0.12.0-2
 	github.com/alibabacloud-go/cms-20190101/v8 v8.0.0
 	github.com/alibabacloud-go/cms-export-20211101/v2 v2.0.0
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.0

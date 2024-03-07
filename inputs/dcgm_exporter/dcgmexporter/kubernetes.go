@@ -30,7 +30,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	podresourcesapi "k8s.io/kubelet/pkg/apis/podresources/v1alpha1"
 
-	"github.com/NVIDIA/dcgm-exporter/internal/pkg/nvmlprovider"
+	"flashcat.cloud/categraf/pkg/nvmlprovider"
 )
 
 var (

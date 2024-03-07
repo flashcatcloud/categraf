@@ -2,19 +2,19 @@ package dcgm_exporter
 
 import (
 	"bytes"
-	"flashcat.cloud/categraf/parser/prometheus"
 	"fmt"
-	"github.com/NVIDIA/go-dcgm/pkg/dcgm"
-	"github.com/sirupsen/logrus"
 	"log"
 	"net/http"
 	"runtime/debug"
 	"strconv"
 	"strings"
 
+	"github.com/NVIDIA/go-dcgm/pkg/dcgm"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/dcgm_exporter/dcgmexporter"
+	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -116,7 +116,7 @@ func (ins *Instance) Init() error {
 		// Address:                    i.Address,
 		// CollectInterval:            i.Interval * i.GetIntervalTimes(),
 		Kubernetes:          ins.Kubernetes,
-		KubernetesGPUIdType: dcgmexporter.KubernetesGPUIDType(i.KubernetesGPUIDType),
+		KubernetesGPUIdType: dcgmexporter.KubernetesGPUIDType(ins.KubernetesGPUIDType),
 		CollectDCP:          true,
 		UseOldNamespace:     ins.UseOldNamespace,
 		UseRemoteHE:         ins.RemoteHostEngine != "",
@@ -139,7 +139,7 @@ func (ins *Instance) Init() error {
 	// during initialization and return an error.
 	defer func() {
 		if r := recover(); r != nil {
-			logrus.WithField(dcgmexporter.LoggerStackTrace, string(debug.Stack())).Error("Encountered a failure.")
+			log.Println(string(debug.Stack()))
 			log.Printf("E! encountered a failure; err: %v", r)
 		}
 	}()
@@ -147,14 +147,14 @@ func (ins *Instance) Init() error {
 	if ins.DebugMod {
 		// enable debug logging
 		log.Println("Starting dcgm-exporter")
-		logrus.SetLevel(logrus.DebugLevel)
-		logrus.Debug("Debug output is enabled")
 	}
 
-	logrus.WithField(dcgmexporter.LoggerDumpKey, fmt.Sprintf("%+v", ins.config)).Debug("Loaded configuration")
+	if ins.DebugMod {
+		log.Printf("%+v", cfg)
+	}
 
 	if cfg.UseRemoteHE {
-		logrus.Info("Attemping to connect to remote hostengine at ", ins.config.RemoteHEInfo)
+		log.Printf("Attemping to connect to remote hostengine at ", cfg.RemoteHEInfo)
 		ins.dcgmCleanup, err = dcgm.Init(dcgm.Standalone, cfg.RemoteHEInfo, "0")
 		if err != nil {
 			log.Fatal(err)
@@ -174,9 +174,9 @@ func (ins *Instance) Init() error {
 	groups, err = dcgm.GetSupportedMetricGroups(0)
 	if err != nil {
 		cfg.CollectDCP = false
-		logrus.Info("Not collecting DCP metrics: ", err)
+		log.Printf("Not collecting DCP metrics: ", err)
 	} else {
-		logrus.Info("Collecting DCP Metrics")
+		log.Println("Collecting DCP Metrics")
 		cfg.MetricGroups = groups
 	}
 
@@ -210,11 +210,10 @@ func (ins *Instance) Init() error {
 	for _, egt := range dcgmexporter.FieldEntityGroupTypeToMonitor {
 		err := fieldEntityGroupTypeSystemInfo.Load(egt)
 		if err != nil {
-			logrus.Infof("Not collecting %s metrics; %s", egt.String(), err)
+			log.Printf("Not collecting %s metrics; %s", egt.String(), err)
 		}
 	}
 
-	ch := make(chan string, 10)
 	hostname := config.Config.GetHostname()
 
 	pipeline, cleanup, err := dcgmexporter.NewMetricsPipeline(cfg,
@@ -234,12 +233,12 @@ func (ins *Instance) Init() error {
 	if dcgmexporter.IsDCGMExpXIDErrorsCountEnabled(cs.ExporterCounters) {
 		item, exists := fieldEntityGroupTypeSystemInfo.Get(dcgm.FE_GPU)
 		if !exists {
-			logrus.Fatalf("%s collector cannot be initialized", dcgmexporter.DCGMXIDErrorsCount.String())
+			log.Fatalf("%s collector cannot be initialized", dcgmexporter.DCGMXIDErrorsCount.String())
 		}
 
 		xidCollector, err := dcgmexporter.NewXIDCollector(cs.ExporterCounters, hostname, cfg, item)
 		if err != nil {
-			logrus.Fatal(err)
+			log.Fatal(err)
 		}
 
 		ins.registry.Register(xidCollector)

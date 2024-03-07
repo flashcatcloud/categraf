@@ -85,8 +85,6 @@ github.com/Masterminds/semver/v3 v3.1.1 h1:hLg3sBzpNErnxhQtUy/mmLR2I9foDujNK030I
 github.com/Masterminds/semver/v3 v3.1.1/go.mod h1:VPu/7SZ7ePZ3QOrcuXROw5FAcLl4a0cBrbBpGY/8hQs=
 github.com/Microsoft/go-winio v0.5.2 h1:a9IhgEQBCUEk6QCdml9CiJGhAws+YwffDHEMp1VMrpA=
 github.com/Microsoft/go-winio v0.5.2/go.mod h1:WpS1mjBmmwHBEWmogvA2mj8546UReBk4v8QkMxJ6pZY=
-github.com/NVIDIA/dcgm-exporter v0.0.0-20240301153252-9d2d633c4a6d h1:qYMT/e+wl3zlxV3lZLljBkH5wkQWYGl5zR4oKrqzGa8=
-github.com/NVIDIA/dcgm-exporter v0.0.0-20240301153252-9d2d633c4a6d/go.mod h1:qr5ffiv+nKsndBG16sOVZieYzKiqT13XeaDNKnpMXF0=
 github.com/NVIDIA/go-dcgm v0.0.0-20240118201113-3385e277e49f h1:HEY1H1By8XI2P6KHA0wk+nXsBE+l/iYRCAwR6nZAoU8=
 github.com/NVIDIA/go-dcgm v0.0.0-20240118201113-3385e277e49f/go.mod h1:kaRlwPjisNMY7xH8QWJ+6q76YJ/1eu6pWV45B5Ew6C4=
 github.com/NVIDIA/go-nvml v0.12.0-2 h1:Sg239yy7jmopu/cuvYauoMj9fOpcGMngxVxxS1EBXeY=
