@@ -1,6 +1,6 @@
 #[[instances]]
 # path to the file, that contains the DCGM fields to collect
-# collectors = "/etc/dcgm-exporter/default-counters.csv"
+# collectors = "conf/input.dcgm/default-counters.csv"
 
 # Enable kubernetes mapping metrics to kubernetes pods
 # kubernetes=false

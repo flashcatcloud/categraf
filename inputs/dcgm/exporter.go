@@ -1,6 +1,6 @@
 //go:build dcgm
 
-package dcgm_exporter
+package dcgm
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
-	"flashcat.cloud/categraf/inputs/dcgm_exporter/dcgmexporter"
+	"flashcat.cloud/categraf/inputs/dcgm/dcgmexporter"
 	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/types"
 )
