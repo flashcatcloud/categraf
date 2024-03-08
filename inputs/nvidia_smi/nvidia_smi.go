@@ -43,6 +43,9 @@ func (s *GPUStats) Init() error {
 	if s.NvidiaSmiCommand == "" {
 		return types.ErrInstancesEmpty
 	}
+	if s.QueryTimeOut == 0 {
+		s.QueryTimeOut = config.Duration(5 * time.Second)
+	}
 
 	qFieldsOrdered, qFieldToRFieldMap, err := s.buildQFieldToRFieldMap()
 	if err != nil {
