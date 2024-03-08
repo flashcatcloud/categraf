@@ -23,7 +23,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/conntrack"
 	_ "flashcat.cloud/categraf/inputs/consul"
 	_ "flashcat.cloud/categraf/inputs/cpu"
-	_ "flashcat.cloud/categraf/inputs/dcgm_exporter"
+	_ "flashcat.cloud/categraf/inputs/dcgm"
 	_ "flashcat.cloud/categraf/inputs/disk"
 	_ "flashcat.cloud/categraf/inputs/diskio"
 	_ "flashcat.cloud/categraf/inputs/dns_query"

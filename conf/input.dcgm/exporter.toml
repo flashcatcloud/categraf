@@ -1,6 +1,6 @@
 #[[instances]]
 # path to the file, that contains the DCGM fields to collect
-# collectors = "/etc/dcgm-exporter/default-counters.csv"
+# collectors = "conf/input.dcgm/default-counters.csv"
 
 # Enable kubernetes mapping metrics to kubernetes pods
 # kubernetes=false
@@ -11,15 +11,15 @@
 # Use old 1.x namespace
 # use-old-namespace = false
 
-# cpu-devices = "f"
+  cpu-devices = "f"
 
 # gpu devices
-# devices = "f"
+  devices = "f"
 
-# switch-devices = "f"
+  switch-devices = "f"
 
 # ConfigMap <NAMESPACE>:<NAME> for metric data
-# configmap-data = "none"
+  configmap-data = "none"
 
 # Connect to remote hostengine at <HOST>:<PORT>
 # remote-hostengine-info = "localhost:5555"
