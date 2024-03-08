@@ -176,7 +176,7 @@ func (ins *Instance) Init() error {
 	groups, err = dcgm.GetSupportedMetricGroups(0)
 	if err != nil {
 		cfg.CollectDCP = false
-		log.Printf("Not collecting DCP metrics: ", err)
+		log.Println("Not collecting DCP metrics: ", err)
 	} else {
 		log.Println("Collecting DCP Metrics")
 		cfg.MetricGroups = groups
@@ -349,7 +349,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		log.Println("E! dcgm exporter collects error:", err)
 		return
 	}
-	parser := prometheus.NewParser(inputName, labels, http.Header{}, false,
+	parser := prometheus.NewParser("", labels, http.Header{}, false,
 		nil, nil)
 	err = parser.Parse(buf.Bytes(), slist)
 	if err != nil {
