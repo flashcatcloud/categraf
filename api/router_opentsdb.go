@@ -150,8 +150,6 @@ func openTSDB(c *gin.Context) {
 		ts   = time.Now().Unix()
 	)
 
-	ignoreHostname := c.GetBool("ignore_hostname")
-	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
 	count := len(list)
 	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < len(list); i++ {
@@ -164,17 +162,17 @@ func openTSDB(c *gin.Context) {
 			continue
 		}
 		// add global labels
-		if !ignoreGlobalLabels {
-			for k, v := range config.GlobalLabels() {
-				if _, has := list[i].Tags[k]; has {
-					continue
-				}
-				list[i].Tags[k] = v
+		for k, v := range config.GlobalLabels() {
+			if _, has := list[i].Tags[k]; has {
+				continue
 			}
+			list[i].Tags[k] = v
 		}
 		// add label: agent_hostname
-		if _, has := list[i].Tags[agentHostnameLabelKey]; !has && !ignoreHostname {
-			list[i].Tags[agentHostnameLabelKey] = config.Config.GetHostname()
+		if _, has := list[i].Tags[agentHostnameLabelKey]; !has {
+			if !config.Config.Global.OmitHostname {
+				list[i].Tags[agentHostnameLabelKey] = config.Config.GetHostname()
+			}
 		}
 
 		pt, err := list[i].ToProm()

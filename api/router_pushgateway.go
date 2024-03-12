@@ -38,11 +38,7 @@ func pushgateway(c *gin.Context) {
 		return
 	}
 
-	ignoreHostname := c.GetBool("ignore_hostname")
-	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
-
 	now := time.Now()
-
 	for i := 0; i < count; i++ {
 		// handle timestamp
 		if samples[i].Timestamp.IsZero() {
@@ -50,18 +46,18 @@ func pushgateway(c *gin.Context) {
 		}
 
 		// add global labels
-		if !ignoreGlobalLabels {
-			for k, v := range config.GlobalLabels() {
-				if _, has := samples[i].Labels[k]; has {
-					continue
-				}
-				samples[i].Labels[k] = v
+		for k, v := range config.GlobalLabels() {
+			if _, has := samples[i].Labels[k]; has {
+				continue
 			}
+			samples[i].Labels[k] = v
 		}
 
 		// add label: agent_hostname
-		if _, has := samples[i].Labels[agentHostnameLabelKey]; !has && !ignoreHostname {
-			samples[i].Labels[agentHostnameLabelKey] = config.Config.GetHostname()
+		if _, has := samples[i].Labels[agentHostnameLabelKey]; !has {
+			if !config.Config.Global.OmitHostname {
+				samples[i].Labels[agentHostnameLabelKey] = config.Config.GetHostname()
+			}
 		}
 
 	}
