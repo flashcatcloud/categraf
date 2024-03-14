@@ -168,8 +168,8 @@ func openFalcon(c *gin.Context) {
 		ts   = time.Now().Unix()
 	)
 
-	ignoreHostname := c.GetBool("ignore_hostname")
-	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
+	ignoreHostname := config.Config.HTTP.IgnoreHostname
+	ignoreGlobalLabels := config.Config.HTTP.IgnoreGlobalLabels
 	count := len(arr)
 	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < count; i++ {

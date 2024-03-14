@@ -65,15 +65,17 @@ type WriterOption struct {
 }
 
 type HTTP struct {
-	Enable       bool   `toml:"enable"`
-	Address      string `toml:"address"`
-	PrintAccess  bool   `toml:"print_access"`
-	RunMode      string `toml:"run_mode"`
-	CertFile     string `toml:"cert_file"`
-	KeyFile      string `toml:"key_file"`
-	ReadTimeout  int    `toml:"read_timeout"`
-	WriteTimeout int    `toml:"write_timeout"`
-	IdleTimeout  int    `toml:"idle_timeout"`
+	Enable             bool   `toml:"enable"`
+	Address            string `toml:"address"`
+	PrintAccess        bool   `toml:"print_access"`
+	RunMode            string `toml:"run_mode"`
+	IgnoreHostname     bool   `toml:"ignore_hostname"`
+	IgnoreGlobalLabels bool   `toml:"ignore_global_labels"`
+	CertFile           string `toml:"cert_file"`
+	KeyFile            string `toml:"key_file"`
+	ReadTimeout        int    `toml:"read_timeout"`
+	WriteTimeout       int    `toml:"write_timeout"`
+	IdleTimeout        int    `toml:"idle_timeout"`
 }
 
 type IbexConfig struct {
