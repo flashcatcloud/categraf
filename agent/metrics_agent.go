@@ -81,6 +81,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/snmp_trap"
 	_ "flashcat.cloud/categraf/inputs/sockstat"
 	_ "flashcat.cloud/categraf/inputs/sqlserver"
+	_ "flashcat.cloud/categraf/inputs/supervisor"
 	_ "flashcat.cloud/categraf/inputs/switch_legacy"
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/systemd"
