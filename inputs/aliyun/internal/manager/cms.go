@@ -86,42 +86,22 @@ func (m *Manager) dataPointConverter(metricName, ns, datapoints string) ([]types
 	if err != nil {
 		return nil, err
 	}
-	r := types.Point{}
 	result := make([]types.Point, 0, len(points))
 	for _, point := range points {
-		r.UserID = point.UserID
-		r.NodeID = point.NodeID
-		r.ClusterID = point.ClusterID
-		r.InstanceID = point.InstanceID
-		r.Namespace = ns
-		r.Timestamp = point.Timestamp
-		r.Device = point.Device
-
-		if point.Val != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "value")
-			r.Value = tea.Float64(*point.Val)
-			result = append(result, r)
+		point.Namespace = ns
+		attributes := map[string]*float64{
+			"value":   point.Val,
+			"maximum": point.Max,
+			"minimum": point.Min,
+			"average": point.Avg,
+			"sum":     point.Sum,
 		}
-		if point.Max != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "maximum")
-			r.Value = tea.Float64(*point.Max)
-			result = append(result, r)
-		}
-		if point.Min != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "minimum")
-			r.Value = tea.Float64(*point.Min)
-			result = append(result, r)
-		}
-
-		if point.Avg != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "average")
-			r.Value = tea.Float64(*point.Avg)
-			result = append(result, r)
-		}
-		if point.Sum != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "sum")
-			r.Value = tea.Float64(*point.Sum)
-			result = append(result, r)
+		for attrName, attrValue := range attributes {
+			if attrValue != nil {
+				point.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), attrName)
+				point.Value = tea.Float64(*attrValue)
+				result = append(result, point)
+			}
 		}
 	}
 	return result, nil
