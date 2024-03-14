@@ -26,6 +26,7 @@ providers = ["local"]
 # However, utilizing the concurrency setting can help mitigate this issue and optimize the response time.
 concurrency = -1
 
+# Setting http.ignore_global_labels = true if disabled report custom labels
 [global.labels]
 # region = "shanghai"
 # env = "localhost"
@@ -80,6 +81,8 @@ enable = false
 address = ":9100"
 print_access = false
 run_mode = "release"
+ignore_hostname = false
+ignore_global_labels = false
 
 [ibex]
 enable = false
