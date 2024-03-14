@@ -365,10 +365,6 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 				// SNMP RFCs like 3411 and 5343 show engine ID as a hex string
 				tags["engine_id"] = fmt.Sprintf("%x", packet.ContextEngineID)
 			}
-		} else {
-			if packet.Community != "" {
-				tags["community"] = packet.Community
-			}
 		}
 		for k, v := range fields {
 			slist.PushFront(types.NewSample(inputName, k, v, tags).SetTime(time.Now()))
