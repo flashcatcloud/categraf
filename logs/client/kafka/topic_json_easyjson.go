@@ -40,6 +40,8 @@ func easyjsonDe48e4d6DecodeFlashcatCloudCategrafLogsClientKafka(in *jlexer.Lexer
 		switch key {
 		case "topic":
 			out.Topic = string(in.String())
+		case "msg_key":
+			out.MsgKey = string(in.String())
 		default:
 			in.SkipRecursive()
 		}
@@ -58,6 +60,9 @@ func easyjsonDe48e4d6EncodeFlashcatCloudCategrafLogsClientKafka(out *jwriter.Wri
 		const prefix string = ",\"topic\":"
 		out.RawString(prefix[1:])
 		out.String(string(in.Topic))
+		const prefix1 string = ",\"msg_key\":"
+		out.RawString(prefix1[1:])
+		out.String(string(in.MsgKey))
 	}
 	out.RawByte('}')
 }
