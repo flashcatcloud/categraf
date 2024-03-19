@@ -40,7 +40,8 @@ func easyjsonDe48e4d6DecodeFlashcatCloudCategrafLogsClientKafka(in *jlexer.Lexer
 		switch key {
 		case "topic":
 			out.Topic = string(in.String())
-		case "msg_key": out.MsgKey = string(in.String())
+		case "msg_key":
+			out.MsgKey = string(in.String())
 		default:
 			in.SkipRecursive()
 		}
