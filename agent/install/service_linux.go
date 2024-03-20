@@ -196,6 +196,7 @@ func ServiceConfig() *service.Config {
 		depends = append(depends, "Wants=network-online.target")
 		option["SystemdScript"] = systemdScript
 		option["Restart"] = "on-failure"
+		option["ReloadSignal"] = "HUP"
 
 		// REMEMBER: Explicit disable LogOutput option of kardianos/service, and
 		// use StandardOutput/StandardError settings manually written above.
