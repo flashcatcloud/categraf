@@ -45,7 +45,6 @@ builds:
     goarch:
       - amd64
     tags:
-      - arppacket
       - dcgm
     ldflags:
       - -s -w
