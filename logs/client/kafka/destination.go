@@ -26,7 +26,7 @@ const (
 	JSONContentType = "application/json"
 )
 
-// errors.
+// Kafka errors.
 var (
 	errClient = errors.New("client error")
 	errServer = errors.New("server error")
@@ -40,7 +40,7 @@ type Destination struct {
 	apiKey              string
 	contentType         string
 	contentEncoding     ContentEncoding
-	client              sarama.SyncProducer
+	client              Producer
 	destinationsContext *client.DestinationsContext
 	once                sync.Once
 	payloadChan         chan []byte
@@ -72,9 +72,11 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		endpoint.RecoveryInterval,
 		endpoint.RecoveryReset,
 	)
+	typ := SyncProducer
 
 	if coreconfig.Config.Logs.Config == nil {
 		coreconfig.Config.Logs.Config = sarama.NewConfig()
+		// default
 		coreconfig.Config.Logs.Producer.Partitioner = sarama.NewRandomPartitioner
 		if coreconfig.Config.Logs.PartitionStrategy == "round_robin" {
 			coreconfig.Config.Logs.Producer.Partitioner = sarama.NewRoundRobinPartitioner
@@ -85,10 +87,40 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		if coreconfig.Config.Logs.PartitionStrategy == "hash" {
 			coreconfig.Config.Logs.Producer.Partitioner = sarama.NewHashPartitioner
 		}
-
 		coreconfig.Config.Logs.Producer.Return.Successes = true
+		coreconfig.Config.Logs.Producer.Return.Errors = true
+		if coreconfig.BatchConcurrence() > 0 {
+			size := 256
+			if coreconfig.BatchMaxSize() > 256 {
+				size = coreconfig.BatchMaxSize()
+			}
+			coreconfig.Config.Logs.ChannelBufferSize = size
+			coreconfig.Config.Logs.Net.MaxOpenRequests = coreconfig.BatchConcurrence()
+			coreconfig.Config.Logs.Producer.RequiredAcks = sarama.WaitForAll
+		}
+	}
+	if coreconfig.Config.Logs.UseCompression {
+		switch coreconfig.Config.Logs.CompressionCodec {
+		case "gzip":
+			coreconfig.Config.Logs.Config.Producer.Compression = sarama.CompressionGZIP
+		case "snappy":
+			coreconfig.Config.Logs.Config.Producer.Compression = sarama.CompressionSnappy
+		case "lz4":
+			coreconfig.Config.Logs.Config.Producer.Compression = sarama.CompressionLZ4
+		case "zstd":
+			coreconfig.Config.Logs.Config.Producer.Compression = sarama.CompressionZSTD
+		default:
+			coreconfig.Config.Logs.Config.Producer.Compression = sarama.CompressionNone
+		}
+		coreconfig.Config.Logs.Producer.CompressionLevel = coreconfig.Config.Logs.CompressionLevel
 	}
 
+	if coreconfig.BatchConcurrence() > 0 {
+		typ = AsyncProducer
+	}
+	if util.Debug() {
+		log.Println("D! producer type:", typ, coreconfig.Config.Logs.ChannelBufferSize, coreconfig.Config.Logs.Net.MaxOpenRequests)
+	}
 	coreconfig.Config.Logs.Config.Producer.Timeout = timeout
 
 	if coreconfig.Config.Logs.SendWithTLS && coreconfig.Config.Logs.SendType == "kafka" {
@@ -123,11 +155,12 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 	}
 
 	brokers := strings.Split(endpoint.Addr, ",")
-	c, err := sarama.NewSyncProducer(brokers, coreconfig.Config.Logs.Config)
+	c, err := New(typ, brokers, coreconfig.Config.Logs.Config)
 	if err != nil {
 		panic(err)
 	}
-	return &Destination{
+
+	d := &Destination{
 		topic:               endpoint.Topic,
 		brokers:             brokers,
 		apiKey:              endpoint.APIKey,
@@ -140,6 +173,11 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		protocol:            endpoint.Protocol,
 		origin:              endpoint.Origin,
 	}
+	return d
+}
+
+func (d *Destination) Close() {
+	d.client.Close()
 }
 
 func errorToTag(err error) string {
@@ -152,11 +190,10 @@ func errorToTag(err error) string {
 	}
 }
 
-// Send sends a payload over Kafka,
+// Send sends a payload over kafka,
 // the error returned can be retryable and it is the responsibility of the callee to retry.
 func (d *Destination) Send(payload []byte) error {
 	if d.blockedUntil.After(time.Now()) {
-		// log.Printf("%s: sleeping until %v before retrying\n", d.url, d.blockedUntil)
 		d.waitForBackoff()
 	}
 
@@ -196,7 +233,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 	err = NewBuilder().WithMessage(msgKey, encodedPayload).WithTopic(topic).Send(d.client)
 	if err != nil {
 		log.Printf("W! send message to kafka error %s, topic:%s", err, topic)
-		if ctx.Err() == context.Canceled {
+		if errors.Is(ctx.Err(), context.Canceled) {
 			return ctx.Err()
 		}
 		// most likely a network or a connect error, the callee should retry.
@@ -240,9 +277,6 @@ func (d *Destination) sendInBackground(payloadChan chan []byte) {
 }
 
 func buildContentEncoding(endpoint logsconfig.Endpoint) ContentEncoding {
-	if endpoint.UseCompression {
-		return NewGzipContentEncoding(endpoint.CompressionLevel)
-	}
 	return IdentityContentType
 }
 

@@ -234,32 +234,8 @@ const kubernetesIntegration = "kubernetes"
 func (l *Launcher) getSource(pod *kubernetes.Pod, container kubernetes.ContainerStatus) (*logsconfig.LogSource, error) {
 	var cfg *logsconfig.LogsConfig
 	standardService := l.serviceNameFunc(container.Name, getTaggerEntityID(container.ID))
-	// if annotation := l.getAnnotation(pod, container); annotation != "" {
-	// 	configs, err := logsconfig.ParseJSON([]byte(annotation))
-	// 	if err != nil || len(configs) == 0 {
-	// 		return nil, fmt.Errorf("could not parse kubernetes annotation %v", annotation)
-	// 	}
-	// 	// We may have more than one log configuration in the annotation, ignore those
-	// 	// unrelated to containers
-	// 	containerType, _ := containers.SplitEntityName(container.ID)
-	// 	for _, c := range configs {
-	// 		if c.Type == "" || c.Type == containerType {
-	// 			cfg = c
-	// 			break
-	// 		}
-	// 	}
-	// 	if cfg == nil {
-	// 		log.Printf("annotation found: %v, for pod %v, container %v, but no config was usable for container log collection", annotation, pod.Metadata.Name, container.Name)
-	// 	}
-	// }
-
 	if cfg == nil {
-		if !l.collectAll {
-			return nil, errCollectAllDisabled
-		}
-		if !(pod.Metadata.Annotations[AnnotationCollectKey] == "" ||
-			pod.Metadata.Annotations[AnnotationCollectKey] == "true") {
-			log.Printf("pod %s disable stdout collecting", pod.Metadata.Name)
+		if !l.collectAll && pod.Metadata.Annotations[AnnotationCollectKey] != "true" {
 			return nil, errCollectAllDisabled
 		}
 		// The logs source is the short image name

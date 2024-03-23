@@ -51,6 +51,8 @@ type (
 		Brokers []string `json:"brokers" toml:"brokers"`
 		*sarama.Config
 
+		CompressionCodec string `json:"compression_codec" toml:"compression_codec"`
+
 		KafkaVersion     string `toml:"kafka_version"`
 		SaslEnable       bool   `toml:"sasl_enable"`
 		SaslMechanism    string `toml:"sasl_mechanism"`
@@ -150,6 +152,13 @@ func ValidatePodContainerID() bool {
 
 func IsFeaturePresent(t string) bool {
 	return false
+}
+
+func EnableCollectContainer() bool {
+	if Version < "v0.3.58" {
+		return Config.Logs.CollectContainerAll
+	}
+	return Config.Logs.EnableCollectContainer
 }
 
 func GetContainerCollectAll() bool {

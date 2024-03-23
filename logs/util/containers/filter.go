@@ -206,6 +206,9 @@ func newMetricFilterFromConfig() (*Filter, error) {
 	// is used by all core and python checks (so components sending metrics).
 	includeList := coreconfig.GetContainerIncludeList()
 	excludeList := coreconfig.GetContainerExcludeList()
+	if len(excludeList) == 0 {
+		excludeList = append(excludeList, categrafContainer)
+	}
 
 	excludeList = append(excludeList,
 		pauseContainerGCR,
@@ -223,7 +226,6 @@ func newMetricFilterFromConfig() (*Filter, error) {
 		pauseContainerECR,
 		pauseContainerUpstream,
 		pauseContainerCDK,
-		categrafContainer,
 	)
 	return NewFilter(includeList, excludeList)
 }

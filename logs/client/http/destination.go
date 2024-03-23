@@ -91,6 +91,9 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 	}
 }
 
+func (d *Destination) Close() {
+}
+
 func errorToTag(err error) string {
 	if err == nil {
 		return "none"
