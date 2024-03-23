@@ -20,3 +20,10 @@ func NewDestinations(main Destination, additionals []Destination) *Destinations 
 		Additionals: additionals,
 	}
 }
+
+func (ds *Destinations) Close() {
+	ds.Main.Close()
+	for _, dest := range ds.Additionals {
+		dest.Close()
+	}
+}

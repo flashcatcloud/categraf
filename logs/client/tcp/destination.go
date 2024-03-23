@@ -44,6 +44,12 @@ func NewDestination(endpoint logsconfig.Endpoint, useProto bool, destinationsCon
 	}
 }
 
+func (d *Destination) Close() {
+	if d.conn != nil {
+		d.conn.Close()
+	}
+}
+
 // Send transforms a message into a frame and sends it to a remote server,
 // returns an error if the operation failed.
 func (d *Destination) Send(payload []byte) error {

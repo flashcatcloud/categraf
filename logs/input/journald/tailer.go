@@ -76,7 +76,7 @@ func (t *Tailer) setup() error {
 	config := t.source.Config
 	var err error
 
-	// t.initializeTagger()
+	t.initializeTagger()
 
 	if config.Path == "" {
 		// open the default journal
@@ -241,15 +241,15 @@ var applicationKeys = []string{
 
 // getApplicationName returns the name of the application from where the entry is from.
 func (t *Tailer) getApplicationName(entry *sdjournal.JournalEntry, tags []string) string {
-	// if t.isContainerEntry(entry) {
-	// 	if t.source.Config.ContainerMode {
-	// 		if shortName, found := getDockerImageShortName(t.getContainerID(entry), tags); found {
-	// 			return shortName
-	// 		}
-	// 	}
-	//
-	// 	return defaultApplicationName
-	// }
+	if t.isContainerEntry(entry) {
+		if t.source.Config.ContainerMode {
+			if shortName, found := getDockerImageShortName(t.getContainerID(entry), tags); found {
+				return shortName
+			}
+		}
+
+		return defaultApplicationName
+	}
 
 	for _, key := range applicationKeys {
 		if value, exists := entry.Fields[key]; exists {
@@ -262,9 +262,9 @@ func (t *Tailer) getApplicationName(entry *sdjournal.JournalEntry, tags []string
 // getTags returns a list of tags matching with the journal entry.
 func (t *Tailer) getTags(entry *sdjournal.JournalEntry) []string {
 	var tags []string
-	// if t.isContainerEntry(entry) {
-	// 	tags = t.getContainerTags(t.getContainerID(entry))
-	// }
+	if t.isContainerEntry(entry) {
+		tags = t.getContainerTags(t.getContainerID(entry))
+	}
 	return tags
 }
 
