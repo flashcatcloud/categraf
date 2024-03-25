@@ -17,6 +17,9 @@ all: build
 vendor:
 	GOPROXY=https://goproxy.cn go mod vendor
 
+vendor-ci:
+	go mod vendor
+
 build:
 	echo "Building version $(GIT_VERSION)"
 	go build -ldflags $(LDFLAGS) -o $(APP)
