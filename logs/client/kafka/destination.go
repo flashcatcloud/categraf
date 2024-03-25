@@ -160,6 +160,8 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		panic(err)
 	}
 
+	go c.Metrics()
+
 	d := &Destination{
 		topic:               endpoint.Topic,
 		brokers:             brokers,
