@@ -84,9 +84,8 @@ func (s *Supervisor) GetInstances() []inputs.Instance {
 }
 
 func (ins *Instance) Init() error {
-	// Using default server URL if none was specified in config
 	if ins.Url == "" {
-		ins.Url = "http://localhost:9001/RPC2"
+		return types.ErrInstancesEmpty
 	}
 	var err error
 	// Initializing XML-RPC client

@@ -65,8 +65,8 @@ jobs:
       - uses: WillAbides/setup-go-faster@v1.14.0
         with:
           go-version: "1.21"
-      - name: go mod tidy
-        run: make vendor
+      - name: make vendor
+        run: make vendor-ci
       - name: go build linux
         run: make build-linux && make build-linux-arm
       - name: go build windows
