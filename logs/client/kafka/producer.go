@@ -93,7 +93,7 @@ func (p AsyncProducerWrapper) Metrics() {
 			samples := p.slist.PopBackAll()
 			if util.Debug() {
 				for _, s := range samples {
-					log.Println("DEBUG====", s.Metric, s.Value, s.Labels, s.Timestamp)
+					log.Println("D!", s.Metric, s.Value, s.Labels, s.Timestamp)
 				}
 			}
 			writer.WriteSamples(samples)
