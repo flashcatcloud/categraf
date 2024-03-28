@@ -1,0 +1,1094 @@
+{
+    "_nodes": {
+        "failed": 0,
+        "successful": 1,
+        "total": 1
+    },
+    "cluster_name": "elasticsearch",
+    "nodes": {
+        "byoDEtBRSRGZyMKaIpmhCQ": {
+            "adaptive_selection": {},
+            "attributes": {
+                "ml.machine_memory": "33623232512",
+                "ml.max_jvm_size": "788529152",
+                "ml.max_open_jobs": "512",
+                "transform.node": "true",
+                "xpack.installed": "true"
+            },
+            "breakers": {
+                "accounting": {
+                    "estimated_size": "9.1kb",
+                    "estimated_size_in_bytes": 9380,
+                    "limit_size": "752mb",
+                    "limit_size_in_bytes": 788529152,
+                    "overhead": 1,
+                    "tripped": 0
+                },
+                "fielddata": {
+                    "estimated_size": "0b",
+                    "estimated_size_in_bytes": 0,
+                    "limit_size": "300.7mb",
+                    "limit_size_in_bytes": 315411660,
+                    "overhead": 1.03,
+                    "tripped": 0
+                },
+                "in_flight_requests": {
+                    "estimated_size": "0b",
+                    "estimated_size_in_bytes": 0,
+                    "limit_size": "752mb",
+                    "limit_size_in_bytes": 788529152,
+                    "overhead": 2,
+                    "tripped": 0
+                },
+                "model_inference": {
+                    "estimated_size": "0b",
+                    "estimated_size_in_bytes": 0,
+                    "limit_size": "376mb",
+                    "limit_size_in_bytes": 394264576,
+                    "overhead": 1,
+                    "tripped": 0
+                },
+                "parent": {
+                    "estimated_size": "148.9mb",
+                    "estimated_size_in_bytes": 156194432,
+                    "limit_size": "714.3mb",
+                    "limit_size_in_bytes": 749102694,
+                    "overhead": 1,
+                    "tripped": 0
+                },
+                "request": {
+                    "estimated_size": "0b",
+                    "estimated_size_in_bytes": 0,
+                    "limit_size": "451.1mb",
+                    "limit_size_in_bytes": 473117491,
+                    "overhead": 1,
+                    "tripped": 0
+                }
+            },
+            "discovery": {
+                "cluster_state_queue": {
+                    "committed": 0,
+                    "pending": 0,
+                    "total": 0
+                },
+                "published_cluster_states": {
+                    "compatible_diffs": 49,
+                    "full_states": 2,
+                    "incompatible_diffs": 0
+                }
+            },
+            "fs": {
+                "data": [
+                    {
+                        "available_in_bytes": 63425642496,
+                        "free_in_bytes": 63425642496,
+                        "mount": "/ (overlay)",
+                        "path": "/usr/share/elasticsearch/data/nodes/0",
+                        "total_in_bytes": 476630163456,
+                        "type": "overlay"
+                    }
+                ],
+                "io_stats": {},
+                "timestamp": 1622732353202,
+                "total": {
+                    "available_in_bytes": 63425642496,
+                    "free_in_bytes": 63425642496,
+                    "total_in_bytes": 476630163456
+                }
+            },
+            "host": "172.17.0.2",
+            "http": {
+                "clients": [
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732350948,
+                        "id": 789026726,
+                        "last_request_time_millis": 1622732349747,
+                        "last_uri": "/foo_2/type1/1?refresh=wait_for",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732349747,
+                        "remote_address": "172.17.0.1:49438",
+                        "request_count": 1,
+                        "request_size_bytes": 39
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732353149,
+                        "id": 150912494,
+                        "last_request_time_millis": 1622732353149,
+                        "last_uri": "/_all/_stats",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732353149,
+                        "remote_address": "172.17.0.1:49458",
+                        "request_count": 1,
+                        "request_size_bytes": 0
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732351948,
+                        "id": 1204144009,
+                        "last_request_time_millis": 1622732350948,
+                        "last_uri": "/foo_2/type1/2?refresh=wait_for",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732350948,
+                        "remote_address": "172.17.0.1:49442",
+                        "request_count": 1,
+                        "request_size_bytes": 39
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732345338,
+                        "id": 832608635,
+                        "last_request_time_millis": 1622732343337,
+                        "last_uri": "/twitter",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732343337,
+                        "remote_address": "172.17.0.1:49402",
+                        "request_count": 1,
+                        "request_size_bytes": 0
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732353149,
+                        "id": 1787075320,
+                        "last_request_time_millis": 1622732353149,
+                        "last_uri": "/_all/_settings",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732353149,
+                        "remote_address": "172.17.0.1:49454",
+                        "request_count": 1,
+                        "request_size_bytes": 0
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732347139,
+                        "id": 1263458828,
+                        "last_request_time_millis": 1622732346538,
+                        "last_uri": "/viber",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732346538,
+                        "remote_address": "172.17.0.1:49416",
+                        "request_count": 1,
+                        "request_size_bytes": 0
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732352949,
+                        "id": 186367096,
+                        "last_request_time_millis": 1622732352949,
+                        "last_uri": "/_cluster/health",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732352949,
+                        "remote_address": "172.17.0.1:49450",
+                        "request_count": 1,
+                        "request_size_bytes": 0
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732343337,
+                        "id": 1263584333,
+                        "last_request_time_millis": 1622732343337,
+                        "last_uri": "/",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732343337,
+                        "remote_address": "172.17.0.1:49398",
+                        "request_count": 1,
+                        "request_size_bytes": 0
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732347339,
+                        "id": 1290037325,
+                        "last_request_time_millis": 1622732347139,
+                        "last_uri": "/instagram/_settings",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732347139,
+                        "remote_address": "172.17.0.1:49420",
+                        "request_count": 1,
+                        "request_size_bytes": 124
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "id": 170704265,
+                        "last_request_time_millis": 1622732353149,
+                        "last_uri": "/_nodes/stats",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732353149,
+                        "remote_address": "172.17.0.1:49462",
+                        "request_count": 1,
+                        "request_size_bytes": 0
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732348747,
+                        "id": 1002191851,
+                        "last_request_time_millis": 1622732347539,
+                        "last_uri": "/foo_1/type1/1?refresh=wait_for",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732347539,
+                        "remote_address": "172.17.0.1:49428",
+                        "request_count": 1,
+                        "request_size_bytes": 33
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732347539,
+                        "id": 119489056,
+                        "last_request_time_millis": 1622732347339,
+                        "last_uri": "/twitter/_settings",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732347339,
+                        "remote_address": "172.17.0.1:49424",
+                        "request_count": 1,
+                        "request_size_bytes": 124
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732352949,
+                        "id": 562495253,
+                        "last_request_time_millis": 1622732351948,
+                        "last_uri": "/foo_2/type1/3?refresh=wait_for",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732351948,
+                        "remote_address": "172.17.0.1:49446",
+                        "request_count": 1,
+                        "request_size_bytes": 39
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732346538,
+                        "id": 1052374837,
+                        "last_request_time_millis": 1622732345938,
+                        "last_uri": "/instagram",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732345938,
+                        "remote_address": "172.17.0.1:49412",
+                        "request_count": 1,
+                        "request_size_bytes": 0
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732345938,
+                        "id": 1677987869,
+                        "last_request_time_millis": 1622732345338,
+                        "last_uri": "/facebook",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732345338,
+                        "remote_address": "172.17.0.1:49408",
+                        "request_count": 1,
+                        "request_size_bytes": 0
+                    },
+                    {
+                        "agent": "curl/7.68.0",
+                        "closed_time_millis": 1622732349747,
+                        "id": 977313322,
+                        "last_request_time_millis": 1622732348747,
+                        "last_uri": "/foo_1/type1/2?refresh=wait_for",
+                        "local_address": "172.17.0.2:9200",
+                        "opened_time_millis": 1622732348747,
+                        "remote_address": "172.17.0.1:49432",
+                        "request_count": 1,
+                        "request_size_bytes": 33
+                    }
+                ],
+                "current_open": 1,
+                "total_opened": 16
+            },
+            "indexing_pressure": {
+                "memory": {
+                    "current": {
+                        "all_in_bytes": 0,
+                        "combined_coordinating_and_primary_in_bytes": 0,
+                        "coordinating_in_bytes": 0,
+                        "primary_in_bytes": 0,
+                        "replica_in_bytes": 0
+                    },
+                    "limit_in_bytes": 78852915,
+                    "total": {
+                        "all_in_bytes": 1423,
+                        "combined_coordinating_and_primary_in_bytes": 1423,
+                        "coordinating_in_bytes": 1423,
+                        "coordinating_rejections": 0,
+                        "primary_in_bytes": 1463,
+                        "primary_rejections": 0,
+                        "replica_in_bytes": 0,
+                        "replica_rejections": 0
+                    }
+                }
+            },
+            "indices": {
+                "completion": {
+                    "size_in_bytes": 0
+                },
+                "docs": {
+                    "count": 5,
+                    "deleted": 0
+                },
+                "fielddata": {
+                    "evictions": 0,
+                    "memory_size_in_bytes": 0
+                },
+                "flush": {
+                    "periodic": 0,
+                    "total": 0,
+                    "total_time_in_millis": 0
+                },
+                "get": {
+                    "current": 0,
+                    "exists_time_in_millis": 0,
+                    "exists_total": 0,
+                    "missing_time_in_millis": 0,
+                    "missing_total": 0,
+                    "time_in_millis": 0,
+                    "total": 0
+                },
+                "indexing": {
+                    "delete_current": 0,
+                    "delete_time_in_millis": 0,
+                    "delete_total": 0,
+                    "index_current": 0,
+                    "index_failed": 0,
+                    "index_time_in_millis": 14,
+                    "index_total": 5,
+                    "is_throttled": false,
+                    "noop_update_total": 0,
+                    "throttle_time_in_millis": 0
+                },
+                "merges": {
+                    "current": 0,
+                    "current_docs": 0,
+                    "current_size_in_bytes": 0,
+                    "total": 0,
+                    "total_auto_throttle_in_bytes": 125829120,
+                    "total_docs": 0,
+                    "total_size_in_bytes": 0,
+                    "total_stopped_time_in_millis": 0,
+                    "total_throttled_time_in_millis": 0,
+                    "total_time_in_millis": 0
+                },
+                "query_cache": {
+                    "cache_count": 0,
+                    "cache_size": 0,
+                    "evictions": 0,
+                    "hit_count": 0,
+                    "memory_size_in_bytes": 0,
+                    "miss_count": 0,
+                    "total_count": 0
+                },
+                "recovery": {
+                    "current_as_source": 0,
+                    "current_as_target": 0,
+                    "throttle_time_in_millis": 0
+                },
+                "refresh": {
+                    "external_total": 17,
+                    "external_total_time_in_millis": 150,
+                    "listeners": 0,
+                    "total": 17,
+                    "total_time_in_millis": 148
+                },
+                "request_cache": {
+                    "evictions": 0,
+                    "hit_count": 0,
+                    "memory_size_in_bytes": 0,
+                    "miss_count": 0
+                },
+                "search": {
+                    "fetch_current": 0,
+                    "fetch_time_in_millis": 0,
+                    "fetch_total": 0,
+                    "open_contexts": 0,
+                    "query_current": 0,
+                    "query_time_in_millis": 0,
+                    "query_total": 0,
+                    "scroll_current": 0,
+                    "scroll_time_in_millis": 0,
+                    "scroll_total": 0,
+                    "suggest_current": 0,
+                    "suggest_time_in_millis": 0,
+                    "suggest_total": 0
+                },
+                "segments": {
+                    "count": 5,
+                    "doc_values_memory_in_bytes": 380,
+                    "file_sizes": {},
+                    "fixed_bit_set_memory_in_bytes": 0,
+                    "index_writer_memory_in_bytes": 0,
+                    "max_unsafe_auto_id_timestamp": -1,
+                    "memory_in_bytes": 9380,
+                    "norms_memory_in_bytes": 640,
+                    "points_memory_in_bytes": 0,
+                    "stored_fields_memory_in_bytes": 2440,
+                    "term_vectors_memory_in_bytes": 0,
+                    "terms_memory_in_bytes": 5920,
+                    "version_map_memory_in_bytes": 0
+                },
+                "store": {
+                    "reserved_in_bytes": 0,
+                    "size_in_bytes": 22296,
+                    "total_data_set_size_in_bytes": 22296
+                },
+                "translog": {
+                    "earliest_last_modified_age": 1118,
+                    "operations": 5,
+                    "size_in_bytes": 773,
+                    "uncommitted_operations": 5,
+                    "uncommitted_size_in_bytes": 773
+                },
+                "warmer": {
+                    "current": 0,
+                    "total": 11,
+                    "total_time_in_millis": 0
+                }
+            },
+            "ingest": {
+                "pipelines": {
+                    "xpack_monitoring_6": {
+                        "count": 0,
+                        "current": 0,
+                        "failed": 0,
+                        "processors": [
+                            {
+                                "script": {
+                                    "stats": {
+                                        "count": 0,
+                                        "current": 0,
+                                        "failed": 0,
+                                        "time_in_millis": 0
+                                    },
+                                    "type": "script"
+                                }
+                            },
+                            {
+                                "gsub": {
+                                    "stats": {
+                                        "count": 0,
+                                        "current": 0,
+                                        "failed": 0,
+                                        "time_in_millis": 0
+                                    },
+                                    "type": "gsub"
+                                }
+                            }
+                        ],
+                        "time_in_millis": 0
+                    },
+                    "xpack_monitoring_7": {
+                        "count": 0,
+                        "current": 0,
+                        "failed": 0,
+                        "processors": [],
+                        "time_in_millis": 0
+                    }
+                },
+                "total": {
+                    "count": 0,
+                    "current": 0,
+                    "failed": 0,
+                    "time_in_millis": 0
+                }
+            },
+            "ip": "172.17.0.2:9300",
+            "jvm": {
+                "buffer_pools": {
+                    "direct": {
+                        "count": 33,
+                        "total_capacity_in_bytes": 8811045,
+                        "used_in_bytes": 8811046
+                    },
+                    "mapped": {
+                        "count": 5,
+                        "total_capacity_in_bytes": 16868,
+                        "used_in_bytes": 16868
+                    },
+                    "mapped - 'non-volatile memory'": {
+                        "count": 0,
+                        "total_capacity_in_bytes": 0,
+                        "used_in_bytes": 0
+                    }
+                },
+                "classes": {
+                    "current_loaded_count": 21909,
+                    "total_loaded_count": 21909,
+                    "total_unloaded_count": 0
+                },
+                "gc": {
+                    "collectors": {
+                        "old": {
+                            "collection_count": 0,
+                            "collection_time_in_millis": 0
+                        },
+                        "young": {
+                            "collection_count": 11,
+                            "collection_time_in_millis": 113
+                        }
+                    }
+                },
+                "mem": {
+                    "heap_committed_in_bytes": 788529152,
+                    "heap_max_in_bytes": 788529152,
+                    "heap_used_in_bytes": 156194432,
+                    "heap_used_percent": 19,
+                    "non_heap_committed_in_bytes": 142606336,
+                    "non_heap_used_in_bytes": 139526472,
+                    "pools": {
+                        "old": {
+                            "max_in_bytes": 788529152,
+                            "peak_max_in_bytes": 788529152,
+                            "peak_used_in_bytes": 71059968,
+                            "used_in_bytes": 71059968
+                        },
+                        "survivor": {
+                            "max_in_bytes": 0,
+                            "peak_max_in_bytes": 0,
+                            "peak_used_in_bytes": 54525952,
+                            "used_in_bytes": 30608512
+                        },
+                        "young": {
+                            "max_in_bytes": 0,
+                            "peak_max_in_bytes": 0,
+                            "peak_used_in_bytes": 465567744,
+                            "used_in_bytes": 54525952
+                        }
+                    }
+                },
+                "threads": {
+                    "count": 49,
+                    "peak_count": 49
+                },
+                "timestamp": 1622732353200,
+                "uptime_in_millis": 21844
+            },
+            "name": "aaf5a8a0bceb",
+            "os": {
+                "cgroup": {
+                    "cpu": {
+                        "cfs_period_micros": 100000,
+                        "cfs_quota_micros": -1,
+                        "control_group": "/",
+                        "stat": {
+                            "number_of_elapsed_periods": 0,
+                            "number_of_times_throttled": 0,
+                            "time_throttled_nanos": 0
+                        }
+                    },
+                    "cpuacct": {
+                        "control_group": "/",
+                        "usage_nanos": 52445263941
+                    },
+                    "memory": {
+                        "control_group": "/",
+                        "limit_in_bytes": "9223372036854771712",
+                        "usage_in_bytes": "1110376448"
+                    }
+                },
+                "cpu": {
+                    "load_average": {
+                        "15m": 70.55,
+                        "1m": 2.74,
+                        "5m": 44.07
+                    },
+                    "percent": 37
+                },
+                "mem": {
+                    "free_in_bytes": 12400742400,
+                    "free_percent": 37,
+                    "total_in_bytes": 33623232512,
+                    "used_in_bytes": 21222490112,
+                    "used_percent": 63
+                },
+                "swap": {
+                    "free_in_bytes": 928747520,
+                    "total_in_bytes": 2147479552,
+                    "used_in_bytes": 1218732032
+                },
+                "timestamp": 1622732353199
+            },
+            "process": {
+                "cpu": {
+                    "percent": 19,
+                    "total_in_millis": 50160
+                },
+                "max_file_descriptors": 1048576,
+                "mem": {
+                    "total_virtual_in_bytes": 6819479552
+                },
+                "open_file_descriptors": 314,
+                "timestamp": 1622732353199
+            },
+            "roles": [
+                "data",
+                "data_cold",
+                "data_content",
+                "data_frozen",
+                "data_hot",
+                "data_warm",
+                "ingest",
+                "master",
+                "ml",
+                "remote_cluster_client",
+                "transform"
+            ],
+            "script": {
+                "cache_evictions": 0,
+                "compilation_limit_triggered": 0,
+                "compilations": 1
+            },
+            "script_cache": {
+                "contexts": [
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "aggregation_selector"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "aggs"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "aggs_combine"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "aggs_init"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "aggs_map"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "aggs_reduce"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "analysis"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "boolean_field"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "bucket_aggregation"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "date_field"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "double_field"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "field"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "filter"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "geo_point_field"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 1,
+                        "context": "ingest"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "ingest_template"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "interval"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "ip_field"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "keyword_field"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "long_field"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "moving-function"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "number_sort"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "painless_test"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "processor_conditional"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "score"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "script_heuristic"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "similarity"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "similarity_weight"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "string_sort"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "template"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "terms_set"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "update"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "watcher_condition"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "watcher_transform"
+                    },
+                    {
+                        "cache_evictions": 0,
+                        "compilation_limit_triggered": 0,
+                        "compilations": 0,
+                        "context": "xpack_template"
+                    }
+                ],
+                "sum": {
+                    "cache_evictions": 0,
+                    "compilation_limit_triggered": 0,
+                    "compilations": 1
+                }
+            },
+            "thread_pool": {
+                "analyze": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "ccr": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "fetch_shard_started": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "fetch_shard_store": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "flush": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "force_merge": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "generic": {
+                    "active": 0,
+                    "completed": 406,
+                    "largest": 7,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 7
+                },
+                "get": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "listener": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "management": {
+                    "active": 1,
+                    "completed": 9,
+                    "largest": 2,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 2
+                },
+                "ml_datafeed": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "ml_job_comms": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "ml_utility": {
+                    "active": 0,
+                    "completed": 12,
+                    "largest": 1,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 1
+                },
+                "refresh": {
+                    "active": 0,
+                    "completed": 36,
+                    "largest": 1,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 1
+                },
+                "rollup_indexing": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "search": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "search_throttled": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "searchable_snapshots_cache_fetch_async": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "searchable_snapshots_cache_prewarming": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "security-crypto": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "security-token-key": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "snapshot": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "system_read": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "system_write": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "transform_indexing": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "warmer": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "watcher": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "write": {
+                    "active": 0,
+                    "completed": 9,
+                    "largest": 8,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 8
+                }
+            },
+            "timestamp": 1622732353195,
+            "transport": {
+                "rx_count": 0,
+                "rx_size_in_bytes": 0,
+                "server_open": 0,
+                "total_outbound_connections": 0,
+                "tx_count": 0,
+                "tx_size_in_bytes": 0
+            },
+            "transport_address": "172.17.0.2:9300"
+        }
+    }
+}
