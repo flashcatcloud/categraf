@@ -1,0 +1,458 @@
+{
+    "_nodes": {
+        "failed": 0,
+        "successful": 1,
+        "total": 1
+    },
+    "cluster_name": "elasticsearch",
+    "nodes": {
+        "bVrN1HxvQLy795ZLNg2XNw": {
+            "breakers": {
+                "fielddata": {
+                    "estimated_size": "0b",
+                    "estimated_size_in_bytes": 0,
+                    "limit_size": "1.1gb",
+                    "limit_size_in_bytes": 1246652006,
+                    "overhead": 1.03,
+                    "tripped": 0
+                },
+                "in_flight_requests": {
+                    "estimated_size": "0b",
+                    "estimated_size_in_bytes": 0,
+                    "limit_size": "1.9gb",
+                    "limit_size_in_bytes": 2077753344,
+                    "overhead": 1,
+                    "tripped": 0
+                },
+                "parent": {
+                    "estimated_size": "0b",
+                    "estimated_size_in_bytes": 0,
+                    "limit_size": "1.3gb",
+                    "limit_size_in_bytes": 1454427340,
+                    "overhead": 1,
+                    "tripped": 0
+                },
+                "request": {
+                    "estimated_size": "0b",
+                    "estimated_size_in_bytes": 0,
+                    "limit_size": "1.1gb",
+                    "limit_size_in_bytes": 1246652006,
+                    "overhead": 1,
+                    "tripped": 0
+                }
+            },
+            "discovery": {
+                "cluster_state_queue": {
+                    "committed": 0,
+                    "pending": 0,
+                    "total": 0
+                }
+            },
+            "fs": {
+                "data": [
+                    {
+                        "available_in_bytes": 77533405184,
+                        "free_in_bytes": 77533405184,
+                        "mount": "/usr/share/elasticsearch/data (/dev/mapper/vg0-root)",
+                        "path": "/usr/share/elasticsearch/data/nodes/0",
+                        "spins": "true",
+                        "total_in_bytes": 476630163456,
+                        "type": "xfs"
+                    }
+                ],
+                "io_stats": {
+                    "devices": [
+                        {
+                            "device_name": "dm-2",
+                            "operations": 2517,
+                            "read_kilobytes": 12916,
+                            "read_operations": 706,
+                            "write_kilobytes": 17760,
+                            "write_operations": 1811
+                        }
+                    ],
+                    "total": {
+                        "operations": 2517,
+                        "read_kilobytes": 12916,
+                        "read_operations": 706,
+                        "write_kilobytes": 17760,
+                        "write_operations": 1811
+                    }
+                },
+                "timestamp": 1622148141244,
+                "total": {
+                    "available_in_bytes": 77533405184,
+                    "free_in_bytes": 77533405184,
+                    "spins": "true",
+                    "total_in_bytes": 476630163456
+                }
+            },
+            "host": "127.0.0.1",
+            "http": {
+                "current_open": 1,
+                "total_opened": 16
+            },
+            "indices": {
+                "completion": {
+                    "size_in_bytes": 0
+                },
+                "docs": {
+                    "count": 5,
+                    "deleted": 0
+                },
+                "fielddata": {
+                    "evictions": 0,
+                    "memory_size_in_bytes": 0
+                },
+                "flush": {
+                    "total": 0,
+                    "total_time_in_millis": 0
+                },
+                "get": {
+                    "current": 0,
+                    "exists_time_in_millis": 0,
+                    "exists_total": 0,
+                    "missing_time_in_millis": 0,
+                    "missing_total": 0,
+                    "time_in_millis": 0,
+                    "total": 0
+                },
+                "indexing": {
+                    "delete_current": 0,
+                    "delete_time_in_millis": 0,
+                    "delete_total": 0,
+                    "index_current": 0,
+                    "index_failed": 0,
+                    "index_time_in_millis": 39,
+                    "index_total": 5,
+                    "is_throttled": false,
+                    "noop_update_total": 0,
+                    "throttle_time_in_millis": 0
+                },
+                "merges": {
+                    "current": 0,
+                    "current_docs": 0,
+                    "current_size_in_bytes": 0,
+                    "total": 0,
+                    "total_auto_throttle_in_bytes": 629145600,
+                    "total_docs": 0,
+                    "total_size_in_bytes": 0,
+                    "total_stopped_time_in_millis": 0,
+                    "total_throttled_time_in_millis": 0,
+                    "total_time_in_millis": 0
+                },
+                "query_cache": {
+                    "cache_count": 0,
+                    "cache_size": 0,
+                    "evictions": 0,
+                    "hit_count": 0,
+                    "memory_size_in_bytes": 0,
+                    "miss_count": 0,
+                    "total_count": 0
+                },
+                "recovery": {
+                    "current_as_source": 0,
+                    "current_as_target": 0,
+                    "throttle_time_in_millis": 0
+                },
+                "refresh": {
+                    "listeners": 0,
+                    "total": 65,
+                    "total_time_in_millis": 86
+                },
+                "request_cache": {
+                    "evictions": 0,
+                    "hit_count": 0,
+                    "memory_size_in_bytes": 0,
+                    "miss_count": 0
+                },
+                "search": {
+                    "fetch_current": 0,
+                    "fetch_time_in_millis": 0,
+                    "fetch_total": 0,
+                    "open_contexts": 0,
+                    "query_current": 0,
+                    "query_time_in_millis": 0,
+                    "query_total": 0,
+                    "scroll_current": 0,
+                    "scroll_time_in_millis": 0,
+                    "scroll_total": 0,
+                    "suggest_current": 0,
+                    "suggest_time_in_millis": 0,
+                    "suggest_total": 0
+                },
+                "segments": {
+                    "count": 5,
+                    "doc_values_memory_in_bytes": 460,
+                    "file_sizes": {},
+                    "fixed_bit_set_memory_in_bytes": 0,
+                    "index_writer_memory_in_bytes": 0,
+                    "max_unsafe_auto_id_timestamp": -1,
+                    "memory_in_bytes": 12940,
+                    "norms_memory_in_bytes": 960,
+                    "points_memory_in_bytes": 0,
+                    "stored_fields_memory_in_bytes": 1560,
+                    "term_vectors_memory_in_bytes": 0,
+                    "terms_memory_in_bytes": 9960,
+                    "version_map_memory_in_bytes": 0
+                },
+                "store": {
+                    "size_in_bytes": 5721,
+                    "throttle_time_in_millis": 0
+                },
+                "translog": {
+                    "operations": 5,
+                    "size_in_bytes": 1743
+                },
+                "warmer": {
+                    "current": 0,
+                    "total": 35,
+                    "total_time_in_millis": 1
+                }
+            },
+            "ingest": {
+                "pipelines": {},
+                "total": {
+                    "count": 0,
+                    "current": 0,
+                    "failed": 0,
+                    "time_in_millis": 0
+                }
+            },
+            "ip": "127.0.0.1:9300",
+            "jvm": {
+                "buffer_pools": {
+                    "direct": {
+                        "count": 47,
+                        "total_capacity_in_bytes": 252727868,
+                        "used_in_bytes": 252727869
+                    },
+                    "mapped": {
+                        "count": 5,
+                        "total_capacity_in_bytes": 15007,
+                        "used_in_bytes": 15007
+                    }
+                },
+                "classes": {
+                    "current_loaded_count": 10502,
+                    "total_loaded_count": 10502,
+                    "total_unloaded_count": 0
+                },
+                "gc": {
+                    "collectors": {
+                        "old": {
+                            "collection_count": 1,
+                            "collection_time_in_millis": 109
+                        },
+                        "young": {
+                            "collection_count": 2,
+                            "collection_time_in_millis": 143
+                        }
+                    }
+                },
+                "mem": {
+                    "heap_committed_in_bytes": 2077753344,
+                    "heap_max_in_bytes": 2077753344,
+                    "heap_used_in_bytes": 333706928,
+                    "heap_used_percent": 16,
+                    "non_heap_committed_in_bytes": 75362304,
+                    "non_heap_used_in_bytes": 70212664,
+                    "pools": {
+                        "old": {
+                            "max_in_bytes": 1449590784,
+                            "peak_max_in_bytes": 1449590784,
+                            "peak_used_in_bytes": 210051288,
+                            "used_in_bytes": 210051288
+                        },
+                        "survivor": {
+                            "max_in_bytes": 69730304,
+                            "peak_max_in_bytes": 69730304,
+                            "peak_used_in_bytes": 69730304,
+                            "used_in_bytes": 69730304
+                        },
+                        "young": {
+                            "max_in_bytes": 558432256,
+                            "peak_max_in_bytes": 558432256,
+                            "peak_used_in_bytes": 558432256,
+                            "used_in_bytes": 53925336
+                        }
+                    }
+                },
+                "threads": {
+                    "count": 60,
+                    "peak_count": 60
+                },
+                "timestamp": 1622148141243,
+                "uptime_in_millis": 14845
+            },
+            "name": "bVrN1Hx",
+            "os": {
+                "cpu": {
+                    "load_average": {
+                        "15m": 96.01,
+                        "1m": 45.68,
+                        "5m": 150.34
+                    },
+                    "percent": 23
+                },
+                "mem": {
+                    "free_in_bytes": 7009173504,
+                    "free_percent": 21,
+                    "total_in_bytes": 33623236608,
+                    "used_in_bytes": 26614063104,
+                    "used_percent": 79
+                },
+                "swap": {
+                    "free_in_bytes": 86630400,
+                    "total_in_bytes": 2147479552,
+                    "used_in_bytes": 2060849152
+                },
+                "timestamp": 1622148141242
+            },
+            "process": {
+                "cpu": {
+                    "percent": 8,
+                    "total_in_millis": 14510
+                },
+                "max_file_descriptors": 1048576,
+                "mem": {
+                    "total_virtual_in_bytes": 8293711872
+                },
+                "open_file_descriptors": 308,
+                "timestamp": 1622148141242
+            },
+            "roles": [
+                "master",
+                "data",
+                "ingest"
+            ],
+            "script": {
+                "cache_evictions": 0,
+                "compilations": 0
+            },
+            "thread_pool": {
+                "bulk": {
+                    "active": 0,
+                    "completed": 5,
+                    "largest": 5,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 5
+                },
+                "fetch_shard_started": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "fetch_shard_store": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "flush": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "force_merge": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "generic": {
+                    "active": 0,
+                    "completed": 38,
+                    "largest": 4,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 4
+                },
+                "get": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "index": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "listener": {
+                    "active": 0,
+                    "completed": 5,
+                    "largest": 4,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 4
+                },
+                "management": {
+                    "active": 1,
+                    "completed": 2,
+                    "largest": 1,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 1
+                },
+                "refresh": {
+                    "active": 0,
+                    "completed": 31,
+                    "largest": 1,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 1
+                },
+                "search": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "snapshot": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                },
+                "warmer": {
+                    "active": 0,
+                    "completed": 0,
+                    "largest": 0,
+                    "queue": 0,
+                    "rejected": 0,
+                    "threads": 0
+                }
+            },
+            "timestamp": 1622148141237,
+            "transport": {
+                "rx_count": 0,
+                "rx_size_in_bytes": 0,
+                "server_open": 0,
+                "tx_count": 0,
+                "tx_size_in_bytes": 0
+            },
+            "transport_address": "127.0.0.1:9300"
+        }
+    }
+}

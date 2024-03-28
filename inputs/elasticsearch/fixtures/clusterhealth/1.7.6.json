@@ -1,0 +1,15 @@
+{
+    "active_primary_shards": 5,
+    "active_shards": 5,
+    "cluster_name": "elasticsearch",
+    "delayed_unassigned_shards": 0,
+    "initializing_shards": 0,
+    "number_of_data_nodes": 1,
+    "number_of_in_flight_fetch": 0,
+    "number_of_nodes": 1,
+    "number_of_pending_tasks": 0,
+    "relocating_shards": 0,
+    "status": "yellow",
+    "timed_out": false,
+    "unassigned_shards": 5
+}
