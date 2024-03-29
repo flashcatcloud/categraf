@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -85,7 +86,11 @@ func (ins *Instance) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
-	connString := ins.getConnectionString()
+	connString, err := ins.getConnectionString()
+	if err != nil {
+		return fmt.Errorf("failed to build oracle connect string %s: %v", ins.Address, err)
+	}
+
 	conn, err := sql.Open("oracle", connString)
 	if err != nil {
 		return fmt.Errorf("failed to open oracle database %s: %v", ins.Address, err)
@@ -175,7 +180,8 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 	rows, err := ins.client.QueryContext(ctx, metricConf.Request)
 
 	if ctx.Err() == context.DeadlineExceeded {
-		log.Println("E! oracle query timeout, request:", metricConf.Request)
+		log.Printf("E! %s oracle query timeout (more than %d seconds), request: %s", ins.Address, metricConf.Timeout/(1000*1000*1000),
+			strings.ReplaceAll(strings.ReplaceAll(metricConf.Request, "\n", " "), "\r", " "))
 		return
 	}
 
@@ -274,11 +280,14 @@ func cleanName(s string) string {
 	return s
 }
 
-func (ins *Instance) getConnectionString() string {
-	ip, port, service, err := explode(ins.Address)
-	if err != nil {
-		panic(fmt.Errorf("oracle address format error: %s", err))
-	}
+func isTNSFormat(connStr string) bool {
+
+	tnsPattern := `^\s*\(\s*DESCRIPTION\s*=.*`
+	regex := regexp.MustCompile(tnsPattern)
+	return regex.MatchString(connStr)
+}
+
+func (ins *Instance) getConnectionString() (string, error) {
 	opts := make(map[string]string)
 	if ins.IsSysOper {
 		opts["dba privilege"] = "sysoper"
@@ -289,8 +298,17 @@ func (ins *Instance) getConnectionString() string {
 	if ins.DisableConnectionPool {
 		opts["mode"] = "standalone"
 	}
-	return go_ora.BuildUrl(ip, port, service, ins.Username, ins.Password, opts)
 
+	if isTNSFormat(ins.Address) {
+		return go_ora.BuildJDBC(ins.Username, ins.Password, ins.Address, opts), nil
+	}
+
+	ip, port, service, err := explode(ins.Address)
+	if err != nil {
+		log.Println("E! oracle address format error:", err)
+		return "", err
+	}
+	return go_ora.BuildUrl(ip, port, service, ins.Username, ins.Password, opts), nil
 }
 
 func explode(target string) (ip string, port int, service string, err error) {
