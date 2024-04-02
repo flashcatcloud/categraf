@@ -81,6 +81,9 @@ export_snapshots = false
 ## Export cluster settings. If true, query settings stats for the cluster.
 export_cluster_settings = false
 
+## Export cluster info. If true, query info stats for the cluster.
+export_cluster_info = true
+
 # Cluster info update interval for the cluster label (default: 5m)
 cluster_info_interval = "5m"
 

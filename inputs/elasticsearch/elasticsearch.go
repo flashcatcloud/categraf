@@ -63,6 +63,7 @@ type (
 		ExportDataStream      bool            `toml:"export_data_stream"`
 		ExportSnapshots       bool            `toml:"export_snapshots"`
 		ExportClusterSettings bool            `toml:"export_cluster_settings"`
+		ExportClusterInfo     bool            `toml:"export_cluster_info"`
 		ClusterInfoInterval   config.Duration `toml:"cluster_info_interval"`
 		AwsRegion             string          `toml:"aws_region"`
 		AwsRoleArn            string          `toml:"aws_role_arn"`
@@ -72,6 +73,7 @@ type (
 		tls.ClientConfig
 		indexMatchers   map[string]filter.Filter
 		serverInfo      map[string]serverInfo
+		hasRunBefore    bool
 		serverInfoMutex sync.Mutex
 	}
 
@@ -127,6 +129,7 @@ func (ins *Instance) Init() error {
 	if ins.ApiKey == "" {
 		ins.ApiKey = os.Getenv("ES_API_KEY")
 	}
+	ins.hasRunBefore = false
 
 	// Compile the configured indexes to match for sorting.
 	indexMatchers, err := ins.compileIndexMatchers()
@@ -298,29 +301,34 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				}
 			}
 
-			// Create a context that is cancelled on SIGKILL or SIGINT.
-			ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
-			defer cancel()
+			if ins.ExportClusterInfo && !ins.hasRunBefore {
+				// Create a context that is cancelled on SIGKILL or SIGINT.
+				ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 
-			// start the cluster info retriever
-			switch runErr := clusterInfoRetriever.Run(ctx); {
-			case runErr == nil:
-				if ins.DebugMod {
-					log.Println("started cluster info retriever, interval: ", ins.ClusterInfoInterval)
+				// start the cluster info retriever
+				switch runErr := clusterInfoRetriever.Run(ctx); {
+				case runErr == nil:
+					if ins.DebugMod {
+						log.Println("started cluster info retriever, interval: ", ins.ClusterInfoInterval)
+					}
+				case errors.Is(runErr, clusterinfo.ErrInitialCallTimeout):
+					if ins.DebugMod {
+						log.Println("initial cluster info call timed out")
+					}
+				default:
+					log.Println("failed to run cluster info retriever, err: ", err)
+					return
 				}
-			case errors.Is(runErr, clusterinfo.ErrInitialCallTimeout):
-				if ins.DebugMod {
-					log.Println("initial cluster info call timed out")
+
+				// register cluster info retriever as prometheus collector
+				if err := inputs.Collect(clusterInfoRetriever, slist); err != nil {
+					log.Println("E! failed to collect cluster info metrics:", err)
 				}
-			default:
-				log.Println("failed to run cluster info retriever, err: ", err)
-				return
+				ins.serverInfoMutex.Lock()
+				ins.hasRunBefore = true
+				ins.serverInfoMutex.Unlock()
 			}
 
-			// register cluster info retriever as prometheus collector
-			if err := inputs.Collect(clusterInfoRetriever, slist); err != nil {
-				log.Println("E! failed to collect cluster info metrics:", err)
-			}
 		}(serv, slist)
 	}
 
