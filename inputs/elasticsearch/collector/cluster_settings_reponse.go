@@ -40,4 +40,18 @@ type Routing struct {
 // Allocation is a representation of a Elasticsearch Cluster shard routing allocation settings
 type Allocation struct {
 	Enabled string `json:"enable"`
+	Disk    Disk   `json:"disk"`
+}
+
+// Disk is a representation of a Elasticsearch Cluster shard routing allocation disk settings
+type Disk struct {
+	ThresholdEnabled string    `json:"threshold_enabled"`
+	Watermark        Watermark `json:"watermark"`
+}
+
+// Watermark is a representation of a Elasticsearch Cluster shard routing allocation disk watermark settings
+type Watermark struct {
+	FloodStage string `json:"flood_stage"`
+	High       string `json:"high"`
+	Low        string `json:"low"`
 }
