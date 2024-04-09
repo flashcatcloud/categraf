@@ -34,9 +34,6 @@ func readerGzipBody(contentEncoding string, request *http.Request) (bytes []byte
 		}
 
 		bytes, err = snappy.Decode(nil, compressed)
-		if err != nil {
-			return nil, err
-		}
 	} else {
 		defer request.Body.Close()
 		bytes, err = ioutil.ReadAll(request.Body)

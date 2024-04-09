@@ -3,12 +3,12 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/prometheus/common/model"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/common/model"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/parser/prometheus"
