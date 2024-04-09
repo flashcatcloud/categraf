@@ -73,5 +73,11 @@ func configRoutes(r *gin.Engine) {
 	g.POST("/opentsdb", openTSDB)
 	g.POST("/openfalcon", openFalcon)
 	g.POST("/remotewrite", remoteWrite)
+
+	// pushgateway
 	g.POST("/pushgateway", pushgateway)
+	g.PUT("/pushgateway/metrics/:jobtype/:job", pushgateway)
+	g.POST("/pushgateway/metrics/:jobtype/:job", pushgateway)
+	g.PUT("/pushgateway/metrics/:jobtype/:job/*labels", pushgateway)
+	g.POST("/pushgateway/metrics/:jobtype/:job/*labels", pushgateway)
 }

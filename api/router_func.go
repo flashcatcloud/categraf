@@ -26,6 +26,14 @@ func readerGzipBody(contentEncoding string, request *http.Request) (bytes []byte
 
 		defer r.Close()
 		bytes, err = ioutil.ReadAll(r)
+	} else if contentEncoding == "snappy" {
+		defer request.Body.Close()
+		compressed, err := ioutil.ReadAll(request.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		bytes, err = snappy.Decode(nil, compressed)
 	} else {
 		defer request.Body.Close()
 		bytes, err = ioutil.ReadAll(request.Body)
