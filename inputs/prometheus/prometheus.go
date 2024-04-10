@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
@@ -42,6 +43,9 @@ type Instance struct {
 
 	ignoreMetricsFilter   filter.Filter
 	ignoreLabelKeysFilter filter.Filter
+	cancel                context.CancelFunc
+	lock                  sync.Mutex
+	firstRun              bool
 	tls.ClientConfig
 	client *http.Client
 }
@@ -76,6 +80,7 @@ func (ins *Instance) Init() error {
 	if ins.Timeout <= 0 {
 		ins.Timeout = config.Duration(time.Second * 3)
 	}
+	ins.firstRun = true
 
 	client, err := ins.createHTTPClient()
 	if err != nil {
@@ -152,6 +157,7 @@ func (p *Prometheus) GetInstances() []inputs.Instance {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
+	var ctx context.Context
 	urlwg := new(sync.WaitGroup)
 	defer urlwg.Wait()
 
@@ -167,7 +173,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		go ins.gatherUrl(urlwg, slist, ScrapeUrl{URL: u, Tags: map[string]string{}})
 	}
 
-	urls, err := ins.UrlsFromConsul()
+	ctx, ins.cancel = context.WithCancel(context.Background())
+	urls, err := ins.UrlsFromConsul(ctx)
 	if err != nil {
 		log.Println("E! failed to query urls from consul:", err)
 		return
@@ -230,8 +237,7 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 
 	slist.PushFront(types.NewSample("", "up", 1, labels))
 
-	parser := prometheus.NewParser(ins.NamePrefix, labels, res.Header, ins.DuplicationAllowed,
-		ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
+	parser := prometheus.NewParser(ins.NamePrefix, labels, res.Header, ins.DuplicationAllowed, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
 	if err = parser.Parse(body, slist); err != nil {
 		log.Println("E! failed to parse response body, url:", u.String(), "error:", err)
 	}
@@ -261,4 +267,8 @@ func (ins *Instance) setHeaders(req *http.Request) {
 	for i := 0; i < len(ins.Headers); i += 2 {
 		req.Header.Set(ins.Headers[i], ins.Headers[i+1])
 	}
+}
+
+func (ins *Instance) Drop() {
+	ins.cancel()
 }
