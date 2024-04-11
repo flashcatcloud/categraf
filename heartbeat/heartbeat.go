@@ -120,7 +120,7 @@ func work(ps *system.SystemPS, client *http.Client) {
 	if ext, err := collectSystemInfo(); err == nil {
 		data["extend_info"] = ext
 		if cpuInfo, ok := ext.CPU.(map[string]string); ok {
-			cpuNum := cpuInfo["cpu_cores"]
+			cpuNum := cpuInfo["cpu_logical_processors"]
 			if num, err := strconv.Atoi(cpuNum); err == nil {
 				data["cpu_num"] = num
 			}
