@@ -11,7 +11,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/kafka/exporter"
 	"flashcat.cloud/categraf/types"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/go-kit/log/level"
 
 	klog "github.com/go-kit/log"

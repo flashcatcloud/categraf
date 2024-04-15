@@ -3,7 +3,6 @@ module flashcat.cloud/categraf
 go 1.21
 
 require (
-	github.com/Shopify/sarama v1.36.0
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137
 	github.com/chai2010/winsvc v0.0.0-20200705094454-db7ec320025c
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
