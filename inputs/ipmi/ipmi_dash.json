@@ -20,8 +20,8 @@
                     "cate": "prometheus",
                     "value": "${datasource}"
                 },
-                "definition": "label_values(ipmi_bmc_info,  ip)",
-                "reg": "",
+                "definition": "label_values(ipmi_bmc_info,  target)",
+                "reg": "/.*/",
                 "multi": false
             }
         ],
@@ -42,8 +42,8 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_chassis_power_state{ip=\"$instance\"}",
-                        "legend": "{{instance}}",
+                        "expr": "ipmi_chassis_power_state{target=\"$instance\"}",
+                        "legend": "{{target}}",
                         "maxDataPoints": 240
                     }
                 ],
@@ -113,7 +113,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_bmc_info{ip=\"$instance\"}",
+                        "expr": "ipmi_bmc_info{target=\"$instance\"}",
                         "legend": "",
                         "maxDataPoints": 240
                     }
@@ -132,15 +132,15 @@
                     "colorMode": "value",
                     "calc": "lastNotNull",
                     "displayMode": "labelsOfSeriesToRows",
-                    "linkMode": "appendLinkColumn",
                     "columns": [
                         "data_center",
                         "dept",
                         "env",
                         "firmware_revision",
-                        "ip",
-                        "manufacturer_id"
-                    ]
+                        "manufacturer_id",
+                        "target"
+                    ],
+                    "linkMode": "appendLinkColumn"
                 },
                 "options": {
                     "standardOptions": {}
@@ -169,7 +169,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_fan_speed_state{ip=\"$instance\"}",
+                        "expr": "ipmi_fan_speed_state{target=\"$instance\"}",
                         "legend": "{{name}}",
                         "maxDataPoints": 240
                     }
@@ -217,7 +217,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_fan_speed_rpm{ip=\"$instance\"}",
+                        "expr": "ipmi_fan_speed_rpm{target=\"$instance\"}",
                         "legend": "{{name}}",
                         "maxDataPoints": 240
                     }
@@ -268,8 +268,8 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_dcmi_power_consumption_watts{ip=\"$instance\"}",
-                        "legend": "{{instance}}",
+                        "expr": "ipmi_dcmi_power_consumption_watts{target=\"$instance\"}",
+                        "legend": "{{target}}",
                         "maxDataPoints": 240
                     }
                 ],
@@ -349,7 +349,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_power_state{ip=\"$instance\"}",
+                        "expr": "ipmi_power_state{target=\"$instance\"}",
                         "legend": "{{name}}",
                         "maxDataPoints": 240
                     }
@@ -397,7 +397,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_power_watts{ip=\"$instance\"}",
+                        "expr": "ipmi_power_watts{target=\"$instance\"}",
                         "legend": "{{name}}",
                         "maxDataPoints": 240
                     }
@@ -448,7 +448,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_sensor_state{ip=\"$instance\"}",
+                        "expr": "ipmi_sensor_state{target=\"$instance\"}",
                         "legend": "",
                         "maxDataPoints": 240
                     }
@@ -467,16 +467,16 @@
                     "colorMode": "value",
                     "calc": "lastNotNull",
                     "displayMode": "labelsOfSeriesToRows",
-                    "linkMode": "appendLinkColumn",
                     "columns": [
                         "data_center",
                         "dept",
                         "env",
-                        "ip",
+                        "target",
                         "name",
                         "type",
                         "value"
-                    ]
+                    ],
+                    "linkMode": "appendLinkColumn"
                 },
                 "options": {
                     "standardOptions": {}
@@ -505,7 +505,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_temperature_state{ip=\"$instance\"}",
+                        "expr": "ipmi_temperature_state{target=\"$instance\"}",
                         "legend": "{{name}}",
                         "maxDataPoints": 240
                     }
@@ -553,7 +553,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_temperature_celsius{ip=\"$instance\"}",
+                        "expr": "ipmi_temperature_celsius{target=\"$instance\"}",
                         "legend": "{{name}}",
                         "maxDataPoints": 240
                     }
@@ -608,7 +608,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_voltage_state{ip=\"$instance\"}",
+                        "expr": "ipmi_voltage_state{target=\"$instance\"}",
                         "legend": "{{name}}",
                         "maxDataPoints": 240
                     }
@@ -659,7 +659,7 @@
                 "targets": [
                     {
                         "refId": "A",
-                        "expr": "ipmi_voltage_volts{ip=\"$instance\"}",
+                        "expr": "ipmi_voltage_volts{target=\"$instance\"}",
                         "legend": "{{name}}",
                         "maxDataPoints": 240
                     }
