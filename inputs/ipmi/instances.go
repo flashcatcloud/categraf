@@ -60,7 +60,9 @@ func (m *Instance) Gather(slist *types.SampleList) {
 			continue
 		}
 
-		labels := map[string]string{}
+		labels := map[string]string{
+			"target": m.Target,
+		}
 		for _, kv := range desc.ConstLabels() {
 			labels[*kv.Name] = *kv.Value
 		}
