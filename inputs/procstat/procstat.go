@@ -298,10 +298,10 @@ func (ins *Instance) gatherIO(slist *types.SampleList, procs map[PID]Process, ta
 			readBytes += io.ReadBytes
 			writeBytes += io.WriteBytes
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "read_count", readCount, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "write_count", writeCount, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "read_bytes", readBytes, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "write_bytes", writeBytes, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "read_count", io.ReadCount, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "write_count", io.WriteCount, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "read_bytes", io.ReadBytes, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "write_bytes", io.WriteBytes, ins.makeProcTag(procs[pid]), tags))
 			}
 		}
 	}
