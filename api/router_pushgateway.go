@@ -68,8 +68,8 @@ func pushgateway(c *gin.Context) {
 		return
 	}
 
-	ignoreHostname := config.Config.HTTP.IgnoreHostname
-	ignoreGlobalLabels := config.Config.HTTP.IgnoreGlobalLabels
+	ignoreHostname := config.Config.HTTP.IgnoreHostname || c.GetBool("ignore_hostname")
+	ignoreGlobalLabels := config.Config.HTTP.IgnoreGlobalLabels || c.GetBool("ignore_global_labels")
 
 	now := time.Now()
 
