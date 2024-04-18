@@ -10,7 +10,9 @@ package agent
 import (
 	"context"
 	"errors"
+	"flashcat.cloud/categraf/inputs"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"log"
 	"os"
 	"time"
@@ -58,6 +60,9 @@ type LogsAgent struct {
 	inputs                    []restart.Restartable
 	diagnosticMessageReceiver *diagnostic.BufferedMessageReceiver
 }
+
+// curSourceMap is a map that holds current log sources configuration.
+var curSourceMap = make(map[string]*logsconfig.LogSource)
 
 // NewLogsAgent returns a new Logs LogsAgent
 func NewLogsAgent() AgentModule {
@@ -154,6 +159,9 @@ func (la *LogsAgent) Start() error {
 		go kubernetes.NewScanner(la.services).Scan()
 	}
 
+	// 开启一个goroutine 用来接收从远端Http请求拉取的结果
+	go la.handleHttpProviderResCh()
+
 	// add source
 	for _, c := range coreconfig.Config.Logs.Items {
 		if c == nil {
@@ -168,6 +176,86 @@ func (la *LogsAgent) Start() error {
 		la.sources.AddSource(source)
 	}
 	return nil
+}
+
+// handleHttpProviderResCh listens for HTTP provider responses and updates the sources accordingly.
+func (a *LogsAgent) handleHttpProviderResCh() {
+	for {
+		select {
+		case confResp := <-inputs.HttpProviderResponseCh:
+			// Delay 2s to prioritize processing of local logs.toml
+			time.Sleep(2 * time.Second)
+
+			newSourceMap := make(map[string]*logsconfig.LogSource)
+			for k := range confResp.Configs {
+
+				// Retain only the content related to logs plugins, ignore other data
+				if k != "logs" {
+					continue
+				}
+				for kk, vv := range confResp.Configs[k] {
+					if vv != nil {
+						configData := (*vv).Config
+						configFormat := (*vv).Format
+						log.Printf("I! HttpProviderResponseCh k: %s, kk: %+v, config: %s, format: %+v\n",
+							k, kk, configData, configFormat)
+						logs := &coreconfig.Logs{}
+						err := toml.Unmarshal([]byte(configData), logs)
+						if err != nil {
+							log.Println("E! configData parse toml err:", err)
+						}
+						for _, c := range logs.Items {
+
+							if c == nil {
+								continue
+							}
+							if _, exists := curSourceMap[a.itemIdentify(c)]; !exists {
+								source := logsconfig.NewLogSource(c.Name, c)
+								newSourceMap[a.itemIdentify(c)] = source
+							} else {
+								newSourceMap[a.itemIdentify(c)] = curSourceMap[a.itemIdentify(c)]
+							}
+						}
+					} else {
+						log.Printf("I! HttpProviderResponseCh: nil pointer for key: %+v\n", kk)
+					}
+				}
+			}
+
+			oldSourceMap := curSourceMap
+			log.Printf("I! oldSourceMap: : %+v\n", oldSourceMap)
+			log.Printf("I! newSourceMap: : %+v\n", newSourceMap)
+			for key, newSource := range newSourceMap {
+				// Check if the key exists in oldSourceMap
+				if _, ok := oldSourceMap[key]; !ok {
+					// If it's in newSource but not in oldSource, add it
+					a.sources.AddSource(newSource)
+				} else {
+					// Remove the processed key-value pair from oldSource to avoid duplicate checking later
+					delete(oldSourceMap, key)
+				}
+			}
+
+			// Any remaining elements in oldSourceMap are not in newSourceMap
+			for _, oldSource := range oldSourceMap {
+				// If it's in oldSource but not in newSource, remove it
+				a.sources.RemoveSource(oldSource)
+			}
+
+			curSourceMap = newSourceMap
+			log.Printf("I! curSourceMap: : %+v\n", curSourceMap)
+			log.Printf("I! GetSources: : %+v\n", a.sources.GetSources())
+			log.Printf("I! GetSources len: : %d\n", len(a.sources.GetSources()))
+		}
+	}
+}
+
+// itemIdentify returns a string representing the identification of a logsconfig.LogsConfig item.
+func (a *LogsAgent) itemIdentify(item *logsconfig.LogsConfig) string {
+	str := item.Type + item.Path + item.Source + item.Service
+	//hash := md5.Sum([]byte(str))
+	//md5String := hex.EncodeToString(hash[:])
+	return str
 }
 
 // startInner starts all the elements of the data pipeline
