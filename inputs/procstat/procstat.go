@@ -204,6 +204,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					if ins.DebugMod {
 						log.Println("E! failed to get md5sum of exe:", exe, "pid:", p.PID(), err)
 					}
+					if sum, err := md5sum("/proc/" + fmt.Sprint(p.PID()) + "/exe"); err == nil {
+						info["binary_md5sum"] = sum
+					} else {
+						if ins.DebugMod {
+							log.Println("E! failed to get md5sum of /proc/pid/exe:", p.PID(), err)
+						}
+					}
 				}
 			}
 		}
