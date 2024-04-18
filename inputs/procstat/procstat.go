@@ -183,6 +183,32 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	ins.updateProcesses(pids)
+	for pid, p := range ins.procs {
+		info := map[string]string{
+			"pid": fmt.Sprint(pid),
+		}
+		if comm, err := p.Name(); err == nil {
+			info["comm"] = comm
+		}
+		info["binary_md5sum"] = ""
+		if cmd, err := p.Cmdline(); err == nil {
+			md5b := md5.Sum([]byte(cmd))
+			sum := hex.EncodeToString(md5b[:])
+			info["cmdline_md5sum"] = sum
+		}
+		if runtime.GOOS == "linux" {
+			if exe, err := p.Exe(); err == nil {
+				if sum, err := md5sum(exe); err == nil {
+					info["binary_md5sum"] = sum
+				} else {
+					if ins.DebugMod {
+						log.Println("E! failed to get md5sum of exe:", exe, "pid:", p.PID(), err)
+					}
+				}
+			}
+		}
+		slist.PushFront(types.NewSample(inputName, "info", 1, info, tags))
+	}
 
 	for _, field := range ins.GatherMoreMetrics {
 		switch field {
@@ -259,18 +285,7 @@ func (ins *Instance) makeProcTag(p Process) map[string]string {
 	if err == nil {
 		info["comm"] = comm
 	}
-	info["md5sum"] = ""
-	if runtime.GOOS == "linux" {
-		if exe, err := p.Exe(); err == nil {
-			if sum, err := md5sum(exe); err == nil {
-				info["md5sum"] = sum
-			} else {
-				if ins.DebugMod {
-					log.Println("E! failed to get md5sum of exe:", exe, "pid:", p.PID(), err)
-				}
-			}
-		}
-	}
+
 	if runtime.GOOS == "windows" {
 		title := getWindowTitleByPid(uint32(p.PID()))
 		if len(title) != 0 {
