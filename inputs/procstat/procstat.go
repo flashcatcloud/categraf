@@ -1,9 +1,13 @@
 package procstat
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -231,6 +235,22 @@ func (ins *Instance) updateProcesses(pids []PID) {
 	ins.procs = procs
 }
 
+func md5sum(file string) (string, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	md5h := md5.New()
+	if _, err := io.Copy(md5h, f); err != nil {
+		return "", err
+	}
+
+	md5b := md5h.Sum([]byte(""))
+	return hex.EncodeToString(md5b[:]), nil
+}
+
 func (ins *Instance) makeProcTag(p Process) map[string]string {
 	info := map[string]string{
 		"pid": fmt.Sprint(p.PID()),
@@ -238,6 +258,18 @@ func (ins *Instance) makeProcTag(p Process) map[string]string {
 	comm, err := p.Name()
 	if err == nil {
 		info["comm"] = comm
+	}
+	info["md5sum"] = ""
+	if runtime.GOOS == "linux" {
+		if exe, err := p.Exe(); err == nil {
+			if sum, err := md5sum(exe); err == nil {
+				info["md5sum"] = sum
+			} else {
+				if ins.DebugMod {
+					log.Println("E! failed to get md5sum of exe:", exe, "pid:", p.PID(), err)
+				}
+			}
+		}
 	}
 	if runtime.GOOS == "windows" {
 		title := getWindowTitleByPid(uint32(p.PID()))
@@ -272,7 +304,7 @@ func (ins *Instance) gatherFD(slist *types.SampleList, procs map[PID]Process, ta
 		if err == nil {
 			val += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "num_fds", val, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "num_fds", v, ins.makeProcTag(procs[pid]), tags))
 			}
 		}
 	}
