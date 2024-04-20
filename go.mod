@@ -1,4 +1,4 @@
-module flashcat.cloud/categraf
+module github.com/flashcatcloud/categraf
 
 go 1.21
 
