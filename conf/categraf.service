@@ -11,8 +11,8 @@ WorkingDirectory=/opt/categraf
 Restart=on-failure
 SuccessExitStatus=0
 LimitNOFILE=65536
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=categraf
 
 
