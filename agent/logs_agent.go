@@ -276,6 +276,8 @@ func (a *LogsAgent) Flush(ctx context.Context) {
 // Stop stops all the elements of the data pipeline
 // in the right order to prevent data loss
 func (a *LogsAgent) Stop() error {
+	defer close(inputs.HttpProviderResponseCh)
+
 	inputs := restart.NewParallelStopper()
 	for _, input := range a.inputs {
 		inputs.Add(input)
