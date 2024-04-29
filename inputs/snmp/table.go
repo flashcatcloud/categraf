@@ -334,11 +334,10 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				} else {
 					return nil, fmt.Errorf("performing get on field %s(%s): %w", f.Name, oid, err)
 				}
-			} else if pkt != nil && len(pkt.Variables) > 0 {
+			} else if pkt != nil && len(pkt.Variables) > 0 &&
+				pkt.Variables[0].Type != gosnmp.NoSuchObject &&
+				pkt.Variables[0].Type != gosnmp.NoSuchInstance {
 				ent := pkt.Variables[0]
-				if ent.Type == gosnmp.NoSuchObject || ent.Type == gosnmp.NoSuchInstance {
-					return nil, fmt.Errorf("get info for oid %s error %v", oid, ent.Type)
-				}
 				fv, err := fieldConvert(f.Conversion, ent.Value)
 				if err != nil {
 					return nil, fmt.Errorf("converting %q (OID %s) for field %s: %w", ent.Value, ent.Name, f.Name, err)
@@ -401,7 +400,8 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				// Our callback always wraps errors in a walkError.
 				// If this error isn't a walkError, we know it's not
 				// from the callback
-				if _, ok := err.(*walkError); !ok {
+				var walkErr *walkError
+				if !errors.As(err, &walkErr) {
 					log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
 					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
 				} else {
