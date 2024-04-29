@@ -8,11 +8,12 @@
 #	Version string `json:"version"`
 #
 #	// ConfigMap (InputName -> Config), if version is identical, server side can set Config to nil
-#	Configs map[string]cfg.ConfigWithFormat `json:"configs"`
+#	Configs map[string]map[string]*cfg.ConfigWithFormat `json:"configs"`
 # }
 # type ConfigWithFormat struct {
 # 	Config string       `json:"config"`
 # 	Format ConfigFormat `json:"format"`
+# 	checkSum string `json:"-"`
 # }
 # example response:
 # {

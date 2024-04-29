@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"expvar"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -48,8 +49,28 @@ const (
 // directory for filesystem changes.  Any compile errors are stored for later retrieival.
 // This function returns an error if an internal error occurs.
 func (r *Runtime) LoadAllPrograms() error {
-	if r.programPath == "" {
-		// glog.V(2).Info("Programpath is empty, loading nothing")
+	if len(r.programPath) == 0 && len(r.progs) == 0 {
+		log.Printf("W! Programpath is empty, loading nothing")
+		return nil
+	}
+	// TODO  load 配置规则
+	if len(r.progs) != 0 {
+		r.programErrorMu.Lock()
+		defer r.programErrorMu.Unlock()
+		for name, prog := range r.progs {
+			if len(strings.TrimSpace(prog)) == 0 {
+				continue
+			}
+			name = fmt.Sprintf("http_%s", name)
+			f := strings.NewReader(prog)
+			r.programErrors[name] = r.CompileAndRun(name, f)
+			if r.programErrors[name] != nil {
+				if r.errorsAbort {
+					return r.programErrors[name]
+				}
+				log.Printf("Compile errors for %s:\n%s", name, r.programErrors[name])
+			}
+		}
 		return nil
 	}
 	s, err := os.Stat(r.programPath)
@@ -105,11 +126,11 @@ func (r *Runtime) LoadAllPrograms() error {
 func (r *Runtime) LoadProgram(programPath string) error {
 	name := filepath.Base(programPath)
 	if strings.HasPrefix(name, ".") {
-		// glog.V(2).Infof("Skipping %s because it is a hidden file.", programPath)
+		log.Printf("W! Skipping %s because it is a hidden file.", programPath)
 		return nil
 	}
 	if filepath.Ext(name) != fileExt {
-		// glog.V(2).Infof("Skipping %s due to file extension.", programPath)
+		log.Printf("W! Skipping %s due to file extension.", programPath)
 		return nil
 	}
 	f, err := os.OpenFile(filepath.Clean(programPath), os.O_RDONLY, 0o600)
@@ -224,6 +245,8 @@ type Runtime struct {
 
 	programPath string // Path that contains mtail programs.
 
+	progs map[string]string
+
 	handleMu sync.RWMutex         // guards accesses to handles
 	handles  map[string]*vmHandle // map of program names to virtual machines
 
@@ -294,7 +317,7 @@ func New(lines <-chan *logline.LogLine, wg *sync.WaitGroup, programPath string, 
 		}
 		r.handleMu.Unlock()
 	}()
-	if r.programPath == "" {
+	if len(r.programPath) == 0 && len(r.progs) == 0 {
 		log.Println("No program path specified, no programs will be loaded.")
 		return r, nil
 	}
@@ -304,7 +327,7 @@ func New(lines <-chan *logline.LogLine, wg *sync.WaitGroup, programPath string, 
 	go func() {
 		defer r.wg.Done()
 		<-initDone
-		if r.programPath == "" {
+		if len(r.programPath) == 0 && len(r.progs) == 0 {
 			log.Println("no program reload on SIGHUP without programPath")
 			return
 		}
