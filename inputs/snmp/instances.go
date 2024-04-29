@@ -105,8 +105,10 @@ func (ins *Instance) up(slist *types.SampleList, i int) {
 	etags[ins.AgentHostTag] = host
 
 	// icmp probe
-	up := Ping(host, 300)
+	up, rtt, loss := Ping(host, 250)
 	slist.PushSample(inputName, "icmp_up", up, etags)
+	slist.PushSample(inputName, "icmp_rtt", rtt, etags)
+	slist.PushSample(inputName, "icmp_packet_loss", loss, etags)
 
 	// snmp probe
 	oid := ".1.3.6.1.2.1.1.1.0"
@@ -253,15 +255,34 @@ func (ins *Instance) getConnection(idx int) (snmpConnection, error) {
 	return gs, nil
 }
 
-func Ping(ip string, timeout int) float64 {
-	rtt, err := fastPingRtt(ip, timeout)
-	if err != nil {
-		log.Printf("W! snmp ping %s error:%s", ip, err)
+func Ping(ip string, timeout int) (up, rttAvg, loss float64) {
+	var (
+		total = 4
+		lost  = 0
+	)
+	for i := 0; i < total; i++ {
+		rtt, err := fastPingRtt(ip, timeout)
+		if err != nil {
+			lost++
+			log.Printf("W! snmp ping %s error:%s", ip, err)
+			continue
+		}
+		if rtt == -1 {
+			lost++
+			continue
+		}
+		rttAvg += rtt
 	}
-	if rtt == -1 {
-		return 0
+	if total == lost {
+		rttAvg = -1
+		up = 0
+		loss = 100
+	} else {
+		rttAvg = rttAvg / float64(total-lost)
+		up = 1
+		loss = float64(lost) / float64(total)
 	}
-	return 1
+	return
 }
 
 func fastPingRtt(ip string, timeout int) (float64, error) {
@@ -274,7 +295,7 @@ func fastPingRtt(ip string, timeout int) (float64, error) {
 	}
 	p.AddIPAddr(ra)
 	p.OnRecv = func(addr *net.IPAddr, rtt time.Duration) {
-		rt = float64(rtt.Nanoseconds()) / 1000000.0
+		rt = float64(rtt.Microseconds())
 	}
 	p.OnIdle = func() {
 	}
