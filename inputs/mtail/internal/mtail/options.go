@@ -23,6 +23,13 @@ type Option interface {
 	apply(*Server) error
 }
 
+type ProgramContent map[string]string
+
+func (opt ProgramContent) apply(m *Server) error {
+	m.rOpts = append(m.rOpts, runtime.ProgramContent(opt))
+	return nil
+}
+
 // ProgramPath sets the path to find mtail programs in the Server.
 type ProgramPath string
 
