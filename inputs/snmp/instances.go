@@ -35,6 +35,8 @@ type Instance struct {
 	Name   string  `toml:"name"`
 	Fields []Field `toml:"field"`
 
+	DisableUp bool `toml:"disable_up"`
+
 	connectionCache []snmpConnection
 
 	Translator string `toml:"translator"`
@@ -154,7 +156,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			if m, ok := ins.Mappings[agent]; ok {
 				extraTags = m
 			}
-			ins.up(slist, i)
+			if !ins.DisableUp {
+				ins.up(slist, i)
+			}
 
 			gs, err := ins.getConnection(i)
 			if err != nil {
