@@ -305,8 +305,12 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 		return tags, fields, nil
 	}
 
-	if len(ins.ExpectResponseSubstring) > 0 && !strings.Contains(string(bs), ins.ExpectResponseSubstring) ||
-		ins.regularExpression != nil && !ins.regularExpression.Match(bs) {
+	if len(ins.ExpectResponseSubstring) > 0 && !strings.Contains(string(bs), ins.ExpectResponseSubstring) {
+		log.Println("E! body mismatch, response body:", string(bs))
+		fields["result_code"] = BodyMismatch
+	}
+
+	if ins.regularExpression != nil && !ins.regularExpression.Match(bs) {
 		log.Println("E! body mismatch, response body:", string(bs))
 		fields["result_code"] = BodyMismatch
 	}
