@@ -344,7 +344,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				}
 				ifv[""] = fv
 			} else {
-				log.Println("W! no info for oid", oid)
+				log.Println("W! no info for oid:", oid, "target:", gs.Host())
 			}
 		} else {
 			err := gs.Walk(oid, func(ent gosnmp.SnmpPDU) error {
