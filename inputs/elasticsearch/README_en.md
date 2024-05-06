@@ -28,7 +28,7 @@ ES 7.x supports RBACs. The following security privileges are required for the `e
 
 ### Metrics
 
-#### `cluster_health = true`
+#### `cluster_health = true` and `cluster_health_level = "cluster"`
 
 | Name                                                            | Type       | Description                                                                                      |
 |-----------------------------------------------------------------|------------|--------------------------------------------------------------------------------------------------|
