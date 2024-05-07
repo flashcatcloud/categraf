@@ -35,7 +35,9 @@ type Instance struct {
 	Name   string  `toml:"name"`
 	Fields []Field `toml:"field"`
 
-	DisableUp bool `toml:"disable_up"`
+	DisableUp     bool `toml:"disable_up"`
+	DisableSnmpUp bool `toml:"disable_snmp_up"`
+	DisableICMPUp bool `toml:"disable_icmp_up"`
 
 	connectionCache []snmpConnection
 
@@ -107,12 +109,17 @@ func (ins *Instance) up(slist *types.SampleList, i int) {
 	etags[ins.AgentHostTag] = host
 
 	// icmp probe
-	up, rtt, loss := Ping(host, 250)
-	slist.PushSample(inputName, "icmp_up", up, etags)
-	slist.PushSample(inputName, "icmp_rtt", rtt, etags)
-	slist.PushSample(inputName, "icmp_packet_loss", loss, etags)
+	if !ins.DisableICMPUp {
+		up, rtt, loss := Ping(host, 250)
+		slist.PushSample(inputName, "icmp_up", up, etags)
+		slist.PushSample(inputName, "icmp_rtt", rtt, etags)
+		slist.PushSample(inputName, "icmp_packet_loss", loss, etags)
+	}
 
 	// snmp probe
+	if ins.DisableSnmpUp {
+		return
+	}
 	oid := ".1.3.6.1.2.1.1.1.0"
 	gs, err := ins.getConnection(i)
 	if err != nil {
