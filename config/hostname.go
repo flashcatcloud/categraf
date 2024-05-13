@@ -11,6 +11,7 @@ import (
 type HostInfoCache struct {
 	name string
 	ip   string
+	sn   string
 	sync.RWMutex
 }
 
@@ -28,6 +29,13 @@ func (c *HostInfoCache) GetIP() string {
 	defer c.RUnlock()
 	ip := c.ip
 	return ip
+}
+
+func (c *HostInfoCache) GetSN() string {
+	c.RLock()
+	defer c.RUnlock()
+	sn := c.sn
+	return sn
 }
 
 func (c *HostInfoCache) SetHostname(name string) {
@@ -50,6 +58,16 @@ func (c *HostInfoCache) SetIP(ip string) {
 	c.Unlock()
 }
 
+func (c *HostInfoCache) SetSN(sn string) {
+	if sn == c.GetSN() {
+		return
+	}
+
+	c.Lock()
+	c.sn = sn
+	c.Unlock()
+}
+
 func InitHostInfo() error {
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -64,10 +82,15 @@ func InitHostInfo() error {
 		}
 		ip = fmt.Sprint(nip)
 	}
-
+	var sn string
+	sn, err = GetBiosSn()
+	if err != nil {
+		return err
+	}
 	HostInfo = &HostInfoCache{
 		name: hostname,
 		ip:   fmt.Sprint(ip),
+		sn:   sn,
 	}
 
 	go HostInfo.update()
@@ -89,6 +112,12 @@ func (c *HostInfoCache) update() {
 			log.Println("E! failed to get ip:", err)
 		} else {
 			HostInfo.SetIP(fmt.Sprint(ip))
+		}
+		sn, err := GetBiosSn()
+		if err != nil {
+			log.Println("E! failed to get sn:", err)
+		} else {
+			HostInfo.SetSN(sn)
 		}
 	}
 }
