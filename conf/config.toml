@@ -7,6 +7,7 @@ print_configs = false
 # "xx" -> use specified string xx
 # "$hostname" -> auto detect hostname
 # "$ip" -> auto detect ip
+# "$sn" -> auto detect bios serial number
 # "$hostname-$ip" -> auto detect hostname and ip to replace the vars
 hostname = ""
 
@@ -30,6 +31,7 @@ concurrency = -1
 [global.labels]
 # region = "shanghai"
 # env = "localhost"
+# sn = "$sn"
 
 [log]
 # file_name is the file to write logs to

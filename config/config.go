@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"runtime"
 	"strings"
@@ -192,6 +193,7 @@ func (c *ConfigType) GetHostname() string {
 
 	ret = strings.Replace(ret, "$hostname", name, -1)
 	ret = strings.Replace(ret, "$ip", c.GetHostIP(), -1)
+	ret = strings.Replace(ret, "$sn", c.GetHostSN(), -1)
 	ret = os.Expand(ret, GetEnv)
 
 	return ret
@@ -204,7 +206,14 @@ func (c *ConfigType) GetHostIP() string {
 
 	return ret
 }
+func (c *ConfigType) GetHostSN() string {
+	ret := HostInfo.GetSN()
+	if ret == "" {
+		return c.GetHostname()
+	}
 
+	return ret
+}
 func GetEnv(key string) string {
 	v := os.Getenv(key)
 	return envVarEscaper.Replace(v)
@@ -300,6 +309,29 @@ func GetOutboundIP() (net.IP, error) {
 	return localAddr.IP, nil
 }
 
+func GetBiosSn() (string, error) {
+	sn := ""
+	if runtime.GOOS == "windows" {
+		out, err := exec.Command("cmd", "/C", "wmic bios get serialnumber").Output()
+		if err != nil {
+			return "", fmt.Errorf("failed to get bios sn: %v", err)
+		}
+		str := string(out)
+		lines := strings.Split(str, "\r\n")
+		if len(lines) > 2 {
+			// 获取第二行
+			sn = strings.TrimSpace(lines[1])
+		}
+	} else {
+		out, err := exec.Command("cat", "/sys/class/dmi/id/product_serial").Output()
+		if err != nil {
+			return "", fmt.Errorf("failed to get bios sn: %v", err)
+		}
+		sn = strings.TrimSpace(string(out))
+	}
+	return sn, nil
+}
+
 func GlobalLabels() map[string]string {
 	ret := make(map[string]string)
 	for k, v := range Config.Global.Labels {
@@ -311,6 +343,7 @@ func GlobalLabels() map[string]string {
 func Expand(nv string) string {
 	nv = strings.Replace(nv, "$hostname", Config.GetHostname(), -1)
 	nv = strings.Replace(nv, "$ip", Config.GetHostIP(), -1)
+	nv = strings.Replace(nv, "$sn", Config.GetHostSN(), -1)
 	nv = os.Expand(nv, GetEnv)
 	return nv
 }
