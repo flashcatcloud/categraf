@@ -89,8 +89,12 @@ func (ins *Instance) Init() error {
 }
 
 func (ins *Instance) up(slist *types.SampleList, i int) {
-	host := ins.Agents[i]
-	u, err := url.Parse(ins.Agents[i])
+	target := ins.Agents[i]
+	if !strings.Contains(target, "://") {
+		target = "udp://" + target
+	}
+	var host string
+	u, err := url.Parse(target)
 	if err == nil {
 		host = u.Hostname()
 	}
