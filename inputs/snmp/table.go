@@ -592,6 +592,13 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 		}
 		return v, nil
 	}
+	if conv == "byte" {
+		val, ok := ent.Value.(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid type (%T) for storage conversion", ent.Value)
+		}
+		return byteConvert(val)
+	}
 
 	if conv == "int" {
 		v = ent.Value
@@ -712,54 +719,7 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 
 		// 将ascii字符切片转换为字符串
 		asciiStr := string(input)
-
-		// 提取数值
-		var numericStr string
-		for _, char := range asciiStr {
-			if char >= '0' && char <= '9' || char == '.' {
-				numericStr += string(char)
-			}
-		}
-
-		// 将字符串转换为浮点数
-		value, err := strconv.ParseFloat(numericStr, 64)
-		if err != nil {
-			return nil, fmt.Errorf("invalid number part of %s", asciiStr)
-		}
-
-		// 解析单位并转换为字节数
-		unit := strings.ToUpper(strings.TrimSpace(strings.Trim(asciiStr, numericStr)))
-		var result float64
-		switch unit {
-		case "":
-			result = value
-		case "B":
-			result = value
-		case "KB":
-			result = value * 1000
-		case "MB":
-			result = value * 1000 * 1000
-		case "GB":
-			result = value * 1000 * 1000 * 1000
-		case "TB":
-			result = value * 1000 * 1000 * 1000 * 1000
-		case "PB":
-			result = value * 1000 * 1000 * 1000 * 1000 * 1000
-		case "KIB":
-			result = value * 1024
-		case "MIB":
-			result = value * 1024 * 1024
-		case "GIB":
-			result = value * 1024 * 1024 * 1024
-		case "TIB":
-			result = value * 1024 * 1024 * 1024 * 1024
-		case "PIB":
-			result = value * 1024 * 1024 * 1024 * 1024 * 1024
-		default:
-			return nil, fmt.Errorf("invalid unit of %s", unit)
-		}
-
-		return result, nil
+		return byteConvert(asciiStr)
 	}
 	if conv == "enum" {
 		return tr.SnmpFormatEnum(ent.Name, ent.Value, false)
@@ -770,4 +730,53 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 	}
 
 	return nil, fmt.Errorf("invalid conversion type '%s'", conv)
+}
+
+func byteConvert(str string) (interface{}, error) {
+	if na := strings.TrimSpace(str); na == "N/A" || na == "" {
+		return 0, nil
+	}
+	var numericStr string
+	for _, char := range str {
+		if char >= '0' && char <= '9' || char == '.' {
+			numericStr += string(char)
+		}
+	}
+
+	// 将字符串转换为浮点数
+	value, err := strconv.ParseFloat(numericStr, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid number part of %s", str)
+	}
+
+	// 解析单位并转换为字节数
+	unit := strings.ToUpper(strings.TrimSpace(strings.Trim(str, numericStr)))
+	var result float64
+	switch unit {
+	case "", "B":
+		result = value
+	case "KB":
+		result = value * 1000
+	case "MB":
+		result = value * 1000 * 1000
+	case "GB":
+		result = value * 1000 * 1000 * 1000
+	case "TB":
+		result = value * 1000 * 1000 * 1000 * 1000
+	case "PB":
+		result = value * 1000 * 1000 * 1000 * 1000 * 1000
+	case "KIB":
+		result = value * 1024
+	case "MIB":
+		result = value * 1024 * 1024
+	case "GIB":
+		result = value * 1024 * 1024 * 1024
+	case "TIB":
+		result = value * 1024 * 1024 * 1024 * 1024
+	case "PIB":
+		result = value * 1024 * 1024 * 1024 * 1024 * 1024
+	default:
+		return nil, fmt.Errorf("invalid unit of %s", unit)
+	}
+	return result, nil
 }
