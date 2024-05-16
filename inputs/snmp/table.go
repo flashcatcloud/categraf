@@ -405,7 +405,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 					log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
 					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
 				} else {
-					log.Printf("W! snmp walk error:%s, oid:%s", err, oid)
+					log.Printf("W! snmp walk error:%s(%s), oid:%s", err, walkErr.Unwrap, oid)
 				}
 			}
 		}
@@ -593,11 +593,13 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 		return v, nil
 	}
 	if conv == "byte" {
-		val, ok := ent.Value.(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid type (%T) for storage conversion", ent.Value)
+		if val, ok := ent.Value.([]byte); ok {
+			return byteConvert(string(val))
 		}
-		return byteConvert(val)
+		if val, ok := ent.Value.(string); ok {
+			return byteConvert(val)
+		}
+		return nil, fmt.Errorf("invalid type (%T) for byte conversion", ent.Value)
 	}
 
 	if conv == "int" {
