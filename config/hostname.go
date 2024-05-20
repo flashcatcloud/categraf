@@ -112,9 +112,7 @@ func (c *HostInfoCache) update() {
 			HostInfo.SetIP(fmt.Sprint(ip))
 		}
 		sn, err := GetBiosSn()
-		if err != nil {
-			log.Println("E! failed to get sn:", err)
-		} else {
+		if err == nil {
 			HostInfo.SetSN(sn)
 		}
 	}
