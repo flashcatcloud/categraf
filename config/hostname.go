@@ -83,10 +83,8 @@ func InitHostInfo() error {
 		ip = fmt.Sprint(nip)
 	}
 	var sn string
-	sn, err = GetBiosSn()
-	if err != nil {
-		return err
-	}
+	// allow sn empty
+	sn, _ = GetBiosSn()
 	HostInfo = &HostInfoCache{
 		name: hostname,
 		ip:   fmt.Sprint(ip),

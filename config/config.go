@@ -208,10 +208,6 @@ func (c *ConfigType) GetHostIP() string {
 }
 func (c *ConfigType) GetHostSN() string {
 	ret := HostInfo.GetSN()
-	if ret == "" {
-		return c.GetHostname()
-	}
-
 	return ret
 }
 func GetEnv(key string) string {
