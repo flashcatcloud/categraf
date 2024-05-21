@@ -83,10 +83,8 @@ func InitHostInfo() error {
 		ip = fmt.Sprint(nip)
 	}
 	var sn string
-	sn, err = GetBiosSn()
-	if err != nil {
-		return err
-	}
+	// allow sn empty
+	sn, _ = GetBiosSn()
 	HostInfo = &HostInfoCache{
 		name: hostname,
 		ip:   fmt.Sprint(ip),
@@ -114,9 +112,7 @@ func (c *HostInfoCache) update() {
 			HostInfo.SetIP(fmt.Sprint(ip))
 		}
 		sn, err := GetBiosSn()
-		if err != nil {
-			log.Println("E! failed to get sn:", err)
-		} else {
+		if err == nil {
 			HostInfo.SetSN(sn)
 		}
 	}
