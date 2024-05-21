@@ -405,7 +405,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 					log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
 					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
 				} else {
-					log.Printf("W! snmp walk error:%s(%s), oid:%s", err, walkErr.Unwrap, oid)
+					log.Printf("W! snmp walk error:%s(%s), oid:%s", err, walkErr.Unwrap(), oid)
 				}
 			}
 		}
