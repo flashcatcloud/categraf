@@ -341,7 +341,7 @@ func GetBiosSn() (string, error) {
 		}
 		sn = strings.TrimSpace(string(out))
 	default:
-		sn = ""
+		return "", fmt.Errorf("not support os to get sn")
 	}
 	return sn, nil
 }
