@@ -208,10 +208,6 @@ func (c *ConfigType) GetHostIP() string {
 }
 func (c *ConfigType) GetHostSN() string {
 	ret := HostInfo.GetSN()
-	if ret == "" {
-		return c.GetHostname()
-	}
-
 	return ret
 }
 func GetEnv(key string) string {
@@ -310,8 +306,9 @@ func GetOutboundIP() (net.IP, error) {
 }
 
 func GetBiosSn() (string, error) {
-	sn := ""
-	if runtime.GOOS == "windows" {
+	var sn string
+	switch runtime.GOOS {
+	case "windows":
 		out, err := exec.Command("cmd", "/C", "wmic bios get serialnumber").Output()
 		if err != nil {
 			return "", fmt.Errorf("failed to get bios sn: %v", err)
@@ -322,12 +319,29 @@ func GetBiosSn() (string, error) {
 			// 获取第二行
 			sn = strings.TrimSpace(lines[1])
 		}
-	} else {
-		out, err := exec.Command("cat", "/sys/class/dmi/id/product_serial").Output()
+	case "darwin":
+		out, err := exec.Command("system_profiler", "SPHardwareDataType").Output()
+		if err != nil {
+			return "", fmt.Errorf("failed to get bios sn: %v", err)
+		}
+		lines := strings.Split(string(out), "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "Serial Number (system)") {
+				parts := strings.Split(line, ":")
+				if len(parts) > 1 {
+					sn = strings.TrimSpace(parts[1])
+					break
+				}
+			}
+		}
+	case "linux":
+		out, err := exec.Command("dmidecode", "-s", "system-serial-number").Output()
 		if err != nil {
 			return "", fmt.Errorf("failed to get bios sn: %v", err)
 		}
 		sn = strings.TrimSpace(string(out))
+	default:
+		return "", fmt.Errorf("not support os to get sn")
 	}
 	return sn, nil
 }
