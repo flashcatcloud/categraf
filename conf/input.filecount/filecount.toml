@@ -15,7 +15,7 @@
 ##   /var/log/*/*   -> find all directories with a parent dir in /var/log and count files in each directories
 ##   /var/log       -> count all files in /var/log and all of its subdirectories
 ## directories = ["/var/cache/apt", "/tmp"]
-directories = ["/tmp"]
+directories = []
 
 ## Only count files that match the name pattern. Defaults to "*".
 file_name = "*"
