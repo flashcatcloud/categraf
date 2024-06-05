@@ -24,6 +24,22 @@ build:
 	echo "Building version $(GIT_VERSION)"
 	go build -ldflags $(LDFLAGS) -o $(APP)
 
+build-test:
+	echo "Building version $(GIT_VERSION)"
+	go build -ldflags $(LDFLAGS) -o $(APP)
+	echo "Linux amd64 building version $(GIT_VERSION)"
+	GOOS=linux GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP)
+	echo "Linux arm64 building version $(GIT_VERSION)"
+	GOOS=linux GOARCH=arm64 go build -ldflags $(LDFLAGS) -o $(APP)
+	echo "Windows amd64 building version $(GIT_VERSION)"
+	GOOS=windows GOARCH=amd64 go build -ldflags $(LDFLAGS) -o $(APP).exe
+	echo "Windows arm64 building version $(GIT_VERSION)"
+	GOOS=windows GOARCH=arm64 go build -ldflags $(LDFLAGS) -o $(APP).exe
+	echo "Linux amd64 slim building version $(GIT_VERSION)"
+	GOOS=linux GOARCH=amd64 go build --tags "no_logs no_prometheus no_traces" -ldflags $(LDFLAGS) -o $(APP)
+	echo "Linux arm64 slim building version $(GIT_VERSION)"
+	GOOS=linux GOARCH=arm64 go build --tags "no_logs no_prometheus no_traces" -ldflags $(LDFLAGS) -o $(APP)
+
 build-pure:
 	echo "Building version $(GIT_VERSION)"
 	go build --tags "no_prometheus no_traces" -ldflags $(LDFLAGS) -o $(APP)
