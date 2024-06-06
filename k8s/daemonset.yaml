@@ -46,6 +46,17 @@ subjects:
   name: n9e-categraf
   namespace: ${CATEGRAF_NAMESPACE}
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: n9e-categraf
+  namespace: ${CATEGRAF_NAMESPACE}
+  annotations:
+    kubernetes.io/service-account.name: "n9e-categraf"
+type: kubernetes.io/service-account-token
+data:
+  extra: YmFyCg==
+---
 kind: ConfigMap
 metadata:
   name: categraf-config
