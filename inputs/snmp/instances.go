@@ -90,7 +90,7 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
-func (ins *Instance) up(slist *types.SampleList, i int) {
+func (ins *Instance) up(slist *types.SampleList, i int) bool {
 	target := ins.Agents[i]
 	if !strings.Contains(target, "://") {
 		target = "udp://" + target
@@ -118,26 +118,32 @@ func (ins *Instance) up(slist *types.SampleList, i int) {
 		slist.PushSample(inputName, "icmp_up", up, etags)
 		slist.PushSample(inputName, "icmp_rtt", rtt, etags)
 		slist.PushSample(inputName, "icmp_packet_loss", loss, etags)
+		if up == 0 {
+			slist.PushSample(inputName, "up", 0, etags)
+			log.Printf("ping snmp host %s fail", host)
+			return false
+		}
 	}
 
 	// snmp probe
 	if ins.DisableSnmpUp {
-		return
+		return true
 	}
 	oid := ".1.3.6.1.2.1.1.1.0"
 	gs, err := ins.getConnection(i)
 	if err != nil {
 		slist.PushSample(inputName, "up", 0, etags)
-		return
+		return false
 	}
 	_, err = gs.Get([]string{oid})
 	if err != nil {
 		if strings.Contains(err.Error(), "refused") || strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "reset") {
 			slist.PushSample(inputName, "up", 0, etags)
-			return
+			return false
 		}
 	}
 	slist.PushSample(inputName, "up", 1, etags)
+	return true
 }
 
 // Gather retrieves all the configured fields and tables.
@@ -149,6 +155,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		wg.Add(1)
 		go func(i int, agent string) {
 			defer wg.Done()
+			if !ins.DisableUp && !ins.up(slist, i) {
+				log.Printf("agent %s ins is not up", agent)
+				return
+			}
+
 			// First is the top-level fields. We treat the fields as table prefixes with an empty index.
 			t := Table{
 				Name:   ins.Name,
@@ -166,9 +177,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			extraTags := map[string]string{}
 			if m, ok := ins.Mappings[agent]; ok {
 				extraTags = m
-			}
-			if !ins.DisableUp {
-				ins.up(slist, i)
 			}
 
 			gs, err := ins.getConnection(i)
