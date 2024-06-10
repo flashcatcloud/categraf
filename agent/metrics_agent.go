@@ -28,6 +28,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/diskio"
 	_ "flashcat.cloud/categraf/inputs/dns_query"
 	_ "flashcat.cloud/categraf/inputs/docker"
+	_ "flashcat.cloud/categraf/inputs/eBPF"
 	_ "flashcat.cloud/categraf/inputs/elasticsearch"
 	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/filecount"
@@ -37,6 +38,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/http_response"
 	_ "flashcat.cloud/categraf/inputs/influxdb"
 	_ "flashcat.cloud/categraf/inputs/ipmi"
+	_ "flashcat.cloud/categraf/inputs/iptables"
 	_ "flashcat.cloud/categraf/inputs/ipvs"
 	_ "flashcat.cloud/categraf/inputs/jenkins"
 	_ "flashcat.cloud/categraf/inputs/jolokia_agent"
@@ -92,7 +94,6 @@ import (
 	_ "flashcat.cloud/categraf/inputs/whois"
 	_ "flashcat.cloud/categraf/inputs/xskyapi"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
-	_ "flashcat.cloud/categraf/inputs/iptables"
 )
 
 type MetricsAgent struct {

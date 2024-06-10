@@ -79,7 +79,6 @@ require (
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
 	github.com/dennwc/ioctl v1.0.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
-	github.com/frankban/quicktest v1.14.3 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.5 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
@@ -138,6 +137,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/bmatcuk/doublestar/v3 v3.0.0
+	github.com/cilium/ebpf v0.12.3
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/dennwc/btrfs v0.0.0-20230312211831-a1f570bd01a1
 	github.com/ema/qdisc v1.0.0
