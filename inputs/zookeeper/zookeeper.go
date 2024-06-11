@@ -125,22 +125,34 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *types.SampleList, 
 		slist.PushFront(types.NewSample("", "zk_scrape_use_seconds", use, tags))
 	}(begun)
 
-	// zk_up  zk_ruok
-	conn, err := ins.ZkConnect(zkHost)
-
+	// zk_up
+	mntrConn, err := ins.ZkConnect(zkHost)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "zk_up", 0, tags))
+		log.Println("E! failed to connect zookeeper:", zkHost, "error:", err)
+		return
+	}
+
+	defer mntrConn.Close()
+	// prevent blocking
+	mntrConn.SetDeadline(time.Now().Add(time.Duration(ins.Timeout) * time.Second))
+
+	ins.gatherMntrResult(mntrConn, slist, tags)
+
+	// zk_ruok
+	ruokConn, err := ins.ZkConnect(zkHost)
+	if err != nil {
 		slist.PushFront(types.NewSample("", "zk_ruok", 0, tags))
 		log.Println("E! failed to connect zookeeper:", zkHost, "error:", err)
 		return
 	}
-	defer conn.Close()
 
+	defer ruokConn.Close()
 	// prevent blocking
-	conn.SetDeadline(time.Now().Add(time.Duration(ins.Timeout) * time.Second))
+	ruokConn.SetDeadline(time.Now().Add(time.Duration(ins.Timeout) * time.Second))
 
-	ins.gatherMntrResult(conn, slist, tags)
-	ins.gatherRuokResult(conn, slist, tags)
+	ins.gatherRuokResult(ruokConn, slist, tags)
+
 }
 
 func (ins *Instance) gatherMntrResult(conn net.Conn, slist *types.SampleList, globalTags map[string]string) {
