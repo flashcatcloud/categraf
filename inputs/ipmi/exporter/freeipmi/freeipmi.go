@@ -31,6 +31,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	cfg "flashcat.cloud/categraf/config"
 )
 
 var (
@@ -152,7 +154,10 @@ func Execute(cmd string, args []string, config string, target string) Result {
 		args = append(args, "-h", target)
 	}
 
-	log.Println("msg", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
+	if cfg.Config.DebugMode {
+		log.Println("D!", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
+	}
+
 	out, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("error running %s: %s", cmd, err)

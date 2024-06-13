@@ -24,6 +24,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
+	cfg "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/ipmi/exporter/freeipmi"
 )
 
@@ -167,11 +168,13 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 		case "N/A":
 			state = math.NaN()
 		default:
-			log.Println("msg", "Unknown sensor state", "target", targetHost, "state", data.State)
+			log.Println("W!", "Unknown sensor state", "target", targetHost, "state", data.State)
 			state = math.NaN()
 		}
 
-		log.Println("msg", "Got values", "target", targetHost, "data", fmt.Sprintf("%+v", data))
+		if cfg.Config.DebugMode {
+			log.Println("D!", "Got values", "target", targetHost, "data", fmt.Sprintf("%+v", data))
+		}
 
 		switch data.Unit {
 		case "RPM":
