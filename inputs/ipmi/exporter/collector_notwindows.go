@@ -110,7 +110,7 @@ func Collect(ch chan<- prometheus.Metric, host, binPath string, config IPMIConfi
 		args := collector.Args()
 		cfg := config.GetFreeipmiConfig()
 
-		result := freeipmi.Execute(fqcmd, args, cfg, target.host)
+		result := freeipmi.Execute(fqcmd, args, cfg, target.host, debugMod)
 
 		up, _ = collector.Collect(result, ch, target)
 		markCollectorUp(ch, string(collector.Name()), up)

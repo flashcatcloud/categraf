@@ -31,8 +31,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-
-	cfg "flashcat.cloud/categraf/config"
 )
 
 var (
@@ -138,7 +136,7 @@ func freeipmiConfigPipe(config string) (string, error) {
 	return pipe, nil
 }
 
-func Execute(cmd string, args []string, config string, target string) Result {
+func Execute(cmd string, args []string, config string, target string, debugMod bool) Result {
 	pipe, err := freeipmiConfigPipe(config)
 	if err != nil {
 		return Result{nil, err}
@@ -154,7 +152,7 @@ func Execute(cmd string, args []string, config string, target string) Result {
 		args = append(args, "-h", target)
 	}
 
-	if cfg.Config.DebugMode {
+	if debugMod {
 		log.Println("D!", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
 	}
 
