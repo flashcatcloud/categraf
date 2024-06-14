@@ -39,7 +39,7 @@ func (m *Instance) Gather(slist *types.SampleList) {
 	metricChan := make(chan prometheus.Metric, 500)
 
 	go func() {
-		exporter.Collect(metricChan, m.Target, m.Path, m.IPMIConfig)
+		exporter.Collect(metricChan, m.Target, m.Path, m.IPMIConfig, m.DebugMod)
 		close(metricChan)
 	}()
 	for metric := range metricChan {

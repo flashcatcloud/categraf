@@ -67,29 +67,29 @@ func (c ConfiguredCollector) Collect(output freeipmi.Result, ch chan<- prometheu
 	return c.collector.Collect(output, ch, target)
 }
 
-func (c CollectorName) GetInstance() (Collector, error) {
+func (c CollectorName) GetInstance(debugMod bool) (Collector, error) {
 	// This is where a new Collector would have to be "registered"
 	switch c {
 	case IPMICollectorName:
-		return IPMICollector{}, nil
+		return IPMICollector{debugMod: debugMod}, nil
 	case BMCCollectorName:
-		return BMCCollector{}, nil
+		return BMCCollector{debugMod: debugMod}, nil
 	case BMCWatchdogCollectorName:
-		return BMCWatchdogCollector{}, nil
+		return BMCWatchdogCollector{debugMod: debugMod}, nil
 	case SELCollectorName:
-		return SELCollector{}, nil
+		return SELCollector{debugMod: debugMod}, nil
 	case DCMICollectorName:
-		return DCMICollector{}, nil
+		return DCMICollector{debugMod: debugMod}, nil
 	case ChassisCollectorName:
-		return ChassisCollector{}, nil
+		return ChassisCollector{debugMod: debugMod}, nil
 	case SMLANModeCollectorName:
-		return SMLANModeCollector{}, nil
+		return SMLANModeCollector{debugMod: debugMod}, nil
 	}
 	return nil, fmt.Errorf("invalid Collector: %s", string(c))
 }
 
-func (c CollectorName) IsValid() error {
-	_, err := c.GetInstance()
+func (c CollectorName) IsValid(debugMod bool) error {
+	_, err := c.GetInstance(debugMod)
 	return err
 }
 
@@ -141,11 +141,11 @@ func checkOverflow(m map[string]interface{}, ctx string) error {
 	return nil
 }
 
-func (c IPMIConfig) GetCollectors() []Collector {
+func (c IPMIConfig) GetCollectors(debugMod bool) []Collector {
 	result := []Collector{}
 	for _, co := range c.Collectors {
 		// At this point validity has already been checked
-		i, _ := co.GetInstance()
+		i, _ := co.GetInstance(debugMod)
 		cc := ConfiguredCollector{
 			collector:    i,
 			command:      c.CollectorCmd[i.Name()],
