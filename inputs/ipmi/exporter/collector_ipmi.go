@@ -24,7 +24,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	cfg "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/ipmi/exporter/freeipmi"
 )
 
@@ -125,7 +124,9 @@ var (
 	)
 )
 
-type IPMICollector struct{}
+type IPMICollector struct {
+	debugMod bool
+}
 
 func (c IPMICollector) Name() CollectorName {
 	return IPMICollectorName
@@ -152,7 +153,7 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 	targetHost := targetName(target.host)
 	results, err := freeipmi.GetSensorData(result, excludeIds)
 	if err != nil {
-		log.Println("msg", "Failed to collect sensor data", "target", targetHost, "error", err)
+		log.Println("E!", "Failed to collect sensor data", "target", targetHost, "error", err)
 		return 0, err
 	}
 	for _, data := range results {
@@ -172,7 +173,7 @@ func (c IPMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 			state = math.NaN()
 		}
 
-		if cfg.Config.DebugMode {
+		if c.debugMod {
 			log.Println("D!", "Got values", "target", targetHost, "data", fmt.Sprintf("%+v", data))
 		}
 

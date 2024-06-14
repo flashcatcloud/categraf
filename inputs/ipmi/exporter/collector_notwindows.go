@@ -23,7 +23,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	cfg "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/ipmi/exporter/freeipmi"
 )
 
@@ -81,12 +80,12 @@ func markCollectorUp(ch chan<- prometheus.Metric, name string, up int) {
 }
 
 // Collect implements Prometheus.Collector.
-func Collect(ch chan<- prometheus.Metric, host, binPath string, config IPMIConfig) {
+func Collect(ch chan<- prometheus.Metric, host, binPath string, config IPMIConfig, debugMod bool) {
 	start := time.Now()
 	defer func() {
 		duration := time.Since(start).Seconds()
 
-		if cfg.Config.DebugMode {
+		if debugMod {
 			log.Println("D!", "Scrape duration", "target", targetName(host), "duration", duration)
 		}
 		ch <- prometheus.MustNewConstMetric(
@@ -101,9 +100,9 @@ func Collect(ch chan<- prometheus.Metric, host, binPath string, config IPMIConfi
 		config: config,
 	}
 
-	for _, collector := range config.GetCollectors() {
+	for _, collector := range config.GetCollectors(debugMod) {
 		var up int
-		if cfg.Config.DebugMode {
+		if debugMod {
 			log.Println("D!", "Running collector", "target", target.host, "collector", collector.Name())
 		}
 

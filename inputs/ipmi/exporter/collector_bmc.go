@@ -37,7 +37,9 @@ var (
 	)
 )
 
-type BMCCollector struct{}
+type BMCCollector struct {
+	debugMod bool
+}
 
 func (c BMCCollector) Name() CollectorName {
 	return BMCCollectorName
@@ -54,18 +56,18 @@ func (c BMCCollector) Args() []string {
 func (c BMCCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	firmwareRevision, err := freeipmi.GetBMCInfoFirmwareRevision(result)
 	if err != nil {
-		log.Println("msg", "Failed to collect BMC data", "target", targetName(target.host), "error", err)
+		log.Println("E!", "Failed to collect BMC data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	manufacturerID, err := freeipmi.GetBMCInfoManufacturerID(result)
 	if err != nil {
-		log.Println("msg", "Failed to collect BMC data", "target", targetName(target.host), "error", err)
+		log.Println("E!", "Failed to collect BMC data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	systemFirmwareVersion, err := freeipmi.GetBMCInfoSystemFirmwareVersion(result)
 	if err != nil {
 		// This one is not always available.
-		log.Println("msg", "Failed to parse bmc-info data", "target", targetName(target.host), "error", err)
+		log.Println("E!", "Failed to parse bmc-info data", "target", targetName(target.host), "error", err)
 		systemFirmwareVersion = "N/A"
 	}
 	ch <- prometheus.MustNewConstMetric(
