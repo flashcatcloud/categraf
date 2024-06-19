@@ -307,7 +307,7 @@ func runProcess(t *Task) {
 
 	stdout, err := t.Cmd.StdoutPipe()
 	reader := bufio.NewReader(stdout)
-
+	fmt.Println(reader)
 	//实时循环读取输出流中的一行内容
 	for {
 		line, err2 := reader.ReadString('\n')
