@@ -306,24 +306,7 @@ func (t *Task) start() {
 		fmt.Println(line)
 	}
 
-	go runProcess(t)
-}
-func GetOutput(reader *bufio.Reader) {
-	var sumOutput string //统计屏幕的全部输出内容
-	outputBytes := make([]byte, 200)
-	for {
-		n, err := reader.Read(outputBytes) //获取屏幕的实时输出(并不是按照回车分割，所以要结合sumOutput)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			fmt.Println(err)
-			sumOutput += err.Error()
-		}
-		output := string(outputBytes[:n])
-		fmt.Print(output) //输出屏幕内容
-		sumOutput += output
-	}
+	runProcess(t)
 }
 
 func (t *Task) kill() {
