@@ -321,7 +321,7 @@ func runProcess(t *Task) {
 		fmt.Println(line)
 	}
 
-	err = t.Cmd.Wait()
+	//err = t.Cmd.Wait()
 	if err != nil {
 		if strings.Contains(err.Error(), "signal: killed") {
 			t.SetStatus("killed")
