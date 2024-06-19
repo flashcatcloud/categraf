@@ -286,7 +286,20 @@ func (t *Task) start() {
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
+	stdout, err := cmd.StdoutPipe()
+
 	err = CmdStart(cmd)
+
+	// 从管道中实时获取输出并打印到终端
+	for {
+		tmp := make([]byte, 1024)
+		_, err := stdout.Read(tmp)
+		log.Printf("======> %s", string(tmp))
+		if err != nil {
+			log.Printf("ERROR ======> %s", string(tmp))
+			break
+		}
+	}
 	if err != nil {
 		log.Printf("E! cannot start cmd of task[%d]: %v", t.Id, err)
 		return
