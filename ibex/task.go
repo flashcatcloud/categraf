@@ -306,6 +306,8 @@ func (t *Task) start() {
 		fmt.Println(line)
 	}
 
+	cmd.Wait()
+
 	runProcess(t)
 }
 
