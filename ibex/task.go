@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"os/exec"
 	"os/user"
 	"path"
@@ -289,27 +288,23 @@ func (t *Task) start() {
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
-	var wg sync.WaitGroup
-	wg.Add(2)
-	//捕获标准输出
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		fmt.Println("INFO:", err)
-		os.Exit(1)
-	}
-	readout := bufio.NewReader(stdout)
-	go func() {
-		defer wg.Done()
-		GetOutput(readout)
-	}()
-
 	err = CmdStart(cmd)
-
 	if err != nil {
 		log.Printf("E! cannot start cmd of task[%d]: %v", t.Id, err)
 		return
 	}
-	wg.Wait()
+
+	stdout, err := cmd.StdoutPipe()
+	reader := bufio.NewReader(stdout)
+
+	//实时循环读取输出流中的一行内容
+	for {
+		line, err2 := reader.ReadString('\n')
+		if err2 != nil || io.EOF == err2 {
+			break
+		}
+		fmt.Println(line)
+	}
 
 	go runProcess(t)
 }
