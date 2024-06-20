@@ -3,10 +3,8 @@
 package ibex
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"os/exec"
 	"os/user"
@@ -71,6 +69,7 @@ func (t *Task) SetAlive(pa bool) {
 func (t *Task) GetStdout() string {
 	t.Lock()
 	out := t.Stdout.String()
+	fmt.Sprintf("Output =====> %s", out)
 	t.Unlock()
 	return out
 }
@@ -283,26 +282,12 @@ func (t *Task) start() {
 		}
 	}
 
-	//cmd.Stdout = &t.Stdout
+	cmd.Stdout = &t.Stdout
 	cmd.Stderr = &t.Stderr
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		fmt.Println("error   ===》 ", err)
-	}
-	fmt.Println(stdout)
-	reader := bufio.NewReader(stdout)
-
-	//实时循环读取输出流中的一行内容
-	for {
-		line, err2 := reader.ReadString('\n')
-		if err2 != nil || io.EOF == err2 {
-			break
-		}
-		fmt.Println(line)
-	}
+	persistResult(t)
 
 	err = CmdStart(cmd)
 	if err != nil {
@@ -339,7 +324,7 @@ func runProcess(t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-	persistResult(t)
+	//persistResult(t)
 }
 
 func persistResult(t *Task) {
@@ -349,7 +334,14 @@ func persistResult(t *Task) {
 	stderr := filepath.Join(metadir, fmt.Sprint(t.Id), "stderr")
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 
-	file.WriteString(stdout, t.GetStdout())
+	for {
+		out := t.GetStdout()
+		if out == "" {
+			break
+		}
+		file.WriteString(stdout, out)
+	}
+
 	file.WriteString(stderr, t.GetStderr())
 	file.WriteString(doneFlag, t.GetStatus())
 }
