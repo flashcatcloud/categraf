@@ -3,6 +3,7 @@
 package ibex
 
 import (
+	"fmt"
 	"log"
 
 	"flashcat.cloud/categraf/ibex/types"
@@ -20,6 +21,7 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 		rt := types.ReportTask{Id: id, Clock: t.Clock}
 
 		rt.Status = t.GetStatus()
+		fmt.Println(rt.Status)
 		if rt.Status == "killing" || rt.Status == "running" {
 			// intermediate state
 			continue
