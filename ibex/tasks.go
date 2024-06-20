@@ -21,10 +21,10 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 		rt := types.ReportTask{Id: id, Clock: t.Clock}
 
 		rt.Status = t.GetStatus()
-		if rt.Status == "killing" {
-			// intermediate state
-			continue
-		}
+		//if rt.Status == "killing" {
+		//	// intermediate state
+		//	continue
+		//}
 
 		//if rt.Status == "running" {
 		//	//fmt.Println("starting report: ===> ", t.GetStdout())
@@ -37,6 +37,15 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 		stderrLen := len(rt.Stderr)
 
 		fmt.Println(stdoutLen)
+		if rt.Status == "killing" {
+			// intermediate state
+			continue
+		}
+
+		if rt.Status == "running" && stdoutLen != 10 {
+			// intermediate state
+			continue
+		}
 
 		// 输出太长的话，截断，要不然把数据库撑爆了
 		if stdoutLen > 65535 {
