@@ -292,7 +292,7 @@ func (t *Task) start() {
 		return
 	}
 
-	go persistResult(t)
+	//go persistResult(t)
 
 	go runProcess(t)
 }
@@ -323,7 +323,7 @@ func runProcess(t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-	//persistResult(t)
+	persistResult(t)
 }
 
 func persistResult(t *Task) {
