@@ -336,7 +336,7 @@ func persistResult(t *Task) {
 
 	//{
 	out := t.GetStdout()
-	fmt.Sprintf("Output =====> %s", out)
+	fmt.Sprintf("Output =====> %s", stdout)
 	file.WriteString(stdout, out)
 	//}
 
