@@ -313,8 +313,10 @@ func (t *Task) start() {
 				break
 			}
 			t.Stdout.WriteString(line)
+			persistResult(t)
 			fmt.Println("=====>", t.GetStdout())
 		}
+
 		err := t.Cmd.Wait()
 		if err != nil {
 			if strings.Contains(err.Error(), "signal: killed") {
