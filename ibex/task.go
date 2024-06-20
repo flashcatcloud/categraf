@@ -302,16 +302,22 @@ func (t *Task) start() {
 		return
 	}
 
-	reader := bufio.NewReader(stdout)
-	//实时循环读取输出流中的一行内容
-	for {
-		line, err2 := reader.ReadString('\n')
-		if err2 != nil || io.EOF == err2 {
-			break
+	go func() {
+		reader := bufio.NewReader(stdout)
+		//实时循环读取输出流中的一行内容
+		for {
+			line, err2 := reader.ReadString('\n')
+			if err2 != nil || io.EOF == err2 {
+				break
+			}
+			fmt.Println(line)
 		}
-		fmt.Println(line)
-	}
-	t.Cmd.Wait()
+		err := t.Cmd.Wait()
+
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	//go runProcess(t)
 }
