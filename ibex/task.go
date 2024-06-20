@@ -288,6 +288,22 @@ func (t *Task) start() {
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		fmt.Println("error   ===》 ", err)
+	}
+	fmt.Println(stdout)
+	reader := bufio.NewReader(stdout)
+
+	//实时循环读取输出流中的一行内容
+	for {
+		line, err2 := reader.ReadString('\n')
+		if err2 != nil || io.EOF == err2 {
+			break
+		}
+		fmt.Println(line)
+	}
+
 	err = CmdStart(cmd)
 	if err != nil {
 		log.Printf("E! cannot start cmd of task[%d]: %v", t.Id, err)
@@ -305,23 +321,7 @@ func runProcess(t *Task) {
 	t.SetAlive(true)
 	defer t.SetAlive(false)
 
-	stdout, err := t.Cmd.StdoutPipe()
-	if err != nil {
-		fmt.Println("error   ===》 ", err)
-	}
-	fmt.Println(stdout)
-	reader := bufio.NewReader(stdout)
-
-	//实时循环读取输出流中的一行内容
-	for {
-		line, err2 := reader.ReadString('\n')
-		if err2 != nil || io.EOF == err2 {
-			break
-		}
-		fmt.Println(line)
-	}
-
-	err = t.Cmd.Wait()
+	err := t.Cmd.Wait()
 	if err != nil {
 		if strings.Contains(err.Error(), "signal: killed") {
 			t.SetStatus("killed")
