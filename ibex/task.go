@@ -284,12 +284,10 @@ func (t *Task) start() {
 		}
 	}
 
-	//cmd.Stdout = &t.Stdout
+	cmd.Stdout = &t.Stdout
 	cmd.Stderr = &t.Stderr
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
-
-	go runProcessRealtime(cmd, t)
 
 	err = CmdStart(cmd)
 
@@ -298,7 +296,7 @@ func (t *Task) start() {
 		return
 	}
 
-	//go runProcess(t)
+	go runProcess(t)
 }
 
 func (t *Task) kill() {
@@ -334,7 +332,7 @@ func GetOutput(reader *bufio.Reader, t *Task) {
 		output := string(outputBytes[:n])
 		//fmt.Print(output) //输出屏幕内容
 
-		persistResult(t, output)
+		persistResult(t)
 		sumOutput += output
 	}
 
@@ -357,7 +355,6 @@ func GetOutput(reader *bufio.Reader, t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-	persistResult(t, sumOutput)
 }
 
 func runProcess(t *Task) {
@@ -382,10 +379,10 @@ func runProcess(t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-	//persistResult(t)
+	persistResult(t)
 }
 
-func persistResult(t *Task, msg string) {
+func persistResult(t *Task) {
 	metadir := config.Config.Ibex.MetaDir
 	stdout := filepath.Join(metadir, fmt.Sprint(t.Id), "stdout")
 	stderr := filepath.Join(metadir, fmt.Sprint(t.Id), "stderr")
@@ -412,5 +409,5 @@ func killProcess(t *Task) {
 		log.Printf("D! process of task[%d] killed", t.Id)
 	}
 
-	//persistResult(t)
+	persistResult(t)
 }
