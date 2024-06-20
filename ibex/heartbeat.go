@@ -4,6 +4,7 @@ package ibex
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -36,6 +37,7 @@ func heartbeat() {
 	}
 
 	var resp types.ReportResponse
+	fmt.Println(resp)
 	err := client.GetCli().Call("Server.Report", req, &resp)
 
 	if err != nil {
