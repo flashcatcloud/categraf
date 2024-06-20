@@ -286,13 +286,13 @@ func (t *Task) start() {
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
-	//persistResult(t)
-
 	err = CmdStart(cmd)
 	if err != nil {
 		log.Printf("E! cannot start cmd of task[%d]: %v", t.Id, err)
 		return
 	}
+
+	persistResult(t)
 
 	go runProcess(t)
 }
@@ -323,7 +323,7 @@ func runProcess(t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-	persistResult(t)
+	//persistResult(t)
 }
 
 func persistResult(t *Task) {
@@ -334,14 +334,11 @@ func persistResult(t *Task) {
 	stderr := filepath.Join(metadir, fmt.Sprint(t.Id), "stderr")
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 
-	for {
-		out := t.GetStdout()
-		fmt.Sprintf("Output =====> %s", out)
-		if out == "" {
-			break
-		}
-		file.WriteString(stdout, out)
-	}
+	//{
+	out := t.GetStdout()
+	fmt.Sprintf("Output =====> %s", out)
+	file.WriteString(stdout, out)
+	//}
 
 	file.WriteString(stderr, t.GetStderr())
 	file.WriteString(doneFlag, t.GetStatus())
