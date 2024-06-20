@@ -292,7 +292,7 @@ func (t *Task) start() {
 		return
 	}
 
-	persistResult(t)
+	go persistResult(t)
 
 	go runProcess(t)
 }
@@ -327,17 +327,12 @@ func runProcess(t *Task) {
 }
 
 func persistResult(t *Task) {
-	fmt.Println("Enter Output")
 	metadir := config.Config.Ibex.MetaDir
-	fmt.Println("0")
 	stdout := filepath.Join(metadir, fmt.Sprint(t.Id), "stdout")
-	fmt.Println("1")
 	stderr := filepath.Join(metadir, fmt.Sprint(t.Id), "stderr")
-	fmt.Println("2")
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 
 	for {
-		fmt.Println("stdout =====> ", stdout)
 		out := t.GetStdout()
 		fmt.Println("Output =====> ", out)
 		if out == "" {
