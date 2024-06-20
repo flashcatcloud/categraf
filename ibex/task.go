@@ -346,6 +346,7 @@ func GetOutput(reader *bufio.Reader, t *Task) {
 	}
 
 	err := t.Cmd.Wait()
+	fmt.Println("xxxx", err)
 	if err != nil {
 		if strings.Contains(err.Error(), "signal: killed") {
 			t.SetStatus("killed")
