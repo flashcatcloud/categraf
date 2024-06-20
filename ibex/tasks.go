@@ -22,7 +22,7 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 
 		rt.Status = t.GetStatus()
 		fmt.Println(rt.Status)
-		if rt.Status == "killing" || rt.Status == "running" {
+		if rt.Status == "killing" {
 			// intermediate state
 			continue
 		}
