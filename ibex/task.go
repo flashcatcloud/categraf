@@ -69,7 +69,6 @@ func (t *Task) SetAlive(pa bool) {
 func (t *Task) GetStdout() string {
 	t.Lock()
 	out := t.Stdout.String()
-	fmt.Sprintf("Output =====> %s", out)
 	t.Unlock()
 	return out
 }
@@ -328,6 +327,7 @@ func runProcess(t *Task) {
 }
 
 func persistResult(t *Task) {
+	fmt.Println("Enter Output")
 	metadir := config.Config.Ibex.MetaDir
 
 	stdout := filepath.Join(metadir, fmt.Sprint(t.Id), "stdout")
@@ -336,6 +336,7 @@ func persistResult(t *Task) {
 
 	for {
 		out := t.GetStdout()
+		fmt.Sprintf("Output =====> %s", out)
 		if out == "" {
 			break
 		}
