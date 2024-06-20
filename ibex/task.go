@@ -331,13 +331,15 @@ func persistResult(t *Task) {
 	metadir := config.Config.Ibex.MetaDir
 
 	stdout := filepath.Join(metadir, fmt.Sprint(t.Id), "stdout")
+	fmt.Sprintln("1")
 	stderr := filepath.Join(metadir, fmt.Sprint(t.Id), "stderr")
+	fmt.Sprintln("2")
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 
 	//{
-	fmt.Sprintf("stdout =====> %s", stdout)
+	fmt.Sprintln("stdout =====> ", stdout)
 	out := t.GetStdout()
-	fmt.Sprintf("Output =====> %s", stdout)
+	fmt.Sprintln("Output =====> ", stdout)
 	file.WriteString(stdout, out)
 	//}
 
