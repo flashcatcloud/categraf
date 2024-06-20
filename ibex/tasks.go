@@ -21,7 +21,6 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 		rt := types.ReportTask{Id: id, Clock: t.Clock}
 
 		rt.Status = t.GetStatus()
-		fmt.Println(rt.Status)
 		if rt.Status == "killing" {
 			// intermediate state
 			continue
@@ -36,6 +35,8 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 
 		stdoutLen := len(rt.Stdout)
 		stderrLen := len(rt.Stderr)
+
+		fmt.Println(stdoutLen)
 
 		// 输出太长的话，截断，要不然把数据库撑爆了
 		if stdoutLen > 65535 {
