@@ -289,10 +289,10 @@ func (t *Task) start() {
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
-	var wg *sync.WaitGroup
+	var wg sync.WaitGroup
 	wg.Add(2)
 
-	runProcessRealtime(wg, cmd, t)
+	runProcessRealtime(&wg, cmd, t)
 
 	err = CmdStart(cmd)
 	if err != nil {
