@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"os/exec"
 	"os/user"
 	"path"
@@ -303,6 +302,9 @@ func (t *Task) start() {
 	}
 
 	go func() {
+		t.SetAlive(true)
+		defer t.SetAlive(false)
+
 		reader := bufio.NewReader(stdout)
 		//实时循环读取输出流中的一行内容
 		for {
@@ -313,13 +315,52 @@ func (t *Task) start() {
 			fmt.Println(line)
 		}
 		err := t.Cmd.Wait()
-
 		if err != nil {
-			fmt.Println(err)
+			if strings.Contains(err.Error(), "signal: killed") {
+				t.SetStatus("killed")
+				log.Printf("D! process of task[%d] killed", t.Id)
+			} else if strings.Contains(err.Error(), "signal: terminated") {
+				// kill children process manually
+				t.SetStatus("killed")
+				log.Printf("D! process of task[%d] terminated", t.Id)
+			} else {
+				t.SetStatus("failed")
+				log.Printf("D! process of task[%d] return error: %v", t.Id, err)
+			}
+		} else {
+			t.SetStatus("success")
+			log.Printf("D! process of task[%d] done", t.Id)
 		}
+
+		persistResult(t)
 	}()
 
 	//go runProcess(t)
+}
+
+func runProcess(t *Task) {
+	t.SetAlive(true)
+	defer t.SetAlive(false)
+
+	err := t.Cmd.Wait()
+	if err != nil {
+		if strings.Contains(err.Error(), "signal: killed") {
+			t.SetStatus("killed")
+			log.Printf("D! process of task[%d] killed", t.Id)
+		} else if strings.Contains(err.Error(), "signal: terminated") {
+			// kill children process manually
+			t.SetStatus("killed")
+			log.Printf("D! process of task[%d] terminated", t.Id)
+		} else {
+			t.SetStatus("failed")
+			log.Printf("D! process of task[%d] return error: %v", t.Id, err)
+		}
+	} else {
+		t.SetStatus("success")
+		log.Printf("D! process of task[%d] done", t.Id)
+	}
+
+	persistResult(t)
 }
 
 func (t *Task) kill() {
@@ -327,14 +368,7 @@ func (t *Task) kill() {
 }
 
 func runProcessRealtime(cmd *exec.Cmd, t *Task) {
-	//捕获标准输出
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		fmt.Println("INFO:", err)
-		os.Exit(1)
-	}
-	readout := bufio.NewReader(stdout)
-	GetOutput(readout, t)
+
 }
 
 func GetOutput(reader *bufio.Reader, t *Task) {
@@ -377,31 +411,6 @@ func GetOutput(reader *bufio.Reader, t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-}
-
-func runProcess(t *Task) {
-	t.SetAlive(true)
-	defer t.SetAlive(false)
-
-	err := t.Cmd.Wait()
-	if err != nil {
-		if strings.Contains(err.Error(), "signal: killed") {
-			t.SetStatus("killed")
-			log.Printf("D! process of task[%d] killed", t.Id)
-		} else if strings.Contains(err.Error(), "signal: terminated") {
-			// kill children process manually
-			t.SetStatus("killed")
-			log.Printf("D! process of task[%d] terminated", t.Id)
-		} else {
-			t.SetStatus("failed")
-			log.Printf("D! process of task[%d] return error: %v", t.Id, err)
-		}
-	} else {
-		t.SetStatus("success")
-		log.Printf("D! process of task[%d] done", t.Id)
-	}
-
-	persistResult(t)
 }
 
 func persistResult(t *Task) {
