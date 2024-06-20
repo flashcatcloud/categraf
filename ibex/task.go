@@ -292,7 +292,7 @@ func (t *Task) start() {
 		return
 	}
 
-	//persistResult(t)
+	persistResult(t)
 
 	go runProcess(t)
 }
@@ -323,7 +323,7 @@ func runProcess(t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-	persistResult(t)
+	//persistResult(t)
 }
 
 func persistResult(t *Task) {
@@ -336,12 +336,15 @@ func persistResult(t *Task) {
 	fmt.Println("2")
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 
-	//{
-	fmt.Println("stdout =====> ", stdout)
-	out := t.GetStdout()
-	fmt.Println("Output =====> ", stdout)
-	file.WriteString(stdout, out)
-	//}
+	for {
+		fmt.Println("stdout =====> ", stdout)
+		out := t.GetStdout()
+		fmt.Println("Output =====> ", out)
+		if out == "" {
+			break
+		}
+		file.WriteString(stdout, out)
+	}
 
 	file.WriteString(stderr, t.GetStderr())
 	file.WriteString(doneFlag, t.GetStatus())
