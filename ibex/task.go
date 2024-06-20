@@ -290,7 +290,7 @@ func (t *Task) start() {
 	t.Cmd = cmd
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 
 	runProcessRealtime(&wg, cmd, t)
 
