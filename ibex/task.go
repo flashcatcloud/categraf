@@ -310,7 +310,6 @@ func (t *Task) kill() {
 }
 
 func runProcessRealtime(wg *sync.WaitGroup, cmd *exec.Cmd, t *Task) {
-
 	//捕获标准输出
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -340,7 +339,7 @@ func GetOutput(reader *bufio.Reader, t *Task) {
 			sumOutput += err.Error()
 		}
 		output := string(outputBytes[:n])
-		fmt.Print(output) //输出屏幕内容
+		//fmt.Print(output) //输出屏幕内容
 
 		persistResult(t, output)
 		sumOutput += output
@@ -378,6 +377,7 @@ func persistResult(t *Task, msg string) {
 	stderr := filepath.Join(metadir, fmt.Sprint(t.Id), "stderr")
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 
+	fmt.Println("Output ====> ", msg)
 	file.WriteString(stdout, msg)
 	file.WriteString(stderr, t.GetStderr())
 	file.WriteString(doneFlag, t.GetStatus())
