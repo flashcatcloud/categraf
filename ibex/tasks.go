@@ -3,6 +3,7 @@
 package ibex
 
 import (
+	"fmt"
 	"log"
 
 	"flashcat.cloud/categraf/ibex/types"
@@ -25,8 +26,12 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 			continue
 		}
 
+		fmt.Println("starting report")
+
 		rt.Stdout = t.GetStdout()
 		rt.Stderr = t.GetStderr()
+
+		fmt.Println(t.GetStdout())
 
 		stdoutLen := len(rt.Stdout)
 		stderrLen := len(rt.Stderr)
