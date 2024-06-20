@@ -39,7 +39,7 @@ func heartbeat() {
 	var resp types.ReportResponse
 
 	err := client.GetCli().Call("Server.Report", req, &resp)
-	fmt.Println(resp)
+	fmt.Println(req, resp)
 	if err != nil {
 		log.Println("E! rpc call Server.Report fail:", err)
 		client.CloseCli()
