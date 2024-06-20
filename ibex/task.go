@@ -286,7 +286,7 @@ func (t *Task) start() {
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
-	persistResult(t)
+	//persistResult(t)
 
 	err = CmdStart(cmd)
 	if err != nil {
@@ -323,7 +323,7 @@ func runProcess(t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-	//persistResult(t)
+	persistResult(t)
 }
 
 func persistResult(t *Task) {
