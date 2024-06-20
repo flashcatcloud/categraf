@@ -363,6 +363,8 @@ func GetOutput(reader *bufio.Reader, t *Task) {
 		t.SetStatus("success")
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
+
+	persistResult(t, sumOutput)
 }
 
 func runProcess(t *Task) {
