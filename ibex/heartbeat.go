@@ -4,7 +4,6 @@ package ibex
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -35,7 +34,7 @@ func heartbeat() {
 		Ident:       ident,
 		ReportTasks: Locals.ReportTasks(),
 	}
-	fmt.Println("heartbeat")
+
 	var resp types.ReportResponse
 	err := client.GetCli().Call("Server.Report", req, &resp)
 

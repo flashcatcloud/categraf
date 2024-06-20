@@ -26,7 +26,9 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 			continue
 		}
 
-		fmt.Println("starting report")
+		if rt.Status == "running" {
+			fmt.Println("starting report: ===> ", t.GetStdout())
+		}
 
 		rt.Stdout = t.GetStdout()
 		rt.Stderr = t.GetStderr()
