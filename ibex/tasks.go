@@ -112,7 +112,7 @@ func (lt *LocalTasksT) Clean(assigned map[int64]struct{}) {
 			continue
 		}
 
-		//lt.M[id].ResetBuff()
+		lt.M[id].ResetBuff()
 		cmd := lt.M[id].Cmd
 		delete(lt.M, id)
 		if cmd != nil && cmd.Process != nil {

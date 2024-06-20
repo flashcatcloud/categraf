@@ -283,7 +283,7 @@ func (t *Task) start() {
 		}
 	}
 
-	cmd.Stdout = &t.Stdout
+	//cmd.Stdout = &t.Stdout
 	cmd.Stderr = &t.Stderr
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
