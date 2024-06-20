@@ -3,7 +3,6 @@
 package ibex
 
 import (
-	"fmt"
 	"log"
 
 	"flashcat.cloud/categraf/ibex/types"
@@ -27,7 +26,7 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 		}
 
 		if rt.Status == "running" {
-			fmt.Println("starting report: ===> ", t.GetStdout())
+			//fmt.Println("starting report: ===> ", t.GetStdout())
 		}
 
 		rt.Stdout = t.GetStdout()

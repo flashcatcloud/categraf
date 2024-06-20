@@ -314,7 +314,7 @@ func (t *Task) start() {
 			}
 			t.Stdout.WriteString(line)
 			persistResult(t)
-			fmt.Println("=====>", t.GetStdout())
+			//fmt.Println("=====>", t.GetStdout())
 		}
 
 		err := t.Cmd.Wait()
@@ -335,7 +335,7 @@ func (t *Task) start() {
 			log.Printf("D! process of task[%d] done", t.Id)
 		}
 
-		persistResult(t)
+		//persistResult(t)
 	}()
 
 	//go runProcess(t)

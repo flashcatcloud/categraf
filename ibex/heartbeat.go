@@ -37,7 +37,7 @@ func heartbeat() {
 	}
 
 	var resp types.ReportResponse
-	fmt.Println(resp)
+	fmt.Println(req)
 	err := client.GetCli().Call("Server.Report", req, &resp)
 
 	if err != nil {
