@@ -20,14 +20,14 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 		rt := types.ReportTask{Id: id, Clock: t.Clock}
 
 		rt.Status = t.GetStatus()
-		if rt.Status == "killing" {
+		if rt.Status == "killing" || rt.Status == "running" {
 			// intermediate state
 			continue
 		}
 
-		if rt.Status == "running" {
-			//fmt.Println("starting report: ===> ", t.GetStdout())
-		}
+		//if rt.Status == "running" {
+		//	//fmt.Println("starting report: ===> ", t.GetStdout())
+		//}
 
 		rt.Stdout = t.GetStdout()
 		rt.Stderr = t.GetStderr()
