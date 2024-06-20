@@ -289,19 +289,10 @@ func (t *Task) start() {
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
-	var wg sync.WaitGroup
+	var wg *sync.WaitGroup
 	wg.Add(2)
-	//捕获标准输出
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		fmt.Println("INFO:", err)
-		os.Exit(1)
-	}
-	readout := bufio.NewReader(stdout)
-	go func() {
-		defer wg.Done()
-		GetOutput(readout)
-	}()
+
+	runProcessRealtime(wg, cmd, t)
 
 	err = CmdStart(cmd)
 	if err != nil {
@@ -314,7 +305,29 @@ func (t *Task) start() {
 	//go runProcess(t)
 }
 
-func GetOutput(reader *bufio.Reader) {
+func (t *Task) kill() {
+	go killProcess(t)
+}
+
+func runProcessRealtime(wg *sync.WaitGroup, cmd *exec.Cmd, t *Task) {
+
+	//捕获标准输出
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		fmt.Println("INFO:", err)
+		os.Exit(1)
+	}
+	readout := bufio.NewReader(stdout)
+	go func() {
+		defer wg.Done()
+		GetOutput(readout, t)
+	}()
+}
+
+func GetOutput(reader *bufio.Reader, t *Task) {
+	t.SetAlive(true)
+	defer t.SetAlive(false)
+
 	var sumOutput string //统计屏幕的全部输出内容
 	outputBytes := make([]byte, 200)
 	for {
@@ -328,12 +341,10 @@ func GetOutput(reader *bufio.Reader) {
 		}
 		output := string(outputBytes[:n])
 		fmt.Print(output) //输出屏幕内容
+
+		persistResult(t, output)
 		sumOutput += output
 	}
-}
-
-func (t *Task) kill() {
-	go killProcess(t)
 }
 
 func runProcess(t *Task) {
@@ -358,24 +369,16 @@ func runProcess(t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-	persistResult(t)
+	//persistResult(t)
 }
 
-func persistResult(t *Task) {
+func persistResult(t *Task, msg string) {
 	metadir := config.Config.Ibex.MetaDir
 	stdout := filepath.Join(metadir, fmt.Sprint(t.Id), "stdout")
 	stderr := filepath.Join(metadir, fmt.Sprint(t.Id), "stderr")
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 
-	for {
-		out := t.GetStdout()
-		fmt.Println("Output =====> ", out)
-		if out == "" {
-			break
-		}
-		file.WriteString(stdout, out)
-	}
-
+	file.WriteString(stdout, msg)
 	file.WriteString(stderr, t.GetStderr())
 	file.WriteString(doneFlag, t.GetStatus())
 }
@@ -395,5 +398,5 @@ func killProcess(t *Task) {
 		log.Printf("D! process of task[%d] killed", t.Id)
 	}
 
-	persistResult(t)
+	//persistResult(t)
 }
