@@ -289,18 +289,14 @@ func (t *Task) start() {
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	runProcessRealtime(cmd, t)
 
 	err = CmdStart(cmd)
 
-	runProcessRealtime(&wg, cmd, t)
 	if err != nil {
 		log.Printf("E! cannot start cmd of task[%d]: %v", t.Id, err)
 		return
 	}
-
-	wg.Wait()
 
 	//go runProcess(t)
 }
@@ -309,7 +305,7 @@ func (t *Task) kill() {
 	go killProcess(t)
 }
 
-func runProcessRealtime(wg *sync.WaitGroup, cmd *exec.Cmd, t *Task) {
+func runProcessRealtime(cmd *exec.Cmd, t *Task) {
 	//捕获标准输出
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -317,10 +313,7 @@ func runProcessRealtime(wg *sync.WaitGroup, cmd *exec.Cmd, t *Task) {
 		os.Exit(1)
 	}
 	readout := bufio.NewReader(stdout)
-	go func() {
-		defer wg.Done()
-		GetOutput(readout, t)
-	}()
+	GetOutput(readout, t)
 }
 
 func GetOutput(reader *bufio.Reader, t *Task) {
@@ -398,8 +391,8 @@ func persistResult(t *Task, msg string) {
 	stderr := filepath.Join(metadir, fmt.Sprint(t.Id), "stderr")
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 
-	fmt.Println("Output ====> ", msg)
-	file.WriteString(stdout, msg)
+	fmt.Println("Output ====> ", t.GetStdout())
+	file.WriteString(stdout, t.GetStdout())
 	file.WriteString(stderr, t.GetStderr())
 	file.WriteString(doneFlag, t.GetStatus())
 }
