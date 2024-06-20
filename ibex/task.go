@@ -344,6 +344,24 @@ func GetOutput(reader *bufio.Reader, t *Task) {
 		persistResult(t, output)
 		sumOutput += output
 	}
+
+	err := t.Cmd.Wait()
+	if err != nil {
+		if strings.Contains(err.Error(), "signal: killed") {
+			t.SetStatus("killed")
+			log.Printf("D! process of task[%d] killed", t.Id)
+		} else if strings.Contains(err.Error(), "signal: terminated") {
+			// kill children process manually
+			t.SetStatus("killed")
+			log.Printf("D! process of task[%d] terminated", t.Id)
+		} else {
+			t.SetStatus("failed")
+			log.Printf("D! process of task[%d] return error: %v", t.Id, err)
+		}
+	} else {
+		t.SetStatus("success")
+		log.Printf("D! process of task[%d] done", t.Id)
+	}
 }
 
 func runProcess(t *Task) {
