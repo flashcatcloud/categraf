@@ -289,7 +289,7 @@ func (t *Task) start() {
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
-	runProcessRealtime(cmd, t)
+	go runProcessRealtime(cmd, t)
 
 	err = CmdStart(cmd)
 
