@@ -292,9 +292,9 @@ func (t *Task) start() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	runProcessRealtime(&wg, cmd, t)
-
 	err = CmdStart(cmd)
+
+	runProcessRealtime(&wg, cmd, t)
 	if err != nil {
 		log.Printf("E! cannot start cmd of task[%d]: %v", t.Id, err)
 		return
