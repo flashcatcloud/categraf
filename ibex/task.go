@@ -3,9 +3,12 @@
 package ibex
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"os/exec"
 	"os/user"
 	"path"
@@ -281,10 +284,24 @@ func (t *Task) start() {
 		}
 	}
 
-	cmd.Stdout = &t.Stdout
+	//cmd.Stdout = &t.Stdout
 	cmd.Stderr = &t.Stderr
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	//捕获标准输出
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		fmt.Println("INFO:", err)
+		os.Exit(1)
+	}
+	readout := bufio.NewReader(stdout)
+	go func() {
+		defer wg.Done()
+		GetOutput(readout)
+	}()
 
 	err = CmdStart(cmd)
 	if err != nil {
@@ -292,9 +309,27 @@ func (t *Task) start() {
 		return
 	}
 
-	//go persistResult(t)
+	wg.Wait()
 
-	go runProcess(t)
+	//go runProcess(t)
+}
+
+func GetOutput(reader *bufio.Reader) {
+	var sumOutput string //统计屏幕的全部输出内容
+	outputBytes := make([]byte, 200)
+	for {
+		n, err := reader.Read(outputBytes) //获取屏幕的实时输出(并不是按照回车分割，所以要结合sumOutput)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Println(err)
+			sumOutput += err.Error()
+		}
+		output := string(outputBytes[:n])
+		fmt.Print(output) //输出屏幕内容
+		sumOutput += output
+	}
 }
 
 func (t *Task) kill() {
