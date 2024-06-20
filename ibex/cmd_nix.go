@@ -9,7 +9,7 @@ import (
 
 func CmdStart(cmd *exec.Cmd) error {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	return cmd.Run()
+	return cmd.Start()
 }
 
 func CmdKill(cmd *exec.Cmd) error {
