@@ -335,6 +335,7 @@ func persistResult(t *Task) {
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 
 	//{
+	fmt.Sprintf("stdout =====> %s", stdout)
 	out := t.GetStdout()
 	fmt.Sprintf("Output =====> %s", stdout)
 	file.WriteString(stdout, out)
