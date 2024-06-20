@@ -284,10 +284,16 @@ func (t *Task) start() {
 		}
 	}
 
-	cmd.Stdout = &t.Stdout
+	//cmd.Stdout = &t.Stdout
 	cmd.Stderr = &t.Stderr
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
+
+	stdout, err := t.Cmd.StdoutPipe()
+
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	err = CmdStart(cmd)
 
@@ -296,7 +302,18 @@ func (t *Task) start() {
 		return
 	}
 
-	go runProcess(t)
+	reader := bufio.NewReader(stdout)
+	//实时循环读取输出流中的一行内容
+	for {
+		line, err2 := reader.ReadString('\n')
+		if err2 != nil || io.EOF == err2 {
+			break
+		}
+		fmt.Println(line)
+	}
+	t.Cmd.Wait()
+
+	//go runProcess(t)
 }
 
 func (t *Task) kill() {
@@ -337,7 +354,6 @@ func GetOutput(reader *bufio.Reader, t *Task) {
 	}
 
 	err := t.Cmd.Wait()
-	fmt.Println("xxxx", err)
 	if err != nil {
 		if strings.Contains(err.Error(), "signal: killed") {
 			t.SetStatus("killed")
