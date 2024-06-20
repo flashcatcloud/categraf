@@ -312,7 +312,8 @@ func (t *Task) start() {
 			if err2 != nil || io.EOF == err2 {
 				break
 			}
-			fmt.Println(line)
+			t.Stdout.WriteString(line)
+			fmt.Println("=====>", t.GetStdout())
 		}
 		err := t.Cmd.Wait()
 		if err != nil {
@@ -419,7 +420,6 @@ func persistResult(t *Task) {
 	stderr := filepath.Join(metadir, fmt.Sprint(t.Id), "stderr")
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 
-	fmt.Println("Output ====> ", t.GetStdout())
 	file.WriteString(stdout, t.GetStdout())
 	file.WriteString(stderr, t.GetStderr())
 	file.WriteString(doneFlag, t.GetStatus())
