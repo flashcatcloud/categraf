@@ -323,6 +323,8 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 			break
 		}
 		t.Stdout.WriteString(line)
+
+		fmt.Println("success", line)
 		persistResult(t)
 	}
 
@@ -334,6 +336,7 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 			break
 		}
 		t.Stderr.WriteString(line)
+		fmt.Println("error", line)
 		persistResult(t)
 	}
 
