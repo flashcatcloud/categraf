@@ -283,7 +283,6 @@ func (t *Task) start() {
 		}
 	}
 
-	//cmd.Stdout = &t.Stdout
 	cmd.Stderr = &t.Stderr
 	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
@@ -301,99 +300,26 @@ func (t *Task) start() {
 		return
 	}
 
-	go func() {
-		t.SetAlive(true)
-		defer t.SetAlive(false)
-
-		reader := bufio.NewReader(stdout)
-		//实时循环读取输出流中的一行内容
-		for {
-			line, err2 := reader.ReadString('\n')
-			if err2 != nil || io.EOF == err2 {
-				break
-			}
-			t.Stdout.WriteString(line)
-			persistResult(t)
-			//fmt.Println("=====>", t.GetStdout())
-		}
-
-		err := t.Cmd.Wait()
-		if err != nil {
-			if strings.Contains(err.Error(), "signal: killed") {
-				t.SetStatus("killed")
-				log.Printf("D! process of task[%d] killed", t.Id)
-			} else if strings.Contains(err.Error(), "signal: terminated") {
-				// kill children process manually
-				t.SetStatus("killed")
-				log.Printf("D! process of task[%d] terminated", t.Id)
-			} else {
-				t.SetStatus("failed")
-				log.Printf("D! process of task[%d] return error: %v", t.Id, err)
-			}
-		} else {
-			t.SetStatus("success")
-			log.Printf("D! process of task[%d] done", t.Id)
-		}
-
-		//persistResult(t)
-	}()
-
-	//go runProcess(t)
-}
-
-func runProcess(t *Task) {
-	t.SetAlive(true)
-	defer t.SetAlive(false)
-
-	err := t.Cmd.Wait()
-	if err != nil {
-		if strings.Contains(err.Error(), "signal: killed") {
-			t.SetStatus("killed")
-			log.Printf("D! process of task[%d] killed", t.Id)
-		} else if strings.Contains(err.Error(), "signal: terminated") {
-			// kill children process manually
-			t.SetStatus("killed")
-			log.Printf("D! process of task[%d] terminated", t.Id)
-		} else {
-			t.SetStatus("failed")
-			log.Printf("D! process of task[%d] return error: %v", t.Id, err)
-		}
-	} else {
-		t.SetStatus("success")
-		log.Printf("D! process of task[%d] done", t.Id)
-	}
-
-	persistResult(t)
+	go runProcessRealtime(stdout, t)
 }
 
 func (t *Task) kill() {
 	go killProcess(t)
 }
 
-func runProcessRealtime(cmd *exec.Cmd, t *Task) {
-
-}
-
-func GetOutput(reader *bufio.Reader, t *Task) {
+func runProcessRealtime(stdout io.ReadCloser, t *Task) {
 	t.SetAlive(true)
 	defer t.SetAlive(false)
 
-	var sumOutput string //统计屏幕的全部输出内容
-	outputBytes := make([]byte, 200)
+	reader := bufio.NewReader(stdout)
+	//实时循环读取输出流中的一行内容
 	for {
-		n, err := reader.Read(outputBytes) //获取屏幕的实时输出(并不是按照回车分割，所以要结合sumOutput)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			fmt.Println(err)
-			sumOutput += err.Error()
+		line, err2 := reader.ReadString('\n')
+		if err2 != nil || io.EOF == err2 {
+			break
 		}
-		output := string(outputBytes[:n])
-		//fmt.Print(output) //输出屏幕内容
-
+		t.Stdout.WriteString(line)
 		persistResult(t)
-		sumOutput += output
 	}
 
 	err := t.Cmd.Wait()
@@ -413,7 +339,6 @@ func GetOutput(reader *bufio.Reader, t *Task) {
 		t.SetStatus("success")
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
-
 }
 
 func persistResult(t *Task) {
