@@ -315,44 +315,32 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 	t.SetAlive(true)
 	defer t.SetAlive(false)
 
-	var wg sync.WaitGroup
-
-	wg.Add(2)
-
 	reader := bufio.NewReader(stdout)
 
-	go func() {
-		defer wg.Done()
-		//实时循环读取输出流中的一行内容
-		for {
-			line, err2 := reader.ReadString('\n')
-			if err2 != nil || io.EOF == err2 {
-				break
-			}
-			t.Stdout.WriteString(line)
-
-			fmt.Println("success", line)
-			persistResult(t)
+	//实时循环读取输出流中的一行内容
+	for {
+		line, err2 := reader.ReadString('\n')
+		if err2 != nil || io.EOF == err2 {
+			break
 		}
-	}()
+		t.Stdout.WriteString(line)
+
+		fmt.Println("success", line)
+		persistResult(t)
+	}
 
 	errReader := bufio.NewReader(stderr)
 
-	go func() {
-		defer wg.Done()
-		//实时循环读取输出流中的一行内容
-		for {
-			line, err2 := errReader.ReadString('\n')
-			if err2 != nil || io.EOF == err2 {
-				break
-			}
-			t.Stderr.WriteString(line)
-			fmt.Println("error", line)
-			persistResult(t)
+	//实时循环读取输出流中的一行内容
+	for {
+		line, err2 := errReader.ReadString('\n')
+		if err2 != nil || io.EOF == err2 {
+			break
 		}
-	}()
-
-	wg.Wait()
+		t.Stderr.WriteString(line)
+		fmt.Println("error", line)
+		persistResult(t)
+	}
 
 	err := t.Cmd.Wait()
 	if err != nil {
