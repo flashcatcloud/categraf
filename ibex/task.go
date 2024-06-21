@@ -315,19 +315,19 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 	t.SetAlive(true)
 	defer t.SetAlive(false)
 
-	reader := bufio.NewReader(stdout)
-
-	//实时循环读取输出流中的一行内容
-	for {
-		line, err2 := reader.ReadString('\n')
-		if err2 != nil || io.EOF == err2 {
-			break
-		}
-		t.Stdout.WriteString(line)
-
-		fmt.Println("success", line)
-		persistResult(t)
-	}
+	//reader := bufio.NewReader(stdout)
+	//
+	////实时循环读取输出流中的一行内容
+	//for {
+	//	line, err2 := reader.ReadString('\n')
+	//	if err2 != nil || io.EOF == err2 {
+	//		break
+	//	}
+	//	t.Stdout.WriteString(line)
+	//
+	//	fmt.Println("success", line)
+	//	persistResult(t)
+	//}
 
 	errReader := bufio.NewReader(stderr)
 
