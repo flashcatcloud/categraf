@@ -454,20 +454,20 @@ func (ins *Instance) gatherMem(slist *types.SampleList, procs map[PID]Process, t
 		if err == nil {
 			value += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "mem_usage", v, ins.makeProcTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_usage", v, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 		}
 
 		minfo, err := p.MemoryInfo()
 		if err == nil {
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "mem_rss", minfo.RSS, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_vms", minfo.VMS, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_hwm", minfo.HWM, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_data", minfo.Data, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_stack", minfo.Stack, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_locked", minfo.Locked, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_swap", minfo.Swap, ins.makeProcTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_rss", minfo.RSS, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_vms", minfo.VMS, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_hwm", minfo.HWM, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_data", minfo.Data, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_stack", minfo.Stack, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_locked", minfo.Locked, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_swap", minfo.Swap, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 		}
 	}
