@@ -136,7 +136,7 @@ func freeipmiConfigPipe(config string) (string, error) {
 	return pipe, nil
 }
 
-func Execute(cmd string, args []string, config string, target string) Result {
+func Execute(cmd string, args []string, config string, target string, debugMod bool) Result {
 	pipe, err := freeipmiConfigPipe(config)
 	if err != nil {
 		return Result{nil, err}
@@ -152,7 +152,10 @@ func Execute(cmd string, args []string, config string, target string) Result {
 		args = append(args, "-h", target)
 	}
 
-	log.Println("msg", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
+	if debugMod {
+		log.Println("D!", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
+	}
+
 	out, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
 		err = fmt.Errorf("error running %s: %s", cmd, err)

@@ -37,7 +37,9 @@ var (
 	)
 )
 
-type DCMICollector struct{}
+type DCMICollector struct {
+	debugMod bool
+}
 
 func (c DCMICollector) Name() CollectorName {
 	return DCMICollectorName
@@ -54,7 +56,7 @@ func (c DCMICollector) Args() []string {
 func (c DCMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	currentPowerConsumption, err := freeipmi.GetCurrentPowerConsumption(result)
 	if err != nil {
-		log.Println("msg", "Failed to collect DCMI data", "target", targetName(target.host), "error", err)
+		log.Println("E!", "Failed to collect DCMI data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
 	// Returned value negative == Power Measurement is not avail

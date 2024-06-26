@@ -43,6 +43,9 @@ type Instance struct {
 	SearchCmdLineRegexp string         `toml:"search_cmdline_regexp"`
 	searchCmdLineRegexp *regexp.Regexp `toml:"-"`
 
+	LabelsFromCmdlineRegexp string         `toml:"labels_from_cmdline_reggroup"`
+	labelsFromCmdlineRegexp *regexp.Regexp `toml:"-"`
+
 	searchString string
 	solarisMode  bool
 	procs        map[PID]Process
@@ -76,6 +79,17 @@ func (ins *Instance) Init() error {
 		log.Println("I! procstat: search_cmdline_regexp:", ins.SearchCmdLineRegexp)
 	} else {
 		return errors.New("the fields should not be all blank: search_exec_substring, search_cmdline_substring, search_win_service")
+	}
+
+	if ins.LabelsFromCmdlineRegexp != "" {
+		r := regexp.MustCompile(ins.LabelsFromCmdlineRegexp)
+		extractLabelKey := r.SubexpNames()
+		if len(extractLabelKey) > 0 {
+			ins.labelsFromCmdlineRegexp = r
+			log.Println("I! procstat: gather labels from cmdline using regexp. labels: ", extractLabelKey)
+		} else {
+			log.Println("W! procstat: labels_from_cmdline_reggroup no NamedGroup label includes, ignore this conf: ", ins.LabelsFromCmdlineRegexp)
+		}
 	}
 
 	return nil
@@ -214,7 +228,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				}
 			}
 		}
-		slist.PushFront(types.NewSample(inputName, "info", 1, info, tags))
+		slist.PushFront(types.NewSample(inputName, "info", 1, info, tags, ins.makeCmdlineLabelReggroupTag(p)))
 	}
 
 	for _, field := range ins.GatherMoreMetrics {
@@ -302,14 +316,32 @@ func (ins *Instance) makeProcTag(p Process) map[string]string {
 	return info
 }
 
+func (ins *Instance) makeCmdlineLabelReggroupTag(p Process) map[string]string {
+	info := map[string]string{}
+	if ins.labelsFromCmdlineRegexp == nil {
+		return info
+	}
+	if cmd, err := p.Cmdline(); err == nil {
+		match := ins.labelsFromCmdlineRegexp.FindStringSubmatch(cmd)
+		if len(match) > 0 {
+			for i, name := range ins.labelsFromCmdlineRegexp.SubexpNames() {
+				if i != 0 && name != "" && match[i] != "" {
+					info[name] = match[i]
+				}
+			}
+		}
+	}
+	return info
+}
+
 func (ins *Instance) gatherThreads(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
 	var val int32
-	for pid := range procs {
-		v, err := procs[pid].NumThreads()
+	for _, p := range procs {
+		v, err := p.NumThreads()
 		if err == nil {
 			val += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "num_threads", val, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "num_threads", v, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 		}
 	}
@@ -321,12 +353,12 @@ func (ins *Instance) gatherThreads(slist *types.SampleList, procs map[PID]Proces
 
 func (ins *Instance) gatherFD(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
 	var val int32
-	for pid := range procs {
-		v, err := procs[pid].NumFDs()
+	for _, p := range procs {
+		v, err := p.NumFDs()
 		if err == nil {
 			val += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "num_fds", v, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "num_fds", v, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 		}
 	}
@@ -344,18 +376,18 @@ func (ins *Instance) gatherIO(slist *types.SampleList, procs map[PID]Process, ta
 		writeBytes uint64
 	)
 
-	for pid := range procs {
-		io, err := procs[pid].IOCounters()
+	for _, p := range procs {
+		io, err := p.IOCounters()
 		if err == nil {
 			readCount += io.ReadCount
 			writeCount += io.WriteCount
 			readBytes += io.ReadBytes
 			writeBytes += io.WriteBytes
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "read_count", io.ReadCount, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "write_count", io.WriteCount, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "read_bytes", io.ReadBytes, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "write_bytes", io.WriteBytes, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "read_count", io.ReadCount, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "write_count", io.WriteCount, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "read_bytes", io.ReadBytes, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "write_bytes", io.WriteBytes, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 		}
 	}
@@ -372,12 +404,12 @@ func (ins *Instance) gatherUptime(slist *types.SampleList, procs map[PID]Process
 	// use the smallest one
 	var value int64 = -1
 	now := time.Now().Unix()
-	for pid := range procs {
-		createTime, err := procs[pid].CreateTime() // returns epoch in ms
+	for _, p := range procs {
+		createTime, err := p.CreateTime() // returns epoch in ms
 		if err == nil {
 			v := now - createTime/1000
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "uptime", v, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "uptime", v, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 			if value == -1 {
 				value = v
@@ -397,15 +429,15 @@ func (ins *Instance) gatherUptime(slist *types.SampleList, procs map[PID]Process
 
 func (ins *Instance) gatherCPU(slist *types.SampleList, procs map[PID]Process, tags map[string]string, solarisMode bool) {
 	var value float64
-	for pid := range procs {
-		v, err := procs[pid].Percent(time.Duration(0))
+	for _, p := range procs {
+		v, err := p.Percent(time.Duration(0))
 		if err == nil {
 			if solarisMode {
 				v /= float64(runtime.NumCPU())
 			}
 			value += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "cpu_usage", v, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "cpu_usage", v, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 		}
 	}
@@ -417,25 +449,25 @@ func (ins *Instance) gatherCPU(slist *types.SampleList, procs map[PID]Process, t
 
 func (ins *Instance) gatherMem(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
 	var value float32
-	for pid := range procs {
-		v, err := procs[pid].MemoryPercent()
+	for _, p := range procs {
+		v, err := p.MemoryPercent()
 		if err == nil {
 			value += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "mem_usage", v, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_usage", v, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 		}
 
-		minfo, err := procs[pid].MemoryInfo()
+		minfo, err := p.MemoryInfo()
 		if err == nil {
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "mem_rss", minfo.RSS, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_vms", minfo.VMS, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_hwm", minfo.HWM, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_data", minfo.Data, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_stack", minfo.Stack, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_locked", minfo.Locked, ins.makeProcTag(procs[pid]), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_swap", minfo.Swap, ins.makeProcTag(procs[pid]), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_rss", minfo.RSS, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_vms", minfo.VMS, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_hwm", minfo.HWM, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_data", minfo.Data, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_stack", minfo.Stack, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_locked", minfo.Locked, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_swap", minfo.Swap, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 		}
 	}
@@ -447,14 +479,14 @@ func (ins *Instance) gatherMem(slist *types.SampleList, procs map[PID]Process, t
 
 func (ins *Instance) gatherLimit(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
 	var softMin, hardMin uint64
-	for pid := range procs {
-		rlims, err := procs[pid].RlimitUsage(false)
+	for _, p := range procs {
+		rlims, err := p.RlimitUsage(false)
 		if err == nil {
 			for _, rlim := range rlims {
 				if rlim.Resource == process.RLIMIT_NOFILE {
 					if ins.GatherPerPid {
-						slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_soft", rlim.Soft, ins.makeProcTag(procs[pid]), tags))
-						slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_hard", rlim.Hard, ins.makeProcTag(procs[pid]), tags))
+						slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_soft", rlim.Soft, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+						slist.PushFront(types.NewSample(inputName, "rlimit_num_fds_hard", rlim.Hard, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 					}
 
 					if softMin == 0 {
@@ -491,7 +523,7 @@ func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, t
 
 		pidTag := map[string]string{"pid": fmt.Sprint(pid)}
 		for k, v := range jvmStat {
-			slist.PushSample(inputName, "jvm_"+k, v, pidTag, tags)
+			slist.PushSample(inputName, "jvm_"+k, v, pidTag, ins.makeCmdlineLabelReggroupTag(procs[pid]), tags)
 		}
 	}
 }
