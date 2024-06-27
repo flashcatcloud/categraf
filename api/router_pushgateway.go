@@ -71,9 +71,9 @@ func pushgateway(c *gin.Context) {
 	ignoreHostname := config.Config.HTTP.IgnoreHostname || c.GetBool("ignore_hostname")
 	ignoreGlobalLabels := config.Config.HTTP.IgnoreGlobalLabels || c.GetBool("ignore_global_labels")
 	// 获取 AgentHostTag 的值
-	AgentHostTag := config.Config.HTTP.AgentHostTag
-	if AgentHostTag == "" {
-		AgentHostTag = c.GetString("agent_host_tag")
+	agentHostTag := config.Config.HTTP.AgentHostTag
+	if agentHostTag == "" {
+		agentHostTag = c.GetString("agent_host_tag")
 	}
 
 	now := time.Now()
@@ -102,13 +102,13 @@ func pushgateway(c *gin.Context) {
 
 		// add label: agent_hostname
 		if !ignoreHostname {
-			if AgentHostTag == "" {
+			if agentHostTag == "" {
 				if _, has := samples[i].Labels[agentHostnameLabelKey]; !has {
 					samples[i].Labels[agentHostnameLabelKey] = config.Config.GetHostname()
 				}
 			} else {
 				// 从当前现有的 Labels 中找到 key 等于 config.Config.HTTP.AgentHostTag 的值
-				if value, exists := samples[i].Labels[AgentHostTag]; exists {
+				if value, exists := samples[i].Labels[agentHostTag]; exists {
 					samples[i].Labels[agentHostnameLabelKey] = value
 				}
 			}
