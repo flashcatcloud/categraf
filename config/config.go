@@ -66,11 +66,13 @@ type WriterOption struct {
 }
 
 type HTTP struct {
-	Enable             bool   `toml:"enable"`
-	Address            string `toml:"address"`
-	PrintAccess        bool   `toml:"print_access"`
-	RunMode            string `toml:"run_mode"`
-	IgnoreHostname     bool   `toml:"ignore_hostname"`
+	Enable         bool   `toml:"enable"`
+	Address        string `toml:"address"`
+	PrintAccess    bool   `toml:"print_access"`
+	RunMode        string `toml:"run_mode"`
+	IgnoreHostname bool   `toml:"ignore_hostname"`
+	// The tag used to name the agent host
+	AgentHostTag       string `toml:"agent_host_tag"`
 	IgnoreGlobalLabels bool   `toml:"ignore_global_labels"`
 	CertFile           string `toml:"cert_file"`
 	KeyFile            string `toml:"key_file"`
