@@ -84,6 +84,7 @@ address = ":9100"
 print_access = false
 run_mode = "release"
 ignore_hostname = false
+agent_host_tag = ""
 ignore_global_labels = false
 
 [ibex]
