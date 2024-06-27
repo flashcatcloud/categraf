@@ -102,10 +102,12 @@ func pushgateway(c *gin.Context) {
 
 		// add label: agent_hostname
 		if !ignoreHostname {
-			if _, has := samples[i].Labels[agentHostnameLabelKey]; !has && AgentHostTag == "" {
-				samples[i].Labels[agentHostnameLabelKey] = config.Config.GetHostname()
-			} else if AgentHostTag != "" {
-				// 从当前现有的 Labels 中找到 key 等于 config.Config.HTTP.AgentHostTag 的值并置换到agent_hostname
+			if AgentHostTag == "" {
+				if _, has := samples[i].Labels[agentHostnameLabelKey]; !has {
+					samples[i].Labels[agentHostnameLabelKey] = config.Config.GetHostname()
+				}
+			} else {
+				// 从当前现有的 Labels 中找到 key 等于 config.Config.HTTP.AgentHostTag 的值
 				if value, exists := samples[i].Labels[AgentHostTag]; exists {
 					samples[i].Labels[agentHostnameLabelKey] = value
 				}
@@ -113,7 +115,7 @@ func pushgateway(c *gin.Context) {
 		}
 	}
 	writer.WriteSamples(samples)
-	c.String(200, "forwarding...")
+	c.String(http.StatusOK, "forwarding...")
 }
 
 // fork prometheus/pushgateway handler/push.go

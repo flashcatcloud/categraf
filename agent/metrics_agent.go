@@ -94,7 +94,6 @@ import (
 	_ "flashcat.cloud/categraf/inputs/whois"
 	_ "flashcat.cloud/categraf/inputs/xskyapi"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
-	_ "flashcat.cloud/categraf/inputs/iptables"
 )
 
 type MetricsAgent struct {
