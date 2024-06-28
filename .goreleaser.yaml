@@ -8,7 +8,7 @@ snapshot:
 checksum:
   name_template: 'checksums.txt'
 changelog:
-  skip: true
+  disable: true
 
 builds:
   - id: linux-arm64
@@ -102,7 +102,6 @@ builds:
 
 archives:
   - id: categraf
-    rlcp: true
     builds:
       - linux-amd64-cgo
     format: tar.gz
@@ -115,7 +114,6 @@ archives:
       - conf/*
 
   - id: categraf-common
-    rlcp: true
     builds:
       - linux-amd64
       - linux-arm64
@@ -130,7 +128,6 @@ archives:
       - conf/*
 
   - id: categraf-slim
-    rlcp: true
     builds:
       - linux-slim
     format: tar.gz
