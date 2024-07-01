@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"time"
 
 	"flashcat.cloud/categraf/inputs/elasticsearch/pkg/clusterinfo"
 	"github.com/prometheus/client_golang/prometheus"
@@ -110,14 +111,21 @@ func NewShards(client *http.Client, url *url.URL) *Shards {
 
 	// start go routine to fetch clusterinfo updates and save them to lastClusterinfo
 	go func() {
+		timer := time.NewTimer(2 * time.Minute)
 		log.Println("starting cluster info receive loop")
-		for ci := range shards.clusterInfoCh {
-			if ci != nil {
-				log.Println("received cluster info update, cluster ", ci.ClusterName)
-				shards.lastClusterInfo = ci
+		for {
+			select {
+			case ci := <-shards.clusterInfoCh:
+				if ci != nil {
+					log.Println("received cluster info update, cluster ", ci.ClusterName)
+					shards.lastClusterInfo = ci
+				}
+			case <-timer.C:
+				close(shards.clusterInfoCh)
+				log.Println("exiting cluster info receive loop")
+				return
 			}
 		}
-		log.Println("exiting cluster info receive loop")
 	}()
 
 	return shards
