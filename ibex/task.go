@@ -353,6 +353,7 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 	wg.Wait()
 
 	err := t.Cmd.Wait()
+	fmt.Println("err ======> ", err)
 	if err != nil {
 		if strings.Contains(err.Error(), "signal: killed") {
 			t.SetStatus("killed")
@@ -379,6 +380,7 @@ func persistResult(t *Task) {
 
 	file.WriteString(stdout, t.GetStdout())
 	file.WriteString(stderr, t.GetStderr())
+	fmt.Println("status =======> ", t.GetStatus())
 	file.WriteString(doneFlag, t.GetStatus())
 }
 
