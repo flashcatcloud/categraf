@@ -88,6 +88,9 @@ func (item *Sample) ConvertTimeSeries(precision string) *prompb.TimeSeries {
 		pairs = append(pairs, pair{k, v})
 	}
 	sort.Slice(pairs, func(i, j int) bool {
+		if pairs[i].key == pairs[j].key {
+			return pairs[i].val < pairs[j].val
+		}
 		return pairs[i].key < pairs[j].key
 	})
 
