@@ -361,7 +361,7 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-	//persistResult(t)
+	persistResult(t)
 }
 
 func persistResult(t *Task) {
