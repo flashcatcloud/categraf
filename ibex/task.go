@@ -343,7 +343,7 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 	}()
 
 	err := t.Cmd.Wait()
-	fmt.Println("err ======> ", err)
+	//fmt.Println("err ======> ", err)
 	if err != nil {
 		if strings.Contains(err.Error(), "signal: killed") {
 			t.SetStatus("killed")
@@ -372,10 +372,10 @@ func persistResult(t *Task) {
 
 	file.WriteString(stdout, t.GetStdout())
 	file.WriteString(stderr, t.GetStderr())
-	fmt.Println("stdout =======> ", t.GetStdout())
-	fmt.Println("stderr =======> ", t.GetStderr())
+	//fmt.Println("stdout =======> ", t.GetStdout())
+	//fmt.Println("\t", t.GetStderr())
 	file.WriteString(doneFlag, t.GetStatus())
-	fmt.Println("status =======> ", t.GetStatus())
+	//fmt.Println("\t", t.GetStatus())
 }
 
 func killProcess(t *Task) {
