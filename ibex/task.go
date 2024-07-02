@@ -323,7 +323,6 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 
 	go func() {
 		defer wg.Done()
-		//实时循环读取输出流中的一行内容
 		for {
 			line, err2 := reader.ReadString('\n')
 			if err2 != nil || io.EOF == err2 {
@@ -339,7 +338,6 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 
 	go func() {
 		defer wg.Done()
-		//实时循环读取输出流中的一行内容
 		for {
 			line, err2 := errReader.ReadString('\n')
 			if err2 != nil || io.EOF == err2 {
@@ -370,6 +368,8 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 		t.SetStatus("success")
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
+
+	persistResult(t)
 }
 
 func persistResult(t *Task) {
