@@ -104,6 +104,9 @@ type httpProviderResponse struct {
 	Configs map[string]map[string]*cfg.ConfigWithFormat `json:"configs"`
 }
 
+// HttpProviderResponseCh is a global channel used to notify the logs_agent.
+var HttpProviderResponseCh = make(chan httpProviderResponse)
+
 func (hrp *HTTPProvider) Name() string {
 	return "http"
 }
@@ -207,6 +210,10 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 		log.Println("E! http provider: unmarshal result error:", err)
 		return nil, err
 	}
+
+	go func() {
+		HttpProviderResponseCh <- *confResp
+	}()
 
 	// set checksum for each config
 	newCfg := make(map[string]map[string]*cfg.ConfigWithFormat)
