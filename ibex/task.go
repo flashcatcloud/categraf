@@ -372,8 +372,10 @@ func persistResult(t *Task) {
 
 	file.WriteString(stdout, t.GetStdout())
 	file.WriteString(stderr, t.GetStderr())
-	fmt.Println("status =======> ", t.GetStatus())
+	fmt.Println("stdout =======> ", t.GetStdout())
+	fmt.Println("stderr =======> ", t.GetStderr())
 	file.WriteString(doneFlag, t.GetStatus())
+	fmt.Println("status =======> ", t.GetStatus())
 }
 
 func killProcess(t *Task) {
