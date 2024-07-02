@@ -315,14 +315,9 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 	t.SetAlive(true)
 	defer t.SetAlive(false)
 
-	var wg sync.WaitGroup
-
-	wg.Add(2)
-
 	reader := bufio.NewReader(stdout)
 
 	go func() {
-		defer wg.Done()
 		for {
 			line, err2 := reader.ReadString('\n')
 			if err2 != nil || io.EOF == err2 {
@@ -337,7 +332,6 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 	errReader := bufio.NewReader(stderr)
 
 	go func() {
-		defer wg.Done()
 		for {
 			line, err2 := errReader.ReadString('\n')
 			if err2 != nil || io.EOF == err2 {
@@ -347,8 +341,6 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 			persistResult(t)
 		}
 	}()
-
-	wg.Wait()
 
 	err := t.Cmd.Wait()
 	fmt.Println("err ======> ", err)
@@ -369,7 +361,7 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 		log.Printf("D! process of task[%d] done", t.Id)
 	}
 
-	persistResult(t)
+	//persistResult(t)
 }
 
 func persistResult(t *Task) {
