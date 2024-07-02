@@ -190,6 +190,7 @@ type Nodes struct {
 	breakerMetrics            []*breakerMetric
 	indicesMetrics            []*nodeMetric
 	transportMetrics          []*nodeMetric
+	httpMetrics               []*nodeMetric
 	threadPoolMetrics         []*threadPoolMetric
 	filesystemDataMetrics     []*filesystemDataMetric
 	filesystemIODeviceMetrics []*filesystemIODeviceMetric
@@ -2105,6 +2106,40 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 				Labels: defaultFilesystemIODeviceLabelValues,
 			},
 		},
+		httpMetrics: []*nodeMetric{
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "http", "current_open"),
+					"http current open",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					if v, ok := node.HTTP["current_open"]; ok {
+						return v.(float64)
+					}
+
+					return 0
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "http", "total_opened"),
+					"http total opened",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					if v, ok := node.HTTP["total_opened"]; ok {
+						return v.(float64)
+					}
+
+					return 0
+				},
+				Labels: defaultNodeLabelValues,
+			},
+		},
 	}
 }
 
@@ -2138,6 +2173,9 @@ func (c *Nodes) Describe(ch chan<- *prometheus.Desc) {
 		ch <- metric.Desc
 	}
 	for _, metric := range c.filesystemIODeviceMetrics {
+		ch <- metric.Desc
+	}
+	for _, metric := range c.httpMetrics {
 		ch <- metric.Desc
 	}
 	ch <- c.up.Desc()
@@ -2423,6 +2461,18 @@ func (c *Nodes) Collect(ch chan<- prometheus.Metric) {
 		if isEnable("transport", c.nodeStats) {
 			// Transport Stats
 			for _, metric := range c.transportMetrics {
+				ch <- prometheus.MustNewConstMetric(
+					metric.Desc,
+					metric.Type,
+					metric.Value(node),
+					metric.Labels(nodeStatsResp.ClusterName, node)...,
+				)
+			}
+		}
+
+		if isEnable("http", c.nodeStats) {
+			// HTTP Stats
+			for _, metric := range c.httpMetrics {
 				ch <- prometheus.MustNewConstMetric(
 					metric.Desc,
 					metric.Type,
