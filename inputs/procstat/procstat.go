@@ -197,6 +197,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	ins.updateProcesses(pids)
+
+	exeMd5cache := make(map[string]string)
 	for pid, p := range ins.procs {
 		info := map[string]string{
 			"pid": fmt.Sprint(pid),
@@ -212,14 +214,19 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		}
 		if runtime.GOOS == "linux" {
 			if exe, err := p.Exe(); err == nil {
-				if sum, err := md5sum(exe); err == nil {
+				cached, ok := exeMd5cache[exe]
+				if ok {
+					info["binary_md5sum"] = cached
+				} else if sum, err := md5sum(exe); err == nil {
 					info["binary_md5sum"] = sum
+					exeMd5cache[exe] = sum
 				} else {
 					if ins.DebugMod {
 						log.Println("E! failed to get md5sum of exe:", exe, "pid:", p.PID(), err)
 					}
 					if sum, err := md5sum(fmt.Sprintf("/proc/%d/exe", pid)); err == nil {
 						info["binary_md5sum"] = sum
+						exeMd5cache[exe] = sum
 					} else {
 						if ins.DebugMod {
 							log.Println("E! failed to get md5sum of /proc/pid/exe:", p.PID(), err)
