@@ -1,6 +1,7 @@
 package types
 
 import (
+	"sort"
 	"strings"
 	"time"
 
@@ -10,12 +11,19 @@ import (
 	"flashcat.cloud/categraf/pkg/conv"
 )
 
-type Sample struct {
-	Metric    string            `json:"metric"`
-	Timestamp time.Time         `json:"timestamp"`
-	Value     interface{}       `json:"value"`
-	Labels    map[string]string `json:"labels"`
-}
+type (
+	pair struct {
+		key string
+		val string
+	}
+
+	Sample struct {
+		Metric    string            `json:"metric"`
+		Timestamp time.Time         `json:"timestamp"`
+		Value     interface{}       `json:"value"`
+		Labels    map[string]string `json:"labels"`
+	}
+)
 
 var (
 	labelReplacer  = strings.NewReplacer("-", "_", ".", "_", " ", "_", "/", "_")
@@ -74,11 +82,23 @@ func (item *Sample) ConvertTimeSeries(precision string) *prompb.TimeSeries {
 		Value: item.Metric,
 	})
 
-	// add other labels
+	// sort labels
+	pairs := make([]pair, 0, len(item.Labels))
 	for k, v := range item.Labels {
+		pairs = append(pairs, pair{k, v})
+	}
+	sort.Slice(pairs, func(i, j int) bool {
+		if pairs[i].key == pairs[j].key {
+			return pairs[i].val < pairs[j].val
+		}
+		return pairs[i].key < pairs[j].key
+	})
+
+	// add other labels
+	for _, p := range pairs {
 		pt.Labels = append(pt.Labels, prompb.Label{
-			Name:  labelReplacer.Replace(k),
-			Value: v,
+			Name:  labelReplacer.Replace(p.key),
+			Value: p.val,
 		})
 	}
 
