@@ -31,12 +31,12 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 		stdoutRunes := []rune(rt.Stdout)
 		stderrRunes := []rune(rt.Stderr)
 
-		if len(stdoutRunes) > 16383 {
-			rt.Stdout = string(stdoutRunes[:16383])
+		if len(stdoutRunes) > 16380 {
+			rt.Stdout = string(stdoutRunes[:16380]) + "..."
 		}
 
-		if len(stderrRunes) > 16383 {
-			rt.Stderr = string(stderrRunes[:16383])
+		if len(stderrRunes) > 16380 {
+			rt.Stderr = string(stderrRunes[:16380]) + "..."
 		}
 
 		ret = append(ret, rt)
