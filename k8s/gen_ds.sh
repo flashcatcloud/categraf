@@ -1,6 +1,6 @@
-namespace=test
+namespace=n9e
 
-dry_run=true
+#dry_run=true
 if [[ $dry_run == true ]]; then
 	dry_run_params="--dry-run=client"
 else
