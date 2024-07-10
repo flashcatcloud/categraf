@@ -48,6 +48,8 @@ type LogSource struct {
 	// LatencyStats tracks internal stats on the time spent by messages from this source in a processing pipeline, i.e.
 	// the duration between when a message is decoded by the tailer/listener/decoder and when the message is handled by a sender
 	LatencyStats *StatsTracker
+	// Determine if it is a containerd CRI environment, if yes , containerdFlg is Y
+	containerdFlg string
 }
 
 // NewLogSource creates a new log source.
@@ -102,6 +104,20 @@ func (s *LogSource) GetSourceType() SourceType {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	return s.sourceType
+}
+
+// SetcontainerdFlg sets a format that give information on Determine if it is a containerd CRI environment, if yes , containerdFlg is Y
+func (s *LogSource) SetcontainerdFlg(containerdFlg string) {
+	s.lock.Lock()
+	s.containerdFlg = containerdFlg
+	s.lock.Unlock()
+}
+
+// GetcontainerdFlg returns the containerdFlg used by this source
+func (s *LogSource) GetcontainerdFlg() string {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	return s.containerdFlg
 }
 
 // RegisterInfo registers some info to display on the status page
