@@ -201,7 +201,7 @@ func (l *Launcher) addSource(svc *service.Service) {
 	source.SetSourceType(logsconfig.KubernetesSourceType)
 
 	// Determine whether CRI uses containerd
-	if pod.Status.Containers[0].ID[:13] == "containerd://" {
+	if len(pod.Status.Containers) > 0 && len(pod.Status.Containers[0].ID) >= 13 && pod.Status.Containers[0].ID[:13] == "containerd://" {
 		source.SetcontainerdFlg("Y")
 	}
 	l.sourcesByContainer[svc.GetEntityID()] = source
