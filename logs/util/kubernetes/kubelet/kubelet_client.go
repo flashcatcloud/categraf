@@ -22,6 +22,7 @@ import (
 	"time"
 
 	coreconfig "flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/logs/util"
 	"flashcat.cloud/categraf/logs/util/kubernetes"
 )
 
@@ -134,7 +135,9 @@ func (kc *kubeletClient) query(ctx context.Context, path string) ([]byte, int, e
 		return nil, 0, err
 	}
 
-	log.Printf("Successfully queried %s, status code: %d, body len: %d", req.URL.String(), response.StatusCode, len(b))
+	if util.Debug() {
+		log.Printf("Successfully queried %s, status code: %d, body len: %d", req.URL.String(), response.StatusCode, len(b))
+	}
 	return b, response.StatusCode, nil
 }
 

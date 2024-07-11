@@ -200,6 +200,10 @@ func (l *Launcher) addSource(svc *service.Service) {
 	// force setting source type to kubernetes
 	source.SetSourceType(logsconfig.KubernetesSourceType)
 
+	// Determine whether CRI uses containerd
+	if len(pod.Status.Containers) > 0 && len(pod.Status.Containers[0].ID) >= 13 && pod.Status.Containers[0].ID[:13] == "containerd://" {
+		source.SetcontainerdFlg("Y")
+	}
 	l.sourcesByContainer[svc.GetEntityID()] = source
 	l.sources.AddSource(source)
 
@@ -297,6 +301,7 @@ func buildTags(pod *kubernetes.Pod, container kubernetes.ContainerStatus) []stri
 		fmt.Sprintf("kubernetes.pod_id=%s", pod.Metadata.UID),
 		fmt.Sprintf("kubernetes.pod_name=%s", pod.Metadata.Name),
 		fmt.Sprintf("kubernetes.host=%s", pod.Spec.NodeName),
+		fmt.Sprintf("kubernetes.pod_ip=%s", pod.Status.PodIP),
 		fmt.Sprintf("kubernetes.container_id=%s", container.ID),
 		fmt.Sprintf("kubernetes.container_name=%s", container.Name),
 		fmt.Sprintf("kubernetes.container_image=%s", container.Image),
