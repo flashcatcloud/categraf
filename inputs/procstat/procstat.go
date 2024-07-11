@@ -33,6 +33,7 @@ type Instance struct {
 	SearchWinService       string   `toml:"search_win_service"`
 	SearchUser             string   `toml:"search_user"`
 	Mode                   string   `toml:"mode"`
+	GatherMD5              bool     `toml:"gather_md5"`
 	GatherTotal            bool     `toml:"gather_total"`
 	GatherPerPid           bool     `toml:"gather_per_pid"`
 	GatherMoreMetrics      []string `toml:"gather_more_metrics"`
@@ -197,6 +198,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	ins.updateProcesses(pids)
+
+	exeMd5cache := make(map[string]string)
 	for pid, p := range ins.procs {
 		info := map[string]string{
 			"pid": fmt.Sprint(pid),
@@ -204,25 +207,32 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		if comm, err := p.Name(); err == nil {
 			info["comm"] = comm
 		}
-		info["binary_md5sum"] = ""
-		if cmd, err := p.Cmdline(); err == nil {
-			md5b := md5.Sum([]byte(cmd))
-			sum := hex.EncodeToString(md5b[:])
-			info["cmdline_md5sum"] = sum
-		}
-		if runtime.GOOS == "linux" {
-			if exe, err := p.Exe(); err == nil {
-				if sum, err := md5sum(exe); err == nil {
-					info["binary_md5sum"] = sum
-				} else {
-					if ins.DebugMod {
-						log.Println("E! failed to get md5sum of exe:", exe, "pid:", p.PID(), err)
-					}
-					if sum, err := md5sum(fmt.Sprintf("/proc/%d/exe", pid)); err == nil {
+		if ins.GatherMD5 {
+			info["binary_md5sum"] = ""
+			if cmd, err := p.Cmdline(); err == nil {
+				md5b := md5.Sum([]byte(cmd))
+				sum := hex.EncodeToString(md5b[:])
+				info["cmdline_md5sum"] = sum
+			}
+			if runtime.GOOS == "linux" {
+				if exe, err := p.Exe(); err == nil {
+					cached, ok := exeMd5cache[exe]
+					if ok {
+						info["binary_md5sum"] = cached
+					} else if sum, err := md5sum(exe); err == nil {
 						info["binary_md5sum"] = sum
+						exeMd5cache[exe] = sum
 					} else {
 						if ins.DebugMod {
-							log.Println("E! failed to get md5sum of /proc/pid/exe:", p.PID(), err)
+							log.Println("E! failed to get md5sum of exe:", exe, "pid:", p.PID(), err)
+						}
+						if sum, err := md5sum(fmt.Sprintf("/proc/%d/exe", pid)); err == nil {
+							info["binary_md5sum"] = sum
+							exeMd5cache[exe] = sum
+						} else {
+							if ins.DebugMod {
+								log.Println("E! failed to get md5sum of /proc/pid/exe:", p.PID(), err)
+							}
 						}
 					}
 				}
@@ -454,20 +464,20 @@ func (ins *Instance) gatherMem(slist *types.SampleList, procs map[PID]Process, t
 		if err == nil {
 			value += v
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "mem_usage", v, ins.makeProcTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_usage", v, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 		}
 
 		minfo, err := p.MemoryInfo()
 		if err == nil {
 			if ins.GatherPerPid {
-				slist.PushFront(types.NewSample(inputName, "mem_rss", minfo.RSS, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_vms", minfo.VMS, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_hwm", minfo.HWM, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_data", minfo.Data, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_stack", minfo.Stack, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_locked", minfo.Locked, ins.makeProcTag(p), tags))
-				slist.PushFront(types.NewSample(inputName, "mem_swap", minfo.Swap, ins.makeProcTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_rss", minfo.RSS, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_vms", minfo.VMS, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_hwm", minfo.HWM, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_data", minfo.Data, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_stack", minfo.Stack, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_locked", minfo.Locked, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
+				slist.PushFront(types.NewSample(inputName, "mem_swap", minfo.Swap, ins.makeProcTag(p), ins.makeCmdlineLabelReggroupTag(p), tags))
 			}
 		}
 	}

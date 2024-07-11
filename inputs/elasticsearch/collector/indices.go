@@ -24,6 +24,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -2363,10 +2364,17 @@ func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases b
 
 	// start go routine to fetch clusterinfo updates and save them to lastClusterinfo
 	go func() {
-		for ci := range indices.clusterInfoCh {
-			if ci != nil {
-				log.Println("received cluster info update, cluster: ", ci.ClusterName)
-				indices.lastClusterInfo = ci
+		timer := time.NewTimer(2 * time.Minute)
+		for {
+			select {
+			case ci := <-indices.clusterInfoCh:
+				if ci != nil {
+					log.Println("received cluster info update, cluster: ", ci.ClusterName)
+					indices.lastClusterInfo = ci
+				}
+			case <-timer.C:
+				close(indices.clusterInfoCh)
+				return
 			}
 		}
 	}()

@@ -62,6 +62,9 @@ func (ins *Instance) Init() error {
 		log.Println("W! Table or Chains is empty")
 		return types.ErrInstancesEmpty
 	}
+	if ins.lister == nil {
+		ins.lister = ins.chainList
+	}
 	return nil
 }
 
@@ -69,6 +72,10 @@ func (ins *Instance) Init() error {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.Table == "" || len(ins.Chains) == 0 {
 		log.Println("W! Table or Chains is empty")
+		return
+	}
+	if ins.lister == nil {
+		log.Println("E! Lister is empty or not initialized")
 		return
 	}
 	// best effort : we continue through the chains even if an error is encountered,
