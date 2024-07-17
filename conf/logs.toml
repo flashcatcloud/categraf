@@ -37,7 +37,7 @@ batch_max_concurrence = 0
 # 最大并发批次, 默认100
 batch_max_size=100
 # 每次最大发送的内容上限 默认1000000
-batch_max_contentsize=1000000
+batch_max_content_size=1000000
 # client timeout in seconds
 producer_timeout= 10
 
