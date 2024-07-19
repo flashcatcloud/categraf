@@ -335,21 +335,20 @@ func convertSentinelReplicaOutput(
 }
 
 func (client *RedisSentinelClient) gatherMasterStats(slist *types.SampleList) ([]string, error) {
-	var masterNames []string
-
 	mastersCmd := redis.NewSliceCmd(context.Background(), "sentinel", "masters")
 	if err := client.sentinel.Process(context.Background(), mastersCmd); err != nil {
-		return masterNames, err
+		return nil, err
 	}
 
 	masters, err := mastersCmd.Result()
 	if err != nil {
-		return masterNames, err
+		return nil, err
 	}
 
 	// Break out of the loop if one of the items comes out malformed
 	// It's safe to assume that if we fail parsing one item that the rest will fail too
 	// This is because we are iterating over a single server response
+	masterNames := make([]string, 0, len(masters))
 	for _, master := range masters {
 		master, ok := master.([]interface{})
 		if !ok {
@@ -363,6 +362,7 @@ func (client *RedisSentinelClient) gatherMasterStats(slist *types.SampleList) ([
 			return masterNames, fmt.Errorf("unable to resolve master name")
 		}
 
+		masterNames = append(masterNames, masterName)
 		quorumCmd := redis.NewStringCmd(context.Background(), "sentinel", "ckquorum", masterName)
 		quorumErr := client.sentinel.Process(context.Background(), quorumCmd)
 
