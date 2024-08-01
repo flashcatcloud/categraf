@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137
 	github.com/chai2010/winsvc v0.0.0-20200705094454-db7ec320025c
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/docker/docker v24.0.9+incompatible
+	github.com/docker/docker v25.0.6+incompatible
 	github.com/gaochao1/sw v1.0.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-kit/log v0.2.1
@@ -77,7 +77,9 @@ require (
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
+	github.com/containerd/log v0.1.0 // indirect
 	github.com/dennwc/ioctl v1.0.0 // indirect
+	github.com/distribution/reference v0.6.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/frankban/quicktest v1.14.3 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
@@ -200,7 +202,6 @@ require (
 	github.com/dennwc/varint v1.0.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/digitalocean/godo v1.88.0 // indirect
-	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/eapache/go-resiliency v1.4.0 // indirect
