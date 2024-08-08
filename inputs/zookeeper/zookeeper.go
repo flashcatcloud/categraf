@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	versionRE          = regexp.MustCompile(` ^ ([0-9]+\.[0-9]+\.[0-9]+).*$`)
+	versionRE          = regexp.MustCompile(`^([0-9]+\.[0-9]+\.[0-9]+).*$`)
 	metricNameReplacer = strings.NewReplacer("-", "_", ".", "_")
 )
 
