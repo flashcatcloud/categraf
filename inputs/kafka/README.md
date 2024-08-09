@@ -1,6 +1,6 @@
 # kafka
 
-kafka 监控采集插件，由kafka-exporter（https://github.com/davidmparrott/kafka_exporter）封装而来。
+kafka 监控采集插件，由 [kafka-exporter](https://github.com/davidmparrott/kafka_exporter) 封装而来。
 
 ## Configuration
 
@@ -12,17 +12,17 @@ kafka 监控采集插件，由kafka-exporter（https://github.com/davidmparrott/
 
 
 ## 开源kafka-exporter 兼容说明
-categraf的exporter 封装 https://github.com/davidmparrott/kafka_exporter  (以下简称davidmparrott版本)  
+categraf的exporter 封装 https://github.com/davidmparrott/kafka_exporter  (以下简称davidmparrott版本)
 davidmparrott版本  fork自 https://github.com/danielqsj/kafka_exporter   (以下简称danielqsj版本)
 
 
 
-danielqsj版本作为原始版本, github版本也相对活跃, prometheus生态使用较多  
+danielqsj版本作为原始版本, github版本也相对活跃, prometheus生态使用较多
 categraf kafka plugin基于davidmparrott版本, 以下配置可以对danielqsj版本做一些兼容
 
-1. 增加metric: kafka_broker_info  
+1. 增加metric: kafka_broker_info
    davidmparrott版本无此metric, 默认以增加, 无需配置
-2. davidmparrott版本与danielqsj版本, 有以下metric名字不同:  
+2. davidmparrott版本与danielqsj版本, 有以下metric名字不同:
    | davidmparrott版本  | danielqsj版本 |
    | ---- | ---- |
    | kafka_consumergroup_uncommit_offsets  | kafka_consumergroup_lag |
@@ -34,7 +34,7 @@ categraf kafka plugin基于davidmparrott版本, 以下配置可以对danielqsj�
 rename_uncommit_offset_to_lag = true
 ```
 
-3. davidmparrott版本 比 danielqsj版本多以下metric  
+3. davidmparrott版本 比 danielqsj版本多以下metric
    以下metric是对延迟速率进行了计算
 
 - kafka_consumer_lag_millis

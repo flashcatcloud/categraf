@@ -1,6 +1,6 @@
 # Filecount Input Plugin
 
-forked from telegraf/inputs.filecount
+forked from [telegraf/inputs.filecount](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/filecount)
 
 Reports the number and total size of files in specified directories.
 
