@@ -1,6 +1,6 @@
 # conntrack
 
-运维老鸟应该会遇到 conntrack table full 的报错吧，这个插件就是用于监控 conntrack 的情况，forked from `telegraf/conntrack`
+运维老鸟应该会遇到 conntrack table full 的报错吧，这个插件就是用于监控 conntrack 的情况， forked from [telegraf/conntrack](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/conntrack)
 
 ## Measurements & Fields
 

@@ -1,6 +1,7 @@
 # docker
 
-forked from telegraf/inputs.docker
+forked from [telegraf/inputs.docker](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/docker)
+
 
 ## change
 

@@ -1,7 +1,6 @@
 # ipvs
 
-Forked from telegraf. The IPVS input plugin uses the linux kernel netlink socket interface to gather
-metrics about ipvs virtual and real servers.
+Forked from [telegraf/ipvs](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/ipvs). The IPVS input plugin uses the linux kernel netlink socket interface to gather metrics about ipvs virtual and real servers.
 **Supported Platforms:** Linux
 
 ### Permissions

@@ -1,11 +1,11 @@
 # mongodb
 
-mongodb 监控采集插件，由mongodb-exporter（https://github.com/percona/mongodb_exporter） 封装而来。v0.3.30-v0.3.42从telegraf/mongodb fork。
+mongodb 监控采集插件，由mongodb-exporter（https://github.com/percona/mongodb_exporter） 封装而来。v0.3.30-v0.3.42从 [telegraf/mongodb](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/mongodb) fork。
 
 ## Configuration
 
 
-    
+
 - 配置文件，[参考示例](../../conf/input.mongodb/mongodb.toml)
 - 配置权限，至少授予以下权限给配置文件中用于连接 MongoDB 的 user 才能收集指标：
     ```

@@ -1,6 +1,6 @@
 # kubernetes
 
-forked from telegraf/kubernetes. 这个插件的作用是通过kubelet提供的API获取监控数据，包括系统容器的监控数据、node的、pod数据卷的、pod网络的、pod容器的
+forked from [telegraf/kubernetes](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/kubernetes). 这个插件的作用是通过kubelet提供的API获取监控数据，包括系统容器的监控数据、node的、pod数据卷的、pod网络的、pod容器的
 
 ## Change
 

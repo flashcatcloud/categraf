@@ -74,9 +74,9 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
   # cluster_exclude = []
 
   ## Optional TLS Config
-  # tls_ca = "/etc/telegraf/ca.pem"
-  # tls_cert = "/etc/telegraf/cert.pem"
-  # tls_key = "/etc/telegraf/key.pem"
+  # tls_ca = "/etc/categraf/ca.pem"
+  # tls_cert = "/etc/categraf/cert.pem"
+  # tls_key = "/etc/categraf/key.pem"
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
 
