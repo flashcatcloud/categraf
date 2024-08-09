@@ -3,7 +3,7 @@ package zookeeper
 import (
 	crypto_tls "crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"regexp"
@@ -90,6 +90,10 @@ func (z *Zookeeper) GetInstances() []inputs.Instance {
 func (ins *Instance) Init() error {
 	if len(ins.ZkHosts()) == 0 {
 		return types.ErrInstancesEmpty
+	}
+	// set default timeout
+	if ins.Timeout == 0 {
+		ins.Timeout = 10
 	}
 	return nil
 }
@@ -242,7 +246,7 @@ func sendZookeeperCmd(conn net.Conn, cmd string) string {
 		return ""
 	}
 
-	res, err := ioutil.ReadAll(conn)
+	res, err := io.ReadAll(conn)
 	if err != nil {
 		log.Printf("E! failed read Zookeeper command: '%s' response from '%s': %s", cmd, conn.RemoteAddr().String(), err)
 		return ""
