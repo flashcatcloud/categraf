@@ -3,7 +3,7 @@ package rocketmq_offset
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -319,7 +319,7 @@ func doRequest(url string) []byte {
 	}
 
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 
 	if err != nil {
 		log.Println("E! fail to read request data", err)

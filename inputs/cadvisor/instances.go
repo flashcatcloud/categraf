@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -156,7 +155,7 @@ func (ins *Instance) cache() {
 				log.Println("E! failed to request for url:", podUrl.String(), "error:", err)
 				continue
 			}
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				log.Println("E! failed to read body for url:", podUrl.String(), "error:", err)
 				continue

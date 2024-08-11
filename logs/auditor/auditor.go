@@ -9,7 +9,6 @@ package auditor
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -184,7 +183,7 @@ func (a *RegistryAuditor) run() {
 
 // recoverRegistry rebuilds the registry from the state file found at path
 func (a *RegistryAuditor) recoverRegistry() map[string]*RegistryEntry {
-	mr, err := ioutil.ReadFile(a.registryPath)
+	mr, err := os.ReadFile(a.registryPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Printf("I! Could not find state file at %q, will start with default offsets", a.registryPath)
@@ -248,7 +247,7 @@ func (a *RegistryAuditor) flushRegistry() error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(a.registryPath, mr, 0644)
+	return os.WriteFile(a.registryPath, mr, 0644)
 }
 
 // marshalRegistry marshals a registry

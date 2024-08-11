@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -299,7 +298,7 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	// metric: response_code
 	fields["response_code"] = resp.StatusCode
 
-	bs, err := ioutil.ReadAll(resp.Body)
+	bs, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("E! failed to read response body:", err)
 		return tags, fields, nil
