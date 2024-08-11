@@ -239,9 +239,9 @@ func LoggerWithConfig(conf LoggerConfig) gin.HandlerFunc {
 		// )
 
 		// if c.Request.Method != "GET" {
-		// 	buf, _ := ioutil.ReadAll(c.Request.Body)
-		// 	rdr1 = ioutil.NopCloser(bytes.NewBuffer(buf))
-		// 	rdr2 = ioutil.NopCloser(bytes.NewBuffer(buf))
+		// 	buf, _ := io.ReadAll(c.Request.Body)
+		// 	rdr1 = io.NopCloser(bytes.NewBuffer(buf))
+		// 	rdr2 = io.NopCloser(bytes.NewBuffer(buf))
 
 		// 	c.Request.Body = rdr2
 		// }

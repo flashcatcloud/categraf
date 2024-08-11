@@ -3,7 +3,7 @@ package collector
 import (
 	"crypto/md5"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 
@@ -32,7 +32,7 @@ func NewCrontabCollector() (Collector, error) {
 			[]string{"user"}, nil,
 		),
 	}
-	fileList, _ := ioutil.ReadDir(*crontabDir)
+	fileList, _ := os.ReadDir(*crontabDir)
 
 	for _, file := range fileList {
 		if file.IsDir() {
@@ -55,7 +55,7 @@ func (c *crontabCollector) readFile(fileName string) ([]byte, error) {
 	}
 	defer file.Close()
 
-	fd, _ := ioutil.ReadAll(file)
+	fd, _ := io.ReadAll(file)
 	return fd, nil
 }
 
@@ -69,7 +69,7 @@ func crontabCollectorInit(params map[string]string) {
 }
 
 func (c *crontabCollector) Update(ch chan<- prometheus.Metric) error {
-	fileList, _ := ioutil.ReadDir(*crontabDir)
+	fileList, _ := os.ReadDir(*crontabDir)
 	for _, file := range fileList {
 		if file.IsDir() {
 			continue

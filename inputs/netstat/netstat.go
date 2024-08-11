@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -65,7 +64,7 @@ func (s *NetStats) gatherSummary(slist *types.SampleList) {
 	if ok {
 		f = path.Join(prefix, f)
 	}
-	bs, err := ioutil.ReadFile(f)
+	bs, err := os.ReadFile(f)
 	if err != nil {
 		log.Println("E! failed to read sockstat", f, err)
 		return

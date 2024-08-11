@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -177,7 +177,7 @@ func work(ps *system.SystemPS, client *http.Client) {
 	}
 
 	defer res.Body.Close()
-	bs, err = ioutil.ReadAll(res.Body)
+	bs, err = io.ReadAll(res.Body)
 	if err != nil {
 		log.Println("E! failed to read heartbeat response body:", err, " status code:", res.StatusCode)
 		return

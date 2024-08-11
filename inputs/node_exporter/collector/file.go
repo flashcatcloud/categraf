@@ -3,7 +3,7 @@ package collector
 import (
 	"crypto/md5"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -54,7 +54,7 @@ func (f *fileListCollector) readFile(fileName string) ([]byte, error) {
 	}
 	defer file.Close()
 
-	fd, _ := ioutil.ReadAll(file)
+	fd, _ := io.ReadAll(file)
 	return fd, nil
 }
 

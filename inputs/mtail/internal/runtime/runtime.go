@@ -12,7 +12,6 @@ import (
 	"expvar"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -79,7 +78,7 @@ func (r *Runtime) LoadAllPrograms() error {
 	}
 	switch {
 	case s.IsDir():
-		fis, rerr := ioutil.ReadDir(r.programPath)
+		fis, rerr := os.ReadDir(r.programPath)
 		if rerr != nil {
 			return errors.Wrapf(rerr, "Failed to list programs in %q", r.programPath)
 		}
