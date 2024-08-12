@@ -79,12 +79,12 @@ func (t *Task) GetStdout() string {
 	// window exec out charset is ANSI, convert to utf-8. (pwsh and cmd same)
 	case "windows":
 		b := buf.Bytes()
-		encoded, err := ansiToUtf8(b)
+		decoded, err := ansiToUtf8(b)
 		if err != nil {
 			log.Printf("E! convert out to windows-ansi fail: %v", err)
 			out = string(b)
 		}
-		out = encoded
+		out = decoded
 	default:
 		out = buf.String()
 	}
@@ -103,12 +103,12 @@ func (t *Task) GetStderr() string {
 	// window exec out charset is ANSI, convert to utf-8. (pwsh and cmd same)
 	case "windows":
 		b := buf.Bytes()
-		encoded, err := ansiToUtf8(b)
+		decoded, err := ansiToUtf8(b)
 		if err != nil {
 			log.Printf("E! convert out to windows-ansi fail: %v", err)
 			out = string(b)
 		}
-		out = encoded
+		out = decoded
 	default:
 		out = buf.String()
 	}
@@ -213,14 +213,14 @@ func (t *Task) prepare() error {
 				log.Printf("E! convert stdin[%s] to windows-ansi fail: %v", stdin, err)
 				return err
 			}
-			stdin = string(encodedStdin)
+			stdin = encodedStdin
 
 			encodedArgs, err := utf8ToAnsi(args)
 			if err != nil {
 				log.Printf("E! convert args[%s] to windows-ansi fail: %v", args, err)
 				return err
 			}
-			args = string(encodedArgs)
+			args = encodedArgs
 
 			script = strings.ReplaceAll(script, "\r", "")
 			script = strings.ReplaceAll(script, "\n", "\r\n")

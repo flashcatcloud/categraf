@@ -43,23 +43,23 @@ func ansiToUtf8(mbcs []byte) (string, error) {
 	return windows.UTF16ToString(utf16), nil
 }
 
-func utf8ToAnsi(utf8 string) ([]byte, error) {
+func utf8ToAnsi(utf8 string) (string, error) {
 	utf16, err := windows.UTF16FromString(utf8)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	// https://learn.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-widechartomultibyte
 	size, _, _ := wideCharToMultiByte.Call(CP_ACP, 0, uintptr(unsafe.Pointer(&utf16[0])), uintptr(len(utf16)), uintptr(0), 0, uintptr(0), uintptr(0))
 	if size <= 0 {
-		return nil, windows.GetLastError()
+		return "", windows.GetLastError()
 	}
 	mbcs := make([]byte, size)
 	rc, _, _ := wideCharToMultiByte.Call(CP_ACP, 0, uintptr(unsafe.Pointer(&utf16[0])), uintptr(len(utf16)), uintptr(unsafe.Pointer(&mbcs[0])), size, uintptr(0), uintptr(0))
 	if rc == 0 {
-		return nil, windows.GetLastError()
+		return "", windows.GetLastError()
 	}
 	if mbcs[size-1] == 0 {
 		mbcs = mbcs[:size-1]
 	}
-	return mbcs, nil
+	return string(mbcs), nil
 }
