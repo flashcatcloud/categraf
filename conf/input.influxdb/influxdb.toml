@@ -4,7 +4,7 @@
 [[instances]]
 
 urls = [
-    "http://172.21.23.76:8086/debug/vars"
+#    "http://localhost:8086/debug/vars"
 ]
 ## Username and password to send using HTTP Basic Authentication.
 # username = ""
