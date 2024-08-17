@@ -70,14 +70,49 @@ func (t *Task) SetAlive(pa bool) {
 
 func (t *Task) GetStdout() string {
 	t.Lock()
-	out := t.Stdout.String()
+
+	buf := t.Stdout
+
+	var out string
+
+	switch runtime.GOOS {
+	// window exec out charset is ANSI, convert to utf-8. (pwsh and cmd same)
+	case "windows":
+		b := buf.Bytes()
+		decoded, err := ansiToUtf8(b)
+		if err != nil {
+			log.Printf("E! convert out to windows-ansi fail: %v", err)
+			out = string(b)
+		}
+		out = decoded
+	default:
+		out = buf.String()
+	}
+
 	t.Unlock()
 	return out
 }
 
 func (t *Task) GetStderr() string {
 	t.Lock()
-	out := t.Stderr.String()
+
+	buf := t.Stderr
+
+	var out string
+	switch runtime.GOOS {
+	// window exec out charset is ANSI, convert to utf-8. (pwsh and cmd same)
+	case "windows":
+		b := buf.Bytes()
+		decoded, err := ansiToUtf8(b)
+		if err != nil {
+			log.Printf("E! convert out to windows-ansi fail: %v", err)
+			out = string(b)
+		}
+		out = decoded
+	default:
+		out = buf.String()
+	}
+
 	t.Unlock()
 	return out
 }
@@ -171,8 +206,32 @@ func (t *Task) prepare() error {
 
 		switch runtime.GOOS {
 		case "windows":
+			// window command(cmd) only support ANSI and CRLF
+			// if change to powershell , not convert script and stdin to ANSI and CRLF
+			encodedStdin, err := utf8ToAnsi(stdin)
+			if err != nil {
+				log.Printf("E! convert stdin[%s] to windows-ansi fail: %v", stdin, err)
+				return err
+			}
+			stdin = encodedStdin
+
+			encodedArgs, err := utf8ToAnsi(args)
+			if err != nil {
+				log.Printf("E! convert args[%s] to windows-ansi fail: %v", args, err)
+				return err
+			}
+			args = encodedArgs
+
+			script = strings.ReplaceAll(script, "\r", "")
+			script = strings.ReplaceAll(script, "\n", "\r\n")
+			encodedScript, err := utf8ToAnsi(script)
+			if err != nil {
+				log.Printf("E! convert script to windows-ansi fail: %v", err)
+				return err
+			}
+
 			scriptFile := filepath.Join(IdDir, "script.bat")
-			_, err = file.WriteString(scriptFile, fmt.Sprintf("@echo off\r\n%s", script))
+			_, err = file.WriteString(scriptFile, fmt.Sprintf("@echo off\r\n%s", encodedScript))
 			if err != nil {
 				log.Printf("E! write script to %s fail: %v", scriptFile, err)
 				return err
