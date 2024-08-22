@@ -341,7 +341,16 @@ func GetBiosSn() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to get bios sn: %v", err)
 		}
-		sn = strings.TrimSpace(string(out))
+		lines := strings.Split(string(out), "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "#") {
+				continue
+			}
+			if len(line) > 0 {
+				sn = strings.TrimSpace(line)
+				break
+			}
+		}
 	default:
 		return "", fmt.Errorf("not support os to get sn")
 	}
