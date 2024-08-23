@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/sys/windows"
 )
 
 func download(file string) (string, error) {
@@ -40,7 +42,6 @@ func download(file string) (string, error) {
 }
 
 func Update(tar string) error {
-	return fmt.Errorf("linux support only")
 	// download
 	fname, err := download(tar)
 	if err != nil {
@@ -69,6 +70,16 @@ func Update(tar string) error {
 	}
 	log.Printf("I! replace old version:%s with new version:%s", ov, "./"+nv)
 
+	// rename current -> current.old
+	oldBackup := ov + ".old"
+	err = os.Rename(ov, oldBackup)
+	if err != nil {
+		return err
+	}
+	err = windows.MoveFileEx(windows.StringToUTF16Ptr(oldBackup), nil, windows.MOVEFILE_DELAY_UNTIL_REBOOT) // optional: delay delete old file
+	if err != nil {
+		log.Printf("I! cannot auto remove old file for current user. please manual remove %s. cause: %v", oldBackup, err)
+	}
 	// replace
 	err = os.Rename(nv, ov)
 	if err != nil {
