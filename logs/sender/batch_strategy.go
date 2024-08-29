@@ -108,6 +108,10 @@ func (s *batchStrategy) processMessage(m *message.Message, outputChan chan *mess
 	}
 	added := s.buffer.AddMessage(m)
 	if !added || s.buffer.IsFull() {
+		if s.buffer.IsFull() {
+			log.Printf("I! buffer full len: %d, size: %d",
+				len(s.buffer.messageBuffer), s.buffer.contentSize)
+		}
 		s.flushBuffer(outputChan, send)
 	}
 	if !added {
