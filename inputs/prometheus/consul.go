@@ -185,6 +185,8 @@ func (ins *Instance) UrlsFromConsul(ctx context.Context) ([]ScrapeUrl, error) {
 						refreshFailed = false
 						log.Println("Successfully refreshed Consul services after previous errors")
 					}
+				default:
+					return
 				}
 			}
 		}()
