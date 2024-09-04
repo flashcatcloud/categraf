@@ -151,6 +151,8 @@ func printTestMetrics(samples []*types.Sample) {
 func printTestMetric(sample *types.Sample) {
 	var sb strings.Builder
 
+	sb.WriteString(fmt.Sprintf("%d", sample.Timestamp.Unix()))
+	sb.WriteString(" ")
 	sb.WriteString(sample.Timestamp.Format("15:04:05"))
 	sb.WriteString(" ")
 	sb.WriteString(sample.Metric)
