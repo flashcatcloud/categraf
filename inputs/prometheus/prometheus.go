@@ -45,9 +45,11 @@ type Instance struct {
 	ignoreLabelKeysFilter filter.Filter
 	cancel                context.CancelFunc
 	lock                  sync.Mutex
-	firstRun              bool
 	tls.ClientConfig
 	client *http.Client
+
+	wg             sync.WaitGroup
+	consulServices map[string]*ScrapeUrl
 }
 
 func (ins *Instance) Empty() bool {
@@ -67,8 +69,11 @@ func (ins *Instance) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
+	var ctx context.Context
+	ctx, ins.cancel = context.WithCancel(context.Background())
+
 	if ins.ConsulConfig.Enabled && len(ins.ConsulConfig.Queries) > 0 {
-		if err := ins.InitConsulClient(); err != nil {
+		if err := ins.InitConsulClient(ctx); err != nil {
 			return err
 		}
 	}
@@ -80,7 +85,6 @@ func (ins *Instance) Init() error {
 	if ins.Timeout <= 0 {
 		ins.Timeout = config.Duration(time.Second * 3)
 	}
-	ins.firstRun = true
 
 	client, err := ins.createHTTPClient()
 	if err != nil {
@@ -156,8 +160,13 @@ func (p *Prometheus) GetInstances() []inputs.Instance {
 	return ret
 }
 
+func (p *Prometheus) Drop() {
+	for _, ins := range p.Instances {
+		ins.Drop()
+	}
+}
+
 func (ins *Instance) Gather(slist *types.SampleList) {
-	var ctx context.Context
 	urlwg := new(sync.WaitGroup)
 	defer urlwg.Wait()
 
@@ -170,11 +179,10 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 		urlwg.Add(1)
 
-		go ins.gatherUrl(urlwg, slist, ScrapeUrl{URL: u, Tags: map[string]string{}})
+		go ins.gatherUrl(urlwg, slist, &ScrapeUrl{URL: u, Tags: map[string]string{}})
 	}
 
-	ctx, ins.cancel = context.WithCancel(context.Background())
-	urls, err := ins.UrlsFromConsul(ctx)
+	urls, err := ins.UrlsFromConsul()
 	if err != nil {
 		log.Println("E! failed to query urls from consul:", err)
 		return
@@ -186,7 +194,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 }
 
-func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, uri ScrapeUrl) {
+func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, uri *ScrapeUrl) {
 	defer urlwg.Done()
 
 	u := uri.URL
@@ -271,4 +279,5 @@ func (ins *Instance) setHeaders(req *http.Request) {
 
 func (ins *Instance) Drop() {
 	ins.cancel()
+	ins.wg.Wait()
 }
