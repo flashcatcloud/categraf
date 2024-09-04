@@ -22,7 +22,6 @@ type ConsulConfig struct {
 	Agent         string          `toml:"agent"`
 	QueryInterval config.Duration `toml:"query_interval"`
 	Queries       []*ConsulQuery  `toml:"query"`
-	Catalog       *api.Catalog    `toml:"-"`
 }
 
 // One Consul service discovery query

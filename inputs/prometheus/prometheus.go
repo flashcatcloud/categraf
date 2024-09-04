@@ -167,7 +167,6 @@ func (p *Prometheus) Drop() {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
-	var ctx context.Context
 	urlwg := new(sync.WaitGroup)
 	defer urlwg.Wait()
 
