@@ -174,6 +174,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	ctx, ins.cancel = context.WithCancel(context.Background())
+	defer ins.cancel()
 	urls, err := ins.UrlsFromConsul(ctx)
 	if err != nil {
 		log.Println("E! failed to query urls from consul:", err)

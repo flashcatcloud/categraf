@@ -167,6 +167,7 @@ func (ins *Instance) UrlsFromConsul(ctx context.Context) ([]ScrapeUrl, error) {
 				refreshFailed = true
 				log.Printf("Unable to refresh Consul services: %v\n", err)
 			}
+		refreshLoop:
 			for {
 				select {
 				case <-ctx.Done():
@@ -181,9 +182,12 @@ func (ins *Instance) UrlsFromConsul(ctx context.Context) ([]ScrapeUrl, error) {
 							log.Println("W!", message)
 						}
 						refreshFailed = true
-					} else if refreshFailed {
-						refreshFailed = false
-						log.Println("Successfully refreshed Consul services after previous errors")
+					} else {
+						if refreshFailed {
+							refreshFailed = false
+							log.Println("Successfully refreshed Consul services after previous errors")
+						}
+						break refreshLoop
 					}
 				}
 			}
