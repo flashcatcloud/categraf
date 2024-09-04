@@ -75,7 +75,7 @@ func (ins *Instance) InitConsulClient(ctx context.Context) error {
 		for tagName, tagTemplateString := range ins.ConsulConfig.Queries[i].ServiceExtraTags {
 			tagTemplate, err := template.New(tagName).Funcs(templateFunctions).Parse(tagTemplateString)
 			if err != nil {
-				log.Println("failed to parse the Consul query Extra Tag template (%s): %s", tagTemplateString, err)
+				log.Printf("failed to parse the Consul query Extra Tag template (%s): %s", tagTemplateString, err)
 				continue
 			}
 			q.serviceExtraTagsTemplate[tagName] = tagTemplate
