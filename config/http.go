@@ -18,7 +18,6 @@ type HTTPCommonConfig struct {
 
 	Headers map[string]string `toml:"headers"`
 
-
 	Timeout           Duration `toml:"timeout"`
 	FollowRedirects   *bool    `toml:"follow_redirects"`
 	DisableKeepAlives *bool    `toml:"disable_keepalives"`
@@ -33,6 +32,9 @@ func (hcc *HTTPCommonConfig) SetHeaders(req *http.Request) {
 	}
 	for k, v := range hcc.Headers {
 		req.Header.Set(k, v)
+		if k == "Host" {
+			req.Host = v
+		}
 	}
 }
 
