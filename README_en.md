@@ -96,5 +96,4 @@ plugin list and document: [https://github.com/flashcatcloud/categraf/tree/main/i
 
 Categraf is developed on the basis of Telegraf, Exporters and the OpenTelemetry. Thanks to the great open source community.
 
-## [Join wechat groups](https://download.flashcat.cloud/qrcode_sretalk.jpg)
 

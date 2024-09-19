@@ -1,5 +1,3 @@
-## Categraf
-
 <p align="center">
   <a href="https://github.com/flashcatcloud/categraf">
     <img src="doc/categraf.png" alt="categraf - one-stop telemetry collector" width="240" /></a>
@@ -16,40 +14,33 @@
   <a href="https://flashcat.cloud/"> <img src="https://img.shields.io/badge/Powered%20By-Flashcat-blueviolet"/> </a>
 </p>
 
-Categraf 是一款 All-in-One 的开源的 telemetry 数据采集器，支持指标、日志采集；支持 Tracing 数据的收集；支持物理机、虚拟机、交换机、容器、K8s、多种中间件/数据库的数据采集，支持混合云架构、云原生架构、多云架构。汇聚领域最佳实践，开箱即用。
+Categraf 是一款 All-in-One 的数据采集器，支持指标、日志采集；支持物理机、虚拟机、交换机、容器、K8s、多种中间件/数据库的数据采集，支持混合云架构、云原生架构、多云架构。同时，Categraf 期望不止提供采集能力，还附带提供仪表盘和告警规则，力求开箱即用。
 
 [加入微信群](https://download.flashcat.cloud/ulric/wechat17-1.jpg)。如果二维码已过期，可以加我微信 picobyte 拉群，备注：“categraf 加群”。
 
 ## 特点
-![](./doc/why-choose-categraf.png)
 
-> ❇️ 我们推荐你使用快猫星云旗下的 [**Flashduty**](https://flashcat.cloud/product/flashduty/) 作为 OnCall 值班平台，Flashduty 支持告警聚合、降噪、认领、升级、排班，让告警的触达既高效，又确保告警处理不遗漏、件件有回响。
+- 内置支持近百种采集插件，同时支持采集指标和日志，减少 agent 部署数量，降低维护成本
+- 采用 PUSH 方式推送数据，对于网络策略要求较高的场景，可以减少对外部网络的依赖
+- 采用 remote write 协议推送数据，支持将数据推送到 Nightingale、Prometheus、VictoriaMetrics 等后端
+- 尽可能落地最佳实践，不需要采集的数据无需采集，针对可能会对时序库造成高基数的问题在采集侧做出处理
+
+> ❇️ 我们推荐你使用 [**夜莺Nightingale**](https://github.com/ccfos/nightingale) 作为监控服务端，和 Categraf 丝滑对接，夜莺中已经内置了各类告警规则和仪表盘。
+>
+
+![nightingale](./doc/img/nightingale-template-center.png)
+
+
+> ❇️ 我们推荐你使用快猫星云旗下的 [**Flashduty**](https://flashcat.cloud/product/flashduty/?from=categraf-github) 作为 OnCall 值班平台，Flashduty 支持告警聚合、降噪、认领、升级、排班，让告警的触达既高效，又确保告警处理不遗漏、件件有回响。
 
 ![flashduty](./doc/flashduty.png)
 
 
-> ❇️ 我们推荐你使用 Categraf 作为采集器，搭配 [**夜莺Nightingale**](https://github.com/ccfos/nightingale) 快速构建统一的可观测体系。
-
-![categraf-with-nightingale](./doc/categraf-usage.png)
-
-## 功能
-1. 支持指标、日志的数据采集
-2. 支持 Tracing 数据的收集
-3. 支持 remote_write 写入协议，支持将数据写入 Promethues、M3DB、VictoriaMetrics、InfluxDB
-4. 指标数据只采集数值，不采集字符串，标签维持稳态结构
-5. 采用 All-in-One 的设计，所有的采集工作用一个 agent 搞定
-6. 纯 Go 代码编写，静态编译依赖少，容易分发，易于安装
-7. 尽可能落地最佳实践，不需要采集的数据无需采集，针对可能会对时序库造成高基数的问题在采集侧做出处理
-8. 常用的采集器，不但提供采集能力，还要整理出监控大盘和告警规则，用户可以直接导入使用
-
-
-
-## 文档
+## 更多文档
 
 - [快速开始](https://flashcat.cloud/blog/monitor-agent-categraf-introduction/)
 - [视频教程](https://mp.weixin.qq.com/s/T69kkBzToHVh31D87xsrIg)
-- [FAQ](https://www.gitlink.org.cn/flashcat/categraf/wiki/FAQ)
-- [下载最新版本](https://github.com/flashcatcloud/categraf/releases)
+- [软件下载](https://github.com/flashcatcloud/categraf/releases)
 
 ## 从源代码编译
 
