@@ -18,6 +18,8 @@
 
 Categraf 是一款 All-in-One 的开源的 telemetry 数据采集器，支持指标、日志采集；支持 Tracing 数据的收集；支持物理机、虚拟机、交换机、容器、K8s、多种中间件/数据库的数据采集，支持混合云架构、云原生架构、多云架构。汇聚领域最佳实践，开箱即用。
 
+[加入微信群](https://download.flashcat.cloud/ulric/wechat17-1.jpg)
+
 ## 特点
 ![](./doc/why-choose-categraf.png)
 
@@ -122,5 +124,3 @@ plugin list and document: [https://github.com/flashcatcloud/categraf/tree/main/i
 ## 致谢
 
 Categraf is developed on the basis of Telegraf, Exporters and the OpenTelemetry. Thanks to the great open source community.
-
-## [加入我们的微信群组](https://download.flashcat.cloud/qrcode_sretalk.jpg)
