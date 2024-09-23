@@ -5,7 +5,7 @@
 
 package filesystem
 
-var dfOptions = []string{"-l"}
+var dfOptions = []string{"-lP"}
 var expectedLength = 6
 
 func updatefileSystemInfo(values []string) map[string]string {
