@@ -111,8 +111,8 @@ func (ins *Instance) Init() error {
 	} else {
 		ins.ctx, ins.cancel = context.WithCancel(context.Background())
 	}
-	staleLogGcWaker := waker.NewTimed(ins.ctx, time.Hour)
-	opts = append(opts, mtail.StaleLogGcWaker(staleLogGcWaker))
+	// staleLogGcWaker := waker.NewTimed(ins.ctx, time.Hour)
+	// opts = append(opts, mtail.StaleLogGcWaker(staleLogGcWaker))
 
 	if ins.PollInterval > 0 {
 		logStreamPollWaker := waker.NewTimed(ins.ctx, ins.PollInterval)

@@ -18,8 +18,9 @@ import (
 	"sync"
 	"time"
 
-	"flashcat.cloud/categraf/inputs/mtail/internal/metrics"
 	"github.com/pkg/errors"
+
+	"flashcat.cloud/categraf/inputs/mtail/internal/metrics"
 )
 
 // Commandline Flags.
@@ -29,15 +30,18 @@ var (
 
 // Exporter manages the export of metrics to passive and active collectors.
 type Exporter struct {
-	ctx           context.Context
-	wg            sync.WaitGroup
-	store         *metrics.Store
-	pushInterval  time.Duration
-	hostname      string
-	omitProgLabel bool
-	emitTimestamp bool
-	pushTargets   []pushOptions
-	initDone      chan struct{}
+	ctx            context.Context
+	cancelFunc     context.CancelFunc
+	wg             sync.WaitGroup
+	store          *metrics.Store
+	pushInterval   time.Duration
+	hostname       string
+	omitProgLabel  bool
+	emitTimestamp  bool
+	exportDisabled bool
+	pushTargets    []pushOptions
+	initDone       chan struct{}
+	shutdownDone   chan struct{}
 }
 
 // Option configures a new Exporter.
@@ -74,16 +78,26 @@ func PushInterval(opt time.Duration) Option {
 	}
 }
 
+func DisableExport() Option {
+	return func(e *Exporter) error {
+		e.exportDisabled = true
+		return nil
+	}
+}
+
+var ErrNeedsStore = errors.New("exporter needs a Store")
+
 // New creates a new Exporter.
-func New(ctx context.Context, wg *sync.WaitGroup, store *metrics.Store, options ...Option) (*Exporter, error) {
+func New(ctx context.Context, store *metrics.Store, options ...Option) (*Exporter, error) {
 	if store == nil {
-		return nil, errors.New("exporter needs a Store")
+		return nil, ErrNeedsStore
 	}
 	e := &Exporter{
-		ctx:      ctx,
-		store:    store,
-		initDone: make(chan struct{}),
+		store:        store,
+		initDone:     make(chan struct{}),
+		shutdownDone: make(chan struct{}),
 	}
+	e.ctx, e.cancelFunc = context.WithCancel(ctx)
 	defer close(e.initDone)
 	if err := e.SetOption(options...); err != nil {
 		return nil, err
@@ -111,16 +125,23 @@ func New(ctx context.Context, wg *sync.WaitGroup, store *metrics.Store, options 
 	}
 	e.StartMetricPush()
 
-	// This routine manages shutdown of the Exporter.  TODO(jaq): This doesn't
-	// happen before mtail returns because of how context cancellation is set
-	// up..  How can we tie this shutdown in before mtail exits?  Should
-	// exporter be merged with httpserver?
+	// This routine manages shutdown of the Exporter.
 	go func() {
 		<-e.initDone
-		<-e.ctx.Done()
+		// Wait for the context to be completed before waiting for subroutines.
+		if !e.exportDisabled {
+			<-e.ctx.Done()
+		}
 		e.wg.Wait()
+		close(e.shutdownDone)
 	}()
 	return e, nil
+}
+
+// Stop instructs the exporter to shut down.  The function returns once the exporter has finished.
+func (e *Exporter) Stop() {
+	e.cancelFunc()
+	<-e.shutdownDone
 }
 
 // SetOption takes one or more option functions and applies them in order to Exporter.
@@ -178,7 +199,7 @@ func (e *Exporter) writeSocketMetrics(c io.Writer, f formatter, exportTotal *exp
 			if err == nil {
 				exportSuccess.Add(1)
 			} else {
-				return errors.Errorf("write error: %s\n", err)
+				return errors.Errorf("write error: %s", err)
 			}
 		}
 		m.RUnlock()
@@ -212,6 +233,10 @@ func (e *Exporter) PushMetrics() {
 
 // StartMetricPush pushes metrics to the configured services each interval.
 func (e *Exporter) StartMetricPush() {
+	if e.exportDisabled {
+		log.Printf("Export loop disabled.")
+		return
+	}
 	if len(e.pushTargets) == 0 {
 		return
 	}
@@ -222,7 +247,7 @@ func (e *Exporter) StartMetricPush() {
 	go func() {
 		defer e.wg.Done()
 		<-e.initDone
-		log.Println("Started metric push.")
+		log.Printf("Started metric push.")
 		ticker := time.NewTicker(e.pushInterval)
 		defer ticker.Stop()
 		for {
