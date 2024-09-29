@@ -959,10 +959,10 @@ func (v *VM) execute(t *thread, i code.Instr) {
 // ProcessLogLine handles the incoming lines by running a fetch-execute cycle
 // on the VM bytecode with the line as input to the program, until termination.
 func (v *VM) ProcessLogLine(ctx context.Context, line *logline.LogLine) {
-	start := time.Now()
-	defer func() {
-		LineProcessingDurations.WithLabelValues(v.name).Observe(time.Since(start).Seconds())
-	}()
+	// start := time.Now()
+	// defer func() {
+	// LineProcessingDurations.WithLabelValues(v.name).Observe(time.Since(start).Seconds())
+	// }()
 	t := new(thread)
 	t.matched = false
 	v.t = t
