@@ -137,7 +137,7 @@ func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 				// common change pattern anyway.
 				newfi, serr := os.Stat(fs.pathname)
 				if serr != nil {
-					log.Printf("stream(%s): stat error: %v", serr)
+					log.Printf("stream(%s): stat error: %v", fs.pathname, serr)
 					// If this is a NotExist error, then we should wrap up this
 					// goroutine. The Tailer will create a new logstream if the
 					// file is in the middle of a rotation and gets recreated

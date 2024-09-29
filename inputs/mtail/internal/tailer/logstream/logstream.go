@@ -69,7 +69,7 @@ func New(ctx context.Context, wg *sync.WaitGroup, waker waker.Waker, pathname st
 	if err != nil {
 		return nil, err
 	}
-	log.Println("Parsed url as %v", u)
+	log.Printf("Parsed url as %v", u)
 
 	path := pathname
 	switch u.Scheme {
