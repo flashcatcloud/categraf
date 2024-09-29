@@ -8,17 +8,32 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	osExec "os/exec"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
+	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/system"
-	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
+	"flashcat.cloud/categraf/pkg/cmdx"
 )
 
 const collinterval = 3
+
+type (
+	HeartbeatResponse struct {
+		Data UpdateInfo `json:"dat"`
+		Msg  string     `json:"err"`
+	}
+	UpdateInfo struct {
+		NewVersion string `json:"new_version"`
+		UpdateURL  string `json:"download_url"`
+	}
+)
 
 func Work() {
 	conf := config.Config.Heartbeat
@@ -114,6 +129,7 @@ func work(ps *system.SystemPS, client *http.Client) {
 		"cpu_util":      cpuUsagePercent,
 		"mem_util":      memUsagePercent,
 		"unixtime":      time.Now().UnixMilli(),
+		"global_labels": config.GlobalLabels(),
 		"host_ip":       hostIP,
 	}
 
@@ -190,6 +206,38 @@ func work(ps *system.SystemPS, client *http.Client) {
 
 	if debug() {
 		log.Println("D! heartbeat response:", string(bs), "status code:", res.StatusCode)
+	}
+
+	hr := HeartbeatResponse{}
+	err = json.Unmarshal(bs, &hr)
+	if err != nil {
+		log.Println("W! failed to unmarshal heartbeat response:", err)
+		return
+	}
+	if len(hr.Data.NewVersion) != 0 && len(hr.Data.UpdateURL) != 0 && hr.Data.NewVersion != shortVersion && hr.Data.NewVersion != config.Version {
+		var (
+			out    bytes.Buffer
+			stderr bytes.Buffer
+		)
+		exe, err := os.Executable()
+		if err != nil {
+			log.Println("E! failed to get current executable:", err)
+			return
+		}
+		cmd := osExec.Command(exe, "-update", "-update_url", hr.Data.UpdateURL)
+		cmd.Stdout = &out
+		cmd.Stderr = &stderr
+		err, timeout := cmdx.RunTimeout(cmd, time.Second*300)
+		if timeout {
+			log.Printf("E! exec %s timeout", cmd.String())
+			return
+		}
+		if err != nil {
+			log.Println("E! failed to update categraf:", err, "stderr:", stderr.String(), "stdout:",
+				out.String(), "command:", cmd.String())
+			return
+		}
+		log.Printf("update categraf(%s) from %s success, new version: %s", version(), hr.Data.UpdateURL, hr.Data.NewVersion)
 	}
 }
 

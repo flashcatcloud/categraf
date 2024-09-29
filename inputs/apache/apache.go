@@ -82,7 +82,7 @@ func (ins *Instance) Init() error {
 	e, err := exporter.New(logger, &ins.Config)
 
 	if err != nil {
-		return fmt.Errorf("could not instantiate mongodb lag exporter: %w", err)
+		return fmt.Errorf("could not instantiate mongodb lag exporter: %v", err)
 	}
 
 	ins.e = e
