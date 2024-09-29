@@ -26,7 +26,7 @@ type ErrorList []*compileError
 // Add appends an error at a position to the list of errors.
 func (p *ErrorList) Add(pos *position.Position, msg string) {
 	if pos == nil {
-		pos = &position.Position{Line: -1, Startcol: -1, Endcol: -1}
+		pos = &position.Position{"", -1, -1, -1}
 	}
 	*p = append(*p, &compileError{*pos, msg})
 }

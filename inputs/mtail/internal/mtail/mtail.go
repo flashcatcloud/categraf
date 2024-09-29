@@ -5,29 +5,27 @@ package mtail
 
 import (
 	"context"
-	"errors"
-	"expvar"
 	"log"
 	"net"
-	"net/http"
-	"net/http/pprof"
 	"sync"
-	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/exporter"
 	"flashcat.cloud/categraf/inputs/mtail/internal/logline"
 	"flashcat.cloud/categraf/inputs/mtail/internal/metrics"
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime"
 	"flashcat.cloud/categraf/inputs/mtail/internal/tailer"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Server contains the state of the main mtail program.
 type Server struct {
-	ctx   context.Context
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	wg sync.WaitGroup // wait for main processes to shutdown
+
 	store *metrics.Store // Metrics storage
-	wg    sync.WaitGroup // wait for main processes to shutdown
 
 	tOpts []tailer.Option    // options for constructing `t`
 	t     *tailer.Tailer     // t manages log patterns and log streams, which sends lines to the VMs
@@ -46,16 +44,15 @@ type Server struct {
 
 	programPath string // path to programs to load
 	oneShot     bool   // if set, mtail reads log files from the beginning, once, then exits
-	compileOnly bool   // if set, mtail compiles programs then exits
-}
-
-func (m *Server) Wait() {
-	m.wg.Wait()
+	compileOnly bool   // if set, mtail compiles programs then exit
 }
 
 func (m *Server) GetRegistry() *prometheus.Registry {
 	return m.reg
 }
+
+// We can only copy the build info once to the version library.  Protects tests from data races.
+var buildInfoOnce sync.Once
 
 // initRuntime constructs a new runtime and performs the initial load of program files in the program directory.
 func (m *Server) initRuntime() (err error) {
@@ -65,17 +62,11 @@ func (m *Server) initRuntime() (err error) {
 
 // initExporter sets up an Exporter for this Server.
 func (m *Server) initExporter() (err error) {
-	if m.oneShot {
-		// This is a hack to avoid a race in test, but assume that in oneshot
-		// mode we don't want to export anything.
-		return nil
-	}
-	m.e, err = exporter.New(m.ctx, &m.wg, m.store, m.eOpts...)
+	m.e, err = exporter.New(m.ctx, m.store, m.eOpts...)
 	if err != nil {
 		return err
 	}
 	m.reg.MustRegister(m.e)
-
 	return nil
 }
 
@@ -83,71 +74,6 @@ func (m *Server) initExporter() (err error) {
 func (m *Server) initTailer() (err error) {
 	m.t, err = tailer.New(m.ctx, &m.wg, m.lines, m.tOpts...)
 	return
-}
-
-// initHTTPServer begins the http server.
-func (m *Server) initHTTPServer() error {
-	initDone := make(chan struct{})
-	defer close(initDone)
-
-	if m.listener == nil {
-		log.Println("no listen address configured, not starting http server")
-		return nil
-	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/favicon.ico", FaviconHandler)
-	mux.Handle("/", m)
-	mux.Handle("/progz", http.HandlerFunc(m.r.ProgzHandler))
-	mux.HandleFunc("/json", http.HandlerFunc(m.e.HandleJSON))
-	mux.Handle("/metrics", promhttp.HandlerFor(m.reg, promhttp.HandlerOpts{}))
-	mux.HandleFunc("/graphite", http.HandlerFunc(m.e.HandleGraphite))
-	mux.HandleFunc("/varz", http.HandlerFunc(m.e.HandleVarz))
-	mux.Handle("/debug/vars", expvar.Handler())
-	mux.HandleFunc("/debug/pprof/", pprof.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-
-	srv := &http.Server{
-		Handler: mux,
-	}
-
-	var wg sync.WaitGroup
-	errc := make(chan error, 1)
-
-	// This goroutine runs the http server.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		<-initDone
-		log.Printf("Listening on %s", m.listener.Addr())
-		if err := srv.Serve(m.listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			errc <- err
-		}
-	}()
-
-	// This goroutine manages http server shutdown.
-	go func() {
-		<-initDone
-		select {
-		case err := <-errc:
-			log.Println(err)
-		case <-m.ctx.Done():
-			log.Println("Shutdown requested.")
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			srv.SetKeepAlivesEnabled(false)
-			if err := srv.Shutdown(ctx); err != nil {
-				log.Println(err)
-			}
-		}
-		// Wait for the Serve routine to exit.
-		wg.Wait()
-	}()
-
-	return nil
 }
 
 // New creates a Server from the supplied Options.  The Server is started by
@@ -159,27 +85,27 @@ func (m *Server) initHTTPServer() error {
 // block until quit, once TestServer.PollWatched is addressed.
 func New(ctx context.Context, store *metrics.Store, options ...Option) (*Server, error) {
 	m := &Server{
-		ctx:   ctx,
 		store: store,
 		lines: make(chan *logline.LogLine),
 		// Using a non-pedantic registry means we can be looser with metrics that
 		// are not fully specified at startup.
 		reg: prometheus.NewRegistry(),
 	}
-
+	m.ctx, m.cancel = context.WithCancel(ctx)
+	m.rOpts = append(m.rOpts, runtime.PrometheusRegisterer(m.reg))
 	if err := m.SetOption(options...); err != nil {
 		return nil, err
 	}
 	if err := m.initExporter(); err != nil {
 		return nil, err
 	}
+	//nolint:contextcheck // TODO
 	if err := m.initRuntime(); err != nil {
 		return nil, err
 	}
 	if err := m.initTailer(); err != nil {
 		return nil, err
 	}
-
 	return m, nil
 }
 
@@ -197,6 +123,7 @@ func (m *Server) SetOption(options ...Option) error {
 // TODO(jaq): remove this once the test server is able to trigger polls on the components.
 func (m *Server) Run() error {
 	m.wg.Wait()
+	m.cancel()
 	if m.compileOnly {
 		log.Println("compile-only is set, exiting")
 		return nil
