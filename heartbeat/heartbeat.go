@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	"flashcat.cloud/categraf/pkg/cmdx"
 	"io"
 	"log"
 	"net"
@@ -16,9 +15,11 @@ import (
 	"strings"
 	"time"
 
+	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/system"
-	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
+	"flashcat.cloud/categraf/pkg/cmdx"
 )
 
 const collinterval = 3
