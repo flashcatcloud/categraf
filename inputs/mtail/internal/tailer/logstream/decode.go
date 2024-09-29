@@ -25,6 +25,10 @@ func decodeAndSend(ctx context.Context, lines chan<- *logline.LogLine, pathname 
 	for i := 0; i < len(b) && i < n; i += width {
 		r, width = utf8.DecodeRune(b[i:])
 		if r == utf8.RuneError {
+			if len(b)-i > 10 {
+				count += width
+				continue
+			}
 			return count
 		}
 		// Most file-based log sources will end with \n on Unixlike systems.
