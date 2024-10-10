@@ -33,6 +33,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/ethtool"
 	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/filecount"
+	_ "flashcat.cloud/categraf/inputs/gnmi"
 	_ "flashcat.cloud/categraf/inputs/googlecloud"
 	_ "flashcat.cloud/categraf/inputs/greenplum"
 	_ "flashcat.cloud/categraf/inputs/haproxy"
