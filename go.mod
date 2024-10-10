@@ -53,7 +53,6 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/alecthomas/participle v0.4.1 // indirect
@@ -143,6 +142,7 @@ require (
 	github.com/ema/qdisc v1.0.0
 	github.com/go-ldap/ldap/v3 v3.4.6
 	github.com/godbus/dbus/v5 v5.0.4
+	github.com/google/gnxi v0.0.0-20240912171544-ef18504847b0
 	github.com/hashicorp/go-envparse v0.1.0
 	github.com/hodgesds/perf-utils v0.7.0
 	github.com/illumos/go-kstat v0.0.0-20210513183136-173c9b0a9973
@@ -157,6 +157,7 @@ require (
 	github.com/mdlayher/netlink v1.7.2
 	github.com/mdlayher/wifi v0.1.0
 	github.com/nats-io/nats-server/v2 v2.10.9
+	github.com/openconfig/gnmi v0.11.0
 	github.com/opencontainers/selinux v1.11.0
 	github.com/percona/percona-toolkit v0.0.0-20211210121818-b2860eee3152
 	github.com/prometheus-community/go-runit v0.1.0
@@ -238,7 +239,7 @@ require (
 	github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/gopacket v1.1.19
@@ -335,12 +336,11 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20231106174013-bbf56f31fb17
 	google.golang.org/grpc v1.61.1
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gotest.tools/v3 v3.2.0 // indirect
 	k8s.io/api v0.29.2
 	k8s.io/apimachinery v0.29.2
 	k8s.io/client-go v0.29.2
