@@ -1,9 +1,9 @@
 forked from [telegraf/gnmi](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/gnmi)
 
-# gNMI (gRPC Network Management Interface) Input Plugin
+# gNMI (gRPC Network Management Interface) Plugin
 
 This plugin consumes telemetry data based on the [gNMI][1] Subscribe method. TLS
-is supported for authentication and encryption.  This input plugin is
+is supported for authentication and encryption.  This plugin is
 vendor-agnostic and is supported on any platform that supports the gNMI spec.
 
 For Cisco devices:
@@ -16,30 +16,10 @@ It has been optimized to support gNMI telemetry as produced by Cisco IOS XR
 Please check the [troubleshooting section](#troubleshooting) in case of
 problems, e.g. when getting an *empty metric-name warning*!
 
-## Service Input <!-- @/docs/includes/service_input.md -->
-
-This plugin is a service input. Normal plugins gather metrics determined by the
-interval setting. Service plugins start a service to listens and waits for
-metrics or events to occur. Service plugins have two key differences from
-normal plugins:
-
-1. The global or plugin specific `interval` setting may not apply
-2. The CLI options of `--test`, `--test-wait`, and `--once` may not produce
-   output for this plugin
-
-## Global configuration options <!-- @/docs/includes/plugin_config.md -->
-
-In addition to the plugin-specific configuration settings, plugins support
-additional global and plugin configuration settings. These settings are used to
-modify metrics, tags, and field or create aliases and configure ordering, etc.
-See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
-
-[CONFIGURATION.md]: ../../../docs/CONFIGURATION.md#plugins
-
 ## Configuration
 
-```toml @sample.conf
-# gNMI telemetry input plugin
+```toml @gnmi.toml
+# gNMI telemetry plugin
 [[instances]]
   ## Address and port of the gNMI GRPC server
   addresses = ["1.2.3.4:5678"]
@@ -94,10 +74,10 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
   # vendor_specific = []
 
   ## Define additional aliases to map encoding paths to measurement names
-  # [inputs.gnmi.aliases]
+  # [instances.aliases]
   #   ifcounters = "openconfig:/interfaces/interface/state/counters"
 
-  [[inputs.gnmi.subscription]]
+  [[instances.subscription]]
     ## Name of the measurement that will be emitted
     name = "ifcounters"
 
@@ -122,7 +102,7 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
     # heartbeat_interval = "60s"
 
   ## Tag subscriptions are applied as tags to other subscriptions.
-  # [[inputs.gnmi.tag_subscription]]
+  # [[instances.tag_subscription]]
   #  ## When applying this value as a tag to other metrics, use this tag name
   #  name = "descr"
   #
@@ -176,13 +156,13 @@ corresponding response arrives with path
 manually map the response to a metric name using the `aliases` option like
 
 ```toml
-[[inputs.gnmi]]
+[[insances]]
   addresses     = ["..."]
 
-  [inputs.gnmi.aliases]
+  [instances.aliases]
     memory = "/components"
 
-  [[inputs.gnmi.subscription]]
+  [[instances.subscription]]
     name = "memory"
     origin = "openconfig"
     path = "/junos/system/linecard/cpu/memory"
