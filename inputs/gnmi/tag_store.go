@@ -45,7 +45,9 @@ func (s *tagStore) insert(subscription TagSubscription, path *pathInfo, values [
 			if len(f.path.segments) > 0 {
 				key := f.path.segments[len(f.path.segments)-1]
 				key = strings.ReplaceAll(key, "-", "_")
-				tagName += "/" + key
+				if !subscription.DisableConcatenation {
+					tagName += "/" + key
+				}
 			}
 			sv, err := ToString(f.value)
 			if err != nil {
@@ -75,7 +77,9 @@ func (s *tagStore) insert(subscription TagSubscription, path *pathInfo, values [
 			if len(f.path.segments) > 0 {
 				key := f.path.segments[len(f.path.segments)-1]
 				key = strings.ReplaceAll(key, "-", "_")
-				tagName += "/" + key
+				if !subscription.DisableConcatenation {
+					tagName += "/" + key
+				}
 			}
 			sv, err := ToString(f.value)
 			if err != nil {
@@ -104,7 +108,9 @@ func (s *tagStore) insert(subscription TagSubscription, path *pathInfo, values [
 			if len(f.path.segments) > 0 {
 				key := f.path.segments[len(f.path.segments)-1]
 				key = strings.ReplaceAll(key, "-", "_")
-				tagName += "/" + key
+				if !subscription.DisableConcatenation {
+					tagName += "/" + key
+				}
 			}
 			sv, err := ToString(f.value)
 			if err != nil {
