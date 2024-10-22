@@ -70,6 +70,8 @@ type (
 		cancel          context.CancelFunc
 		wg              sync.WaitGroup
 		slist           *types.SampleList
+
+		AgentHostTag string `toml:"agent_host_tag"`
 	}
 )
 
@@ -91,6 +93,8 @@ type Subscription struct {
 
 	// Mark this subscription as a tag-only lookup source, not emitting any metric
 	TagOnly bool `toml:"tag_only" deprecated:"1.25.0;2.0.0;please use 'tag_subscription's instead"`
+
+	DisableConcatenation bool `toml:"disable_concatenation"`
 }
 
 // Tag Subscription for a gNMI client
@@ -106,6 +110,9 @@ func (c *Instance) Init() error {
 	}
 	if len(c.Encoding) == 0 {
 		c.Encoding = "proto"
+	}
+	if len(c.AgentHostTag) == 0 {
+		c.AgentHostTag = "agent_host"
 	}
 	c.slist = types.NewSampleList()
 	// Check options
@@ -228,6 +235,7 @@ func (c *Instance) Start() error {
 				address:             addr,
 				aliases:             c.internalAliases,
 				tagsubs:             c.TagSubscriptions,
+				subs:                c.Subscriptions,
 				maxMsgSize:          int(c.MaxMsgSize),
 				vendorExt:           c.VendorSpecific,
 				tagStore:            newTagStore(c.TagSubscriptions),
@@ -235,6 +243,7 @@ func (c *Instance) Start() error {
 				canonicalFieldNames: c.CanonicalFieldNames,
 				trimSlash:           c.TrimFieldNames,
 				guessPathTag:        c.GuessPathTag,
+				sourceTag:           c.AgentHostTag,
 			}
 			for ctx.Err() == nil {
 				if err := h.subscribeGNMI(ctx, c.slist, tlscfg, request); err != nil && ctx.Err() == nil {

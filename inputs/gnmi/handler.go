@@ -25,7 +25,6 @@ import (
 	jnprHeader "flashcat.cloud/categraf/inputs/gnmi/extensions/jnpr_gnmi_extention"
 	"flashcat.cloud/categraf/pkg/choice"
 	"flashcat.cloud/categraf/types"
-	"flashcat.cloud/categraf/types/metric"
 )
 
 const eidJuniperTelemetryHeader = 1
@@ -34,6 +33,7 @@ type handler struct {
 	address             string
 	aliases             map[*pathInfo]string
 	tagsubs             []TagSubscription
+	subs                []Subscription
 	maxMsgSize          int
 	emptyNameWarnShown  bool
 	vendorExt           []string
@@ -42,6 +42,8 @@ type handler struct {
 	canonicalFieldNames bool
 	trimSlash           bool
 	guessPathTag        bool
+
+	sourceTag string
 }
 
 // SubscribeGNMI and extract telemetry data
@@ -118,7 +120,6 @@ func (h *handler) subscribeGNMI(ctx context.Context, slist *types.SampleList, tl
 
 // Handle SubscribeResponse_Update message from gNMI and parse contained telemetry data
 func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, response *gnmiLib.SubscribeResponse_Update, extension []*gnmiExt.Extension) {
-	grouper := metric.NewSeriesGrouper()
 	timestamp := time.Unix(0, response.Update.Timestamp)
 
 	// Extract tags from potential extension in the update notification
@@ -154,7 +155,7 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 	prefix := newInfoFromPath(response.Update.Prefix)
 
 	// Add info to the tags
-	headerTags["source"], _, _ = net.SplitHostPort(h.address)
+	headerTags[h.sourceTag], _, _ = net.SplitHostPort(h.address)
 	if !prefix.empty() {
 		headerTags["path"] = prefix.String()
 	}
@@ -256,13 +257,26 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 			log.Printf("E! Invalid empty path %q with alias %q", fieldPath, aliasPath)
 			continue
 		}
-		grouper.Add(name, tags, timestamp, key, field.value)
+		prefix := inputName
+		if strings.HasPrefix(name, inputName) {
+			prefix = ""
+		}
+		disableConcatenating := false
+		for _, sub := range h.subs {
+			if strings.HasSuffix(field.path.String(), sub.Path) {
+				// field.path => origin:path
+				// sub.path => path
+				disableConcatenating = sub.DisableConcatenation
+			}
+		}
+		if !disableConcatenating {
+			name = name + "_" + key
+		}
+
+		sample := types.NewSample(prefix, name, field.value, tags).SetTime(timestamp)
+		slist.PushFront(sample)
 	}
 
-	// Add grouped measurements
-	for _, metric := range grouper.Metrics() {
-		slist.PushSamples(metric.Name(), metric.Fields(), metric.Tags())
-	}
 }
 
 // Try to find the alias for the given path
