@@ -261,19 +261,38 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 		if strings.HasPrefix(name, inputName) {
 			prefix = ""
 		}
+		value := field.value
 		disableConcatenating := false
 		for _, sub := range h.subs {
-			if strings.HasSuffix(field.path.String(), sub.Path) {
+			base, _ := field.path.split()
+			if strings.HasSuffix(base, sub.Path) {
 				// field.path => origin:path
 				// sub.path => path
 				disableConcatenating = sub.DisableConcatenation
+				switch sub.Conversion {
+				case "ieeefloat32":
+					switch val := field.value.(type) {
+					case string:
+						v, err := string2float32(val)
+						if err != nil {
+						}
+
+						value = v
+					case []uint8:
+						v, err := bytes2float32(val)
+						if err != nil {
+
+						}
+						value = v
+					}
+				}
 			}
 		}
 		if !disableConcatenating {
 			name = name + "_" + key
 		}
 
-		sample := types.NewSample(prefix, name, field.value, tags).SetTime(timestamp)
+		sample := types.NewSample(prefix, name, value, tags).SetTime(timestamp)
 		slist.PushFront(sample)
 	}
 

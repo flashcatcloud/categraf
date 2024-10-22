@@ -94,7 +94,8 @@ type Subscription struct {
 	// Mark this subscription as a tag-only lookup source, not emitting any metric
 	TagOnly bool `toml:"tag_only" deprecated:"1.25.0;2.0.0;please use 'tag_subscription's instead"`
 
-	DisableConcatenation bool `toml:"disable_concatenation"`
+	DisableConcatenation bool   `toml:"disable_concatenation"`
+	Conversion           string `toml:"conversion"`
 }
 
 // Tag Subscription for a gNMI client
