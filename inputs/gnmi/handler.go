@@ -263,9 +263,16 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 		}
 		value := field.value
 		disableConcatenating := false
+		base := field.path.String()
 		for _, sub := range h.subs {
-			base, _ := field.path.split()
-			if strings.HasSuffix(base, sub.Path) {
+			subPath := sub.Path
+			if len(strings.Split(base, ":")) >= 2 {
+				// origin is not null
+				if sub.Origin != "" {
+					subPath = sub.Origin + ":" + sub.Path
+				}
+			}
+			if strings.HasPrefix(base, subPath) {
 				// field.path => origin:path
 				// sub.path => path
 				disableConcatenating = sub.DisableConcatenation
