@@ -53,7 +53,7 @@ func (s *Scanner) Scan() {
 			pods, err := s.kubelet.GetLocalPodList(ctx)
 			if err != nil {
 				log.Printf("get local pod list error %s", err)
-				return
+				continue
 			}
 			fetched := make(map[string]checksum.Checksum)
 			for _, pod := range pods {
