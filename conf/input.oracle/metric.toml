@@ -113,3 +113,10 @@ timeout = "3s"
 request = '''
 select  count(*) as count from v$archived_log  group by trunc(completion_time)
 '''
+
+[[metrics]]
+mesurement = "applylag"
+metric_fields = [ "value" ]
+timeout = "3s"
+request = '''
+SELECT TO_NUMBER(EXTRACT(SECOND FROM TO_DSINTERVAL (value))) as value FROM v$dataguard_stats WHERE name = 'apply lag'
