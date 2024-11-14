@@ -15,7 +15,7 @@ interval="1s"
     redial = "10s"
 
   ## gRPC Maximum Message Size, 4MB
-    max_msg_size = "4194304"
+    max_msg_size = 4194304
 
   ## Enable to get the canonical path as field-name
   # canonical_field_names = false
