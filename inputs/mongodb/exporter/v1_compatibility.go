@@ -866,6 +866,9 @@ func oplogStatus(ctx context.Context, client *mongo.Client) ([]prometheus.Metric
 		"$natural": -1,
 	}))
 	if headRes.Err() != nil {
+		if strings.Contains(headRes.Err().Error(), "no documents in result") {
+			return []prometheus.Metric{}, nil
+		}
 		return nil, headRes.Err()
 	}
 
