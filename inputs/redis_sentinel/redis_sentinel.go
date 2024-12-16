@@ -183,7 +183,11 @@ func convertSentinelInfoOutput(
 	scanner := bufio.NewScanner(rdr)
 	rawFields := make(map[string]string)
 
-	tags := globalTags
+	// tags := globalTags
+	tags := make(map[string]string, len(globalTags))
+	for k, v := range globalTags {
+		tags[k] = v
+	}
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -268,7 +272,11 @@ func convertSentinelSentinelsOutput(
 	masterName string,
 	sentinelMaster map[string]string,
 ) (map[string]string, map[string]interface{}, error) {
-	tags := globalTags
+	//tags := globalTags
+	tags := make(map[string]string, len(globalTags))
+	for k, v := range globalTags {
+		tags[k] = v
+	}
 
 	tags["sentinel_ip"] = sentinelMaster["ip"]
 	tags["sentinel_port"] = sentinelMaster["port"]
@@ -320,7 +328,11 @@ func convertSentinelReplicaOutput(
 	masterName string,
 	replica map[string]string,
 ) (map[string]string, map[string]interface{}, error) {
-	tags := globalTags
+	//tags := globalTags
+	tags := make(map[string]string, len(globalTags))
+	for k, v := range globalTags {
+		tags[k] = v
+	}
 
 	tags["replica_ip"] = replica["ip"]
 	tags["replica_port"] = replica["port"]
@@ -383,7 +395,11 @@ func convertSentinelMastersOutput(
 	master map[string]string,
 	quorumErr error,
 ) (map[string]string, map[string]interface{}, error) {
-	tags := globalTags
+	//tags := globalTags
+	tags := make(map[string]string, len(globalTags))
+	for k, v := range globalTags {
+		tags[k] = v
+	}
 
 	tags["master"] = master["name"]
 
