@@ -1,4 +1,4 @@
-FROM --platform=$TARGETPLATFORM ubuntu:23.04
+FROM --platform=$TARGETPLATFORM ubuntu:24.04
 
 RUN apt update && DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt -y install tzdata ca-certificates snmp snmpd wget curl vim  iputils-ping net-tools freeipmi-tools smartmontools ncat lsof
 
