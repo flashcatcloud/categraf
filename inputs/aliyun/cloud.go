@@ -225,21 +225,21 @@ func (ins *Instance) getFilteredMetrics(slist *types.SampleList) ([]filteredMetr
 						if len(name) == 0 {
 							name = metric.MetricName
 						}
-						if isSelected(metric, name, f.Dimensions, f.Namespace, f.MetricRegexp[name]) {
+						if isSelected(metric, name, f.Namespace, f.MetricRegexp[name]) {
 							metrics = append(metrics, internalTypes.Metric{
 								MetricName: metric.MetricName,
 								Namespace:  metric.Namespace,
-								Dimensions: metric.Dimensions,
+								Dimensions: f.Dimensions,
 								LabelStr:   metric.LabelStr,
 							})
 						}
 					}
 				} else {
-					if isSelected(metric, "", f.Dimensions, f.Namespace, nil) {
+					if isSelected(metric, "", f.Namespace, nil) {
 						metrics = append(metrics, internalTypes.Metric{
 							MetricName: metric.MetricName,
 							Namespace:  metric.Namespace,
-							Dimensions: metric.Dimensions,
+							Dimensions: f.Dimensions,
 							LabelStr:   metric.LabelStr,
 						})
 					}
@@ -463,14 +463,11 @@ func (ins *Instance) fetchNamespaceMetrics(slist *types.SampleList, namespaces [
 	return result, nil
 }
 
-func isSelected(metric internalTypes.Metric, name, dimensions, namespace string, metricregex *regexp.Regexp) bool {
+func isSelected(metric internalTypes.Metric, name, namespace string, metricregex *regexp.Regexp) bool {
 	if metricregex != nil {
 		if len(name) != 0 && name != metric.MetricName && !metricregex.MatchString(metric.MetricName) {
 			return false
 		}
-	}
-	if len(dimensions) != 0 && metric.Dimensions != dimensions {
-		return false
 	}
 	if len(namespace) != 0 && metric.Namespace != namespace {
 		return false
