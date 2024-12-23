@@ -524,6 +524,10 @@ func (ins *Instance) gatherLimit(slist *types.SampleList, procs map[PID]Process,
 }
 
 func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
+	attachPid := false
+	if len(procs) > 1 {
+		attachPid = true
+	}
 	for pid := range procs {
 		jvmStat, err := execJstat(pid)
 		if err != nil {
@@ -531,7 +535,10 @@ func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, t
 			continue
 		}
 
-		pidTag := map[string]string{"pid": fmt.Sprint(pid)}
+		pidTag := map[string]string{}
+		if attachPid {
+			pidTag["pid"] = fmt.Sprint(pid)
+		}
 		for k, v := range jvmStat {
 			slist.PushSample(inputName, "jvm_"+k, v, pidTag, ins.makeCmdlineLabelReggroupTag(procs[pid]), tags)
 		}
