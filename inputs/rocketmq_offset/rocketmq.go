@@ -67,6 +67,11 @@ func (ins *Instance) Login() (string, error) {
 
 	// 设置Content-Type头
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
 	
 	// 获取 set-cookie 头
 	cookies := res.Header.Get("Set-Cookie")
