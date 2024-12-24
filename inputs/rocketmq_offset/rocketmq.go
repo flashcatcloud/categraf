@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"flashcat.cloud/categraf/config"
@@ -55,18 +56,23 @@ type Instance struct {
 }
 
 func (ins *Instance) Login() (string, error) {
-	loginURL := fmt.Sprintf("%s/login/login.do?username=%s&password=%s", consoleSchema+ins.RocketMQConsoleIPAndPort, ins.Username, ins.Password)
-	req, err := http.NewRequest("POST", loginURL, nil)
+	loginURL := fmt.Sprintf("%s/login/login.do", consoleSchema+ins.RocketMQConsoleIPAndPort)
+	data := url.Values{}
+	data.Set("username", ins.Username)
+	data.Set("password", ins.Password)
+
+	req, err := http.NewRequest("POST", loginURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return "", err
 	}
+
+	// 设置Content-Type头
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
-
 	// 获取 set-cookie 头
 	cookies := res.Header.Get("Set-Cookie")
 	if cookies == "" {
