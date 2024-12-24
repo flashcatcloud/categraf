@@ -73,6 +73,7 @@ func (ins *Instance) Login() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer res.Body.Close()
 	// 获取 set-cookie 头
 	cookies := res.Header.Get("Set-Cookie")
 	if cookies == "" {
