@@ -301,6 +301,8 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	bs, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println("E! failed to read response body:", err)
+		// 增加打印target，当探测目标较多时，可以快速定位有问题的target
+		log.Println("E! http target:", target)
 		return tags, fields, nil
 	}
 
