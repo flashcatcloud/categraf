@@ -13,8 +13,8 @@ import (
 	"log"
 	"path/filepath"
 
-	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/decoder"
+	"flashcat.cloud/categraf/logs/util"
 )
 
 // setup sets up the file tailer
@@ -28,7 +28,7 @@ func (t *Tailer) setup(offset int64, whence int) error {
 	// adds metadata to enable users to filter logs by filename
 	t.tags = t.buildTailerTags()
 
-	if coreconfig.Config.DebugMode {
+	if util.Debug() {
 		log.Println("I! Opening", t.file.Path, "for tailer key", t.file.GetScanKey())
 	}
 	f, err := openFile(fullpath)
@@ -53,7 +53,7 @@ func (t *Tailer) read() (int, error) {
 	if err != nil && err != io.EOF {
 		// an unexpected error occurred, stop the tailor
 		t.file.Source.Status.Error(err)
-		return 0, fmt.Errorf("E! Unexpected error occurred while reading file: ", err)
+		return 0, fmt.Errorf("E! Unexpected error occurred while reading file: %v", err)
 	}
 	if n == 0 {
 		return 0, nil

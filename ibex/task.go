@@ -3,11 +3,14 @@
 package ibex
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os/exec"
 	"os/user"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -32,9 +35,14 @@ type Task struct {
 	Cmd    *exec.Cmd
 	Stdout bytes.Buffer
 	Stderr bytes.Buffer
+	Stdin  *bytes.Reader
 
-	Args    string
-	Account string
+	Args     string
+	Account  string
+	StdinStr string
+
+	outCh chan struct{}
+	errCh chan struct{}
 }
 
 func (t *Task) SetStatus(status string) {
@@ -65,14 +73,47 @@ func (t *Task) SetAlive(pa bool) {
 
 func (t *Task) GetStdout() string {
 	t.Lock()
-	out := t.Stdout.String()
+
+	buf := t.Stdout
+
+	var out string
+
+	switch runtime.GOOS {
+	// window exec out charset is ANSI, convert to utf-8. (pwsh and cmd same)
+	case "windows":
+		b := buf.Bytes()
+		decoded, err := ansiToUtf8(b)
+		if err != nil {
+			log.Printf("E! convert out to windows-ansi fail: %v", err)
+			out = string(b)
+		}
+		out = decoded
+	default:
+		out = buf.String()
+	}
 	t.Unlock()
 	return out
 }
 
 func (t *Task) GetStderr() string {
 	t.Lock()
-	out := t.Stderr.String()
+
+	buf := t.Stderr
+
+	var out string
+	switch runtime.GOOS {
+	// window exec out charset is ANSI, convert to utf-8. (pwsh and cmd same)
+	case "windows":
+		b := buf.Bytes()
+		decoded, err := ansiToUtf8(b)
+		if err != nil {
+			log.Printf("E! convert out to windows-ansi fail: %v", err)
+			out = string(b)
+		}
+		out = decoded
+	default:
+		out = buf.String()
+	}
 	t.Unlock()
 	return out
 }
@@ -120,6 +161,7 @@ func (t *Task) prepare() error {
 		// already prepared
 		return nil
 	}
+	t.pipeCreate()
 
 	IdDir := filepath.Join(config.Config.Ibex.MetaDir, fmt.Sprint(t.Id))
 	err := file.EnsureDir(IdDir)
@@ -145,11 +187,20 @@ func (t *Task) prepare() error {
 			return err
 		}
 
+		stdinFile := path.Join(IdDir, "stdin")
+		stdin, err := file.ReadStringTrim(stdinFile)
+		if err != nil {
+			log.Printf("E: read %s fail %v", stdinFile, err)
+			return err
+		}
+
 		t.Args = args
 		t.Account = account
+		t.StdinStr = stdin
+
 	} else {
 		// 从远端读取，再写入磁盘
-		script, args, account, err := client.Meta(t.Id)
+		script, args, account, stdin, err := client.Meta(t.Id)
 		if err != nil {
 			log.Println("E! query task meta fail:", err)
 			return err
@@ -157,8 +208,32 @@ func (t *Task) prepare() error {
 
 		switch runtime.GOOS {
 		case "windows":
+			// window command(cmd) only support ANSI and CRLF
+			// if change to powershell , not convert script and stdin to ANSI and CRLF
+			encodedStdin, err := utf8ToAnsi(stdin)
+			if err != nil {
+				log.Printf("E! convert stdin[%s] to windows-ansi fail: %v", stdin, err)
+				return err
+			}
+			stdin = encodedStdin
+
+			encodedArgs, err := utf8ToAnsi(args)
+			if err != nil {
+				log.Printf("E! convert args[%s] to windows-ansi fail: %v", args, err)
+				return err
+			}
+			args = encodedArgs
+
+			script = strings.ReplaceAll(script, "\r", "")
+			script = strings.ReplaceAll(script, "\n", "\r\n")
+			encodedScript, err := utf8ToAnsi(script)
+			if err != nil {
+				log.Printf("E! convert script to windows-ansi fail: %v", err)
+				return err
+			}
+
 			scriptFile := filepath.Join(IdDir, "script.bat")
-			_, err = file.WriteString(scriptFile, fmt.Sprintf("@echo off\r\n%s", script))
+			_, err = file.WriteString(scriptFile, fmt.Sprintf("@echo off\r\n%s", encodedScript))
 			if err != nil {
 				log.Printf("E! write script to %s fail: %v", scriptFile, err)
 				return err
@@ -191,6 +266,13 @@ func (t *Task) prepare() error {
 			return err
 		}
 
+		stdinFile := path.Join(IdDir, "stdin")
+		_, err = file.WriteString(stdinFile, stdin)
+		if err != nil {
+			log.Printf("E: write tags to %s fail: %v", stdinFile, err)
+			return err
+		}
+
 		_, err = file.WriteString(writeFlag, "")
 		if err != nil {
 			log.Printf("E! create %s flag file fail: %v", writeFlag, err)
@@ -199,7 +281,10 @@ func (t *Task) prepare() error {
 
 		t.Args = args
 		t.Account = account
+		t.StdinStr = stdin
 	}
+
+	t.Stdin = bytes.NewReader([]byte(t.StdinStr))
 
 	return nil
 }
@@ -208,7 +293,6 @@ func (t *Task) start() {
 	if t.GetAlive() {
 		return
 	}
-
 	err := t.prepare()
 	if err != nil {
 		return
@@ -259,27 +343,98 @@ func (t *Task) start() {
 		}
 	}
 
-	cmd.Stdout = &t.Stdout
-	cmd.Stderr = &t.Stderr
+	cmd.Stdin = t.Stdin
 	t.Cmd = cmd
 
+	stdout, err := t.Cmd.StdoutPipe()
+	if err != nil {
+		log.Printf("E! cannot read ouput of task[%d]: %v", t.Id, err)
+	}
+
+	stderr, err := t.Cmd.StderrPipe()
+
+	if err != nil {
+		log.Printf("E! cannot read err of task[%d]: %v", t.Id, err)
+	}
+
 	err = CmdStart(cmd)
+
 	if err != nil {
 		log.Printf("E! cannot start cmd of task[%d]: %v", t.Id, err)
 		return
 	}
 
-	go runProcess(t)
+	go runProcessRealtime(stdout, stderr, t)
 }
 
 func (t *Task) kill() {
 	go killProcess(t)
 }
 
-func runProcess(t *Task) {
+func (t *Task) pipeDrain() {
+	<-t.outCh
+	<-t.errCh
+}
+
+func (t *Task) pipeCreate() {
+	t.outCh = make(chan struct{})
+	t.errCh = make(chan struct{})
+}
+
+func (t *Task) stdoutFlush() {
+	metaDir := config.Config.Ibex.MetaDir
+	stdoutFile := filepath.Join(metaDir, fmt.Sprint(t.Id), "stdout")
+	file.WriteString(stdoutFile, t.GetStdout())
+	close(t.outCh)
+}
+
+func (t *Task) stderrFlush() {
+	metaDir := config.Config.Ibex.MetaDir
+	stderrFile := filepath.Join(metaDir, fmt.Sprint(t.Id), "stderr")
+	file.WriteString(stderrFile, t.GetStderr())
+	close(t.errCh)
+}
+
+func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 	t.SetAlive(true)
 	defer t.SetAlive(false)
 
+	reader := bufio.NewReader(stdout)
+
+	go func() {
+		defer t.stdoutFlush()
+		for {
+			line, err2 := reader.ReadString('\n')
+			if len(line) != 0 {
+				t.Stdout.WriteString(line)
+			}
+			if err2 != nil {
+				if err2 != io.EOF {
+					log.Println("W! read stdout fail:", err2)
+				}
+				break
+			}
+		}
+	}()
+
+	errReader := bufio.NewReader(stderr)
+
+	go func() {
+		defer t.stderrFlush()
+		for {
+			line, err2 := errReader.ReadString('\n')
+			if len(line) != 0 {
+				t.Stderr.WriteString(line)
+			}
+			if err2 != nil {
+				if err2 != io.EOF {
+					log.Println("W! read stdout fail:", err2)
+				}
+				break
+			}
+		}
+	}()
+	t.pipeDrain()
 	err := t.Cmd.Wait()
 	if err != nil {
 		if strings.Contains(err.Error(), "signal: killed") {
@@ -303,13 +458,7 @@ func runProcess(t *Task) {
 
 func persistResult(t *Task) {
 	metadir := config.Config.Ibex.MetaDir
-
-	stdout := filepath.Join(metadir, fmt.Sprint(t.Id), "stdout")
-	stderr := filepath.Join(metadir, fmt.Sprint(t.Id), "stderr")
 	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
-
-	file.WriteString(stdout, t.GetStdout())
-	file.WriteString(stderr, t.GetStderr())
 	file.WriteString(doneFlag, t.GetStatus())
 }
 

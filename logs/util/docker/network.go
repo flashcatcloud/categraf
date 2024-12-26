@@ -52,14 +52,14 @@ func findDockerNetworks(containerID string, pid int, container types.Container) 
 	// Check the known network modes that require specific handling.
 	// Other network modes will look at the docker NetworkSettings.
 	if netMode == containers.HostNetworkMode {
-		log.Println("Container %s is in network host mode, its network metrics are for the whole host", containerID)
+		log.Printf("Container %s is in network host mode, its network metrics are for the whole host", containerID)
 		return []dockerNetwork{hostNetwork}
 	} else if netMode == containers.NoneNetworkMode {
-		log.Println("Container %s is in network mode 'none', we will collect metrics for the whole host", containerID)
+		log.Printf("Container %s is in network mode 'none', we will collect metrics for the whole host", containerID)
 		return []dockerNetwork{hostNetwork}
 	} else if strings.HasPrefix(netMode, "container:") {
 		netContainerID := strings.TrimPrefix(netMode, "container:")
-		log.Println("Container %s uses the network namespace of container:%s", containerID, netContainerID)
+		log.Printf("Container %s uses the network namespace of container:%s", containerID, netContainerID)
 		return []dockerNetwork{{routingContainerID: netContainerID}}
 	}
 
@@ -75,7 +75,7 @@ func findDockerNetworks(containerID string, pid int, container types.Container) 
 	interfaces := make(map[string]uint64)
 	for netName, netConf := range netSettings.Networks {
 		if netName == "host" {
-			log.Println("Container %s is in network host mode, its network metrics are for the whole host", containerID)
+			log.Printf("Container %s is in network host mode, its network metrics are for the whole host", containerID)
 			return []dockerNetwork{hostNetwork}
 		}
 

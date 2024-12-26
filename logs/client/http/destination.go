@@ -7,13 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
 
+	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/pkg/backoff"
@@ -90,6 +91,9 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 	}
 }
 
+func (d *Destination) Close() {
+}
+
 func errorToTag(err error) string {
 	if err == nil {
 		return "none"
@@ -160,7 +164,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 	}
 
 	defer resp.Body.Close()
-	response, err := ioutil.ReadAll(resp.Body)
+	response, err := io.ReadAll(resp.Body)
 	if err != nil {
 		// the read failed because the server closed or terminated the connection
 		// *after* serving the request.
@@ -185,7 +189,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 // SendAsync sends a payload in background.
 func (d *Destination) SendAsync(payload []byte) {
 	d.once.Do(func() {
-		payloadChan := make(chan []byte, logsconfig.ChanSize)
+		payloadChan := make(chan []byte, coreconfig.ChanSize())
 		d.sendInBackground(payloadChan)
 		d.payloadChan = payloadChan
 	})

@@ -5,30 +5,30 @@ on:
     tags:
       - 'v*'
 env:
-  GO_VERSION: 1.19
+  GO_VERSION: 1.21
 
 jobs:
   goreleaser:
     runs-on: ubuntu-20.04
     steps:
-      - name: Install libpcap 
+      - name: Install libpcap
         run: sudo apt-get install -y libpcap-dev
       - name: Checkout Source Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Setup Go Environment
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
-          args: release --clean
+          args: release --clean --timeout 60m
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

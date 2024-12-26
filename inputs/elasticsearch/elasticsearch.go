@@ -1,94 +1,92 @@
 package elasticsearch
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"sort"
-	"strings"
+	"net/url"
+	"os"
+	"os/signal"
 	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/inputs/elasticsearch/collector"
+	"flashcat.cloud/categraf/inputs/elasticsearch/pkg/clusterinfo"
+	"flashcat.cloud/categraf/inputs/elasticsearch/pkg/roundtripper"
 	"flashcat.cloud/categraf/pkg/filter"
-	"flashcat.cloud/categraf/pkg/jsonx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+
+	"github.com/prometheus/common/version"
 )
 
 const inputName = "elasticsearch"
 
-// Nodestats are always generated, so simply define a constant for these endpoints
-const statsPath = "/_nodes/stats"
-const statsPathLocal = "/_nodes/_local/stats"
+var _ inputs.SampleGatherer = new(Instance)
+var _ inputs.Input = new(Elasticsearch)
+var _ inputs.InstancesGetter = new(Elasticsearch)
 
-type nodeStat struct {
-	Host       string            `json:"host"`
-	Name       string            `json:"name"`
-	Roles      []string          `json:"roles"`
-	Attributes map[string]string `json:"attributes"`
-	Indices    interface{}       `json:"indices"`
-	OS         interface{}       `json:"os"`
-	Process    interface{}       `json:"process"`
-	JVM        interface{}       `json:"jvm"`
-	ThreadPool interface{}       `json:"thread_pool"`
-	FS         interface{}       `json:"fs"`
-	Transport  interface{}       `json:"transport"`
-	HTTP       interface{}       `json:"http"`
-	Breakers   interface{}       `json:"breakers"`
-}
+type (
+	Elasticsearch struct {
+		config.PluginConfig
 
-type clusterHealth struct {
-	ActivePrimaryShards         int                    `json:"active_primary_shards"`
-	ActiveShards                int                    `json:"active_shards"`
-	ActiveShardsPercentAsNumber float64                `json:"active_shards_percent_as_number"`
-	ClusterName                 string                 `json:"cluster_name"`
-	DelayedUnassignedShards     int                    `json:"delayed_unassigned_shards"`
-	InitializingShards          int                    `json:"initializing_shards"`
-	NumberOfDataNodes           int                    `json:"number_of_data_nodes"`
-	NumberOfInFlightFetch       int                    `json:"number_of_in_flight_fetch"`
-	NumberOfNodes               int                    `json:"number_of_nodes"`
-	NumberOfPendingTasks        int                    `json:"number_of_pending_tasks"`
-	RelocatingShards            int                    `json:"relocating_shards"`
-	Status                      string                 `json:"status"`
-	TaskMaxWaitingInQueueMillis int                    `json:"task_max_waiting_in_queue_millis"`
-	TimedOut                    bool                   `json:"timed_out"`
-	UnassignedShards            int                    `json:"unassigned_shards"`
-	Indices                     map[string]indexHealth `json:"indices"`
-}
+		Instances []*Instance `toml:"instances"`
+	}
 
-type indexHealth struct {
-	ActivePrimaryShards int    `json:"active_primary_shards"`
-	ActiveShards        int    `json:"active_shards"`
-	InitializingShards  int    `json:"initializing_shards"`
-	NumberOfReplicas    int    `json:"number_of_replicas"`
-	NumberOfShards      int    `json:"number_of_shards"`
-	RelocatingShards    int    `json:"relocating_shards"`
-	Status              string `json:"status"`
-	UnassignedShards    int    `json:"unassigned_shards"`
-}
+	Instance struct {
+		config.InstanceConfig
 
-type clusterStats struct {
-	NodeName    string      `json:"node_name"`
-	ClusterName string      `json:"cluster_name"`
-	Status      string      `json:"status"`
-	Indices     interface{} `json:"indices"`
-	Nodes       interface{} `json:"nodes"`
-}
+		Local                 bool            `toml:"local"`
+		Servers               []string        `toml:"servers"`
+		UserName              string          `toml:"username"`
+		Password              string          `toml:"password"`
+		ApiKey                string          `toml:"api_key"`
+		HTTPTimeout           config.Duration `toml:"http_timeout"`
+		AllNodes              bool            `toml:"all_nodes"`
+		Node                  string          `toml:"node"`
+		NodeStats             []string        `toml:"node_stats"`
+		ClusterHealth         bool            `toml:"cluster_health"`
+		ClusterHealthLevel    string          `toml:"cluster_health_level"`
+		ClusterStats          bool            `toml:"cluster_stats"`
+		IndicesInclude        []string        `toml:"indices_include"`
+		ExportIndices         bool            `toml:"export_indices"`
+		ExportIndicesSettings bool            `toml:"export_indices_settings"`
+		ExportIndicesMappings bool            `toml:"export_indices_mappings"`
+		ExportIndexAliases    bool            `toml:"export_index_aliases"`
+		ExportILM             bool            `toml:"export_ilm"`
+		ExportShards          bool            `toml:"export_shards"`
+		ExportSLM             bool            `toml:"export_slm"`
+		ExportDataStream      bool            `toml:"export_data_stream"`
+		ExportSnapshots       bool            `toml:"export_snapshots"`
+		ExportClusterSettings bool            `toml:"export_cluster_settings"`
+		ExportClusterInfo     bool            `toml:"export_cluster_info"`
+		ClusterInfoInterval   config.Duration `toml:"cluster_info_interval"`
+		AwsRegion             string          `toml:"aws_region"`
+		AwsRoleArn            string          `toml:"aws_role_arn"`
 
-type indexStat struct {
-	Primaries interface{}              `json:"primaries"`
-	Total     interface{}              `json:"total"`
-	Shards    map[string][]interface{} `json:"shards"`
-}
+		EsURL *url.URL
+		*http.Client
+		tls.ClientConfig
+		indexMatchers   map[string]filter.Filter
+		serverInfo      map[string]serverInfo
+		hasRunBefore    bool
+		serverInfoMutex sync.Mutex
+	}
 
-type Elasticsearch struct {
-	config.PluginConfig
-	Instances []*Instance `toml:"instances"`
-}
+	transportWithAPIKey struct {
+		underlyingTransport http.RoundTripper
+		apiKey              string
+	}
+
+	serverInfo struct {
+		nodeID   string
+		masterID string
+	}
+)
 
 func init() {
 	inputs.Add(inputName, func() inputs.Input {
@@ -112,60 +110,270 @@ func (r *Elasticsearch) GetInstances() []inputs.Instance {
 	return ret
 }
 
-type Instance struct {
-	config.InstanceConfig
-
-	Local                bool            `toml:"local"`
-	Servers              []string        `toml:"servers"`
-	HTTPTimeout          config.Duration `toml:"http_timeout"`
-	ClusterHealth        bool            `toml:"cluster_health"`
-	ClusterHealthLevel   string          `toml:"cluster_health_level"`
-	ClusterStats         bool            `toml:"cluster_stats"`
-	IndicesInclude       []string        `toml:"indices_include"`
-	IndicesLevel         string          `toml:"indices_level"`
-	NodeStats            []string        `toml:"node_stats"`
-	Username             string          `toml:"username"`
-	Password             string          `toml:"password"`
-	NumMostRecentIndices int             `toml:"num_most_recent_indices"`
-
-	tls.ClientConfig
-	client          *http.Client
-	indexMatchers   map[string]filter.Filter
-	serverInfo      map[string]serverInfo
-	serverInfoMutex sync.Mutex
-}
-
-type serverInfo struct {
-	nodeID   string
-	masterID string
-}
-
-func (i serverInfo) isMaster() bool {
-	return i.nodeID == i.masterID
-}
-
 func (ins *Instance) Init() error {
 	if len(ins.Servers) == 0 {
 		return types.ErrInstancesEmpty
 	}
-
 	if ins.HTTPTimeout <= 0 {
-		ins.HTTPTimeout = config.Duration(time.Second * 5)
+		ins.HTTPTimeout = config.Duration(5 * time.Second)
 	}
-
-	if ins.ClusterHealthLevel == "" {
-		ins.ClusterHealthLevel = "indices"
+	if ins.ClusterInfoInterval == 0 {
+		ins.ClusterInfoInterval = config.Duration(5 * time.Minute)
 	}
+	if ins.UserName == "" {
+		ins.UserName = os.Getenv("ES_USERNAME")
+	}
+	if ins.Password == "" {
+		ins.Password = os.Getenv("ES_PASSWORD")
+	}
+	if ins.ApiKey == "" {
+		ins.ApiKey = os.Getenv("ES_API_KEY")
+	}
+	ins.hasRunBefore = false
 
 	// Compile the configured indexes to match for sorting.
 	indexMatchers, err := ins.compileIndexMatchers()
 	if err != nil {
 		return err
 	}
-
 	ins.indexMatchers = indexMatchers
-	ins.client, err = ins.createHTTPClient()
-	return err
+
+	ins.Client, err = ins.createHTTPClient()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ins *Instance) Gather(slist *types.SampleList) {
+	// version metric
+	if err := inputs.Collect(version.NewCollector(inputName), slist); err != nil {
+		log.Println("E! failed to collect version metric:", err)
+	}
+	if ins.ClusterStats || len(ins.IndicesInclude) > 0 {
+		var wgC sync.WaitGroup
+		wgC.Add(len(ins.Servers))
+
+		ins.serverInfo = make(map[string]serverInfo)
+		for _, serv := range ins.Servers {
+			go func(s string, slist *types.SampleList) {
+				defer wgC.Done()
+				info := serverInfo{}
+				var err error
+
+				// Gather node ID
+				if info.nodeID, err = collector.GetNodeID(ins.Client, ins.UserName, ins.Password, s); err != nil {
+					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
+					log.Println("E! failed to gather node id:", err)
+					return
+				}
+
+				// get cat/master information here so NodeStats can determine
+				// whether this node is the Master
+				if info.masterID, err = collector.GetCatMaster(ins.Client, ins.UserName, ins.Password, s); err != nil {
+					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
+					log.Println("E! failed to get cat master:", err)
+					return
+				}
+
+				slist.PushSample("elasticsearch", "up", 1, map[string]string{"address": s})
+				ins.serverInfoMutex.Lock()
+				ins.serverInfo[s] = info
+				ins.serverInfoMutex.Unlock()
+			}(serv, slist)
+		}
+		wgC.Wait()
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(ins.Servers))
+
+	// create the exporter
+	for _, serv := range ins.Servers {
+		go func(s string, slist *types.SampleList) {
+			defer wg.Done()
+			EsUrl, err := url.Parse(s)
+			if err != nil {
+				log.Println("failed to parse es_uri, err: ", err)
+				return
+			}
+			if ins.UserName != "" && ins.Password != "" {
+				EsUrl.User = url.UserPassword(ins.UserName, ins.Password)
+			}
+			exporter, err := collector.NewElasticsearchCollector(
+				[]string{},
+				collector.WithElasticsearchURL(EsUrl),
+				collector.WithHTTPClient(ins.Client),
+			)
+			if err != nil {
+				log.Println("E! failed to create Elasticsearch collector, err: ", err)
+				return
+			}
+			if err := inputs.Collect(exporter, slist); err != nil {
+				log.Println("E! failed to collect metrics:", err)
+			}
+
+			// Always gather node stats
+			if err := inputs.Collect(collector.NewNodes(ins.Client, EsUrl, ins.AllNodes, ins.Node, ins.Local, ins.NodeStats), slist); err != nil {
+				log.Println("E! failed to collect nodes metrics:", err)
+			}
+
+			clusterInfoRetriever := clusterinfo.New(ins.Client, EsUrl, time.Duration(ins.ClusterInfoInterval))
+
+			if ins.ClusterHealth {
+				if ins.ClusterHealthLevel == "indices" {
+					if err := inputs.Collect(collector.NewClusterHealthIndices(ins.Client, EsUrl), slist); err != nil {
+						log.Println("E! failed to collect cluster health indices metrics:", err)
+					}
+				} else {
+					if err := inputs.Collect(collector.NewClusterHealth(ins.Client, EsUrl), slist); err != nil {
+						log.Println("E! failed to collect cluster health metrics:", err)
+					}
+				}
+			}
+
+			if ins.ClusterStats && (ins.serverInfo[s].isMaster() || !ins.Local) {
+				if err := inputs.Collect(collector.NewClusterStats(ins.Client, EsUrl), slist); err != nil {
+					log.Println("E! failed to collect cluster stats metrics:", err)
+				}
+			}
+
+			if (ins.ExportIndices || ins.ExportShards) && (ins.serverInfo[s].isMaster() || !ins.Local) {
+				sC := collector.NewShards(ins.Client, EsUrl)
+				if err := inputs.Collect(sC, slist); err != nil {
+					log.Println("E! failed to collect shards metrics:", err)
+				}
+				iC := collector.NewIndices(ins.Client, EsUrl, ins.ExportShards, ins.ExportIndexAliases, ins.IndicesInclude)
+				if err := inputs.Collect(iC, slist); err != nil {
+					log.Println("E! failed to collect indices metrics:", err)
+				}
+				if registerErr := clusterInfoRetriever.RegisterConsumer(iC); registerErr != nil {
+					log.Println("failed to register indices collector in cluster info")
+				}
+				if registerErr := clusterInfoRetriever.RegisterConsumer(sC); registerErr != nil {
+					log.Println("failed to register shards collector in cluster info")
+				}
+			}
+
+			if ins.ExportSLM {
+				if err := inputs.Collect(collector.NewSLM(ins.Client, EsUrl), slist); err != nil {
+					log.Println("E! failed to collect SLM metrics:", err)
+				}
+			}
+
+			if ins.ExportDataStream {
+				if err := inputs.Collect(collector.NewDataStream(ins.Client, EsUrl), slist); err != nil {
+					log.Println("E! failed to collect data stream metrics:", err)
+				}
+			}
+
+			if ins.ExportIndicesSettings {
+				if err := inputs.Collect(collector.NewIndicesSettings(ins.Client, EsUrl), slist); err != nil {
+					log.Println("E! failed to collect indices settings metrics:", err)
+				}
+			}
+
+			if ins.ExportIndicesMappings {
+				if err := inputs.Collect(collector.NewIndicesMappings(ins.Client, EsUrl), slist); err != nil {
+					log.Println("E! failed to collect indices mappings metrics:", err)
+				}
+			}
+
+			if ins.ExportSnapshots {
+				if err := inputs.Collect(collector.NewSnapshots(ins.Client, EsUrl), slist); err != nil {
+					log.Println("E! failed to collect snapshot metrics:", err)
+				}
+			}
+
+			if ins.ExportILM {
+				if err := inputs.Collect(collector.NewIlmStatus(ins.Client, EsUrl), slist); err != nil {
+					log.Println("E! failed to collect ilm status metrics:", err)
+				}
+				if err := inputs.Collect(collector.NewIlmIndicies(ins.Client, EsUrl), slist); err != nil {
+					log.Println("E! failed to collect ilm indices metrics:", err)
+				}
+			}
+
+			if ins.ExportClusterSettings {
+				if err := inputs.Collect(collector.NewClusterSettings(ins.Client, EsUrl), slist); err != nil {
+					log.Println("E! failed to collect cluster settings metrics:", err)
+				}
+			}
+
+			if ins.ExportClusterInfo && !ins.hasRunBefore {
+				// Create a context that is cancelled on SIGKILL or SIGINT.
+				ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+
+				// start the cluster info retriever
+				switch runErr := clusterInfoRetriever.Run(ctx); {
+				case runErr == nil:
+					if ins.DebugMod {
+						log.Println("started cluster info retriever, interval: ", ins.ClusterInfoInterval)
+					}
+				case errors.Is(runErr, clusterinfo.ErrInitialCallTimeout):
+					if ins.DebugMod {
+						log.Println("initial cluster info call timed out")
+					}
+				default:
+					log.Println("failed to run cluster info retriever, err: ", err)
+					return
+				}
+
+				// register cluster info retriever as prometheus collector
+				if err := inputs.Collect(clusterInfoRetriever, slist); err != nil {
+					log.Println("E! failed to collect cluster info metrics:", err)
+				}
+				ins.serverInfoMutex.Lock()
+				ins.hasRunBefore = true
+				ins.serverInfoMutex.Unlock()
+			}
+
+		}(serv, slist)
+	}
+
+	wg.Wait()
+	return
+}
+
+func (ins *Instance) createHTTPClient() (*http.Client, error) {
+	var httpTransport http.RoundTripper
+	var err error
+	httpTransport = &http.Transport{
+		Proxy:               http.ProxyFromEnvironment,
+		MaxIdleConnsPerHost: 1,
+	}
+	if ins.ApiKey != "" {
+		httpTransport = &transportWithAPIKey{
+			underlyingTransport: httpTransport,
+			apiKey:              ins.ApiKey,
+		}
+	}
+
+	if ins.UseTLS {
+		tlsConfig, err := ins.ClientConfig.TLSConfig()
+		if err != nil {
+			return nil, err
+		}
+		httpTransport = &http.Transport{
+			TLSClientConfig:     tlsConfig,
+			Proxy:               http.ProxyFromEnvironment,
+			MaxIdleConnsPerHost: 1,
+		}
+	}
+
+	client := &http.Client{
+		Timeout:   time.Duration(ins.HTTPTimeout),
+		Transport: httpTransport,
+	}
+	if ins.AwsRegion != "" {
+		ins.Client.Transport, err = roundtripper.NewAWSSigningTransport(httpTransport, ins.AwsRegion, ins.AwsRoleArn)
+		if err != nil {
+			log.Println("E! failed to create AWS transport, err: ", err)
+		}
+	}
+
+	return client, nil
 }
 
 func (ins *Instance) compileIndexMatchers() (map[string]filter.Filter, error) {
@@ -185,522 +393,11 @@ func (ins *Instance) compileIndexMatchers() (map[string]filter.Filter, error) {
 	return indexMatchers, nil
 }
 
-func (ins *Instance) Gather(slist *types.SampleList) {
-	if ins.ClusterStats || len(ins.IndicesInclude) > 0 || len(ins.IndicesLevel) > 0 {
-		var wgC sync.WaitGroup
-		wgC.Add(len(ins.Servers))
-
-		ins.serverInfo = make(map[string]serverInfo)
-		for _, serv := range ins.Servers {
-			go func(s string, slist *types.SampleList) {
-				defer wgC.Done()
-				info := serverInfo{}
-
-				var err error
-
-				// Gather node ID
-				if info.nodeID, err = ins.gatherNodeID(s + "/_nodes/_local/name"); err != nil {
-					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
-					log.Println("E! failed to gather node id:", err)
-					return
-				}
-
-				// get cat/master information here so NodeStats can determine
-				// whether this node is the Master
-				if info.masterID, err = ins.getCatMaster(s + "/_cat/master"); err != nil {
-					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
-					log.Println("E! failed to get cat master:", err)
-					return
-				}
-
-				slist.PushSample("elasticsearch", "up", 1, map[string]string{"address": s})
-				ins.serverInfoMutex.Lock()
-				ins.serverInfo[s] = info
-				ins.serverInfoMutex.Unlock()
-			}(serv, slist)
-		}
-		wgC.Wait()
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(ins.Servers))
-
-	for _, serv := range ins.Servers {
-		go func(s string, slist *types.SampleList) {
-			defer wg.Done()
-			url := ins.nodeStatsURL(s)
-
-			// Always gather node stats
-			if err := ins.gatherNodeStats(url, s, slist); err != nil {
-				log.Println("E! failed to gather node stats:", err)
-				return
-			}
-
-			if ins.ClusterHealth {
-				url = s + "/_cluster/health"
-				if ins.ClusterHealthLevel != "" {
-					url = url + "?level=" + ins.ClusterHealthLevel
-				}
-				if err := ins.gatherClusterHealth(url, s, slist); err != nil {
-					log.Println("E! failed to gather cluster health:", err)
-					return
-				}
-			}
-
-			if ins.ClusterStats && (ins.serverInfo[s].isMaster() || !ins.Local) {
-				if err := ins.gatherClusterStats(s+"/_cluster/stats", s, slist); err != nil {
-					log.Println("E! failed to gather cluster stats:", err)
-					return
-				}
-			}
-
-			if len(ins.IndicesInclude) > 0 && (ins.serverInfo[s].isMaster() || !ins.Local) {
-				if ins.IndicesLevel != "shards" {
-					if err := ins.gatherIndicesStats(s+"/"+strings.Join(ins.IndicesInclude, ",")+"/_stats", s, slist); err != nil {
-						log.Println("E! failed to gather indices stats:", err)
-						return
-					}
-				} else {
-					if err := ins.gatherIndicesStats(s+"/"+strings.Join(ins.IndicesInclude, ",")+"/_stats?level=shards", s, slist); err != nil {
-						log.Println("E! failed to gather indices stats:", err)
-						return
-					}
-				}
-			}
-		}(serv, slist)
-	}
-
-	wg.Wait()
+func (t *transportWithAPIKey) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Add("Authorization", fmt.Sprintf("ApiKey %s", t.apiKey))
+	return t.underlyingTransport.RoundTrip(req)
 }
 
-func (ins *Instance) gatherIndicesStats(url string, address string, slist *types.SampleList) error {
-	indicesStats := &struct {
-		Shards  map[string]interface{} `json:"_shards"`
-		All     map[string]interface{} `json:"_all"`
-		Indices map[string]indexStat   `json:"indices"`
-	}{}
-
-	if err := ins.gatherJSONData(url, indicesStats); err != nil {
-		return err
-	}
-
-	addrTag := map[string]string{"address": address}
-
-	// Total Shards Stats
-	slist.PushSamples("elasticsearch_indices_stats_shards_total", indicesStats.Shards, addrTag)
-
-	// All Stats
-	for m, s := range indicesStats.All {
-		// parse Json, ignoring bools and excluding strings
-		jsonParser := jsonx.JSONFlattener{}
-		err := jsonParser.FullFlattenJSON("_", s, false, true)
-		if err != nil {
-			return err
-		}
-		for key, val := range jsonParser.Fields {
-			slist.PushSample("elasticsearch", "indices_stats_"+m+"_"+key, val, map[string]string{"index_name": "_all"}, addrTag)
-		}
-	}
-
-	// Gather stats for each index.
-	return ins.gatherIndividualIndicesStats(indicesStats.Indices, addrTag, slist)
-}
-
-// gatherSortedIndicesStats gathers stats for all indices in no particular order.
-func (ins *Instance) gatherIndividualIndicesStats(indices map[string]indexStat, addrTag map[string]string, slist *types.SampleList) error {
-	// Sort indices into buckets based on their configured prefix, if any matches.
-	categorizedIndexNames := ins.categorizeIndices(indices)
-	for _, matchingIndices := range categorizedIndexNames {
-		// Establish the number of each category of indices to use. User can configure to use only the latest 'X' amount.
-		indicesCount := len(matchingIndices)
-		indicesToTrackCount := indicesCount
-
-		// Sort the indices if configured to do so.
-		if ins.NumMostRecentIndices > 0 {
-			if ins.NumMostRecentIndices < indicesToTrackCount {
-				indicesToTrackCount = ins.NumMostRecentIndices
-			}
-			sort.Strings(matchingIndices)
-		}
-
-		// Gather only the number of indexes that have been configured, in descending order (most recent, if date-stamped).
-		for i := indicesCount - 1; i >= indicesCount-indicesToTrackCount; i-- {
-			indexName := matchingIndices[i]
-
-			err := ins.gatherSingleIndexStats(indexName, indices[indexName], addrTag, slist)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (ins *Instance) gatherSingleIndexStats(name string, index indexStat, addrTag map[string]string, slist *types.SampleList) error {
-	indexTag := map[string]string{"index_name": name}
-	stats := map[string]interface{}{
-		"primaries": index.Primaries,
-		"total":     index.Total,
-	}
-	for m, s := range stats {
-		f := jsonx.JSONFlattener{}
-		// parse Json, getting strings and bools
-		err := f.FullFlattenJSON("", s, true, true)
-		if err != nil {
-			return err
-		}
-		for key, val := range f.Fields {
-			slist.PushSample("elasticsearch", "indices_stats_"+m+"_"+key, val, indexTag, addrTag)
-		}
-	}
-
-	if ins.IndicesLevel == "shards" {
-		for shardNumber, shards := range index.Shards {
-			for _, shard := range shards {
-				// Get Shard Stats
-				flattened := jsonx.JSONFlattener{}
-				err := flattened.FullFlattenJSON("", shard, true, true)
-				if err != nil {
-					return err
-				}
-
-				// determine shard tag and primary/replica designation
-				shardType := "replica"
-				routingPrimary, _ := flattened.Fields["routing_primary"].(bool)
-				if routingPrimary {
-					shardType = "primary"
-				}
-				delete(flattened.Fields, "routing_primary")
-
-				routingState, ok := flattened.Fields["routing_state"].(string)
-				if ok {
-					flattened.Fields["routing_state"] = mapShardStatusToCode(routingState)
-				}
-
-				routingNode, _ := flattened.Fields["routing_node"].(string)
-				shardTags := map[string]string{
-					"index_name": name,
-					"node_id":    routingNode,
-					"shard_name": shardNumber,
-					"type":       shardType,
-				}
-
-				for key, field := range flattened.Fields {
-					switch field.(type) {
-					case string, bool:
-						delete(flattened.Fields, key)
-					}
-				}
-
-				slist.PushSamples("elasticsearch_indices_stats_shards", flattened.Fields, shardTags, addrTag)
-			}
-		}
-	}
-
-	return nil
-}
-
-func (ins *Instance) categorizeIndices(indices map[string]indexStat) map[string][]string {
-	categorizedIndexNames := map[string][]string{}
-
-	// If all indices are configured to be gathered, bucket them all together.
-	if len(ins.IndicesInclude) == 0 || ins.IndicesInclude[0] == "_all" {
-		for indexName := range indices {
-			categorizedIndexNames["_all"] = append(categorizedIndexNames["_all"], indexName)
-		}
-
-		return categorizedIndexNames
-	}
-
-	// Bucket each returned index with its associated configured index (if any match).
-	for indexName := range indices {
-		match := indexName
-		for name, matcher := range ins.indexMatchers {
-			// If a configured index matches one of the returned indexes, mark it as a match.
-			if matcher.Match(match) {
-				match = name
-				break
-			}
-		}
-
-		// Bucket all matching indices together for sorting.
-		categorizedIndexNames[match] = append(categorizedIndexNames[match], indexName)
-	}
-
-	return categorizedIndexNames
-}
-
-func (ins *Instance) gatherClusterStats(url string, address string, slist *types.SampleList) error {
-	clusterStats := &clusterStats{}
-	if err := ins.gatherJSONData(url, clusterStats); err != nil {
-		return err
-	}
-
-	tags := map[string]string{
-		// "node_name":    clusterStats.NodeName,
-		// "status":       clusterStats.Status,
-		"cluster_name": clusterStats.ClusterName,
-		"address":      address,
-	}
-
-	stats := map[string]interface{}{
-		"nodes":   clusterStats.Nodes,
-		"indices": clusterStats.Indices,
-	}
-
-	for p, s := range stats {
-		f := jsonx.JSONFlattener{}
-		// parse json, including bools and excluding strings
-		err := f.FullFlattenJSON("", s, false, true)
-		if err != nil {
-			return err
-		}
-
-		for key, val := range f.Fields {
-			slist.PushSample("elasticsearch", "clusterstats_"+p+"_"+key, val, tags)
-		}
-	}
-
-	return nil
-}
-
-func (ins *Instance) gatherClusterHealth(url string, address string, slist *types.SampleList) error {
-	healthStats := &clusterHealth{}
-	if err := ins.gatherJSONData(url, healthStats); err != nil {
-		return err
-	}
-
-	addrTag := map[string]string{"address": address}
-
-	clusterFields := map[string]interface{}{
-		"cluster_health_active_primary_shards":            healthStats.ActivePrimaryShards,
-		"cluster_health_active_shards":                    healthStats.ActiveShards,
-		"cluster_health_active_shards_percent_as_number":  healthStats.ActiveShardsPercentAsNumber,
-		"cluster_health_delayed_unassigned_shards":        healthStats.DelayedUnassignedShards,
-		"cluster_health_initializing_shards":              healthStats.InitializingShards,
-		"cluster_health_number_of_data_nodes":             healthStats.NumberOfDataNodes,
-		"cluster_health_number_of_in_flight_fetch":        healthStats.NumberOfInFlightFetch,
-		"cluster_health_number_of_nodes":                  healthStats.NumberOfNodes,
-		"cluster_health_number_of_pending_tasks":          healthStats.NumberOfPendingTasks,
-		"cluster_health_relocating_shards":                healthStats.RelocatingShards,
-		"cluster_health_status_code":                      mapHealthStatusToCode(healthStats.Status),
-		"cluster_health_task_max_waiting_in_queue_millis": healthStats.TaskMaxWaitingInQueueMillis,
-		"cluster_health_timed_out":                        healthStats.TimedOut,
-		"cluster_health_unassigned_shards":                healthStats.UnassignedShards,
-	}
-
-	slist.PushSamples("elasticsearch", clusterFields, map[string]string{"cluster_name": healthStats.ClusterName}, addrTag)
-
-	for name, health := range healthStats.Indices {
-		indexFields := map[string]interface{}{
-			"cluster_health_indices_active_primary_shards": health.ActivePrimaryShards,
-			"cluster_health_indices_active_shards":         health.ActiveShards,
-			"cluster_health_indices_initializing_shards":   health.InitializingShards,
-			"cluster_health_indices_number_of_replicas":    health.NumberOfReplicas,
-			"cluster_health_indices_number_of_shards":      health.NumberOfShards,
-			"cluster_health_indices_relocating_shards":     health.RelocatingShards,
-			"cluster_health_indices_status_code":           mapHealthStatusToCode(health.Status),
-			"cluster_health_indices_unassigned_shards":     health.UnassignedShards,
-		}
-		slist.PushSamples("elasticsearch", indexFields, map[string]string{"index": name, "name": healthStats.ClusterName}, addrTag)
-	}
-
-	return nil
-}
-
-func (ins *Instance) gatherNodeStats(url string, address string, slist *types.SampleList) error {
-	nodeStats := &struct {
-		ClusterName string               `json:"cluster_name"`
-		Nodes       map[string]*nodeStat `json:"nodes"`
-	}{}
-
-	if err := ins.gatherJSONData(url, nodeStats); err != nil {
-		return err
-	}
-
-	addrTag := map[string]string{"address": address}
-
-	for id, n := range nodeStats.Nodes {
-		// sort.Strings(n.Roles)
-		tags := map[string]string{
-			"node_id":      id,
-			"node_host":    n.Host,
-			"node_name":    n.Name,
-			"cluster_name": nodeStats.ClusterName,
-			// "node_roles":   strings.Join(n.Roles, ","),
-		}
-
-		for k, v := range n.Attributes {
-			slist.PushSample("elasticsearch", "node_attribute_"+k, v, tags, addrTag)
-		}
-
-		stats := map[string]interface{}{
-			"indices":     n.Indices,
-			"os":          n.OS,
-			"process":     n.Process,
-			"jvm":         n.JVM,
-			"thread_pool": n.ThreadPool,
-			"fs":          n.FS,
-			"transport":   n.Transport,
-			"http":        n.HTTP,
-			"breakers":    n.Breakers,
-		}
-
-		for p, s := range stats {
-			// if one of the individual node stats is not even in the
-			// original result
-			if s == nil {
-				continue
-			}
-			f := jsonx.JSONFlattener{}
-			// parse Json, ignoring strings and bools
-			err := f.FlattenJSON("", s)
-			if err != nil {
-				return err
-			}
-
-			for key, val := range f.Fields {
-				slist.PushSample("elasticsearch", p+"_"+key, val, tags, addrTag)
-			}
-		}
-	}
-
-	return nil
-}
-
-func (ins *Instance) nodeStatsURL(baseURL string) string {
-	var url string
-
-	if ins.Local {
-		url = baseURL + statsPathLocal
-	} else {
-		url = baseURL + statsPath
-	}
-
-	if len(ins.NodeStats) == 0 {
-		return url
-	}
-
-	return fmt.Sprintf("%s/%s", url, strings.Join(ins.NodeStats, ","))
-}
-
-func (ins *Instance) getCatMaster(url string) (string, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", err
-	}
-
-	if ins.Username != "" || ins.Password != "" {
-		req.SetBasicAuth(ins.Username, ins.Password)
-	}
-
-	r, err := ins.client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer r.Body.Close()
-	if r.StatusCode != http.StatusOK {
-		// NOTE: we are not going to read/discard r.Body under the assumption we'd prefer
-		// to let the underlying transport close the connection and re-establish a new one for
-		// future calls.
-		return "", fmt.Errorf("elasticsearch: Unable to retrieve master node information. API responded with status-code %d, expected %d", r.StatusCode, http.StatusOK)
-	}
-	response, err := io.ReadAll(r.Body)
-
-	if err != nil {
-		return "", err
-	}
-
-	masterID := strings.Split(string(response), " ")[0]
-
-	return masterID, nil
-}
-
-func (ins *Instance) gatherNodeID(url string) (string, error) {
-	nodeStats := &struct {
-		ClusterName string               `json:"cluster_name"`
-		Nodes       map[string]*nodeStat `json:"nodes"`
-	}{}
-	if err := ins.gatherJSONData(url, nodeStats); err != nil {
-		return "", err
-	}
-
-	// Only 1 should be returned
-	for id := range nodeStats.Nodes {
-		return id, nil
-	}
-	return "", nil
-}
-
-func (ins *Instance) gatherJSONData(url string, v interface{}) error {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return err
-	}
-
-	if ins.Username != "" || ins.Password != "" {
-		req.SetBasicAuth(ins.Username, ins.Password)
-	}
-
-	r, err := ins.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-	if r.StatusCode != http.StatusOK {
-		// NOTE: we are not going to read/discard r.Body under the assumption we'd prefer
-		// to let the underlying transport close the connection and re-establish a new one for
-		// future calls.
-		return fmt.Errorf("elasticsearch: API responded with status-code %d, expected %d",
-			r.StatusCode, http.StatusOK)
-	}
-
-	return json.NewDecoder(r.Body).Decode(v)
-}
-
-// perform status mapping
-func mapHealthStatusToCode(s string) int {
-	switch strings.ToLower(s) {
-	case "green":
-		return 1
-	case "yellow":
-		return 2
-	case "red":
-		return 3
-	}
-	return 0
-}
-
-// perform shard status mapping
-func mapShardStatusToCode(s string) int {
-	switch strings.ToUpper(s) {
-	case "UNASSIGNED":
-		return 1
-	case "INITIALIZING":
-		return 2
-	case "STARTED":
-		return 3
-	case "RELOCATING":
-		return 4
-	}
-	return 0
-}
-
-func (ins *Instance) createHTTPClient() (*http.Client, error) {
-	tlsCfg, err := ins.ClientConfig.TLSConfig()
-	if err != nil {
-		return nil, err
-	}
-	tr := &http.Transport{
-		ResponseHeaderTimeout: time.Duration(ins.HTTPTimeout),
-		TLSClientConfig:       tlsCfg,
-	}
-
-	client := &http.Client{
-		Transport: tr,
-		Timeout:   time.Duration(ins.HTTPTimeout),
-	}
-
-	return client, nil
+func (i serverInfo) isMaster() bool {
+	return i.nodeID == i.masterID
 }

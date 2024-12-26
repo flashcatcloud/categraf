@@ -31,6 +31,8 @@ type MTail struct {
 type Instance struct {
 	config.InstanceConfig
 
+	ProgContent map[string]string `toml:"prog_content"`
+
 	NamePrefix           string        `toml:"name_prefix"`
 	Progs                string        `toml:"progs"`
 	Logs                 []string      `toml:"logs"`
@@ -58,7 +60,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 
-	if len(ins.Progs) == 0 || len(ins.Logs) == 0 {
+	if len(ins.Progs) == 0 && len(ins.ProgContent) == 0 || len(ins.Logs) == 0 {
 		return types.ErrInstancesEmpty
 	}
 
@@ -93,6 +95,7 @@ func (ins *Instance) Init() error {
 	}
 
 	opts := []mtail.Option{
+		mtail.ProgramContent(ins.ProgContent),
 		mtail.ProgramPath(ins.Progs),
 		mtail.LogPathPatterns(ins.Logs...),
 		mtail.IgnoreRegexPattern(ins.IgnoreFileRegPattern),
@@ -108,8 +111,8 @@ func (ins *Instance) Init() error {
 	} else {
 		ins.ctx, ins.cancel = context.WithCancel(context.Background())
 	}
-	staleLogGcWaker := waker.NewTimed(ins.ctx, time.Hour)
-	opts = append(opts, mtail.StaleLogGcWaker(staleLogGcWaker))
+	// staleLogGcWaker := waker.NewTimed(ins.ctx, time.Hour)
+	// opts = append(opts, mtail.StaleLogGcWaker(staleLogGcWaker))
 
 	if ins.PollInterval > 0 {
 		logStreamPollWaker := waker.NewTimed(ins.ctx, ins.PollInterval)

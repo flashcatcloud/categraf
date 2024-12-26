@@ -34,7 +34,7 @@ func (p *Parser) Parse(input []byte, slist *types.SampleList) error {
 	for decoder.Next() {
 		m, err := nextMetric(decoder, p.precision, p.defaultTime)
 		if err != nil {
-			log.Println("E! failed to parse influx line:", string(input))
+			log.Println("E! failed to parse influx line:", string(input), err)
 			continue
 		}
 		metrics = append(metrics, m)

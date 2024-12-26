@@ -12,7 +12,7 @@ import (
 )
 
 const inputName = "netstat_filter"
-
+var executed = false
 type NetStatFilter struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
@@ -105,6 +105,22 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			counts[netcon.Status] = c + 1
 		}
 	}
+	Entries, _ := Parse("tcp")
+	var send, recv int
+	// 对连接信息进行过滤
+	result := FilterEntries(Entries, ins.Laddr_IP, ins.Laddr_Port, ins.Raddr_IP, ins.Raddr_Port)
+	key := fmt.Sprintf("%s-%d-%s-%d", ins.Laddr_IP, ins.Laddr_Port, ins.Raddr_IP, ins.Raddr_Port)
+	value, ok := result[key]
+	if ok {
+		send = value.Txq
+		recv = value.Rxq
+	} else {
+		if !executed {
+			// 执行只需要在启动后执行一次的代码
+			log.Println("E! init Key not matched, TCP_ Send_ Queue, TCP_ Recv_Queue，  The queue value is 0,key:", key)
+			executed = true
+		}
+	}
 
 	fields := map[string]interface{}{
 		"tcp_established": counts["ESTABLISHED"],
@@ -119,6 +135,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		"tcp_listen":      counts["LISTEN"],
 		"tcp_closing":     counts["CLOSING"],
 		"tcp_none":        counts["NONE"],
+		"tcp_send_queue":  send,
+		"tcp_recv_queue":  recv,
 	}
 
 	slist.PushSamples(inputName, fields, tags)

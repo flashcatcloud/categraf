@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/ratelimit"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	cwClient "github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 
@@ -57,15 +59,20 @@ type (
 
 		internalProxy.HTTPProxy
 
-		Period         config.Duration `toml:"period"`
-		Delay          config.Duration `toml:"delay"`
-		Namespace      string          `toml:"namespace" deprecated:"1.25.0;use 'namespaces' instead"`
-		Namespaces     []string        `toml:"namespaces"`
-		Metrics        []*Metric       `toml:"metrics"`
-		CacheTTL       config.Duration `toml:"cache_ttl"`
-		RateLimit      int             `toml:"ratelimit"`
-		RecentlyActive string          `toml:"recently_active"`
-		BatchSize      int             `toml:"batch_size"`
+		Period     config.Duration `toml:"period"`
+		Delay      config.Duration `toml:"delay"`
+		Namespace  string          `toml:"namespace" deprecated:"1.25.0;use 'namespaces' instead"`
+		Namespaces []string        `toml:"namespaces"`
+		Metrics    []*Metric       `toml:"metrics"`
+		CacheTTL   config.Duration `toml:"cache_ttl"`
+		RateLimit  int             `toml:"ratelimit"`
+
+		SdkRateLimitTokens int      `toml:"sdk_ratelimit_tokens"`
+		RetryMaxAttempts   int      `toml:"retry_max_attempts"`
+		DebugMode          []string `toml:"debug_mode"`
+
+		RecentlyActive string `toml:"recently_active"`
+		BatchSize      int    `toml:"batch_size"`
 
 		client          cloudwatchClient
 		statFilter      filter.Filter
@@ -126,6 +133,12 @@ func (ins *Instance) Init() error {
 	if len(ins.Namespace) != 0 {
 		ins.Namespaces = append(ins.Namespaces, ins.Namespace)
 	}
+	if ins.RetryMaxAttempts <= 0 {
+		ins.RetryMaxAttempts = 20
+	}
+	if ins.SdkRateLimitTokens <= 0 {
+		ins.SdkRateLimitTokens = 1000000
+	}
 
 	if len(ins.Namespaces) == 0 {
 		return internalTypes.ErrInstancesEmpty
@@ -166,7 +179,7 @@ func (ins *Instance) Gather(slist *internalTypes.SampleList) {
 	// Get all of the possible queries so we can send groups of 100.
 	queries := ins.getDataQueries(filteredMetrics)
 	if len(queries) == 0 {
-		log.Println("E! data queries length is 0")
+		log.Printf("E! data queries length is 0, namespaces:%+v", ins.Namespaces)
 		return
 	}
 
@@ -195,7 +208,7 @@ func (ins *Instance) Gather(slist *internalTypes.SampleList) {
 				defer wg.Done()
 				result, err := ins.gatherMetrics(ins.getDataInputs(inm))
 				if err != nil {
-					log.Println("E!", err)
+					log.Printf("E! gather namespace:%s error:%s", n, err)
 					return
 				}
 
@@ -227,6 +240,35 @@ func (ins *Instance) initializeCloudWatch() error {
 	ins.client = cwClient.NewFromConfig(cfg, func(options *cwClient.Options) {
 		// Disable logging
 		options.ClientLogMode = 0
+		if ins.DebugMod {
+			for _, mode := range ins.DebugMode {
+				switch mode {
+				case "LogRequest":
+					options.ClientLogMode |= aws.LogRequest
+				case "LogRequestWithBody":
+					options.ClientLogMode |= aws.LogRequestWithBody
+				case "LogRequestEventMessage":
+					options.ClientLogMode |= aws.LogRequestEventMessage
+				case "LogRetries":
+					options.ClientLogMode |= aws.LogRetries
+				case "LogResponse":
+					options.ClientLogMode |= aws.LogResponse
+				case "LogResponseWithBody":
+					options.ClientLogMode |= aws.LogResponseWithBody
+				case "LogResponseEventMessage":
+					options.ClientLogMode |= aws.LogResponseEventMessage
+				case "LogSigning":
+					options.ClientLogMode |= aws.LogSigning
+				case "LogDeprecatedUsage":
+					options.ClientLogMode |= aws.LogDeprecatedUsage
+				}
+
+			}
+		}
+		options.Retryer = retry.NewStandard(func(options *retry.StandardOptions) {
+			options.MaxAttempts = ins.RetryMaxAttempts
+			options.RateLimiter = ratelimit.NewTokenRateLimit(uint(ins.SdkRateLimitTokens))
+		})
 
 		options.HTTPClient = &http.Client{
 			// use values from DefaultTransport
@@ -268,6 +310,9 @@ type filteredMetric struct {
 // getFilteredMetrics returns metrics specified in the config file or metrics listed from Cloudwatch.
 func getFilteredMetrics(c *Instance) ([]filteredMetric, error) {
 	if c.metricCache != nil && c.metricCache.isValid() {
+		if c.DebugMod {
+			log.Printf("D! use filtered metrics cache for namespace %+v", c.Namespaces)
+		}
 		return c.metricCache.metrics, nil
 	}
 
@@ -468,13 +513,13 @@ func (ins *Instance) getDataQueries(filteredMetrics []filteredMetric) map[string
 	}
 
 	if len(dataQueries) == 0 {
-		if config.Config.DebugMode {
-			log.Println("D! no metrics found to collect")
+		if ins.DebugMod {
+			log.Printf("D! no metrics found to collect for namespace:%+v", ins.Namespaces)
 		}
 		return nil
 	}
 
-	if ins.metricCache == nil {
+	if ins.metricCache == nil || !ins.metricCache.isValid() {
 		ins.metricCache = &metricCache{
 			queries: dataQueries,
 			built:   time.Now(),
@@ -535,9 +580,16 @@ func (ins *Instance) aggregateMetrics(
 			}
 		}
 	}
+	samples := make([]*internalTypes.Sample, 0, len(grouper.Metrics()))
 	for _, metric := range grouper.Metrics() {
-		slist.PushSamples(metric.Name(), metric.Fields(), metric.Tags())
+		for name, value := range metric.Fields() {
+			sample := internalTypes.NewSample(metric.Name(), name, value, metric.Tags()).
+				SetTime(metric.Time().Local())
+
+			samples = append(samples, sample)
+		}
 	}
+	slist.PushFrontN(samples)
 
 	return nil
 }

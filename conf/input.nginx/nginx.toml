@@ -1,5 +1,10 @@
-# # collect interval
+## collect interval
 # interval = 15
+
+## Set the mapping of extra tags in batches
+[mappings]
+# "http://192.168.0.216:8000/nginx_status" = { "job" = "local" }
+# "https://www.baidu.com/ngx_status" = { "job" = "baidu" }
 
 [[instances]]
 ## An array of Nginx stub_status URI to gather stats.

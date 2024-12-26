@@ -11,6 +11,9 @@ import (
 )
 
 func (ins *Instance) gatherBinlog(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
+	if ins.DisablebinLogs {
+		return
+	}
 	var logBin uint8
 	err := db.QueryRow(`SELECT @@log_bin`).Scan(&logBin)
 	if err != nil {

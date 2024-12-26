@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"context"
 	"io"
 	"log"
 	"net/http"
@@ -36,12 +37,19 @@ type Instance struct {
 	IgnoreLabelKeys   []string        `toml:"ignore_label_keys"`
 	Headers           []string        `toml:"headers"`
 
+	DuplicationAllowed bool `toml:"duplication_allowed"`
+
 	config.UrlLabel
 
 	ignoreMetricsFilter   filter.Filter
 	ignoreLabelKeysFilter filter.Filter
+	cancel                context.CancelFunc
+	lock                  sync.Mutex
 	tls.ClientConfig
 	client *http.Client
+
+	wg             sync.WaitGroup
+	consulServices map[string]*ScrapeUrl
 }
 
 func (ins *Instance) Empty() bool {
@@ -61,16 +69,17 @@ func (ins *Instance) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
+	var ctx context.Context
+	ctx, ins.cancel = context.WithCancel(context.Background())
+
 	if ins.ConsulConfig.Enabled && len(ins.ConsulConfig.Queries) > 0 {
-		if err := ins.InitConsulClient(); err != nil {
+		if err := ins.InitConsulClient(ctx); err != nil {
 			return err
 		}
 	}
 
-	for i, u := range ins.URLs {
-		ins.URLs[i] = strings.Replace(u, "$hostname", config.Config.GetHostname(), -1)
-		ins.URLs[i] = strings.Replace(u, "$ip", config.Config.Global.IP, -1)
-		ins.URLs[i] = os.Expand(u, config.GetEnv)
+	for i := range ins.URLs {
+		ins.URLs[i] = config.Expand(ins.URLs[i])
 	}
 
 	if ins.Timeout <= 0 {
@@ -151,6 +160,12 @@ func (p *Prometheus) GetInstances() []inputs.Instance {
 	return ret
 }
 
+func (p *Prometheus) Drop() {
+	for _, ins := range p.Instances {
+		ins.Drop()
+	}
+}
+
 func (ins *Instance) Gather(slist *types.SampleList) {
 	urlwg := new(sync.WaitGroup)
 	defer urlwg.Wait()
@@ -164,7 +179,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 		urlwg.Add(1)
 
-		go ins.gatherUrl(urlwg, slist, ScrapeUrl{URL: u, Tags: map[string]string{}})
+		go ins.gatherUrl(urlwg, slist, &ScrapeUrl{URL: u, Tags: map[string]string{}})
 	}
 
 	urls, err := ins.UrlsFromConsul()
@@ -179,7 +194,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 }
 
-func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, uri ScrapeUrl) {
+func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, uri *ScrapeUrl) {
 	defer urlwg.Done()
 
 	u := uri.URL
@@ -196,15 +211,11 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 
 	ins.setHeaders(req)
 
-	labels := map[string]string{}
-
-	urlKey, urlVal, err := ins.GenerateLabel(u)
+	labels, err := ins.GenerateLabel(u)
 	if err != nil {
 		log.Println("E! failed to generate url label value:", err)
 		return
 	}
-
-	labels[urlKey] = urlVal
 
 	for key, val := range uri.Tags {
 		labels[key] = val
@@ -234,7 +245,7 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 
 	slist.PushFront(types.NewSample("", "up", 1, labels))
 
-	parser := prometheus.NewParser(ins.NamePrefix, labels, res.Header, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
+	parser := prometheus.NewParser(ins.NamePrefix, labels, res.Header, ins.DuplicationAllowed, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
 	if err = parser.Parse(body, slist); err != nil {
 		log.Println("E! failed to parse response body, url:", u.String(), "error:", err)
 	}
@@ -264,4 +275,9 @@ func (ins *Instance) setHeaders(req *http.Request) {
 	for i := 0; i < len(ins.Headers); i += 2 {
 		req.Header.Set(ins.Headers[i], ins.Headers[i+1])
 	}
+}
+
+func (ins *Instance) Drop() {
+	ins.cancel()
+	ins.wg.Wait()
 }

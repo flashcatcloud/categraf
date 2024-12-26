@@ -85,9 +85,17 @@ kafka_uris = []
 # Default is ".*"
 # topics_filter_regex = ".*"
 
+# Regex exclude for topics to be monitored
+# Default is "^$"
+# topic_exclude_regex = "^$"
+
 # Regex filter for consumer groups to be monitored
 # Default is ".*"
 # groups_filter_regex = ".*"
+
+# Regex exclude for consumer groups to be monitored
+# Default is "^$"
+# group_exclude_regex = "^$"
 
 # if rename  kafka_consumergroup_uncommitted_offsets to kafka_consumergroup_lag
 # Default is false

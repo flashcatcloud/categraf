@@ -6,22 +6,22 @@ import (
 )
 
 // BasicCache is a simple threadsafe cache
-type BasicCache struct {
+type BasicCache[R comparable] struct {
 	m        sync.RWMutex
-	cache    map[string]interface{}
+	cache    map[R]interface{}
 	modified int64
 }
 
 // NewBasicCache Creates new BasicCache
-func NewBasicCache() *BasicCache {
-	return &BasicCache{
-		cache: make(map[string]interface{}),
+func NewBasicCache[R comparable]() *BasicCache[R] {
+	return &BasicCache[R]{
+		cache: make(map[R]interface{}),
 	}
 }
 
 // Add adds value to cache for specified key
 // It will overwrite any existing value
-func (b *BasicCache) Add(k string, v interface{}) {
+func (b *BasicCache[R]) Add(k R, v interface{}) {
 	b.m.Lock()
 	defer b.m.Unlock()
 
@@ -30,7 +30,7 @@ func (b *BasicCache) Add(k string, v interface{}) {
 }
 
 // Get gets interface for specified key and a boolean that's false when the key is not found
-func (b *BasicCache) Get(k string) (interface{}, bool) {
+func (b *BasicCache[R]) Get(k R) (interface{}, bool) {
 	b.m.RLock()
 	defer b.m.RUnlock()
 
@@ -40,7 +40,7 @@ func (b *BasicCache) Get(k string) (interface{}, bool) {
 }
 
 // Remove removes an entry from the cache if it exists
-func (b *BasicCache) Remove(k string) {
+func (b *BasicCache[R]) Remove(k R) {
 	b.m.Lock()
 	defer b.m.Unlock()
 
@@ -49,7 +49,7 @@ func (b *BasicCache) Remove(k string) {
 }
 
 // Size returns the current size of the cache
-func (b *BasicCache) Size() int {
+func (b *BasicCache[R]) Size() int {
 	b.m.Lock()
 	defer b.m.Unlock()
 
@@ -57,7 +57,7 @@ func (b *BasicCache) Size() int {
 }
 
 // GetModified gets interface for specified key or error
-func (b *BasicCache) GetModified() int64 {
+func (b *BasicCache[R]) GetModified() int64 {
 	b.m.RLock()
 	defer b.m.RUnlock()
 
@@ -65,8 +65,8 @@ func (b *BasicCache) GetModified() int64 {
 }
 
 // Items returns a map with the elements in the cache
-func (b *BasicCache) Items() map[string]interface{} {
-	items := map[string]interface{}{}
+func (b *BasicCache[R]) Items() map[R]interface{} {
+	items := map[R]interface{}{}
 
 	b.m.RLock()
 	defer b.m.RUnlock()

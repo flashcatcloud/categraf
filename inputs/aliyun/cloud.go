@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"sync"
 	"time"
 
@@ -62,8 +63,8 @@ type (
 		// 企业云监控配置项
 		// batchSize int `toml:"batchSize"`
 
-		metricCache *metricCache      `toml:"-"`
-		metaCache   *cache.BasicCache `toml:"-"`
+		metricCache *metricCache              `toml:"-"`
+		metaCache   *cache.BasicCache[string] `toml:"-"`
 
 		EcsAgentHostTag string `toml:"ecs_host_tag"`
 	}
@@ -76,9 +77,10 @@ type (
 	}
 
 	MetricFilter struct {
-		MetricNames []string `toml:"metric_names"`
-		Dimensions  string   `toml:"dimensions"`
-		Namespace   string   `toml:"namespace"`
+		MetricNames  []string                  `toml:"metric_names"`
+		Dimensions   string                    `toml:"dimensions"`
+		Namespace    string                    `toml:"namespace"`
+		MetricRegexp map[string]*regexp.Regexp `toml:"-"`
 	}
 
 	filteredMetric struct {
@@ -136,10 +138,18 @@ func (ins *Instance) Init() error {
 	if len(ins.EcsAgentHostTag) == 0 {
 		ins.EcsAgentHostTag = "agent_hostname"
 	}
-	ins.metaCache = cache.NewBasicCache()
+	ins.metaCache = cache.NewBasicCache[string]()
+	for i := 0; i < len(ins.Filters); i++ {
+		ins.Filters[i].MetricRegexp = make(map[string]*regexp.Regexp)
+		for j := 0; j < len(ins.Filters[i].MetricNames); j++ {
+			metricname := ins.Filters[i].MetricNames[j]
+			ins.Filters[i].MetricRegexp[metricname] = regexp.MustCompile(metricname)
+		}
+	}
 
 	err := ins.initialize()
 	if err != nil {
+		log.Println("E! initialize error:", err)
 		return err
 	}
 
@@ -196,13 +206,13 @@ func (f *metricCache) isValid() bool {
 }
 
 // getFilteredMetrics returns metrics specified in the config file or metrics listed from Cloudwatch.
-func (ins *Instance) getFilteredMetrics() ([]filteredMetric, error) {
+func (ins *Instance) getFilteredMetrics(slist *types.SampleList) ([]filteredMetric, error) {
 	if ins.metricCache != nil && ins.metricCache.isValid() {
 		return ins.metricCache.metrics, nil
 	}
 	fMetrics := []filteredMetric{}
 
-	allMetrics, err := ins.fetchNamespaceMetrics(ins.Namespaces)
+	allMetrics, err := ins.fetchNamespaceMetrics(slist, ins.Namespaces)
 	if err != nil {
 		return nil, err
 	}
@@ -215,21 +225,21 @@ func (ins *Instance) getFilteredMetrics() ([]filteredMetric, error) {
 						if len(name) == 0 {
 							name = metric.MetricName
 						}
-						if isSelected(metric, name, f.Dimensions, f.Namespace) {
+						if isSelected(metric, name, f.Namespace, f.MetricRegexp[name]) {
 							metrics = append(metrics, internalTypes.Metric{
-								MetricName: name,
+								MetricName: metric.MetricName,
 								Namespace:  metric.Namespace,
-								Dimensions: metric.Dimensions,
+								Dimensions: f.Dimensions,
 								LabelStr:   metric.LabelStr,
 							})
 						}
 					}
 				} else {
-					if isSelected(metric, "", f.Dimensions, f.Namespace) {
+					if isSelected(metric, "", f.Namespace, nil) {
 						metrics = append(metrics, internalTypes.Metric{
 							MetricName: metric.MetricName,
 							Namespace:  metric.Namespace,
-							Dimensions: metric.Dimensions,
+							Dimensions: f.Dimensions,
 							LabelStr:   metric.LabelStr,
 						})
 					}
@@ -243,7 +253,7 @@ func (ins *Instance) getFilteredMetrics() ([]filteredMetric, error) {
 		metrics: metrics,
 	})
 
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		for _, m := range metrics {
 			log.Println("D!", m.Namespace, m.MetricName, m.Dimensions)
 		}
@@ -274,7 +284,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			}
 		}
 	} else {
-		filteredMetrics, err := ins.getFilteredMetrics()
+		filteredMetrics, err := ins.getFilteredMetrics(slist)
 		if err != nil {
 			log.Println("E!", err)
 			return
@@ -310,9 +320,14 @@ func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup
 	if !ins.windowStart.IsZero() {
 		req.StartTime = tea.String(ins.windowStart.Format(timefmt))
 	}
-	points, err := ins.client.GetMetric(ctx, req)
+	n, points, err := ins.client.GetMetric(ctx, req)
+	slist.PushFront(types.NewSample(inputName, "cms_request_count", n, map[string]string{
+		"namespace":   metric.Namespace,
+		"metric_name": metric.MetricName,
+		"callee":      "DescribeMetricList",
+	}).SetTime(time.Now()))
 	if err != nil {
-		log.Println("E! get metrics error,", err)
+		log.Printf("E! get metrics %s::%s error, %s", metric.Namespace, metric.MetricName, err)
 		return
 	}
 	for _, point := range points {
@@ -337,7 +352,7 @@ func (ins *Instance) makeLabels(point internalTypes.Point, labels ...map[string]
 	}
 	addLabel := func(instance interface{}) {
 		if meta, ok := instance.(*cms20190101.DescribeMonitoringAgentHostsResponseBodyHostsHost); ok {
-			result[ins.EcsAgentHostTag] = stringx.SnakeCase(*meta.HostName)
+			result[ins.EcsAgentHostTag] = *meta.HostName
 		}
 	}
 	if instance, ok := ins.metaCache.Get(ins.client.EcsKey(point.InstanceID)); ok {
@@ -354,6 +369,44 @@ func (ins *Instance) makeLabels(point internalTypes.Point, labels ...map[string]
 	}
 	if len(point.NodeID) != 0 {
 		result["node_id"] = point.NodeID
+	}
+	if len(point.ListenerPort) != 0 {
+		result["listener_port"] = point.ListenerPort
+	}
+	if len(point.ListenerProtocol) != 0 {
+		result["listener_protocol"] = point.ListenerProtocol
+	}
+	if len(point.LoadBalancerID) != 0 {
+		result["load_balancer_id"] = point.LoadBalancerID
+	}
+	if len(point.Device) != 0 {
+		result["device"] = point.Device
+	}
+	if len(point.CenID) != 0 {
+		result["cen_id"] = point.CenID
+		result["src_region_id"] = point.SrcRegion
+		result["dst_region_id"] = point.DstRegion
+	}
+	if len(point.GroupID) != 0 {
+		result["group_id"] = point.GroupID
+	}
+	if len(point.Topic) != 0 {
+		result["topic"] = point.Topic
+	}
+	if len(point.ExchangeName) != 0 {
+		result["exchange_name"] = point.ExchangeName
+	}
+	if len(point.VHostName) != 0 {
+		result["vhost_name"] = point.VHostName
+	}
+	if len(point.RegionID) != 0 {
+		result["region_id"] = point.RegionID
+	}
+	if len(point.QueueName) != 0 {
+		result["queue_name"] = point.QueueName
+	}
+	if len(point.VHostQueue) != 0 {
+		result["vhost_queue"] = point.VHostQueue
 	}
 	return result
 }
@@ -373,8 +426,7 @@ func (ins *Instance) updateWindow(relativeTo time.Time) {
 }
 
 // fetchNamespaceMetrics retrieves available metrics for a given aliyun namespace.
-func (ins *Instance) fetchNamespaceMetrics(namespaces []string) ([]internalTypes.Metric, error) {
-	// func (ins *Instance) fetchNamespaceMetrics() ([]*cms20190101.DescribeMetricMetaListResponseBodyResourcesResource, error) {
+func (ins *Instance) fetchNamespaceMetrics(slist *types.SampleList, namespaces []string) ([]internalTypes.Metric, error) {
 	var params *cms20190101.DescribeMetricMetaListRequest
 	// namespaces := ins.Namespaces
 	if len(namespaces) == 0 {
@@ -386,7 +438,13 @@ func (ins *Instance) fetchNamespaceMetrics(namespaces []string) ([]internalTypes
 		params = &cms20190101.DescribeMetricMetaListRequest{
 			Namespace: tea.String(namespaces[i]),
 		}
-		resp, err := ins.client.ListMetrics(context.Background(), params)
+
+		n, resp, err := ins.client.ListMetrics(context.Background(), params)
+		slist.PushFront(types.NewSample(inputName, "cms_request_count", n, map[string]string{
+			"namespace": namespace,
+			"callee":    "DescribeMetricMetaList",
+		}).SetTime(time.Now()))
+
 		if err != nil {
 			log.Printf("E! failed to list metrics with namespace %s: %v", namespace, err)
 			// skip problem namespace on error and continue to next namespace
@@ -405,12 +463,11 @@ func (ins *Instance) fetchNamespaceMetrics(namespaces []string) ([]internalTypes
 	return result, nil
 }
 
-func isSelected(metric internalTypes.Metric, name, dimensions, namespace string) bool {
-	if len(name) != 0 && name != metric.MetricName {
-		return false
-	}
-	if len(dimensions) != 0 && metric.Dimensions != dimensions {
-		return false
+func isSelected(metric internalTypes.Metric, name, namespace string, metricregex *regexp.Regexp) bool {
+	if metricregex != nil {
+		if len(name) != 0 && name != metric.MetricName && !metricregex.MatchString(metric.MetricName) {
+			return false
+		}
 	}
 	if len(namespace) != 0 && metric.Namespace != namespace {
 		return false

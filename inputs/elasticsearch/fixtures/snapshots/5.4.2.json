@@ -1,0 +1,26 @@
+{
+    "snapshots": [
+        {
+            "duration_in_millis": 506,
+            "end_time": "2018-09-04T09:29:14.477Z",
+            "end_time_in_millis": 1536053354477,
+            "failures": [],
+            "indices": [
+                "foo_2",
+                "foo_1"
+            ],
+            "shards": {
+                "failed": 0,
+                "successful": 10,
+                "total": 10
+            },
+            "snapshot": "snapshot_1",
+            "start_time": "2018-09-04T09:29:13.971Z",
+            "start_time_in_millis": 1536053353971,
+            "state": "SUCCESS",
+            "uuid": "VZ_c_kKISAW8rpcqiwSg0w",
+            "version": "5.4.2",
+            "version_id": 5040299
+        }
+    ]
+}

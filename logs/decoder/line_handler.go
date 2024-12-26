@@ -15,7 +15,7 @@ var truncatedFlag = []byte("...TRUNCATED...")
 // for multiline message.
 // New line character needs to be escaped because they are used
 // as delimiter for transport.
-var escapedLineFeed = []byte(`\n`)
+var escapedLineFeed = []byte{'\n'}
 
 // LineHandler handles raw lines to form structured lines
 type LineHandler interface {

@@ -3,9 +3,10 @@ package rocketmq_offset
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"flashcat.cloud/categraf/config"
@@ -50,6 +51,49 @@ type Instance struct {
 	config.InstanceConfig
 	IgnoredTopics            []string `toml:"ignored_topics"`
 	RocketMQConsoleIPAndPort string   `toml:"rocketmq_console_ip_port"`
+	Username                 string   `toml:"username"`
+	Password                 string   `toml:"password"`
+}
+
+func (ins *Instance) Login() (string, error) {
+	loginURL := fmt.Sprintf("%s/login/login.do", consoleSchema+ins.RocketMQConsoleIPAndPort)
+	data := url.Values{}
+	data.Set("username", ins.Username)
+	data.Set("password", ins.Password)
+
+	req, err := http.NewRequest("POST", loginURL, strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", err
+	}
+
+	// 设置Content-Type头
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	// 获取 set-cookie 头
+	cookies := res.Header.Get("Set-Cookie")
+	if cookies == "" {
+		return "", fmt.Errorf("failed to get cookie from login response")
+	}
+	// 解析 set-cookie 头，提取 JSESSIONID
+	jsessionID := ""
+	for _, cookie := range strings.Split(cookies, ";") {
+		trimmedCookie := strings.TrimSpace(cookie)
+		if strings.HasPrefix(trimmedCookie, "JSESSIONID=") {
+			jsessionID = trimmedCookie
+			break
+		}
+	}
+
+	if jsessionID == "" {
+		return "", fmt.Errorf("failed to find JSESSIONID in set-cookie header")
+	}
+
+	return jsessionID, nil
 }
 
 func (ins *Instance) Init() error {
@@ -60,8 +104,21 @@ func (ins *Instance) Init() error {
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
+
+	// 判断username是否为空，如果不为空则登录并获取 cookie
+	log.Printf("console login username: %s", ins.Username)
+	cookies := ""
+	if ins.Username != "" {
+		loginCookie, err := ins.Login()
+		cookies = loginCookie
+		if err != nil {
+			log.Printf("E! failed to login: %v", err)
+			return
+		}
+	}
+
 	// 获取rocketmq集群中的topicNameList
-	topicNameArray := GetTopicNameList(ins.RocketMQConsoleIPAndPort)
+	topicNameArray := GetTopicNameList(ins.RocketMQConsoleIPAndPort, cookies)
 	if topicNameArray == nil {
 		log.Println("E! fail to get topic,please check config!")
 		return
@@ -86,7 +143,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	// var diff_Clientinfo_Slice []model.MsgDiff_ClientInfo = []model.MsgDiff_ClientInfo{}
 	var diff_Clientinfo_Map = make(map[string]*MsgDiffClientInfo)
 
-	// 按照queue聚合msgDiff
+	// 按照broker:queue聚合msgDiff
 	// var MsgDiff_Queue_Slice []model.MsgDiff_Queue = []model.MsgDiff_Queue{}
 	var diff_Queue_Map = make(map[string]*MsgDiffQueue)
 
@@ -103,7 +160,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			continue
 		}
 
-		var data *ConsumerListByTopic = GetConsumerListByTopic(ins.RocketMQConsoleIPAndPort, topicName)
+		var data *ConsumerListByTopic = GetConsumerListByTopic(ins.RocketMQConsoleIPAndPort, topicName, cookies)
 
 		if data == nil {
 			continue
@@ -204,9 +261,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					diff_Broker_Map[brokerName] = diff_Broker
 				}
 
-				// 按照queueId进行msgDiff聚合
-				queuestr := brokerName + ":" + string(queueId)
-				if _, ok := diff_Queue_Map[string(queueId)]; ok {
+				// 按照brokerName:queueId进行msgDiff聚合
+				queuestr := brokerName + ":" + fmt.Sprint(queueId)
+				if _, ok := diff_Queue_Map[queuestr]; ok {
 					diff_Queue_Map[queuestr].Diff = diff_Queue_Map[queuestr].Diff + diff
 				} else {
 					var diff_Queue *MsgDiffQueue = new(MsgDiffQueue)
@@ -279,13 +336,16 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 }
 
-func GetTopicNameList(rocketmqConsoleIPAndPort string) []string {
+func GetTopicNameList(rocketmqConsoleIPAndPort string, cookies string) []string {
 	var url = consoleSchema + rocketmqConsoleIPAndPort + topicNameListPath
-	var content = doRequest(url)
+	var content, err = doRequest(url, cookies)
+	if err != nil {
+		log.Println("E! unable to get topic name list", err)
+		return nil
+	}
 
 	var jsonData TopicList
-	err := json.Unmarshal([]byte(content), &jsonData)
-
+	err = json.Unmarshal([]byte(content), &jsonData)
 	if err != nil {
 		log.Println("E! unable to decode topic name list", err)
 		return nil
@@ -294,37 +354,46 @@ func GetTopicNameList(rocketmqConsoleIPAndPort string) []string {
 	return jsonData.Data.TopicList
 }
 
-func GetConsumerListByTopic(rocketmqConsoleIPAndPort string, topicName string) *ConsumerListByTopic {
+func GetConsumerListByTopic(rocketmqConsoleIPAndPort string, topicName string, cookies string) *ConsumerListByTopic {
 	var url = consoleSchema + rocketmqConsoleIPAndPort + queryConsumerByTopicPath + topicName
-	var content = doRequest(url)
+	var content, err = doRequest(url, cookies)
+	if err != nil {
+		log.Println("E! unable to get consumer list by topic", err)
+		return nil
+	}
 
 	var jsonData *ConsumerListByTopic
-	err := json.Unmarshal([]byte(content), &jsonData)
-
+	err = json.Unmarshal([]byte(content), &jsonData)
 	if err != nil {
+		log.Println("E! unable to decode consumer list by topic", err)
 		return nil
 	}
 
 	return jsonData
 }
 
-func doRequest(url string) []byte {
+func doRequest(url string, cookies string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil
+		return nil, err
 	}
+
+	// 设置 cookie 头
+	if cookies != "" {
+		req.Header.Set("Cookie", cookies)
+	}
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
 
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		log.Println("E! fail to read request data", err)
-		return nil
-	} else {
-		return body
+		return nil, err
 	}
+
+	return body, nil
 }

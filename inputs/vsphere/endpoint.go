@@ -19,7 +19,6 @@ import (
 	"github.com/vmware/govmomi/vim25/mo"
 	gtypes "github.com/vmware/govmomi/vim25/types"
 
-	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/types"
 )
@@ -97,7 +96,7 @@ type objectRef struct {
 	name         string
 	altID        string
 	ref          gtypes.ManagedObjectReference
-	parentRef    *gtypes.ManagedObjectReference //Pointer because it must be nillable
+	parentRef    *gtypes.ManagedObjectReference // Pointer because it must be nillable
 	guest        string
 	dcname       string
 	rpname       string
@@ -120,7 +119,7 @@ func NewEndpoint(ctx context.Context, parent *Instance, address *url.URL) (*Endp
 	e := Endpoint{
 		URL:               address,
 		Parent:            parent,
-		hwMarks:           NewTSCache(hwMarkTTL),
+		hwMarks:           NewTSCache(hwMarkTTL, parent.DebugMod),
 		lun2ds:            make(map[string]string),
 		initialized:       false,
 		clientFactory:     NewClientFactory(address, parent),
@@ -256,7 +255,7 @@ func anythingEnabled(ex []string) bool {
 func newFilterOrPanic(include []string, exclude []string) filter.Filter {
 	f, err := filter.NewIncludeExcludeFilter(include, exclude)
 	if err != nil {
-		log.Printf("E! Include/exclude filters are invalid: ", err)
+		log.Println("E! Include/exclude filters are invalid: ", err)
 		return nil
 	}
 	return f
@@ -397,7 +396,7 @@ func (e *Endpoint) getAncestorName(ctx context.Context, client *Client, resource
 				return true
 			}
 			if result.Parent == nil {
-				if config.Config.DebugMode {
+				if e.debug() {
 					log.Printf("D! No parent found for %s (ascending from %s)", here.Reference(), r.Reference())
 				}
 
@@ -411,6 +410,10 @@ func (e *Endpoint) getAncestorName(ctx context.Context, client *Client, resource
 		cache[s] = returnVal
 	}
 	return returnVal, returnVal != ""
+}
+
+func (e *Endpoint) debug() bool {
+	return e.Parent != nil && e.Parent.DebugMod
 }
 
 func (e *Endpoint) discover(ctx context.Context) error {
@@ -429,7 +432,7 @@ func (e *Endpoint) discover(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("D! Discover new objects for %s", e.URL.Host)
 	}
 	dcNameCache := make(map[string]string)
@@ -439,7 +442,7 @@ func (e *Endpoint) discover(ctx context.Context) error {
 	// Populate resource objects, and endpoint instance info.
 	newObjects := make(map[string]objectMap)
 	for k, res := range e.resourceKinds {
-		if config.Config.DebugMode {
+		if e.debug() {
 			log.Printf("D! Discovering resources for %s", res.name)
 		}
 		// Need to do this for all resource types even if they are not enabled
@@ -476,7 +479,7 @@ func (e *Endpoint) discover(ctx context.Context) error {
 				}
 			}
 			newObjects[k] = objects
-			if config.Config.DebugMode {
+			if e.debug() {
 				log.Printf("D! discovered_objects  type is : %s   and number is : %d ", res.name, int64(len(objects)))
 			}
 			numRes += int64(len(objects))
@@ -516,14 +519,14 @@ func (e *Endpoint) discover(ctx context.Context) error {
 	if fields != nil {
 		e.customFields = fields
 	}
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("D! discovered_objects  type is : %s   and number is : %d ", "instance-total", numRes)
 	}
 	return nil
 }
 
 func (e *Endpoint) simpleMetadataSelect(ctx context.Context, client *Client, res *resourceKind) {
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("D! Using fast metric metadata selection for %s", res.name)
 	}
 	m, err := client.CounterInfoByName(ctx)
@@ -571,9 +574,9 @@ func (e *Endpoint) complexMetadataSelect(ctx context.Context, res *resourceKind,
 	}
 
 	instInfoMux := sync.Mutex{}
-	te,err := NewThrottledExecutor(e.Parent.DiscoverConcurrency)
-	if err !=nil {
-		log.Println("E! NewThrottledExecutor",err.Error())
+	te, err := NewThrottledExecutor(e.Parent.DiscoverConcurrency)
+	if err != nil {
+		log.Println("E! NewThrottledExecutor", err.Error())
 		return
 	}
 	for _, obj := range sampledObjects {
@@ -594,7 +597,7 @@ func (e *Endpoint) complexMetadataSelect(ctx context.Context, res *resourceKind,
 						mMap[strconv.Itoa(int(m.CounterId))+"|"+m.Instance] = m
 					}
 				}
-				if config.Config.DebugMode {
+				if e.debug() {
 					log.Printf("D!Found %d metrics for %s", len(mMap), obj.name)
 				}
 				instInfoMux.Lock()
@@ -708,13 +711,13 @@ func getResourcePools(ctx context.Context, e *Endpoint, resourceFilter *Resource
 }
 
 func getResourcePoolName(rp gtypes.ManagedObjectReference, rps objectMap) string {
-	//Loop through the Resource Pools objectmap to find the corresponding one
+	// Loop through the Resource Pools objectmap to find the corresponding one
 	for _, r := range rps {
 		if r.ref == rp {
 			return r.name
 		}
 	}
-	return "Resources" //Default value
+	return "Resources" // Default value
 }
 
 // noinspection GoUnusedParameter
@@ -751,7 +754,7 @@ func getVMs(ctx context.Context, e *Endpoint, resourceFilter *ResourceFilter) (o
 	if err != nil {
 		return nil, err
 	}
-	//Create a ResourcePool Filter and get the list of Resource Pools
+	// Create a ResourcePool Filter and get the list of Resource Pools
 	rprf := ResourceFilter{
 		finder:       &Finder{client},
 		resType:      "ResourcePool",
@@ -933,7 +936,7 @@ func (e *Endpoint) Collect(ctx context.Context, slist *types.SampleList) error {
 				defer wg.Done()
 				err := e.collectResource(ctx, k, slist)
 				if err != nil {
-					//acc.AddError(err)
+					// acc.AddError(err)
 				}
 			}(k)
 		}
@@ -953,9 +956,9 @@ func submitChunkJob(ctx context.Context, te *ThrottledExecutor, job queryJob, pq
 }
 
 func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Time, latest time.Time, job queryJob) {
-	te, err:= NewThrottledExecutor(e.Parent.CollectConcurrency)
-	if err!= nil {
-		log.Println("E! NewThrottledExecutor",err.Error())
+	te, err := NewThrottledExecutor(e.Parent.CollectConcurrency)
+	if err != nil {
+		log.Println("E! NewThrottledExecutor", err.Error())
 		return
 	}
 	maxMetrics := e.Parent.MaxQueryMetrics
@@ -979,7 +982,7 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 			// Determine time of last successful collection
 			metricName := e.getMetricNameForID(metric.CounterId)
 			if metricName == "" {
-				if config.Config.DebugMode {
+				if e.debug() {
 					log.Printf("D! Unable to find metric name for id %d. Skipping!", metric.CounterId)
 				}
 				continue
@@ -1011,7 +1014,7 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 			// Bucket filled to capacity?
 			// OR if we're past the absolute maximum limit
 			if (!res.realTime && len(bucket.MetricId) >= maxMetrics) || len(bucket.MetricId) > maxRealtimeMetrics {
-				if config.Config.DebugMode {
+				if e.debug() {
 					log.Printf("D! Submitting partial query: %d metrics (%d remaining) of type %s for %s. Total objects %d",
 						len(bucket.MetricId), len(res.metrics)-metricIdx, res.name, e.URL.Host, len(res.objects))
 				}
@@ -1031,7 +1034,7 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 			pqs = append(pqs, *bucket)
 			numQs += len(bucket.MetricId)
 			if (!res.realTime && numQs > e.Parent.MaxQueryObjects) || numQs > maxRealtimeMetrics {
-				if config.Config.DebugMode {
+				if e.debug() {
 					log.Printf("D! Submitting final bucket job for %s: %d metrics", res.name, numQs)
 				}
 				submitChunkJob(ctx, te, job, pqs)
@@ -1042,7 +1045,7 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 	}
 	// Submit any jobs left in the queue
 	if len(pqs) > 0 {
-		if config.Config.DebugMode {
+		if e.debug() {
 			log.Printf("D! Submitting job for %s: %d objects, %d metrics", res.name, len(pqs), numQs)
 		}
 		submitChunkJob(ctx, te, job, pqs)
@@ -1055,7 +1058,7 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 func (e *Endpoint) collectResource(ctx context.Context, resourceType string, slist *types.SampleList) error {
 	res := e.resourceKinds[resourceType]
 	client, err := e.clientFactory.GetClient(ctx)
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("D! collectResource  %s ", resourceType)
 	}
 	if err != nil {
@@ -1080,11 +1083,11 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 		if estInterval < s {
 			estInterval = s
 		}
-		if config.Config.DebugMode {
+		if e.debug() {
 			log.Printf("D! resourceType %s Raw interval %s, padded: %s, estimated: %s", resourceType, rawInterval, paddedInterval, estInterval)
 		}
 	}
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("D! resourceType %s Interval estimated to %s", resourceType, estInterval)
 	}
 	res.lastColl = localNow
@@ -1092,12 +1095,12 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 	latest := res.latestSample
 	if !latest.IsZero() {
 		elapsed := now.Sub(latest).Seconds() + 5.0 // Allow 5 second jitter.
-		if config.Config.DebugMode {
+		if e.debug() {
 			log.Printf("D! Latest: %s, elapsed: %f, resource: %s", latest, elapsed, resourceType)
 		}
 		if !res.realTime && elapsed < float64(res.sampling) {
 			// No new data would be available. We're outta here!
-			if config.Config.DebugMode {
+			if e.debug() {
 				log.Printf("D! Sampling period for %s of %d has not elapsed on %s",
 					resourceType, res.sampling, e.URL.Host)
 			}
@@ -1106,7 +1109,7 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 	} else {
 		latest = now.Add(time.Duration(-res.sampling) * time.Second)
 	}
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("D! Collecting metrics for %d objects of type %s for %s",
 			len(res.objects), resourceType, e.URL.Host)
 	}
@@ -1121,12 +1124,12 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 		func(chunk queryChunk) {
 			n, localLatest, err := e.collectChunk(ctx, chunk, res, slist, estInterval)
 			if err != nil {
-				if config.Config.DebugMode {
+				if e.debug() {
 					log.Printf("D! CollectChunk for %s returned %d metrics   err: %s ", resourceType, n, err)
 				}
 				return
 			}
-			if config.Config.DebugMode {
+			if e.debug() {
 				log.Printf("D! CollectChunk for %s returned %d metrics", resourceType, n)
 			}
 			atomic.AddInt64(&count, int64(n))
@@ -1136,13 +1139,13 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 				latestSample = localLatest
 			}
 		})
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("D! Latest sample for %s set to %s", resourceType, latestSample)
 	}
 	if !latestSample.IsZero() {
 		res.latestSample = latestSample
 	}
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("discovered_objects  type is : %s   and number is : %d ", resourceType, count)
 	}
 
@@ -1158,7 +1161,7 @@ func (e *Endpoint) alignSamples(info []gtypes.PerfSampleInfo, values []int64, in
 		// According to the docs, SampleInfo and Value should have the same length, but we've seen corrupted
 		// data coming back with missing values. Take care of that gracefully!
 		if idx >= len(values) {
-			if config.Config.DebugMode {
+			if e.debug() {
 				log.Printf("D! len(SampleInfo)>len(Value) %d > %d during alignment", len(info), len(values))
 			}
 			break
@@ -1190,14 +1193,14 @@ func (e *Endpoint) alignSamples(info []gtypes.PerfSampleInfo, values []int64, in
 }
 
 func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resourceKind, slist *types.SampleList, interval time.Duration) (int, time.Time, error) {
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("D! Query for %s has %d QuerySpecs", res.name, len(pqs))
 	}
 	latestSample := time.Time{}
 	count := 0
 	resourceType := res.name
 	prefix := resourceType
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("D! collectChunk for %s", resourceType)
 	}
 	client, err := e.clientFactory.GetClient(ctx)
@@ -1215,7 +1218,7 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 		log.Printf("W! client.QueryMetrics for %s  error is %s", resourceType, err.Error())
 		return count, latestSample, err
 	}
-	if config.Config.DebugMode {
+	if e.debug() {
 		log.Printf("D! Query for %s returned metrics for %d objects\r\n", resourceType, len(ems))
 	}
 
@@ -1228,7 +1231,7 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 			continue
 		}
 		buckets := make(map[string]metricEntry)
-		if config.Config.DebugMode {
+		if e.debug() {
 			log.Printf("D! Query for %s  em.Value len is %d \r\n", resourceType, len(em.Value))
 		}
 		for _, v := range em.Value {
@@ -1249,14 +1252,14 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 
 			nValues := 0
 			alignedInfo, alignedValues := e.alignSamples(em.SampleInfo, v.Value, interval)
-			if config.Config.DebugMode {
+			if e.debug() {
 				log.Printf("D! Query for %s  alignedInfo len is %d \r\n", resourceType, len(alignedInfo))
 			}
 			for idx, sample := range alignedInfo {
 				// According to the docs, SampleInfo and Value should have the same length, but we've seen corrupted
 				// data coming back with missing values. Take care of that gracefully!
 				if idx >= len(alignedValues) {
-					if config.Config.DebugMode {
+					if e.debug() {
 						log.Printf("D! Len(SampleInfo)>len(Value) %d > %d\r\n", len(alignedInfo), len(alignedValues))
 					}
 					break
@@ -1269,7 +1272,7 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 
 				// Organize the metrics into a bucket per measurement.
 				mn, fn := e.makeMetricIdentifier(prefix, name)
-				if config.Config.DebugMode {
+				if e.debug() {
 					log.Printf("D! makeMetricIdentifier: %s   %s\r\n", prefix, name)
 				}
 				bKey := mn + " " + v.Instance + " " + strconv.FormatInt(ts.UnixNano(), 10)
@@ -1300,7 +1303,7 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 				e.hwMarks.Put(moid, name, ts)
 			}
 			if nValues == 0 {
-				if config.Config.DebugMode {
+				if e.debug() {
 					log.Printf("D! Missing value for: %s, %s", name, objectRef.name)
 				}
 				continue
@@ -1309,7 +1312,7 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 		// We've iterated through all the metrics and collected buckets for each
 		// measurement name. Now emit them!
 		for _, bucket := range buckets {
-			//acc.AddFields(bucket.name, bucket.fields, bucket.tags, bucket.ts)
+			// acc.AddFields(bucket.name, bucket.fields, bucket.tags, bucket.ts)
 			for k, field := range bucket.fields {
 				slist.PushFront(types.NewSample(inputName, bucket.name+"_"+k, field, bucket.tags))
 			}

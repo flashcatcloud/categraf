@@ -10,15 +10,30 @@
 # append some labels to metrics
 # labels = { cluster="cloud-n9e-es" }
 
+# either /_nodes/stats or /_nodes/_local/stats depending on this setting
+local = false
+
 ## specify a list of one or more Elasticsearch servers
 # servers = ["http://localhost:9200"]
 servers = []
 
+## HTTP Basic Authentication username and password.
+username = "elastic"
+password = "password"
+
+## API key for authentication
+# api_key = "your_api_key"
+
 ## Timeout for HTTP requests to the elastic search server(s)
 http_timeout = "10s"
 
-# either /_nodes/stats or /_nodes/_local/stats depending on this setting
-local = false
+## all_nodes If true, query stats for all nodes in the cluster, rather than just the node we connect to.
+all_nodes = true
+
+## node_stats is a list of sub-stats that you want to have gathered. Valid options
+## are "indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http",
+## "breaker". Per default, all stats are gathered.
+node_stats = ["jvm", "breaker", "process", "os", "fs", "indices", "thread_pool", "transport"]
 
 ## Set cluster_health to true when you want to obtain cluster health stats
 cluster_health = true
@@ -27,7 +42,7 @@ cluster_health = true
 ## The options are
 ##  - indices (default)
 ##  - cluster
-cluster_health_level = "cluster"
+cluster_health_level = "indices"
 
 ## Set cluster_stats to true when you want to obtain cluster stats.
 cluster_stats = true
@@ -36,17 +51,47 @@ cluster_stats = true
 ## Use of wildcards is allowed. Use a wildcard at the end to retrieve index names that end with a changing value, like a date.
 # indices_include = ["zipkin*"]
 
-## use "shards" or blank string for indices level
-indices_level = ""
+## Exclude indices from the list of indices to collect. If true, query stats for all indices in the cluster.
+export_indices = false
 
-## node_stats is a list of sub-stats that you want to have gathered. Valid options
-## are "indices", "os", "process", "jvm", "thread_pool", "fs", "transport", "http",
-## "breaker". Per default, all stats are gathered.
-node_stats = ["jvm", "breaker", "process", "os", "fs", "indices", "thread_pool", "transport"]
+## Export indices settings. If true, query settings stats for all indices in the cluster.
+export_indices_settings = false
 
-## HTTP Basic Authentication username and password.
-username = "elastic"
-password = "password"
+## Export indices mappings. If true, query mappings stats for all indices in the cluster.
+export_indices_mappings = false
+
+## Export indices aliases. If true, query aliases stats for all indices in the cluster.
+export_indices_aliases = false
+
+## Export index lifecycle politics for indices in the cluster.
+export_ilm = false
+
+## If true, query stats for all indices in the cluster, including shard-level stats (implies `es.indices=true`).
+export_shards = false
+
+## If true, query stats for SLM.
+export_slm = false
+
+## If true, query stats for data streams.
+export_data_stream = false
+
+## If true, query stats for snapshots.
+export_snapshots = false
+
+## Export cluster settings. If true, query settings stats for the cluster.
+export_cluster_settings = false
+
+## Export cluster info. If true, query info stats for the cluster.
+export_cluster_info = true
+
+# Cluster info update interval for the cluster label (default: 5m)
+cluster_info_interval = "5m"
+
+# Region for AWS elasticsearch
+# aws_region = ""
+
+# Role ARN of an IAM role to assume.
+# aws_role_arn = ""
 
 ## Optional TLS Config
 # use_tls = false

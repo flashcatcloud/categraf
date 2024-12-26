@@ -12,6 +12,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
+	"flashcat.cloud/categraf/pkg/set"
 	"flashcat.cloud/categraf/pkg/tls"
 )
 
@@ -180,7 +181,7 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 
 	// build query parameters
 	q := req.URL.Query()
-	for k, v := range config.Config.Global.Labels {
+	for k, v := range config.GlobalLabels() {
 		q.Add(k, v)
 	}
 	q.Add("timestamp", fmt.Sprint(time.Now().Unix()))
@@ -208,11 +209,18 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 	}
 
 	// set checksum for each config
+	newCfg := make(map[string]map[string]*cfg.ConfigWithFormat)
 	for k := range confResp.Configs {
+		lk := strings.TrimPrefix(strings.ToLower(k), "input.")
+		if _, ok := newCfg[lk]; !ok {
+			newCfg[lk] = make(map[string]*cfg.ConfigWithFormat)
+		}
 		for kk, vv := range confResp.Configs[k] {
 			vv.SetCheckSum(kk)
+			newCfg[lk][kk] = vv
 		}
 	}
+	confResp.Configs = newCfg
 
 	return confResp, nil
 }
@@ -333,8 +341,9 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string]map[string]*cfg.Conf
 
 	for inputKey, configMap := range cache.iter() {
 		if oldConfigMap, has := hrp.cache.get(inputKey); has {
-			new := NewSet().Load(configMap)
-			add, del := new.Diff(NewSet().Load(oldConfigMap))
+			new := set.NewWithLoad[string, cfg.ConfigWithFormat](configMap)
+			old := set.NewWithLoad[string, cfg.ConfigWithFormat](oldConfigMap)
+			add, _, del := new.Diff(old)
 			for sum := range add {
 				if config.Config.DebugMode {
 					log.Println("D!: add config:", inputKey, "config sum:", sum)
@@ -381,7 +390,11 @@ func (hrp *HTTPProvider) LoadInputConfig(configs []cfg.ConfigWithFormat, input I
 		nInput := input.Clone()
 		err := cfg.LoadSingleConfig(c, nInput)
 		if err != nil {
-			return nil, err
+			log.Println("E! load http config error:", err)
+			if config.Config.DebugMode {
+				log.Printf("D! config:%+v load error:%s", c, err)
+			}
+			continue
 		}
 		inputs[c.CheckSum()] = nInput
 	}

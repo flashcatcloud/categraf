@@ -71,7 +71,7 @@ func IsAvailable() (bool, *retry.Retrier) {
 		log.Println("Kubernetes launcher is available")
 		return true, nil
 	}
-	log.Printf("Kubernetes launcher is not available: %v", retrier.LastError())
+	log.Println("Kubernetes launcher is not available: ", retrier.LastError())
 	return false, retrier
 }
 
@@ -79,7 +79,7 @@ func IsAvailable() (bool, *retry.Retrier) {
 func NewLauncher(sources *logsconfig.LogSources, services *service.Services, collectAll bool) *Launcher {
 	kubeutil, err := kubelet.GetKubeUtil()
 	if err != nil {
-		log.Printf("KubeUtil not available, failed to create launcher", err)
+		log.Println("KubeUtil not available, failed to create launcher: ", err)
 		return nil
 	}
 	launcher := &Launcher{
@@ -153,7 +153,7 @@ func (l *Launcher) scheduleServiceForRetry(svc *service.Service) {
 func (l *Launcher) delayRetry(ops *retryOps) {
 	delay := ops.backoff.NextBackOff()
 	if delay == backoff.Stop {
-		log.Println("Unable to add source for container %v", ops.service.GetEntityID())
+		log.Println("Unable to add source for container ", ops.service.GetEntityID())
 		delete(l.pendingRetries, ops.service.GetEntityID())
 		return
 	}
@@ -177,7 +177,7 @@ func (l *Launcher) addSource(svc *service.Service) {
 	if err != nil {
 		if errors.IsRetriable(err) {
 			// Attempt to reschedule the source later
-			log.Println("Failed to fetch pod info for container %v, will retry: %v", svc.Identifier, err)
+			log.Printf("Failed to fetch pod info for container %v, will retry: %v", svc.Identifier, err)
 			l.scheduleServiceForRetry(svc)
 			return
 		}
@@ -192,7 +192,7 @@ func (l *Launcher) addSource(svc *service.Service) {
 	source, err := l.getSource(pod, container)
 	if err != nil {
 		if err != errCollectAllDisabled {
-			log.Println("Invalid configuration for pod %v, container %v: %v", pod.Metadata.Name, container.Name, err)
+			log.Printf("Invalid configuration for pod %v, container %v: %v", pod.Metadata.Name, container.Name, err)
 		}
 		return
 	}
@@ -200,6 +200,10 @@ func (l *Launcher) addSource(svc *service.Service) {
 	// force setting source type to kubernetes
 	source.SetSourceType(logsconfig.KubernetesSourceType)
 
+	// Determine whether CRI uses containerd
+	if len(pod.Status.Containers) > 0 && len(pod.Status.Containers[0].ID) >= 13 && pod.Status.Containers[0].ID[:13] == "containerd://" {
+		source.SetcontainerdFlg("Y")
+	}
 	l.sourcesByContainer[svc.GetEntityID()] = source
 	l.sources.AddSource(source)
 
@@ -234,32 +238,8 @@ const kubernetesIntegration = "kubernetes"
 func (l *Launcher) getSource(pod *kubernetes.Pod, container kubernetes.ContainerStatus) (*logsconfig.LogSource, error) {
 	var cfg *logsconfig.LogsConfig
 	standardService := l.serviceNameFunc(container.Name, getTaggerEntityID(container.ID))
-	// if annotation := l.getAnnotation(pod, container); annotation != "" {
-	// 	configs, err := logsconfig.ParseJSON([]byte(annotation))
-	// 	if err != nil || len(configs) == 0 {
-	// 		return nil, fmt.Errorf("could not parse kubernetes annotation %v", annotation)
-	// 	}
-	// 	// We may have more than one log configuration in the annotation, ignore those
-	// 	// unrelated to containers
-	// 	containerType, _ := containers.SplitEntityName(container.ID)
-	// 	for _, c := range configs {
-	// 		if c.Type == "" || c.Type == containerType {
-	// 			cfg = c
-	// 			break
-	// 		}
-	// 	}
-	// 	if cfg == nil {
-	// 		log.Printf("annotation found: %v, for pod %v, container %v, but no config was usable for container log collection", annotation, pod.Metadata.Name, container.Name)
-	// 	}
-	// }
-
 	if cfg == nil {
-		if !l.collectAll {
-			return nil, errCollectAllDisabled
-		}
-		if !(pod.Metadata.Annotations[AnnotationCollectKey] == "" ||
-			pod.Metadata.Annotations[AnnotationCollectKey] == "true") {
-			log.Printf("pod %s disable stdout collecting", pod.Metadata.Name)
+		if !l.collectAll && pod.Metadata.Annotations[AnnotationCollectKey] != "true" {
 			return nil, errCollectAllDisabled
 		}
 		// The logs source is the short image name
@@ -321,6 +301,7 @@ func buildTags(pod *kubernetes.Pod, container kubernetes.ContainerStatus) []stri
 		fmt.Sprintf("kubernetes.pod_id=%s", pod.Metadata.UID),
 		fmt.Sprintf("kubernetes.pod_name=%s", pod.Metadata.Name),
 		fmt.Sprintf("kubernetes.host=%s", pod.Spec.NodeName),
+		fmt.Sprintf("kubernetes.pod_ip=%s", pod.Status.PodIP),
 		fmt.Sprintf("kubernetes.container_id=%s", container.ID),
 		fmt.Sprintf("kubernetes.container_name=%s", container.Name),
 		fmt.Sprintf("kubernetes.container_image=%s", container.Image),

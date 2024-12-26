@@ -1,0 +1,41 @@
+## collect interval
+# interval = 15
+
+## Set the mapping of extra tags in batches
+[mappings]
+# "http://127.0.0.1/us" = { "job" = "local" }
+# "https://www.baidu.com/us" = { "job" = "baidu" }
+
+[[instances]]
+## An array of Tengine reqstat module URI to gather stats.
+urls = [
+#    "http://127.0.0.1/us",
+#    "https://www.baidu.com/us"
+]
+
+## append some labels for series
+# labels = { region="cloud", product="n9e" }
+
+## interval = global.interval * interval_times
+# interval_times = 1
+
+## HTTP response timeout (default: 5s)
+# response_timeout = "5s"
+
+## Whether to follow redirects from the server (defaults to false)
+# follow_redirects = false
+
+## Optional HTTP Basic Auth Credentials
+#username = "admin"
+#password = "admin"
+
+## Optional headers
+# headers = ["X-From", "categraf", "X-Xyz", "abc"]
+
+## Optional TLS Config
+# use_tls = false
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = false

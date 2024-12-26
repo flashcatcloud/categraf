@@ -3,3 +3,6 @@
 
 # # ntp servers
 # ntp_servers = ["ntp.aliyun.com"]
+
+# # response time out seconds
+# timeout = 5

@@ -19,6 +19,13 @@ type Translator interface {
 		fields []Field,
 		err error,
 	)
+
+	SnmpFormatEnum(oid string, value interface{}, full bool) (
+		formatted string,
+		err error,
+	)
+
+	SetDebugMode(bool)
 }
 
 type ClientConfig struct {
@@ -53,6 +60,10 @@ type ClientConfig struct {
 	EngineID     string `toml:"-"`
 	EngineBoots  uint32 `toml:"-"`
 	EngineTime   uint32 `toml:"-"`
+
+	// AppOpts
+	AppOpts map[string]interface{} `toml:"app_opts"`
+	MaxOids int                    `toml:"max_oids"`
 }
 
 // Snmp holds the configuration for the plugin.

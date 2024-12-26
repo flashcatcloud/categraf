@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/prometheus/common/model"
+
 	"flashcat.cloud/categraf/pkg/filter"
+	modelLabel "flashcat.cloud/categraf/pkg/prom/labels"
+	"flashcat.cloud/categraf/pkg/relabel"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -34,6 +38,30 @@ type InternalConfig struct {
 
 	// whether instance initial success
 	inited bool `toml:"-"`
+
+	RelabelConfigs []*RelabelConfig  `toml:"relabel_configs"`
+	relabelConfigs []*relabel.Config `toml:"-"`
+
+	// whether debug
+	DebugMod bool `toml:"-"`
+}
+type RelabelConfig struct {
+	// A list of labels from which values are taken and concatenated
+	// with the configured separator in order.
+	SourceLabels model.LabelNames `toml:"source_labels,flow,omitempty"`
+	// Separator is the string between concatenated values from the source labels.
+	Separator string `toml:"separator,omitempty"`
+	// Regex against which the concatenation is matched.
+	Regex string `toml:"regex,omitempty"`
+	// Modulus to take of the hash of concatenated values from the source labels.
+	Modulus uint64 `toml:"modulus,omitempty"`
+	// TargetLabel is the label to which the resulting string is written in a replacement.
+	// Regexp interpolation is allowed for the replace action.
+	TargetLabel string `toml:"target_label,omitempty"`
+	// Replacement is the regex replacement pattern to be used.
+	Replacement string `toml:"replacement,omitempty"`
+	// Action is the action to be performed for the relabeling.
+	Action relabel.Action `toml:"action,omitempty"`
 }
 
 func (ic *InternalConfig) GetLabels() map[string]string {
@@ -52,6 +80,7 @@ func (ic *InternalConfig) InitInternalConfig() error {
 			return err
 		}
 	}
+	ic.DebugMod = Config.DebugMode
 
 	if len(ic.MetricsPass) > 0 {
 		var err error
@@ -68,6 +97,37 @@ func (ic *InternalConfig) InitInternalConfig() error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+	if len(ic.RelabelConfigs) != 0 {
+		for _, rc := range ic.RelabelConfigs {
+			if len(rc.Regex) == 0 {
+				rc.Regex = "(.*)"
+			}
+			if len(rc.Action) == 0 {
+				rc.Action = relabel.Replace
+			}
+			if len(rc.Replacement) == 0 {
+				rc.Replacement = "$1"
+			}
+			if rc.Separator == "" {
+				rc.Separator = ";"
+			}
+			reg, err := relabel.NewRegexp(rc.Regex)
+			if err != nil {
+				msg := fmt.Errorf("relabel_configs regex:%s compile error:%s", rc.Regex, err)
+				return msg
+			}
+			r := &relabel.Config{
+				SourceLabels: rc.SourceLabels,
+				Separator:    rc.Separator,
+				Regex:        reg,
+				Modulus:      rc.Modulus,
+				TargetLabel:  rc.TargetLabel,
+				Replacement:  rc.Replacement,
+				Action:       rc.Action,
+			}
+			ic.relabelConfigs = append(ic.relabelConfigs, r)
 		}
 	}
 
@@ -128,11 +188,11 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 				delete(ss[i].Labels, k)
 				continue
 			}
-			ss[i].Labels[k] = v
+			ss[i].Labels[k] = Expand(v)
 		}
 
 		// add global labels
-		for k, v := range Config.Global.Labels {
+		for k, v := range GlobalLabels() {
 			if _, has := ss[i].Labels[k]; !has {
 				ss[i].Labels[k] = v
 			}
@@ -143,6 +203,22 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 			if !Config.Global.OmitHostname {
 				ss[i].Labels[agentHostnameLabelKey] = Config.GetHostname()
 			}
+		}
+		// relabel
+		if len(ic.relabelConfigs) != 0 {
+			all := make(modelLabel.Labels, len(ss[i].Labels))
+			for k, v := range ss[i].Labels {
+				all = append(all, modelLabel.Label{Name: k, Value: v})
+			}
+			newAll, keep := relabel.Process(all, ic.relabelConfigs...)
+			if !keep {
+				continue
+			}
+			newLabel := make(map[string]string, len(newAll))
+			for _, l := range newAll {
+				newLabel[l.Name] = l.Value
+			}
+			ss[i].Labels = newLabel
 		}
 
 		nlst.PushFront(ss[i])

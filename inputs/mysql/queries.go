@@ -38,16 +38,18 @@ GROUP BY table_schema`
 	SQL_QUERY_TABLE_SIZE = `
 SELECT   table_schema, table_name,
          IFNULL(index_length,0) AS index_size_bytes,
-         IFNULL(data_length,0) AS data_size_bytes
+         IFNULL(data_length,0) AS data_size_bytes,
+         IFNULL(data_free,0) AS data_free_size_bytes
 FROM     information_schema.tables
-WHERE    table_schema not in ('mysql', 'performance_schema', 'information_schema')`
+WHERE    table_schema not in ('mysql', 'performance_schema', 'information_schema', 'sys')`
 
 	SQL_QUERY_SYSTEM_TABLE_SIZE = `
 SELECT   table_schema, table_name,
          IFNULL(index_length,0) AS index_size_bytes,
-         IFNULL(data_length,0) AS data_size_bytes
+         IFNULL(data_length,0) AS data_size_bytes,
+         IFNULL(data_free,0) AS data_free_size_bytes
 FROM     information_schema.tables
-WHERE    table_schema in ('mysql', 'performance_schema', 'information_schema')`
+WHERE    table_schema in ('mysql', 'performance_schema', 'information_schema', 'sys')`
 
 	SQL_AVG_QUERY_RUN_TIME = `
 SELECT schema_name, ROUND((SUM(sum_timer_wait) / SUM(count_star)) / 1000000) AS avg_us

@@ -10,12 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	json "github.com/mailru/easyjson"
 
 	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/client"
+	"flashcat.cloud/categraf/logs/util"
 	"flashcat.cloud/categraf/pkg/backoff"
 )
 
@@ -25,16 +26,13 @@ const (
 	JSONContentType = "application/json"
 )
 
-// HTTP errors.
+// Kafka errors.
 var (
 	errClient = errors.New("client error")
 	errServer = errors.New("server error")
 )
 
-// emptyPayload is an empty payload used to check HTTP connectivity without sending logs.
-var emptyPayload []byte
-
-// Destination sends a payload over HTTP.
+// Destination sends a payload over Kafka.
 type Destination struct {
 	topic   string
 	brokers []string
@@ -42,7 +40,7 @@ type Destination struct {
 	apiKey              string
 	contentType         string
 	contentEncoding     ContentEncoding
-	client              sarama.SyncProducer
+	client              Producer
 	destinationsContext *client.DestinationsContext
 	once                sync.Once
 	payloadChan         chan []byte
@@ -59,7 +57,7 @@ type Destination struct {
 // there is no concurrency and the background sending pipeline will block while sending each payload.
 // TODO: add support for SOCKS5
 func NewDestination(endpoint logsconfig.Endpoint, contentType string, destinationsContext *client.DestinationsContext, maxConcurrentBackgroundSends int) *Destination {
-	return newDestination(endpoint, contentType, destinationsContext, time.Second*10, maxConcurrentBackgroundSends)
+	return newDestination(endpoint, contentType, destinationsContext, time.Duration(coreconfig.ClientTimeout())*time.Second, maxConcurrentBackgroundSends)
 }
 
 func newDestination(endpoint logsconfig.Endpoint, contentType string, destinationsContext *client.DestinationsContext, timeout time.Duration, maxConcurrentBackgroundSends int) *Destination {
@@ -74,19 +72,95 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		endpoint.RecoveryInterval,
 		endpoint.RecoveryReset,
 	)
+	typ := SyncProducer
 
 	if coreconfig.Config.Logs.Config == nil {
 		coreconfig.Config.Logs.Config = sarama.NewConfig()
+		// default
 		coreconfig.Config.Logs.Producer.Partitioner = sarama.NewRandomPartitioner
+		if coreconfig.Config.Logs.PartitionStrategy == "round_robin" {
+			coreconfig.Config.Logs.Producer.Partitioner = sarama.NewRoundRobinPartitioner
+		}
+		if coreconfig.Config.Logs.PartitionStrategy == "random" {
+			coreconfig.Config.Logs.Producer.Partitioner = sarama.NewRandomPartitioner
+		}
+		if coreconfig.Config.Logs.PartitionStrategy == "hash" {
+			coreconfig.Config.Logs.Producer.Partitioner = sarama.NewHashPartitioner
+		}
 		coreconfig.Config.Logs.Producer.Return.Successes = true
+		coreconfig.Config.Logs.Producer.Return.Errors = true
+		if coreconfig.BatchConcurrence() > 0 {
+			size := 256
+			if coreconfig.BatchMaxSize() > 256 {
+				size = coreconfig.BatchMaxSize()
+			}
+			coreconfig.Config.Logs.ChannelBufferSize = size
+			coreconfig.Config.Logs.Net.MaxOpenRequests = coreconfig.BatchConcurrence()
+			coreconfig.Config.Logs.Producer.RequiredAcks = sarama.WaitForAll
+		}
+	}
+	if coreconfig.Config.Logs.UseCompression {
+		switch coreconfig.Config.Logs.CompressionCodec {
+		case "gzip":
+			coreconfig.Config.Logs.Config.Producer.Compression = sarama.CompressionGZIP
+		case "snappy":
+			coreconfig.Config.Logs.Config.Producer.Compression = sarama.CompressionSnappy
+		case "lz4":
+			coreconfig.Config.Logs.Config.Producer.Compression = sarama.CompressionLZ4
+		case "zstd":
+			coreconfig.Config.Logs.Config.Producer.Compression = sarama.CompressionZSTD
+		default:
+			coreconfig.Config.Logs.Config.Producer.Compression = sarama.CompressionNone
+		}
+		coreconfig.Config.Logs.Producer.CompressionLevel = coreconfig.Config.Logs.CompressionLevel
+	}
+
+	if coreconfig.BatchConcurrence() > 0 {
+		typ = AsyncProducer
+	}
+	if util.Debug() {
+		log.Println("D! producer type:", typ, coreconfig.Config.Logs.ChannelBufferSize, coreconfig.Config.Logs.Net.MaxOpenRequests)
+	}
+	coreconfig.Config.Logs.Config.Producer.Timeout = timeout
+
+	if coreconfig.Config.Logs.SendWithTLS && coreconfig.Config.Logs.SendType == "kafka" {
+		coreconfig.Config.Logs.Config.Net.TLS.Enable = true
+		coreconfig.Config.Logs.UseTLS = true
+		var err error
+		coreconfig.Config.Logs.Net.TLS.Config, err = coreconfig.Config.Logs.KafkaConfig.ClientConfig.TLSConfig()
+		if err != nil {
+			panic(err)
+		}
+	}
+	if coreconfig.Config.Logs.SaslEnable {
+		coreconfig.Config.Logs.Config.Net.SASL.Enable = true
+		coreconfig.Config.Logs.Config.Net.SASL.User = coreconfig.Config.Logs.SaslUser
+		coreconfig.Config.Logs.Config.Net.SASL.Password = coreconfig.Config.Logs.SaslPassword
+		coreconfig.Config.Logs.Config.Net.SASL.Mechanism = sarama.SASLMechanism(coreconfig.Config.Logs.SaslMechanism)
+		coreconfig.Config.Logs.Config.Net.SASL.Version = coreconfig.Config.Logs.SaslVersion
+		coreconfig.Config.Logs.Config.Net.SASL.Handshake = coreconfig.Config.Logs.SaslHandshake
+		coreconfig.Config.Logs.Config.Net.SASL.AuthIdentity = coreconfig.Config.Logs.SaslAuthIdentity
+	}
+
+	if len(coreconfig.Config.Logs.KafkaVersion) != 0 {
+		for _, v := range sarama.SupportedVersions {
+			if v.String() == coreconfig.Config.Logs.KafkaVersion {
+				coreconfig.Config.Logs.Config.Version = v
+				break
+			}
+		}
+	}
+	if util.Debug() {
+		log.Printf("D! saram config: %+v", coreconfig.Config.Logs.Config)
 	}
 
 	brokers := strings.Split(endpoint.Addr, ",")
-	c, err := sarama.NewSyncProducer(brokers, coreconfig.Config.Logs.Config)
+	c, err := New(typ, brokers, coreconfig.Config.Logs.Config)
 	if err != nil {
 		panic(err)
 	}
-	return &Destination{
+
+	d := &Destination{
 		topic:               endpoint.Topic,
 		brokers:             brokers,
 		apiKey:              endpoint.APIKey,
@@ -99,6 +173,11 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		protocol:            endpoint.Protocol,
 		origin:              endpoint.Origin,
 	}
+	return d
+}
+
+func (d *Destination) Close() {
+	d.client.Close()
 }
 
 func errorToTag(err error) string {
@@ -111,11 +190,10 @@ func errorToTag(err error) string {
 	}
 }
 
-// Send sends a payload over HTTP,
+// Send sends a payload over kafka,
 // the error returned can be retryable and it is the responsibility of the callee to retry.
 func (d *Destination) Send(payload []byte) error {
 	if d.blockedUntil.After(time.Now()) {
-		// log.Printf("%s: sleeping until %v before retrying\n", d.url, d.blockedUntil)
 		d.waitForBackoff()
 	}
 
@@ -148,10 +226,14 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 	if data.Topic != "" {
 		topic = data.Topic
 	}
-	err = NewBuilder().WithMessage(d.apiKey, encodedPayload).WithTopic(topic).Send(d.client)
+	msgKey := d.apiKey
+	if data.MsgKey != "" {
+		msgKey = data.MsgKey
+	}
+	err = NewBuilder().WithMessage(msgKey, encodedPayload).WithTopic(topic).Send(d.client)
 	if err != nil {
 		log.Printf("W! send message to kafka error %s, topic:%s", err, topic)
-		if ctx.Err() == context.Canceled {
+		if errors.Is(ctx.Err(), context.Canceled) {
 			return ctx.Err()
 		}
 		// most likely a network or a connect error, the callee should retry.
@@ -163,7 +245,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 // SendAsync sends a payload in background.
 func (d *Destination) SendAsync(payload []byte) {
 	d.once.Do(func() {
-		payloadChan := make(chan []byte, logsconfig.ChanSize)
+		payloadChan := make(chan []byte, coreconfig.ChanSize())
 		d.sendInBackground(payloadChan)
 		d.payloadChan = payloadChan
 	})
@@ -195,9 +277,6 @@ func (d *Destination) sendInBackground(payloadChan chan []byte) {
 }
 
 func buildContentEncoding(endpoint logsconfig.Endpoint) ContentEncoding {
-	if endpoint.UseCompression {
-		return NewGzipContentEncoding(endpoint.CompressionLevel)
-	}
 	return IdentityContentType
 }
 

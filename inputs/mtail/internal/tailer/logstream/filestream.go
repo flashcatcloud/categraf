@@ -4,7 +4,6 @@
 package logstream
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"expvar"
@@ -13,8 +12,8 @@ import (
 	"os"
 	"sync"
 	"syscall"
-	"time"
 
+	// "github.com/golang/glog"
 	"flashcat.cloud/categraf/inputs/mtail/internal/logline"
 	"flashcat.cloud/categraf/inputs/mtail/internal/waker"
 )
@@ -34,153 +33,143 @@ var fileTruncates = expvar.NewMap("file_truncates_total")
 // a new goroutine and closes itself down.  The shared context is used for
 // cancellation.
 type fileStream struct {
-	ctx   context.Context
-	lines chan<- *logline.LogLine
+	streamBase
+
+	cancel context.CancelFunc
 
 	pathname string // Given name for the underlying file on the filesystem
-
-	mu           sync.RWMutex // protects following fields.
-	lastReadTime time.Time    // Last time a log line was read from this file
-	completed    bool         // The filestream is completed and can no longer be used.
-
-	stopOnce sync.Once     // Ensure stopChan only closed once.
-	stopChan chan struct{} // Close to start graceful shutdown.
 }
 
 // newFileStream creates a new log stream from a regular file.
-func newFileStream(ctx context.Context, wg *sync.WaitGroup, waker waker.Waker, pathname string, fi os.FileInfo, lines chan<- *logline.LogLine, streamFromStart bool) (LogStream, error) {
-	fs := &fileStream{ctx: ctx, pathname: pathname, lastReadTime: time.Now(), lines: lines, stopChan: make(chan struct{})}
-	if err := fs.stream(ctx, wg, waker, fi, streamFromStart); err != nil {
+func newFileStream(ctx context.Context, wg *sync.WaitGroup, waker waker.Waker, pathname string, fi os.FileInfo, oneShot OneShotMode) (LogStream, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	fs := &fileStream{
+		cancel:   cancel,
+		pathname: pathname,
+		streamBase: streamBase{
+			sourcename: pathname,
+			lines:      make(chan *logline.LogLine),
+		},
+	}
+	// Stream from the start of the file when in one shot mode.
+	streamFromStart := oneShot == OneShotEnabled
+	if err := fs.stream(ctx, wg, waker, fi, oneShot, streamFromStart); err != nil {
 		return nil, err
 	}
 	return fs, nil
 }
 
-func (fs *fileStream) LastReadTime() time.Time {
-	fs.mu.RLock()
-	defer fs.mu.RUnlock()
-	return fs.lastReadTime
-}
-
-func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker waker.Waker, fi os.FileInfo, streamFromStart bool) error {
+func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker waker.Waker, fi os.FileInfo, oneShot OneShotMode, streamFromStart bool) error {
 	fd, err := os.OpenFile(fs.pathname, os.O_RDONLY, 0o600)
 	if err != nil {
-		logErrors.Add(fs.pathname, 1)
+		logErrors.Add(fs.sourcename, 1)
 		return err
 	}
-	logOpens.Add(fs.pathname, 1)
-	// glog.V(2).Infof("%v: opened new file", fd)
+	logOpens.Add(fs.sourcename, 1)
+	// glog.V(2).Infof("stream(%s): opened new file", fs.sourcename)
 	if !streamFromStart {
+		// Normal operation for first stream is to ignore the past, and seek to
+		// EOF immediately to start tailing.
 		if _, err := fd.Seek(0, io.SeekEnd); err != nil {
-			logErrors.Add(fs.pathname, 1)
+			logErrors.Add(fs.sourcename, 1)
 			if err := fd.Close(); err != nil {
-				logErrors.Add(fs.pathname, 1)
-				log.Println(err)
+				logErrors.Add(fs.sourcename, 1)
+				log.Printf("stream(%s): closing file: %v", fs.sourcename, err)
 			}
 			return err
 		}
-		// glog.V(2).Infof("%v: seeked to end", fd)
+		// glog.V(2).Infof("stream(%s): seeked to end", fs.sourcename)
 	}
-	b := make([]byte, defaultReadBufferSize)
-	var lastBytes []byte
-	partial := bytes.NewBufferString("")
+
+	lr := NewLineReader(fs.sourcename, fs.lines, fd, defaultReadBufferSize, fs.cancel)
+
 	started := make(chan struct{})
 	var total int
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		defer func() {
-			// glog.V(2).Infof("%v: read total %d bytes from %s", fd, total, fs.pathname)
-			// glog.V(2).Infof("%v: closing file descriptor", fd)
+			// glog.V(2).Infof("stream(%s): read total %d bytes", fs.sourcename, total)
+			// glog.V(2).Infof("stream(%s): closing file descriptor", fs.sourcename)
 			if err := fd.Close(); err != nil {
-				logErrors.Add(fs.pathname, 1)
-				log.Println(err)
+				logErrors.Add(fs.sourcename, 1)
+				log.Printf("stream(%s): closing file: %v", fs.sourcename, err)
 			}
-			logCloses.Add(fs.pathname, 1)
+			logCloses.Add(fs.sourcename, 1)
 		}()
 		close(started)
 		for {
 			// Blocking read but regular files will return EOF straight away.
-			count, err := fd.Read(b)
-			// glog.V(2).Infof("%v: read %d bytes, err is %v", fd, count, err)
+			count, err := lr.ReadAndSend(ctx)
+			// glog.V(2).Infof("stream(%s): read %d bytes, err is %v", fs.sourcename, count, err)
 
 			if count > 0 {
 				total += count
-				// glog.V(2).Infof("%v: decode and send", fd)
-				needSend := lastBytes
-				needSend = append(needSend, b[:count]...)
-				sendCount := decodeAndSend(ctx, fs.lines, fs.pathname, len(needSend), needSend, partial)
-				if sendCount < len(needSend) {
-					lastBytes = append([]byte{}, needSend[sendCount:]...)
-				} else {
-					lastBytes = []byte{}
+
+				// No error implies there is more to read so restart the loop.
+				if err == nil && ctx.Err() == nil {
+					continue
 				}
-				fs.mu.Lock()
-				fs.lastReadTime = time.Now()
-				fs.mu.Unlock()
 			}
 
-			if err != nil && err != io.EOF {
-				logErrors.Add(fs.pathname, 1)
+			if err != nil && !errors.Is(err, io.EOF) {
+				logErrors.Add(fs.sourcename, 1)
 				// TODO: This could be generalised to check for any retryable
 				// errors, and end on unretriables; e.g. ESTALE looks
 				// retryable.
 				if errors.Is(err, syscall.ESTALE) {
-					log.Printf("%v: reopening stream due to %s", fd, err)
-					if nerr := fs.stream(ctx, wg, waker, fi, true); nerr != nil {
-						log.Println(nerr)
+					log.Printf("stream(%s): reopening stream due to %s", fs.sourcename, err)
+					// streamFromStart always true on a stream reopen
+					if nerr := fs.stream(ctx, wg, waker, fi, oneShot, true); nerr != nil {
+						log.Printf("stream(%s): new stream: %v", fs.sourcename, nerr)
 					}
 					// Close this stream.
 					return
 				}
-				log.Println(err)
+				log.Printf("stream(%s): read error: %v", fs.sourcename, err)
 			}
 
 			// If we have read no bytes and are at EOF, check for truncation and rotation.
-			if err == io.EOF && count == 0 {
-				// glog.V(2).Infof("%v: eof an no bytes", fd)
+			if errors.Is(err, io.EOF) && count == 0 {
+				// glog.V(2).Infof("stream(%s): eof an no bytes", fs.sourcename)
 				// Both rotation and truncation need to stat, so check for
 				// rotation first.  It is assumed that rotation is the more
 				// common change pattern anyway.
 				newfi, serr := os.Stat(fs.pathname)
 				if serr != nil {
-					log.Println(serr)
+					log.Printf("stream(%s): stat error: %v", fs.pathname, serr)
 					// If this is a NotExist error, then we should wrap up this
 					// goroutine. The Tailer will create a new logstream if the
 					// file is in the middle of a rotation and gets recreated
 					// in the next moment.  We can't rely on the Tailer to tell
 					// us we're deleted because the tailer can only tell us to
-					// Stop, which ends up causing us to race here against
-					// detection of IsCompleted.
+					// cancel.
 					if os.IsNotExist(serr) {
-						// glog.V(2).Infof("%v: source no longer exists, exiting", fd)
-						if partial.Len() > 0 {
-							sendLine(ctx, fs.pathname, partial, fs.lines)
-						}
-						fs.mu.Lock()
-						fs.completed = true
-						fs.mu.Unlock()
+						// glog.V(2).Infof("stream(%s): source no longer exists, exiting", fs.sourcename)
+						lr.Finish(ctx)
+						close(fs.lines)
 						return
 					}
-					logErrors.Add(fs.pathname, 1)
+					logErrors.Add(fs.sourcename, 1)
 					goto Sleep
 				}
 				if !os.SameFile(fi, newfi) {
-					// glog.V(2).Infof("%v: adding a new file routine", fd)
-					if err := fs.stream(ctx, wg, waker, newfi, true); err != nil {
-						log.Println(err)
+					// glog.V(2).Infof("stream(%s): adding a new file routine", fs.sourcename)
+					// Stream from start always true on a stream reopen
+					if err := fs.stream(ctx, wg, waker, newfi, oneShot, true); err != nil {
+						log.Printf("stream(%s): new stream: %v", fs.sourcename, err)
 					}
 					// We're at EOF so there's nothing left to read here.
 					return
 				}
 				currentOffset, serr := fd.Seek(0, io.SeekCurrent)
 				if serr != nil {
-					logErrors.Add(fs.pathname, 1)
+					logErrors.Add(fs.sourcename, 1)
 					log.Println(serr)
 					continue
 				}
-				// glog.V(2).Infof("%v: current seek is %d", fd, currentOffset)
-				// glog.V(2).Infof("%v: new size is %d", fd, newfi.Size())
+				// glog.V(2).Infof("stream(%s): current seek is %d", fs.sourcename, currentOffset)
+				// glog.V(2).Infof("stream(%s): new size is %d", fs.sourcename, newfi.Size())
 				// We know that newfi is from the current file.  Truncation can
 				// only be detected if the new file is currently shorter than
 				// the current seek offset.  In test this can be a race, but in
@@ -188,50 +177,36 @@ func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 				// than the previous after rotation in the time it takes for
 				// mtail to notice.
 				if newfi.Size() < currentOffset {
-					// glog.V(2).Infof("%v: truncate? currentoffset is %d and size is %d", fd, currentOffset, newfi.Size())
+					// glog.V(2).Infof("stream(%s): truncate? currentoffset is %d and size is %d", fs.sourcename, currentOffset, newfi.Size())
 					// About to lose all remaining data because of the truncate so flush the accumulator.
-					if partial.Len() > 0 {
-						sendLine(ctx, fs.pathname, partial, fs.lines)
-					}
+					lr.Finish(ctx)
 					_, serr := fd.Seek(0, io.SeekStart)
 					if serr != nil {
-						logErrors.Add(fs.pathname, 1)
-						log.Println(serr)
+						logErrors.Add(fs.sourcename, 1)
+						log.Printf("stream(%s): seek: %v", fs.sourcename, serr)
 					}
-					// glog.V(2).Infof("%v: Seeked to %d", fd, p)
-					fileTruncates.Add(fs.pathname, 1)
+					// glog.V(2).Infof("stream(%s): Seeked to %d", fs.sourcename, p)
+					fileTruncates.Add(fs.sourcename, 1)
 					continue
 				}
-			}
-
-			// No error implies there is more to read in this file so go
-			// straight back to read unless it looks like context is Done.
-			if err == nil && ctx.Err() == nil {
-				continue
 			}
 
 		Sleep:
 			// If we get here it's because we've stalled.  First test to see if it's
 			// time to exit.
-			if err == io.EOF || ctx.Err() != nil {
-				select {
-				case <-fs.stopChan:
-					// glog.V(2).Infof("%v: stream has been stopped, exiting", fd)
-					if partial.Len() > 0 {
-						sendLine(ctx, fs.pathname, partial, fs.lines)
-					}
-					fs.mu.Lock()
-					fs.completed = true
-					fs.mu.Unlock()
+			if errors.Is(err, io.EOF) {
+				if oneShot == OneShotEnabled {
+					// Exit now, because oneShot means read only to EOF.
+					// glog.V(2).Infof("stream(%s): EOF in one shot mode, exiting", fs.sourcename)
+					lr.Finish(ctx)
+					close(fs.lines)
 					return
+				}
+				select {
 				case <-ctx.Done():
-					// glog.V(2).Infof("%v: stream has been cancelled, exiting", fd)
-					if partial.Len() > 0 {
-						sendLine(ctx, fs.pathname, partial, fs.lines)
-					}
-					fs.mu.Lock()
-					fs.completed = true
-					fs.mu.Unlock()
+					// glog.V(2).Infof("stream(%s): context has been cancelled, exiting", fs.sourcename)
+					lr.Finish(ctx)
+					close(fs.lines)
 					return
 				default:
 					// keep going
@@ -240,42 +215,26 @@ func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 
 			// Don't exit, instead yield and wait for a termination signal or
 			// wakeup.
-			// glog.V(2).Infof("%v: waiting", fd)
+			// glog.V(2).Infof("stream(%s): waiting", fs.sourcename)
 			select {
-			case <-fs.stopChan:
-				// We may have started waiting here when the stop signal
+			case <-ctx.Done():
+				// Exit after next read attempt.
+				// We may have started waiting here when the cancellation
 				// arrives, but since that wait the file may have been
 				// written to.  The file is not technically yet at EOF so
 				// we need to go back and try one more read.  We'll exit
-				// the stream in the select stanza above.
-				// glog.V(2).Infof("%v: Stopping after next read", fd)
-			case <-ctx.Done():
-				// Same for cancellation; this makes tests stable, but
+				// the stream in the select stanza above. This makes tests stable, but
 				// could argue exiting immediately is less surprising.
 				// Assumption is that this doesn't make a difference in
 				// production.
-				// glog.V(2).Infof("%v: Cancelled after next read", fd)
+				// glog.V(2).Infof("stream(%s): context cancelled, exiting after next read timeout", fs.pathname)
 			case <-waker.Wake():
 				// sleep until next Wake()
-				// glog.V(2).Infof("%v: Wake received", fd)
+				// glog.V(2).Infof("stream(%s): Wake received", fs.sourcename)
 			}
 		}
 	}()
 
 	<-started
 	return nil
-}
-
-func (fs *fileStream) IsComplete() bool {
-	fs.mu.RLock()
-	defer fs.mu.RUnlock()
-	return fs.completed
-}
-
-// Stop implements the LogStream interface.
-func (fs *fileStream) Stop() {
-	fs.stopOnce.Do(func() {
-		log.Println("signalling stop at next EOF")
-		close(fs.stopChan)
-	})
 }

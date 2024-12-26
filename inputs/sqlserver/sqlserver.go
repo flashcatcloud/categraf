@@ -224,16 +224,17 @@ func (s *Instance) Gather(slist *types.SampleList) {
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 	var healthMetrics = make(map[string]*HealthMetric)
-	tags := map[string]string{}
 	for i, pool := range s.pools {
 		wg.Add(1)
 		query_up := Query{ScriptName: "SQLServerUp", Script: sqlServerUp, ResultByRow: false}
 		go func(pool *sql.DB, query Query, serverIndex int) {
 			defer wg.Done()
+			tags := map[string]string{}
 			connectionString := s.Servers[serverIndex]
 			serverName, databaseName := getConnectionIdentifiers(connectionString)
 			tags["serverName"] = serverName
 			tags["databaseName"] = databaseName
+			tags[healthMetricInstanceTag] = serverName
 			rows, err := pool.Query(query.Script)
 			if err != nil {
 				slist.PushSample(inputName, "up", 0, tags)
@@ -271,11 +272,11 @@ func (s *Instance) Gather(slist *types.SampleList) {
 }
 
 func (s *Instance) gatherServer(pool *sql.DB, query Query, slist *types.SampleList, connectionString string) error {
+	serverName, databaseName := getConnectionIdentifiers(connectionString)
+
 	// execute query
 	rows, err := pool.Query(query.Script)
 	if err != nil {
-		serverName, databaseName := getConnectionIdentifiers(connectionString)
-
 		// Error msg based on the format in SSMS. SQLErrorClass() is another term for severity/level: http://msdn.microsoft.com/en-us/library/dd304156.aspx
 		if sqlerr, ok := err.(mssql.Error); ok {
 			return fmt.Errorf("query %s failed for server: %s and database: %s with Msg %d, Level %d, State %d:, Line %d, Error: %w", query.ScriptName,
@@ -287,6 +288,12 @@ func (s *Instance) gatherServer(pool *sql.DB, query Query, slist *types.SampleLi
 
 	defer rows.Close()
 
+	tags := map[string]string{
+		"serverName":            serverName,
+		"databaseName":          databaseName,
+		healthMetricInstanceTag: serverName,
+	}
+
 	// grab the column information from the result
 	query.OrderedColumns, err = rows.Columns()
 	if err != nil {
@@ -294,7 +301,7 @@ func (s *Instance) gatherServer(pool *sql.DB, query Query, slist *types.SampleLi
 	}
 
 	for rows.Next() {
-		err = s.accRow(query, slist, rows)
+		err = s.accRow(query, slist, rows, tags)
 		if err != nil {
 			return err
 		}
@@ -302,7 +309,7 @@ func (s *Instance) gatherServer(pool *sql.DB, query Query, slist *types.SampleLi
 	return rows.Err()
 }
 
-func (s *Instance) accRow(query Query, slist *types.SampleList, row scanner) error {
+func (s *Instance) accRow(query Query, slist *types.SampleList, row scanner, labels map[string]string) error {
 	var columnVars []interface{}
 	var fields = make(map[string]interface{})
 
@@ -324,6 +331,10 @@ func (s *Instance) accRow(query Query, slist *types.SampleList, row scanner) err
 	// measurement: identified by the header
 	// tags: all other fields of type string
 	tags := map[string]string{}
+	for k, v := range labels {
+		tags[k] = v
+	}
+
 	var measurement string
 	for header, val := range columnMap {
 		if str, ok := (*val).(string); ok {
@@ -343,7 +354,7 @@ func (s *Instance) accRow(query Query, slist *types.SampleList, row scanner) err
 		if strings.HasPrefix(measurement, inputName) {
 			slist.PushSample("", measurement+"_value", *columnMap["value"], tags)
 		} else {
-			slist.PushSample("", measurement+"_value", *columnMap["value"], tags)
+			slist.PushSample(inputName, measurement+"_value", *columnMap["value"], tags)
 		}
 
 	} else {
@@ -383,7 +394,12 @@ func (s *Instance) gatherHealth(healthMetrics map[string]*HealthMetric, serv str
 func (s *Instance) accHealth(healthMetrics map[string]*HealthMetric, slist *types.SampleList) {
 	for connectionString, connectionStats := range healthMetrics {
 		sqlInstance, databaseName := getConnectionIdentifiers(connectionString)
-		tags := map[string]string{healthMetricInstanceTag: sqlInstance, healthMetricDatabaseTag: databaseName}
+		tags := map[string]string{
+			healthMetricInstanceTag: sqlInstance,
+			healthMetricDatabaseTag: databaseName,
+			"serverName":            sqlInstance,
+			"databaseName":          databaseName,
+		}
 		fields := map[string]interface{}{
 			healthMetricAttemptedQueries:  connectionStats.AttemptedQueries,
 			healthMetricSuccessfulQueries: connectionStats.SuccessfulQueries,

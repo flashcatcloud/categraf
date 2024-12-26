@@ -51,6 +51,8 @@ type Table struct {
 
 	filterFormat int                `toml:"-"`
 	filtersMap   map[string]*Filter `toml:"-"`
+
+	DebugMode bool
 }
 
 type Filter struct {
@@ -330,20 +332,19 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				} else if errors.Is(err, gosnmp.ErrDecryption) {
 					return nil, fmt.Errorf("decryption error (priv_protocol, priv_password)")
 				} else {
-					return nil, fmt.Errorf("performing get on field %s: %w", f.Name, err)
+					return nil, fmt.Errorf("performing get on field %s(%s): %w", f.Name, oid, err)
 				}
-			} else if pkt != nil && len(pkt.Variables) > 0 {
+			} else if pkt != nil && len(pkt.Variables) > 0 &&
+				pkt.Variables[0].Type != gosnmp.NoSuchObject &&
+				pkt.Variables[0].Type != gosnmp.NoSuchInstance {
 				ent := pkt.Variables[0]
-				if ent.Type == gosnmp.NoSuchObject || ent.Type == gosnmp.NoSuchInstance {
-					return nil, fmt.Errorf("get info for oid %s error %v", oid, ent.Type)
-				}
-				fv, err := fieldConvert(f.Conversion, ent.Value)
+				fv, err := fieldConvert(tr, f.Conversion, ent)
 				if err != nil {
 					return nil, fmt.Errorf("converting %q (OID %s) for field %s: %w", ent.Value, ent.Name, f.Name, err)
 				}
 				ifv[""] = fv
 			} else {
-				log.Println("W! no info for oid", oid)
+				log.Println("W! no info for oid:", oid, "target:", gs.Host())
 			}
 		} else {
 			err := gs.Walk(oid, func(ent gosnmp.SnmpPDU) error {
@@ -379,11 +380,13 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 						if err == nil {
 							// If no error translating, the original value for ent.Value should be replaced
 							ent.Value = oidText
+						} else {
+							log.Printf("E! translate error:%s, entOid:%s, oid:%s", err, entOid, oid)
 						}
 					}
 				}
 
-				fv, err := fieldConvert(f.Conversion, ent.Value)
+				fv, err := fieldConvert(tr, f.Conversion, ent)
 				if err != nil {
 					return &walkError{
 						msg: fmt.Sprintf("converting %q (OID %s) for field %s", ent.Value, ent.Name, f.Name),
@@ -397,8 +400,12 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				// Our callback always wraps errors in a walkError.
 				// If this error isn't a walkError, we know it's not
 				// from the callback
-				if _, ok := err.(*walkError); !ok {
-					return nil, fmt.Errorf("performing bulk walk for field %s: %w", f.Name, err)
+				var walkErr *walkError
+				if !errors.As(err, &walkErr) {
+					log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
+					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
+				} else {
+					log.Printf("W! snmp walk error:%s(%s), oid:%s", err, walkErr.Unwrap(), oid)
 				}
 			}
 		}
@@ -540,16 +547,17 @@ func fieldNonStandardConvertInt64(v string) int64 {
 }
 
 // fieldConvert converts from any type according to the conv specification
-func fieldConvert(conv string, v interface{}) (interface{}, error) {
+func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}, err error) {
 	if conv == "" {
-		if bs, ok := v.([]byte); ok {
+		if bs, ok := ent.Value.([]byte); ok {
 			return string(bs), nil
 		}
-		return v, nil
+		return ent.Value, nil
 	}
 
 	var d int
 	if _, err := fmt.Sscanf(conv, "float(%d)", &d); err == nil || conv == "float" {
+		v = ent.Value
 		switch vt := v.(type) {
 		case float32:
 			v = float64(vt) / math.Pow10(d)
@@ -584,8 +592,18 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 		}
 		return v, nil
 	}
+	if conv == "byte" {
+		if val, ok := ent.Value.([]byte); ok {
+			return byteConvert(string(val))
+		}
+		if val, ok := ent.Value.(string); ok {
+			return byteConvert(val)
+		}
+		return nil, fmt.Errorf("invalid type (%T) for byte conversion", ent.Value)
+	}
 
 	if conv == "int" {
+		v = ent.Value
 		switch vt := v.(type) {
 		case float32:
 			v = int64(vt)
@@ -620,7 +638,7 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 	}
 
 	if conv == "hwaddr" {
-		switch vt := v.(type) {
+		switch vt := ent.Value.(type) {
 		case string:
 			v = net.HardwareAddr(vt).String()
 		case []byte:
@@ -636,9 +654,9 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 		endian := split[1]
 		bit := split[2]
 
-		bv, ok := v.([]byte)
+		bv, ok := ent.Value.([]byte)
 		if !ok {
-			return v, nil
+			return ent.Value, nil
 		}
 
 		switch endian {
@@ -674,7 +692,7 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 	if conv == "ipaddr" {
 		var ipbs []byte
 
-		switch vt := v.(type) {
+		switch vt := ent.Value.(type) {
 		case string:
 			ipbs = []byte(vt)
 		case []byte:
@@ -693,5 +711,74 @@ func fieldConvert(conv string, v interface{}) (interface{}, error) {
 		return v, nil
 	}
 
+	// 55 57 57 51 46 56 32 77 66   may be the ascii arr for string ->  7993.8 MB
+	if conv == "asciitobytes" {
+		v = ent.Value
+		input, ok := v.([]uint8)
+		if !ok {
+			return nil, fmt.Errorf("invalid type of %v (not rune arr)", v)
+		}
+
+		// 将ascii字符切片转换为字符串
+		asciiStr := string(input)
+		return byteConvert(asciiStr)
+	}
+	if conv == "enum" {
+		return tr.SnmpFormatEnum(ent.Name, ent.Value, false)
+	}
+
+	if conv == "enum(1)" {
+		return tr.SnmpFormatEnum(ent.Name, ent.Value, true)
+	}
+
 	return nil, fmt.Errorf("invalid conversion type '%s'", conv)
+}
+
+func byteConvert(str string) (interface{}, error) {
+	if na := strings.TrimSpace(str); na == "N/A" || na == "" {
+		return 0, nil
+	}
+	var numericStr string
+	for _, char := range str {
+		if char >= '0' && char <= '9' || char == '.' {
+			numericStr += string(char)
+		}
+	}
+
+	// 将字符串转换为浮点数
+	value, err := strconv.ParseFloat(numericStr, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid number part of %s", str)
+	}
+
+	// 解析单位并转换为字节数
+	unit := strings.ToUpper(strings.TrimSpace(strings.Trim(str, numericStr)))
+	var result float64
+	switch unit {
+	case "", "B":
+		result = value
+	case "KB":
+		result = value * 1000
+	case "MB":
+		result = value * 1000 * 1000
+	case "GB":
+		result = value * 1000 * 1000 * 1000
+	case "TB":
+		result = value * 1000 * 1000 * 1000 * 1000
+	case "PB":
+		result = value * 1000 * 1000 * 1000 * 1000 * 1000
+	case "KIB":
+		result = value * 1024
+	case "MIB":
+		result = value * 1024 * 1024
+	case "GIB":
+		result = value * 1024 * 1024 * 1024
+	case "TIB":
+		result = value * 1024 * 1024 * 1024 * 1024
+	case "PIB":
+		result = value * 1024 * 1024 * 1024 * 1024 * 1024
+	default:
+		return nil, fmt.Errorf("invalid unit of %s", unit)
+	}
+	return result, nil
 }

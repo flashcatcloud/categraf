@@ -46,6 +46,12 @@ type Instance struct {
 	GatherSystemTableSize           bool `toml:"gather_system_table_size"`
 	GatherSlaveStatus               bool `toml:"gather_slave_status"`
 
+	DisableGlobalStatus      bool `toml:"disable_global_status"`
+	DisableGlobalVariables   bool `toml:"disable_global_variables"`
+	DisableInnodbStatus      bool `toml:"disable_innodb_status"`
+	DisableExtraInnodbStatus bool `toml:"disable_extra_innodb_status"`
+	DisablebinLogs           bool `toml:"disable_binlogs"`
+
 	validMetrics map[string]struct{}
 	dsn          string
 	tls.ClientConfig

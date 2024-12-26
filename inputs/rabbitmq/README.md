@@ -1,6 +1,6 @@
 # rabbitmq
 
-rabbitmq 监控采集插件，fork 自：telegraf/rabbitmq 。不过，这个插件用处不大了，因为从 rabbitmq 3.8 版本开始，就内置了 prometheus 的支持，即，如果 rabbitmq 启用了 prometheus，可以直接暴露 metrics 接口，Categraf 从这个 metrics 接口拉取数据即可
+rabbitmq 监控采集插件，fork 自：[telegraf/rabbitmq](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/rabbitmq) 。不过，这个插件用处不大了，因为从 rabbitmq 3.8 版本开始，就内置了 prometheus 的支持，即，如果 rabbitmq 启用了 prometheus，可以直接暴露 metrics 接口，Categraf 从这个 metrics 接口拉取数据即可
 
 rabbitmq 启用 prometheus 插件：
 

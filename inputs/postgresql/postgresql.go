@@ -83,7 +83,9 @@ type Instance struct {
 
 	MaxIdle int
 	MaxOpen int
-	DB      *sql.DB
+	db      *sql.DB
+
+	connConfig string
 }
 
 var ignoredColumns = map[string]bool{"stats_reset": true}
@@ -131,14 +133,7 @@ func (ins *Instance) Init() error {
 	}
 
 	connectionString := stdlib.RegisterConnConfig(connConfig)
-	if ins.DB, err = sql.Open("pgx", connectionString); err != nil {
-		log.Println("E! can't open db :", err)
-		return err
-	}
-
-	ins.DB.SetMaxOpenConns(ins.MaxOpen)
-	ins.DB.SetMaxIdleConns(ins.MaxIdle)
-	ins.DB.SetConnMaxLifetime(time.Duration(ins.MaxLifetime))
+	ins.connConfig = connectionString
 	return nil
 }
 
@@ -146,7 +141,6 @@ func (ins *Instance) Init() error {
 func (p *Instance) Drop() {
 	// Ignore the returned error as we cannot do anything about it anyway
 	//nolint:errcheck,revive
-	p.DB.Close()
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
@@ -155,6 +149,22 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		query   string
 		columns []string
 	)
+	addr, err := ins.SanitizedAddress()
+	if err != nil {
+		log.Println("E! can't sanitize address :", err)
+	}
+	tags := map[string]string{"server": addr}
+	if ins.db, err = sql.Open("pgx", ins.connConfig); err != nil {
+		slist.PushSample(inputName, "up", 0, tags)
+		log.Println("E! can't open db :", err)
+		return
+	}
+	defer ins.db.Close()
+	slist.PushSample(inputName, "up", 1, tags)
+
+	ins.db.SetMaxOpenConns(ins.MaxOpen)
+	ins.db.SetMaxIdleConns(ins.MaxIdle)
+	ins.db.SetConnMaxLifetime(time.Duration(ins.MaxLifetime))
 
 	if len(ins.Databases) == 0 && len(ins.IgnoredDatabases) == 0 {
 		query = `SELECT * FROM pg_stat_database`
@@ -166,7 +176,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			strings.Join(ins.Databases, "','"))
 	}
 
-	rows, err := ins.DB.Query(query)
+	rows, err := ins.db.Query(query)
 	if err != nil {
 		log.Println("E! failed to execute Query :", err)
 		return
@@ -190,7 +200,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	query = `SELECT * FROM pg_stat_bgwriter`
 
-	bgWriterRow, err := ins.DB.Query(query)
+	bgWriterRow, err := ins.db.Query(query)
 	if err != nil {
 		log.Println("E! failed to execute Query:", err)
 		return
@@ -231,7 +241,7 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	rows, err := ins.DB.QueryContext(ctx, metricConf.Request)
+	rows, err := ins.db.QueryContext(ctx, metricConf.Request)
 
 	if ctx.Err() == context.DeadlineExceeded {
 		log.Println("E! postgresql query timeout, request:", metricConf.Request)
@@ -444,7 +454,7 @@ func parseURL(uri string) (string, error) {
 	return strings.Join(kvs, " "), nil
 }
 
-var kvMatcher, _ = regexp.Compile(`(password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
+var kvMatcher, _ = regexp.Compile(`(user|password|sslcert|sslkey|sslmode|sslrootcert)=\S+ ?`)
 
 // SanitizedAddress utility function to strip sensitive information from the connection string.
 func (ins *Instance) SanitizedAddress() (sanitizedAddress string, err error) {

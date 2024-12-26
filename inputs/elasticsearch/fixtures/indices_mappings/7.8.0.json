@@ -1,0 +1,43 @@
+{
+    "facebook": {
+        "mappings": {
+            "properties": {
+                "contact": {
+                    "properties": {
+                        "email": {
+                            "fields": {
+                                "raw": {
+                                    "type": "keyword"
+                                }
+                            },
+                            "type": "text"
+                        },
+                        "phone": {
+                            "type": "text"
+                        }
+                    }
+                },
+                "name": {
+                    "fields": {
+                        "raw": {
+                            "type": "keyword"
+                        }
+                    },
+                    "type": "text"
+                }
+            }
+        }
+    },
+    "twitter": {
+        "mappings": {
+            "properties": {
+                "email": {
+                    "type": "keyword"
+                },
+                "phone": {
+                    "type": "keyword"
+                }
+            }
+        }
+    }
+}

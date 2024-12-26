@@ -1,4 +1,4 @@
-- 该插件依赖**nginx**的 **http_stub_status_module
+- 该插件依赖 **nginx** 的 **http_stub_status_module**
 
 # 应用场景
 一般用于业务系统做对外或对外路由映射时使用代理服务，是运维最常见且最重要的代理工具。
@@ -93,7 +93,7 @@ server {
 }
 
 浏览器访问https://nginx.domains.com出现：
-Active connections: 5 
+Active connections: 5
 server accepts handled requests
  90837 90837   79582
 Reading: 0 Writing: 1 Waiting: 4
@@ -187,12 +187,12 @@ journalctl -f -n 500 -u categraf | grep "E\!" | grep "W\!"
 
 
 # 监控告警规则配置
-```
-```
+
 个人经验仅供参考：
-超过2000毫秒，为P2级别，启用企业微信应用推送告警，3分钟内恢复发出恢复告警。
-超过5000毫秒，为P1级别，启用电话语音告警&企业微信应用告警，3分钟内恢复发出恢复告警。
-```
+
+- 超过2000毫秒，为P2级别，启用企业微信应用推送告警，3分钟内恢复发出恢复告警。
+- 超过5000毫秒，为P1级别，启用电话语音告警&企业微信应用告警，3分钟内恢复发出恢复告警。
+
 
 # 监控图表配置
 

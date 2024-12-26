@@ -24,6 +24,8 @@ const inputName = "nginx"
 type Nginx struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
+
+	Mappings map[string]map[string]string `toml:"mappings"`
 }
 
 func init() {
@@ -43,6 +45,18 @@ func (ngx *Nginx) Name() string {
 func (ngx *Nginx) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(ngx.Instances))
 	for i := 0; i < len(ngx.Instances); i++ {
+		if len(ngx.Instances[i].Mappings) == 0 {
+			ngx.Instances[i].Mappings = ngx.Mappings
+		} else {
+			m := make(map[string]map[string]string)
+			for k, v := range ngx.Mappings {
+				m[k] = v
+			}
+			for k, v := range ngx.Instances[i].Mappings {
+				m[k] = v
+			}
+			ngx.Instances[i].Mappings = m
+		}
 		ret[i] = ngx.Instances[i]
 	}
 	return ret
@@ -58,6 +72,9 @@ type Instance struct {
 	Username        string          `toml:"username"`
 	Password        string          `toml:"password"`
 	Headers         []string        `toml:"headers"`
+
+	// Mappings Set the mapping of extra tags in batches
+	Mappings map[string]map[string]string `toml:"mappings"`
 
 	tls.ClientConfig
 
@@ -146,7 +163,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 }
 
 func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! nginx... url:", addr)
 	}
 
@@ -167,8 +184,21 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 		request.SetBasicAuth(ins.Username, ins.Password)
 	}
 
+	fields := map[string]interface{}{
+		"up": 1,
+	}
+	tags := map[string]string{}
+	// Add extra tags in batches
+	if m, ok := ins.Mappings[addr.String()]; ok {
+		for k, v := range m {
+			tags[k] = v
+		}
+	}
+
 	resp, err := ins.client.Do(request)
 	if err != nil {
+		fields["up"] = 0
+		pushList(addr, slist, fields, tags)
 		return fmt.Errorf("failed to request the url: %s, error: %s", addr.String(), err)
 	}
 
@@ -180,12 +210,44 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
+		fields["up"] = 0
+		pushList(addr, slist, fields, tags)
 		return fmt.Errorf("the HTTP response status exception, url: %s, status: %s", addr.String(), resp.Status)
 	}
-	r := bufio.NewReader(resp.Body)
+
+	err = parseResponseBody(resp.Body, fields)
+	if err != nil {
+		fields["up"] = 0
+	}
+	pushList(addr, slist, fields, tags)
+	return err
+}
+
+func pushList(addr *url.URL, slist *types.SampleList, fields map[string]interface{}, tags map[string]string) {
+	host, port, err := net.SplitHostPort(addr.Host)
+	if err != nil {
+		host = addr.Host
+		if addr.Scheme == "http" {
+			port = "80"
+		} else if addr.Scheme == "https" {
+			port = "443"
+		} else {
+			port = ""
+		}
+	}
+
+	tags["server"] = host
+	tags["port"] = port
+	tags["target"] = addr.String()
+
+	slist.PushSamples(inputName, fields, tags)
+}
+
+func parseResponseBody(body io.ReadCloser, fields map[string]interface{}) error {
+	r := bufio.NewReader(body)
 
 	// Active connections
-	_, err = r.ReadString(':')
+	_, err := r.ReadString(':')
 	if err != nil {
 		return fmt.Errorf("failed to parse the response, error: %s", err)
 	}
@@ -196,6 +258,8 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	active, err := strconv.ParseUint(strings.TrimSpace(line), 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse the response, error: %s", err)
+	} else {
+		fields["active"] = active
 	}
 
 	// Server accepts handled requests
@@ -211,15 +275,21 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	accepts, err := strconv.ParseUint(data[0], 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse the response, error: %s", err)
+	} else {
+		fields["accepts"] = accepts
 	}
 
 	handled, err := strconv.ParseUint(data[1], 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse the response, error: %s", err)
+	} else {
+		fields["handled"] = handled
 	}
 	requests, err := strconv.ParseUint(data[2], 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse the response, error: %s", err)
+	} else {
+		fields["requests"] = requests
 	}
 
 	// Reading/Writing/Waiting
@@ -231,42 +301,21 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	reading, err := strconv.ParseUint(data[1], 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse the response, error: %s", err)
+	} else {
+		fields["reading"] = reading
 	}
 	writing, err := strconv.ParseUint(data[3], 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse the response, error: %s", err)
+	} else {
+		fields["writing"] = writing
 	}
 	waiting, err := strconv.ParseUint(data[5], 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse the response, error: %s", err)
+	} else {
+		fields["waiting"] = waiting
 	}
-
-	host, port, err := net.SplitHostPort(addr.Host)
-	if err != nil {
-		host = addr.Host
-		if addr.Scheme == "http" {
-			port = "80"
-		} else if addr.Scheme == "https" {
-			port = "443"
-		} else {
-			port = ""
-		}
-	}
-	fields := map[string]interface{}{
-		"active":   active,
-		"accepts":  accepts,
-		"handled":  handled,
-		"requests": requests,
-		"reading":  reading,
-		"writing":  writing,
-		"waiting":  waiting,
-	}
-	tags := map[string]string{
-		"server": host,
-		"port":   port,
-	}
-
-	slist.PushSamples("nginx", fields, tags)
 
 	return nil
 }

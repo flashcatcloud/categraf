@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/message"
 )
 
@@ -32,6 +33,7 @@ type jsonPayload struct {
 	Source    string `json:"fcsource"`
 	Tags      string `json:"fctags"`
 	Topic     string `json:"topic"`
+	MsgKey    string `json:"msg_key"`
 }
 
 // Encode encodes a message into a JSON byte array.
@@ -40,14 +42,38 @@ func (j *jsonEncoder) Encode(msg *message.Message, redactedMsg []byte) ([]byte, 
 	if !msg.Timestamp.IsZero() {
 		ts = msg.Timestamp
 	}
+	accuracy := config.Config.Logs.Accuracy
+	if msg.Origin.LogSource.Config.Accuracy != "" {
+		accuracy = msg.Origin.LogSource.Config.Accuracy
+	}
+	if accuracy == "" {
+		accuracy = "ms"
+	}
+	timestamp := ts.UnixMilli()
+	switch accuracy {
+	case "s":
+		timestamp = timestamp / 1000
+	case "m":
+		timestamp = timestamp / 60000
+	}
+	topic := config.Config.Logs.Topic
+	if msg.Origin.LogSource.Config.Topic != "" {
+		topic = msg.Origin.LogSource.Config.Topic
+	}
+	msgKey := config.Config.Logs.APIKey
+	if config.Config.Logs.SendType == "kafka" {
+		msgKey = msg.GetHostname() + "/" + msg.Origin.GetIdentifier()
+	}
+
 	return json.Marshal(jsonPayload{
 		Message:   toValidUtf8(redactedMsg),
 		Status:    msg.GetStatus(),
-		Timestamp: ts.UnixNano() / nanoToMillis,
+		Timestamp: timestamp,
 		Hostname:  msg.GetHostname(),
 		Service:   msg.Origin.Service(),
 		Source:    msg.Origin.Source(),
 		Tags:      msg.Origin.TagsToJsonString(),
-		Topic:     msg.Origin.LogSource.Config.Topic,
+		Topic:     topic,
+		MsgKey:    msgKey,
 	})
 }

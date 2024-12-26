@@ -15,3 +15,13 @@ func CmdStart(cmd *exec.Cmd) error {
 func CmdKill(cmd *exec.Cmd) error {
 	return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 }
+
+func ansiToUtf8(mbcs []byte) (string, error) {
+	// fake
+	return string(mbcs), nil
+}
+
+func utf8ToAnsi(utf8 string) (string, error) {
+	// fake
+	return utf8, nil
+}

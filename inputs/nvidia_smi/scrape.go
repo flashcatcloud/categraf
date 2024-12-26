@@ -10,10 +10,10 @@ import (
 	"flashcat.cloud/categraf/pkg/cmdx"
 )
 
-func scrape(qFields []qField, nvidiaSmiCommand string) (*table, error) {
+func (s *GPUStats) scrape(qFields []qField) (*table, error) {
 	qFieldsJoined := strings.Join(QFieldSliceToStringSlice(qFields), ",")
 
-	cmdAndArgs := strings.Fields(nvidiaSmiCommand)
+	cmdAndArgs := strings.Fields(s.NvidiaSmiCommand)
 	cmdAndArgs = append(cmdAndArgs, fmt.Sprintf("--query-gpu=%s", qFieldsJoined))
 	cmdAndArgs = append(cmdAndArgs, "--format=csv")
 
@@ -24,7 +24,7 @@ func scrape(qFields []qField, nvidiaSmiCommand string) (*table, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	err, timeout := cmdx.RunTimeout(cmd, time.Second*5)
+	err, timeout := cmdx.RunTimeout(cmd, time.Duration(s.QueryTimeOut))
 	if timeout {
 		return nil, fmt.Errorf("run command: %s timeout", strings.Join(cmdAndArgs, " "))
 	}

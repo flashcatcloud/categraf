@@ -208,7 +208,7 @@ type Queue struct {
 	MessageStats           `json:"message_stats"`
 	Memory                 int64
 	Consumers              int64
-	ConsumerUtilisation    float64 `json:"consumer_utilisation"`
+	ConsumerUtilisation    interface{} `json:"consumer_utilisation"`
 	Name                   string
 	Node                   string
 	Vhost                  string
@@ -378,7 +378,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 func (ins *Instance) requestEndpoint(u string) ([]byte, error) {
 	endpoint := ins.URL + u
 
-	if config.Config.DebugMode {
+	if ins.DebugMod {
 		log.Println("D! requesting:", endpoint)
 	}
 

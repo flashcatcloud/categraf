@@ -17,8 +17,9 @@ const inputName = "nvidia_smi"
 type GPUStats struct {
 	config.PluginConfig
 
-	NvidiaSmiCommand string `toml:"nvidia_smi_command"`
-	QueryFieldNames  string `toml:"query_field_names"`
+	NvidiaSmiCommand string          `toml:"nvidia_smi_command"`
+	QueryFieldNames  string          `toml:"query_field_names"`
+	QueryTimeOut     config.Duration `toml:"query_timeout"`
 
 	qFields               []qField
 	qFieldToMetricInfoMap map[qField]MetricInfo
@@ -42,8 +43,11 @@ func (s *GPUStats) Init() error {
 	if s.NvidiaSmiCommand == "" {
 		return types.ErrInstancesEmpty
 	}
+	if s.QueryTimeOut == 0 {
+		s.QueryTimeOut = config.Duration(5 * time.Second)
+	}
 
-	qFieldsOrdered, qFieldToRFieldMap, err := buildQFieldToRFieldMap(s.QueryFieldNames, s.NvidiaSmiCommand)
+	qFieldsOrdered, qFieldToRFieldMap, err := s.buildQFieldToRFieldMap()
 	if err != nil {
 		return err
 	}
@@ -58,7 +62,6 @@ func (s *GPUStats) Gather(slist *types.SampleList) {
 	if s.NvidiaSmiCommand == "" {
 		return
 	}
-
 	begun := time.Now()
 
 	// scrape use seconds
@@ -67,7 +70,7 @@ func (s *GPUStats) Gather(slist *types.SampleList) {
 		slist.PushFront(types.NewSample(inputName, "scrape_use_seconds", use))
 	}(begun)
 
-	currentTable, err := scrape(s.qFields, s.NvidiaSmiCommand)
+	currentTable, err := s.scrape(s.qFields)
 	if err != nil {
 		slist.PushFront(types.NewSample(inputName, "scraper_up", 0))
 		return
@@ -97,7 +100,7 @@ func (s *GPUStats) Gather(slist *types.SampleList) {
 
 			num, err := transformRawValue(currentCell.rawValue, metricInfo.valueMultiplier)
 			if err != nil {
-				if config.Config.DebugMode {
+				if s.DebugMod {
 					log.Println("D! failed to transform gpu field:", currentCell.qField, "raw value:", currentCell.rawValue, "error:", err)
 				}
 				continue

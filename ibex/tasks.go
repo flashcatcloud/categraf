@@ -20,7 +20,7 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 		rt := types.ReportTask{Id: id, Clock: t.Clock}
 
 		rt.Status = t.GetStatus()
-		if rt.Status == "running" || rt.Status == "killing" {
+		if rt.Status == "killing" {
 			// intermediate state
 			continue
 		}
@@ -28,18 +28,15 @@ func (lt *LocalTasksT) ReportTasks() []types.ReportTask {
 		rt.Stdout = t.GetStdout()
 		rt.Stderr = t.GetStderr()
 
-		stdoutLen := len(rt.Stdout)
-		stderrLen := len(rt.Stderr)
+		stdoutRunes := []rune(rt.Stdout)
+		stderrRunes := []rune(rt.Stderr)
 
-		// 输出太长的话，截断，要不然把数据库撑爆了
-		if stdoutLen > 65535 {
-			start := stdoutLen - 65535
-			rt.Stdout = rt.Stdout[start:]
+		if len(stdoutRunes) > 16380 {
+			rt.Stdout = string(stdoutRunes[:16380]) + "..."
 		}
 
-		if stderrLen > 65535 {
-			start := stderrLen - 65535
-			rt.Stderr = rt.Stderr[start:]
+		if len(stderrRunes) > 16380 {
+			rt.Stderr = string(stderrRunes[:16380]) + "..."
 		}
 
 		ret = append(ret, rt)

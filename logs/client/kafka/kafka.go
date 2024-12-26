@@ -5,7 +5,7 @@ package kafka
 import (
 	"fmt"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 )
 
 type MessageBuilder struct {
@@ -39,7 +39,7 @@ func (s *MessageBuilder) build() (*sarama.ProducerMessage, error) {
 	return &s.ProducerMessage, nil
 }
 
-func (m *MessageBuilder) Send(producer sarama.SyncProducer) error {
+func (m *MessageBuilder) Send(producer Producer) error {
 	if producer == nil {
 		return fmt.Errorf("empty producer")
 	}
@@ -49,6 +49,5 @@ func (m *MessageBuilder) Send(producer sarama.SyncProducer) error {
 		return err
 	}
 
-	_, _, err = producer.SendMessage(msg)
-	return err
+	return producer.Send(msg)
 }

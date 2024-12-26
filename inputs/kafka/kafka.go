@@ -11,7 +11,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/kafka/exporter"
 	"flashcat.cloud/categraf/types"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/go-kit/log/level"
 
 	klog "github.com/go-kit/log"
@@ -122,8 +122,12 @@ type Instance struct {
 	// Regex filter for topics to be monitored
 	TopicsFilter string `toml:"topics_filter_regex,omitempty"`
 
+	TopicExclude string `toml:"topic_exclude_regex,omitempty"`
+
 	// Regex filter for consumer groups to be monitored
 	GroupFilter string `toml:"groups_filter_regex,omitempty"`
+
+	GroupExclude string `toml:"group_exclude_regex,omitempty"`
 
 	// rename metric: kafka_consumergroup_uncommitted_offsets to kafka_consumergroup_lag
 	RenameUncommitOffsetsToLag bool `toml:"rename_uncommit_offset_to_lag,omitempty"`
@@ -173,8 +177,14 @@ func (ins *Instance) Init() error {
 	if len(ins.TopicsFilter) == 0 {
 		ins.TopicsFilter = ".*"
 	}
+	if len(ins.TopicExclude) == 0 {
+		ins.TopicExclude = "^$"
+	}
 	if len(ins.GroupFilter) == 0 {
 		ins.GroupFilter = ".*"
+	}
+	if len(ins.GroupExclude) == 0 {
+		ins.GroupExclude = "^$"
 	}
 
 	options := exporter.Options{
@@ -203,7 +213,7 @@ func (ins *Instance) Init() error {
 
 	ins.l = level.NewFilter(klog.NewLogfmtLogger(klog.NewSyncWriter(os.Stderr)), levelFilter(ins.LogLevel))
 
-	e, err := exporter.New(ins.l, options, ins.TopicsFilter, ins.GroupFilter)
+	e, err := exporter.New(ins.l, options, ins.TopicsFilter, ins.TopicExclude, ins.GroupFilter, ins.GroupExclude)
 	if err != nil {
 		return fmt.Errorf("could not instantiate kafka lag exporter: %w", err)
 	}

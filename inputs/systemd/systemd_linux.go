@@ -29,7 +29,6 @@ import (
 
 	"github.com/coreos/go-systemd/v22/dbus"
 
-	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -82,13 +81,13 @@ func (s *Systemd) Gather(slist *types.SampleList) {
 	begin = time.Now()
 	summary := summarizeUnits(allUnits)
 	s.collectSummaryMetrics(slist, summary)
-	if config.Config.DebugMode {
+	if s.DebugMod {
 		log.Println("D!", "collectSummaryMetrics took", "duration_seconds", time.Since(begin).Seconds())
 	}
 
 	begin = time.Now()
 	units := filterUnits(allUnits, s.unitIncludePattern, s.unitExcludePattern)
-	if config.Config.DebugMode {
+	if s.DebugMod {
 		log.Println("D!", "filterUnits took", "duration_seconds", time.Since(begin).Seconds())
 	}
 

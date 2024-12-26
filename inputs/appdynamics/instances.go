@@ -26,8 +26,9 @@ type (
 		config.InstanceConfig
 
 		config.HTTPProxy
-		URLBase string              `toml:"url_base"`
-		URLVars []map[string]string `toml:"url_vars"`
+		URLBase   string              `toml:"url_base"`
+		URLVars   []map[string]string `toml:"url_vars"`
+		URLVarKey []string            `toml:"url_var_label_keys"`
 
 		URLs            []string          `toml:"-"`
 		Headers         map[string]string `toml:"headers"`
@@ -68,11 +69,13 @@ type (
 		Sum     float64 `json:"sum"`
 		Value   float64 `json:"value"`
 
-		standardDiv float64 `json:"standardDeviation"`
+		StandardDiv float64 `json:"standardDeviation"`
 	}
 )
 
 var _ inputs.SampleGatherer = new(Instance)
+var replacer = strings.NewReplacer(":", "_", "{", "_", "}", "_", "[", "_", "]", "_", "|", "_", "(", "_", ")",
+	"_", " ", "_", "%", "_", "/", "_per_")
 
 func (ins *Instance) Drop() {
 }
@@ -199,17 +202,28 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	wg := new(sync.WaitGroup)
-	for _, target := range ins.URLs {
+	for idx, target := range ins.URLs {
 		wg.Add(1)
-		go func(target string) {
+		go func(idx int, target string) {
 			defer wg.Done()
-			ins.gather(slist, target)
-		}(target)
+			labels := map[string]string{}
+			for k, v := range ins.URLVars[idx] {
+				if len(ins.URLVarKey) == 0 {
+					labels[k] = v
+				}
+				for _, key := range ins.URLVarKey {
+					if k == key {
+						labels[k] = v
+					}
+				}
+			}
+			ins.gather(slist, target, labels)
+		}(idx, target)
 	}
 	wg.Wait()
 }
 
-func (ins *Instance) gather(slist *types.SampleList, link string) {
+func (ins *Instance) gather(slist *types.SampleList, link string, labels map[string]string) {
 	now := time.Now()
 	end := now.Add(-1 * time.Duration(ins.Delay))
 	start := end.Add(-1 * time.Duration(ins.Period))
@@ -217,6 +231,7 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 	e = e - e%60
 	s := start.Unix()
 	s = s - s%60
+	tm := time.Unix(s, 0)
 	if ins.Precision == "ms" {
 		e = e * 1000
 		s = s * 1000
@@ -237,26 +252,25 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 	}
 
 	ins.setHeaders(req)
-	labels := map[string]string{}
 
-	if ins.LabelValue != "" {
-		urlKey, urlVal, err := ins.GenerateLabel(u)
-		if err != nil {
-			log.Println("E! failed to generate url label value:", err)
-			return
-		}
-		labels[urlKey] = urlVal
+	gTags, err := ins.GenerateLabel(u)
+	if err != nil {
+		log.Println("E! failed to generate url label value:", err)
+		return
+	}
+	for k, v := range gTags {
+		labels[k] = v
 	}
 
 	res, err := ins.client.Do(req)
 	if err != nil {
-		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(time.Now()))
+		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(tm))
 		log.Println("E! failed to query url:", u.String(), "error:", err)
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
-		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(time.Now()))
+		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(tm))
 		log.Println("E! failed to query url:", u.String(), "status code:", res.StatusCode)
 		return
 	}
@@ -265,12 +279,12 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(time.Now()))
+		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(tm))
 		log.Println("E! failed to read response body, url:", u.String(), "error:", err)
 		return
 	}
 
-	slist.PushFront(types.NewSample("", "up", 1, labels).SetTime(time.Now()))
+	slist.PushFront(types.NewSample("", "up", 1, labels).SetTime(tm))
 	metrics := []Metric{}
 	err = json.Unmarshal(body, &metrics)
 	if err != nil {
@@ -283,25 +297,10 @@ func (ins *Instance) gather(slist *types.SampleList, link string) {
 			name = names[len(names)-1]
 		}
 
-		name = strings.ReplaceAll(name, ":", "_")
-		name = strings.ReplaceAll(name, "{", "_")
-		name = strings.ReplaceAll(name, "}", "_")
-		name = strings.ReplaceAll(name, "[", "_")
-		name = strings.ReplaceAll(name, "]", "_")
-		name = strings.ReplaceAll(name, "|", "_")
-		name = strings.ReplaceAll(name, "(", "_")
-		name = strings.ReplaceAll(name, ")", "_")
-		name = strings.ReplaceAll(name, " ", "_")
-		name = strings.ReplaceAll(name, "%", "_")
-		name = strings.ReplaceAll(name, "/", "_per_")
-		name = stringx.SnakeCase(name)
+		name = stringx.SnakeCase(replacer.Replace(name))
 
 		labels["metric_id"] = fmt.Sprintf("%v", metric.ID)
-		labels["metric_path"] = metric.Path
 		for _, val := range metric.Values {
-			sec := val.Timestamp / 1000
-			nsec := (val.Timestamp - sec*1000) * 1e6
-			tm := time.Unix(sec, nsec)
 			for _, filter := range ins.Filters {
 				if filter == "current" {
 					slist.PushFront(types.NewSample(inputName, name+"_current", val.Current, labels).SetTime(tm))

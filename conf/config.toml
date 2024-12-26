@@ -7,24 +7,31 @@ print_configs = false
 # "xx" -> use specified string xx
 # "$hostname" -> auto detect hostname
 # "$ip" -> auto detect ip
+# "$sn" -> auto detect bios serial number
 # "$hostname-$ip" -> auto detect hostname and ip to replace the vars
 hostname = ""
 
 # will not add label(agent_hostname) if true
 omit_hostname = false
 
-# # s | ms
-# precision = "ms"
-
-# global collect interval
+# global collect interval, unit: second
 interval = 15
 
 # input provider settings; optional: local / http
 providers = ["local"]
 
+# The concurrency setting controls the number of concurrent tasks spawned for each input. 
+# By default, it is set to runtime.NumCPU() * 10. This setting is particularly useful when dealing
+# with configurations that involve extensive instances of input like ping, net_response, or http_response.
+# As multiple goroutines run simultaneously, the "ResponseTime" metric might appear larger than expected. 
+# However, utilizing the concurrency setting can help mitigate this issue and optimize the response time.
+concurrency = -1
+
+# Setting http.ignore_global_labels = true if disabled report custom labels
 [global.labels]
 # region = "shanghai"
 # env = "localhost"
+# sn = "$sn"
 
 [log]
 # file_name is the file to write logs to
@@ -49,6 +56,14 @@ chan_size = 1000000
 [[writers]]
 url = "http://127.0.0.1:17000/prometheus/v1/write"
 
+## Optional TLS Config
+# tls_min_version = "1.2"
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = true
+
 # Basic auth username
 basic_auth_user = ""
 
@@ -68,6 +83,9 @@ enable = false
 address = ":9100"
 print_access = false
 run_mode = "release"
+ignore_hostname = false
+agent_host_tag = ""
+ignore_global_labels = false
 
 [ibex]
 enable = false

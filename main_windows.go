@@ -31,7 +31,12 @@ var (
 
 func runAgent(ag *agent.Agent) {
 	if !winsvc.IsAnInteractiveSession() {
-		initLog("categraf.log")
+		if config.Config.Log.FileName == "stdout" || config.Config.Log.FileName == "stderr" ||
+			config.Config.Log.FileName == "" {
+			initLog("categraf.log")
+		} else {
+			initLog(config.Config.Log.FileName)
+		}
 
 		if err := winsvc.RunAsService(*flagWinSvcName, ag.Start, ag.Stop, false); err != nil {
 			log.Fatalln("F! failed to run windows service:", err)

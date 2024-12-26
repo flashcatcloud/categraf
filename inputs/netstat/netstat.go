@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -53,11 +52,10 @@ func (s *NetStats) Name() string {
 }
 
 func (s *NetStats) gatherSummary(slist *types.SampleList) {
-	if runtime.GOOS != "linux" {
-		log.Println("W! netstat_summary is only supported on linux")
+	if s.DisableSummaryStats {
 		return
 	}
-	if s.DisableSummaryStats {
+	if runtime.GOOS != "linux" {
 		return
 	}
 	tags := map[string]string{}
@@ -66,7 +64,7 @@ func (s *NetStats) gatherSummary(slist *types.SampleList) {
 	if ok {
 		f = path.Join(prefix, f)
 	}
-	bs, err := ioutil.ReadFile(f)
+	bs, err := os.ReadFile(f)
 	if err != nil {
 		log.Println("E! failed to read sockstat", f, err)
 		return

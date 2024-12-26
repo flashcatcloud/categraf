@@ -89,12 +89,12 @@ func parseStorageStatsFromInfo(info types.Info) ([]*StorageStats, error) {
 		valueString := entry[1]
 		fields := strings.Fields(key)
 		if len(fields) != 3 || strings.ToLower(fields[1]) != "space" {
-			log.Println("ignoring invalid storage stat: %s", key)
+			log.Println("ignoring invalid storage stat: ", key)
 			continue
 		}
 		valueInt, err := parseDiskQuantity(valueString)
 		if err != nil {
-			log.Println("ignoring invalid value %s for stat %s: %s", valueString, key, err)
+			log.Printf("ignoring invalid value %s for stat %s: %s", valueString, key, err)
 			continue
 		}
 		storageType := strings.ToLower(fields[0])

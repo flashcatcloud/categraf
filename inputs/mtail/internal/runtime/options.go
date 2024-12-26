@@ -14,6 +14,13 @@ import (
 // Option configures a new program Runtime.
 type Option func(*Runtime) error
 
+func ProgramContent(progs map[string]string) Option {
+	return func(r *Runtime) error {
+		r.progs = progs
+		return nil
+	}
+}
+
 // OverrideLocation sets the timezone location for the VM.
 func OverrideLocation(loc *time.Location) Option {
 	return func(r *Runtime) error {

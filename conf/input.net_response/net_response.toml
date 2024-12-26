@@ -1,6 +1,10 @@
 # # collect interval
 # interval = 15
 
+[mappings]
+# "127.0.0.1:22"= {region="local",ssh="test"}
+# "127.0.0.1:22"= {region="local",ssh="redis"}
+
 [[instances]]
 targets = [
 #     "127.0.0.1:22",

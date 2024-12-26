@@ -1,7 +1,6 @@
 package inputs
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -57,7 +56,7 @@ type Provider interface {
 	LoadInputConfig([]cfg.ConfigWithFormat, Input) (map[string]Input, error)
 }
 
-func NewProvider(c *config.ConfigType, op InputOperation) (Provider, error) {
+func NewProvider(c *config.ConfigType, op InputOperation) ([]Provider, error) {
 	log.Println("I! use input provider:", c.Global.Providers)
 	// 不添加provider配置 则默认使用local
 	// 兼容老版本
@@ -65,8 +64,15 @@ func NewProvider(c *config.ConfigType, op InputOperation) (Provider, error) {
 		c.Global.Providers = append(c.Global.Providers, "local")
 	}
 	providers := make([]Provider, 0, len(c.Global.Providers))
+	record := make(map[string]struct{})
 	for _, p := range c.Global.Providers {
 		name := strings.ToLower(p)
+		if _, ok := record[name]; ok {
+			log.Println("W! duplicate input provider:", name)
+			continue
+		} else {
+			record[name] = struct{}{}
+		}
 		switch name {
 		case "http":
 			provider, err := newHTTPProvider(c, op)
@@ -74,109 +80,16 @@ func NewProvider(c *config.ConfigType, op InputOperation) (Provider, error) {
 				return nil, err
 			}
 			providers = append(providers, provider)
-		default:
+		case "local":
 			provider, err := newLocalProvider(c)
 			if err != nil {
 				return nil, err
 			}
 			providers = append(providers, provider)
+		default:
+			panic("unsupported input provider: " + name)
 		}
 	}
 
-	return &ProviderManager{
-		providers: providers,
-	}, nil
-}
-
-// ProviderManager combines multiple Provider's config together
-type ProviderManager struct {
-	providers []Provider
-}
-
-func (pm *ProviderManager) Name() string {
-	return "pm"
-}
-
-func (pm *ProviderManager) StartReloader() {
-	for _, p := range pm.providers {
-		p.StartReloader()
-	}
-}
-
-func (pm *ProviderManager) StopReloader() {
-	for _, p := range pm.providers {
-		p.StopReloader()
-	}
-}
-
-func (pm *ProviderManager) LoadConfig() (bool, error) {
-	changed := false
-	for _, p := range pm.providers {
-		ok, err := p.LoadConfig()
-		if err != nil {
-			log.Printf("E! provider manager, LoadConfig of %s err: %s", p.Name(), err)
-		} else {
-			changed = changed || ok
-		}
-	}
-	return changed, nil
-}
-
-// GetInputs 返回带有provider前缀的inputName
-func (pm *ProviderManager) GetInputs() ([]string, error) {
-	inputs := make([]string, 0, 40)
-	for _, p := range pm.providers {
-		pInputs, err := p.GetInputs()
-		if err != nil {
-			log.Printf("E! provider manager, GetInputs of %s error: %v, skip", p.Name(), err)
-			continue
-		}
-		for _, inputKey := range pInputs {
-			inputs = append(inputs, FormatInputName(p.Name(), inputKey))
-		}
-	}
-
-	return inputs, nil
-}
-
-// GetInputConfig 寻找匹配的Provider，从中查找input
-func (pm *ProviderManager) GetInputConfig(inputName string) ([]cfg.ConfigWithFormat, error) {
-	cwf := make([]cfg.ConfigWithFormat, 0, len(pm.providers))
-	providerName, inputKey := ParseInputName(inputName)
-	for _, p := range pm.providers {
-		// 没有匹配，说明input不是该provider提供的
-		if providerName != p.Name() {
-			continue
-		}
-
-		pcwf, err := p.GetInputConfig(inputKey)
-		if err != nil {
-			log.Printf("E! provider manager, failed to get config of %s from %s, error: %s", inputName, p.Name(), err)
-			continue
-		}
-
-		cwf = append(cwf, pcwf...)
-	}
-
-	if len(cwf) == 0 {
-		return nil, fmt.Errorf("provider manager, failed to get config of %s", inputName)
-	}
-
-	return cwf, nil
-}
-
-func (pm *ProviderManager) LoadInputConfig(configs []cfg.ConfigWithFormat, input Input) (map[string]Input, error) {
-	// 从配置中获取provider
-	inputs := make(map[string]Input)
-	for _, p := range pm.providers {
-		is, err := p.LoadInputConfig(configs, input)
-		if err != nil {
-			return nil, err
-		}
-		for s, i := range is {
-			inputs[s] = i
-		}
-	}
-
-	return inputs, nil
+	return providers, nil
 }

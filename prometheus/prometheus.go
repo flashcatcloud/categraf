@@ -17,6 +17,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/prometheus/model/histogram"
+	"github.com/prometheus/prometheus/model/metadata"
+
 	coreconfig "flashcat.cloud/categraf/config"
 	"github.com/alecthomas/units"
 	"github.com/go-kit/log"
@@ -169,6 +172,14 @@ func (n notReadyAppender) Append(ref storage.SeriesRef, l labels.Labels, t int64
 }
 
 func (n notReadyAppender) AppendExemplar(ref storage.SeriesRef, l labels.Labels, e exemplar.Exemplar) (storage.SeriesRef, error) {
+	return 0, tsdb.ErrNotReady
+}
+
+func (n notReadyAppender) AppendHistogram(ref storage.SeriesRef, l labels.Labels, t int64, h *histogram.Histogram) (storage.SeriesRef, error) {
+	return 0, tsdb.ErrNotReady
+}
+
+func (n notReadyAppender) UpdateMetadata(ref storage.SeriesRef, l labels.Labels, m metadata.Metadata) (storage.SeriesRef, error) {
 	return 0, tsdb.ErrNotReady
 }
 
@@ -385,7 +396,7 @@ func (opts tsdbOptions) ToTSDBOptions() tsdb.Options {
 		RetentionDuration:              int64(time.Duration(opts.RetentionDuration) / time.Millisecond),
 		MaxBytes:                       int64(opts.MaxBytes),
 		NoLockfile:                     opts.NoLockfile,
-		AllowOverlappingBlocks:         opts.AllowOverlappingBlocks,
+		AllowOverlappingCompaction:     true,
 		WALCompression:                 opts.WALCompression,
 		HeadChunksWriteQueueSize:       opts.HeadChunksWriteQueueSize,
 		StripeSize:                     opts.StripeSize,
@@ -465,6 +476,10 @@ var (
 	isRunning int32
 )
 
+func debug() bool {
+	return coreconfig.Config.DebugMode && strings.Contains(coreconfig.Config.InputFilters, "prometheus-agent")
+}
+
 func Start() {
 	var (
 		err error
@@ -485,7 +500,7 @@ func Start() {
 		},
 	}
 
-	if coreconfig.Config.DebugMode || coreconfig.Config.TestMode {
+	if debug() {
 		cfg.promlogConfig.Level.Set("debug")
 	} else {
 		cfg.promlogConfig.Level.Set(coreconfig.Config.Prometheus.LogLevel)
@@ -520,9 +535,33 @@ func Start() {
 	if len(cfg.agentStoragePath) == 0 {
 		cfg.agentStoragePath = "./data-agent"
 	}
-	if cfg.tsdb.MinBlockDuration == model.Duration(0) {
-		cfg.tsdb.MinBlockDuration = model.Duration(2 * time.Hour)
+	if coreconfig.Config.Prometheus.MinBlockDuration == coreconfig.Duration(0) {
+		// keep data in memory for 10min by default
+		cfg.tsdb.MinBlockDuration = model.Duration(10 * time.Minute)
+	} else {
+		cfg.tsdb.MinBlockDuration = model.Duration(coreconfig.Config.Prometheus.MinBlockDuration)
 	}
+	if coreconfig.Config.Prometheus.MaxBlockDuration == coreconfig.Duration(0) {
+		cfg.tsdb.MaxBlockDuration = model.Duration(20 * time.Minute)
+	} else {
+		cfg.tsdb.MaxBlockDuration = model.Duration(coreconfig.Config.Prometheus.MaxBlockDuration)
+	}
+	if coreconfig.Config.Prometheus.RetentionDuration == coreconfig.Duration(0) {
+		// reserve data for 24h by default
+		cfg.tsdb.RetentionDuration = model.Duration(24 * time.Hour)
+	} else {
+		cfg.tsdb.RetentionDuration = model.Duration(coreconfig.Config.Prometheus.RetentionDuration)
+	}
+	if len(coreconfig.Config.Prometheus.RetentionSize) == 0 {
+		// max size is 1GB by default
+		cfg.tsdb.MaxBytes = 1024 * 1024 * 1024
+	} else {
+		cfg.tsdb.MaxBytes, err = units.ParseBase2Bytes(coreconfig.Config.Prometheus.RetentionSize)
+		if err != nil {
+			panic(fmt.Sprintf("retention_size:%s format error %s", coreconfig.Config.Prometheus.RetentionSize, err))
+		}
+	}
+
 	if cfg.webTimeout == model.Duration(0) {
 		cfg.webTimeout = model.Duration(time.Minute * 5)
 	}
@@ -651,18 +690,15 @@ func Start() {
 	{
 		// Termination handler.
 		term := make(chan os.Signal, 1)
-		signal.Notify(term, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGPIPE)
+		signal.Notify(term, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 		cancel := make(chan struct{})
 		g.Add(
 			func() error {
 				// Don't forget to release the reloadReady channel so that waiting blocks can exit normally.
 				select {
 				case sig := <-term:
-					level.Warn(logger).Log("msg", "Received "+sig.String())
-					if sig != syscall.SIGPIPE {
-						level.Warn(logger).Log("msg", "exiting gracefully...")
-						reloadReady.Close()
-					}
+					level.Warn(logger).Log("msg", "Received "+sig.String()+" exiting gracefully...")
+					reloadReady.Close()
 				case <-webHandler.Quit():
 					level.Warn(logger).Log("msg", "Received termination request via web service, exiting gracefully...")
 				case <-cancel:
@@ -734,7 +770,7 @@ func Start() {
 		// Make sure that sighup handler is registered with a redirect to the channel before the potentially
 		// long and synchronous tsdb init.
 		hup := make(chan os.Signal, 1)
-		signal.Notify(hup, syscall.SIGHUP)
+		signal.Notify(hup, syscall.SIGHUP, syscall.SIGPIPE)
 		cancel := make(chan struct{})
 		g.Add(
 			func() error {
@@ -742,7 +778,11 @@ func Start() {
 
 				for {
 					select {
-					case <-hup:
+					case ch := <-hup:
+						if ch == syscall.SIGPIPE {
+							// broken pipe , do nothing
+							continue
+						}
 						if err := reloadConfig(cfg.configFile, cfg.enableExpandExternalLabels, cfg.tsdb.EnableExemplarStorage, logger, reloaders...); err != nil {
 							level.Error(logger).Log("msg", "Error reloading config", "err", err)
 						}

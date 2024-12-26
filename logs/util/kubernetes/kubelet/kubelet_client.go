@@ -13,7 +13,7 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -22,6 +22,7 @@ import (
 	"time"
 
 	coreconfig "flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/logs/util"
 	"flashcat.cloud/categraf/logs/util/kubernetes"
 )
 
@@ -128,13 +129,15 @@ func (kc *kubeletClient) query(ctx context.Context, path string) ([]byte, int, e
 	}
 	defer response.Body.Close()
 
-	b, err := ioutil.ReadAll(response.Body)
+	b, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Printf("Fail to read request %s body: %s", req.URL.String(), err)
 		return nil, 0, err
 	}
 
-	log.Printf("Successfully queried %s, status code: %d, body len: %d", req.URL.String(), response.StatusCode, len(b))
+	if util.Debug() {
+		log.Printf("Successfully queried %s, status code: %d, body len: %d", req.URL.String(), response.StatusCode, len(b))
+	}
 	return b, response.StatusCode, nil
 }
 

@@ -1,0 +1,73 @@
+name: Continuous Integration
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
+    paths-ignore:
+      - 'conf/**'
+      - 'docker/**'
+      - 'doc/**'
+      - 'k8s/**'
+      - 'scripts/**'
+      - '**.md'
+      - '.gitignore'
+
+env:
+  GO111MODULE: on
+  GONOSUMDB: "*"
+  GOSUMDB: off
+
+jobs:
+  CommitLint:
+    name: Commit Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 100
+      - name: Run commitlint
+        uses: wagoid/commitlint-github-action@v5
+        with:
+          configFile: .github/commitlint.config.js
+  GoLint:
+    name: "Code Analysis"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: WillAbides/setup-go-faster@v1.14.0
+        with:
+          go-version: "1.21"
+      - name: Run golang-ci-lint
+        uses: golangci/golangci-lint-action@v3.6.0
+        with:
+          version: v1.53
+          args: --timeout=10m --tests=false
+          only-new-issues: true
+          skip-pkg-cache: true
+          skip-build-cache: true
+      - name: Run go version check
+        run: make go-version-check
+      - name: Run go vet check
+        run: make go-vet-check
+  BuildCheck:
+    name: "Go Build Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: WillAbides/setup-go-faster@v1.14.0
+        with:
+          go-version: "1.21"
+      - name: make vendor
+        run: make vendor-ci
+      - name: go build linux
+        run: make build-linux && make build-linux-arm
+      - name: go build windows
+        run: make build-windows

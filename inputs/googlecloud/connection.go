@@ -6,11 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"flashcat.cloud/categraf/inputs/googlecloud/internal"
+	"flashcat.cloud/categraf/types"
+
 	"cloud.google.com/go/monitoring/apiv3/v2/monitoringpb"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/api/iterator"
-
-	"flashcat.cloud/categraf/types"
 )
 
 // func (ins *Instance) DescribeMetric(w io.Writer, metricType string) error {
@@ -117,6 +118,16 @@ import (
 // 	return nil
 // }
 
+var distributionQuantileBuckets = []string{
+	"p50",
+	"p75",
+	"p90",
+	"p95",
+	"p99",
+	"p999",
+	"mean",
+}
+
 func (ins *Instance) readTimeSeriesValue(slist *types.SampleList, filter string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
 	defer cancel()
@@ -158,14 +169,54 @@ func (ins *Instance) readTimeSeriesValue(slist *types.SampleList, filter string)
 		if labels["resource_type"] == "gce_instance" {
 			labels[ins.GceHostTag] = labels["instance_name"]
 		}
-		metric := strings.ReplaceAll(labels["metric_type"], ".googleapis.com/", "")
-		metric = strings.ReplaceAll(labels["metric_type"], "/", "_")
+		metric := strings.ReplaceAll(labels["metric_type"], "/", "_")
+		// metric = strings.ReplaceAll(labels["metric_type"], ".googleapis.com/", "")
 		samples := make([]*types.Sample, 0, len(resp.GetPoints()))
+		var val interface{}
 		for _, point := range resp.GetPoints() {
-			samples = append(samples,
-				types.NewSample("gcp", metric, point.GetValue().GetDoubleValue(), labels).
-					SetTime(time.Unix(point.GetInterval().GetEndTime().GetSeconds(), 0)))
+			val = 0
+			pointTS := time.Unix(point.GetInterval().GetEndTime().GetSeconds(), 0)
+
+			switch point.GetValue().GetValue().(type) {
+			case *monitoringpb.TypedValue_DoubleValue:
+				val = point.GetValue().GetDoubleValue()
+			case *monitoringpb.TypedValue_Int64Value:
+				val = point.GetValue().GetInt64Value()
+			case *monitoringpb.TypedValue_DistributionValue:
+				// Calculate quantile sum
+				val = point.GetValue().GetDistributionValue().GetCount()
+				samples = append(
+					samples,
+					types.NewSample("gcp", metric+"_sum", val, labels).SetTime(pointTS),
+				)
+
+				// try to calculate quantile value
+				if quantile, err := internal.GenerateHistogramBuckets(point.GetValue().GetDistributionValue()); err != nil {
+					samples = append(
+						samples,
+						types.NewSample("gcp", metric, val, labels).SetTime(pointTS),
+					)
+				} else {
+					// append mean quantile to slice
+					for i, qt := range append(
+						quantile.GetQuantiles(),
+						point.GetValue().GetDistributionValue().GetMean(),
+					) {
+						// add new quantile label to identify quantile
+						lbs := labels
+						lbs["quantile"] = distributionQuantileBuckets[i]
+						samples = append(samples, types.NewSample("gcp", metric, qt, lbs).SetTime(pointTS))
+					}
+				}
+
+				continue
+			}
+			samples = append(
+				samples,
+				types.NewSample("gcp", metric, val, labels).SetTime(pointTS),
+			)
 		}
+
 		slist.PushFrontN(samples)
 	}
 

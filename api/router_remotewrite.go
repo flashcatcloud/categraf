@@ -23,8 +23,8 @@ func remoteWrite(c *gin.Context) {
 		return
 	}
 
-	ignoreHostname := c.GetBool("ignore_hostname")
-	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
+	ignoreHostname := config.Config.HTTP.IgnoreHostname || c.GetBool("ignore_hostname")
+	ignoreGlobalLabels := config.Config.HTTP.IgnoreGlobalLabels || c.GetBool("ignore_global_labels")
 	for i := 0; i < count; i++ {
 		// 去除重复的数据
 		if duplicateLabelKey(req.Timeseries[i]) {
@@ -37,7 +37,7 @@ func remoteWrite(c *gin.Context) {
 		}
 		// add global labels
 		if !ignoreGlobalLabels {
-			for k, v := range config.Config.Global.Labels {
+			for k, v := range config.GlobalLabels() {
 				if _, has := tags[k]; has {
 					continue
 				}

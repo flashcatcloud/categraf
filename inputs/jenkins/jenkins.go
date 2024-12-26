@@ -311,7 +311,7 @@ func (ins *Instance) getJobDetail(jr jobRequest, slist *types.SampleList) error 
 	}
 
 	if build.Building {
-		if config.Config.DebugMode {
+		if ins.DebugMod {
 			log.Println("Ignore running build on ", jr.name, "build", number)
 		}
 		return nil

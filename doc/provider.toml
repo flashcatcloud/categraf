@@ -1,26 +1,29 @@
 [http_provider]
-# HttpRemoteProvider插件，通过Http请求的方式获取Categraf的配置
-# 通过设置global中的provider为HttpRemoteProvider启用
+# HttpProvider插件，通过Http请求的方式获取Categraf的配置
+# 通过设置global中的provider为HttpProvider启用
 # example request: GET /categraf/configs?agent=categraf&host=machine1 HTTP/1.1
 # struct of response
-# type httpRemoteProviderResponse struct {
+# type httpProviderResponse struct {
 #	// version is signature/md5 of current Config, server side should deal with the Version calculate
 #	Version string `json:"version"`
 #
 #	// ConfigMap (InputName -> Config), if version is identical, server side can set Config to nil
-#	Configs map[string]cfg.ConfigWithFormat `json:"configs"`
+#	Configs map[string]map[string]*cfg.ConfigWithFormat `json:"configs"`
 # }
 # type ConfigWithFormat struct {
 # 	Config string       `json:"config"`
 # 	Format ConfigFormat `json:"format"`
+# 	checkSum string `json:"-"`
 # }
 # example response:
 # {
 #  "version": "111",
 #  "configs": {
 #    "mysql": {
-#      "config": "# # collect interval\n# interval = 15\n\n[[ instances ]]\naddress = \"172.33.44.55:3306\"\nusername = \"111\"\npassword = \"2222\"\nlabels = { instance = \"mysql2\"}\nextra_innodb_metrics =true",
-#      "format": "toml"
+#       "checksum": {
+#         "config": "# # collect interval\n# interval = 15\n\n[[ instances ]]\naddress = \"172.33.44.55:3306\"\nusername = \"111\"\npassword = \"2222\"\nlabels = { instance = \"mysql2\"}\nextra_innodb_metrics =true",
+#         "format": "toml"
+#       }
 #    }
 #  }
 #}

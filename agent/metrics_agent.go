@@ -13,25 +13,34 @@ import (
 
 	// auto registry
 	_ "flashcat.cloud/categraf/inputs/aliyun"
+	_ "flashcat.cloud/categraf/inputs/apache"
 	_ "flashcat.cloud/categraf/inputs/appdynamics"
 	_ "flashcat.cloud/categraf/inputs/arp_packet"
+	_ "flashcat.cloud/categraf/inputs/bind"
 	_ "flashcat.cloud/categraf/inputs/cadvisor"
+	_ "flashcat.cloud/categraf/inputs/chrony"
 	_ "flashcat.cloud/categraf/inputs/clickhouse"
 	_ "flashcat.cloud/categraf/inputs/cloudwatch"
 	_ "flashcat.cloud/categraf/inputs/conntrack"
 	_ "flashcat.cloud/categraf/inputs/consul"
 	_ "flashcat.cloud/categraf/inputs/cpu"
+	_ "flashcat.cloud/categraf/inputs/dcgm"
 	_ "flashcat.cloud/categraf/inputs/disk"
 	_ "flashcat.cloud/categraf/inputs/diskio"
 	_ "flashcat.cloud/categraf/inputs/dns_query"
 	_ "flashcat.cloud/categraf/inputs/docker"
 	_ "flashcat.cloud/categraf/inputs/elasticsearch"
+	_ "flashcat.cloud/categraf/inputs/ethtool"
 	_ "flashcat.cloud/categraf/inputs/exec"
+	_ "flashcat.cloud/categraf/inputs/filecount"
+	_ "flashcat.cloud/categraf/inputs/gnmi"
 	_ "flashcat.cloud/categraf/inputs/googlecloud"
 	_ "flashcat.cloud/categraf/inputs/greenplum"
 	_ "flashcat.cloud/categraf/inputs/haproxy"
 	_ "flashcat.cloud/categraf/inputs/http_response"
+	_ "flashcat.cloud/categraf/inputs/influxdb"
 	_ "flashcat.cloud/categraf/inputs/ipmi"
+	_ "flashcat.cloud/categraf/inputs/iptables"
 	_ "flashcat.cloud/categraf/inputs/ipvs"
 	_ "flashcat.cloud/categraf/inputs/jenkins"
 	_ "flashcat.cloud/categraf/inputs/jolokia_agent"
@@ -40,12 +49,14 @@ import (
 	_ "flashcat.cloud/categraf/inputs/kernel"
 	_ "flashcat.cloud/categraf/inputs/kernel_vmstat"
 	_ "flashcat.cloud/categraf/inputs/kubernetes"
+	_ "flashcat.cloud/categraf/inputs/ldap"
 	_ "flashcat.cloud/categraf/inputs/linux_sysctl_fs"
 	_ "flashcat.cloud/categraf/inputs/logstash"
 	_ "flashcat.cloud/categraf/inputs/mem"
 	_ "flashcat.cloud/categraf/inputs/mongodb"
 	_ "flashcat.cloud/categraf/inputs/mtail"
 	_ "flashcat.cloud/categraf/inputs/mysql"
+	_ "flashcat.cloud/categraf/inputs/nats"
 	_ "flashcat.cloud/categraf/inputs/net"
 	_ "flashcat.cloud/categraf/inputs/net_response"
 	_ "flashcat.cloud/categraf/inputs/netstat"
@@ -53,6 +64,8 @@ import (
 	_ "flashcat.cloud/categraf/inputs/nfsclient"
 	_ "flashcat.cloud/categraf/inputs/nginx"
 	_ "flashcat.cloud/categraf/inputs/nginx_upstream_check"
+	_ "flashcat.cloud/categraf/inputs/node_exporter"
+	_ "flashcat.cloud/categraf/inputs/nsq"
 	_ "flashcat.cloud/categraf/inputs/ntp"
 	_ "flashcat.cloud/categraf/inputs/nvidia_smi"
 	_ "flashcat.cloud/categraf/inputs/oracle"
@@ -69,21 +82,26 @@ import (
 	_ "flashcat.cloud/categraf/inputs/self_metrics"
 	_ "flashcat.cloud/categraf/inputs/smart"
 	_ "flashcat.cloud/categraf/inputs/snmp"
+	_ "flashcat.cloud/categraf/inputs/snmp_trap"
 	_ "flashcat.cloud/categraf/inputs/sockstat"
 	_ "flashcat.cloud/categraf/inputs/sqlserver"
+	_ "flashcat.cloud/categraf/inputs/supervisor"
 	_ "flashcat.cloud/categraf/inputs/switch_legacy"
 	_ "flashcat.cloud/categraf/inputs/system"
 	_ "flashcat.cloud/categraf/inputs/systemd"
+	_ "flashcat.cloud/categraf/inputs/tengine"
 	_ "flashcat.cloud/categraf/inputs/tomcat"
+	_ "flashcat.cloud/categraf/inputs/traffic_server"
 	_ "flashcat.cloud/categraf/inputs/vsphere"
+	_ "flashcat.cloud/categraf/inputs/whois"
 	_ "flashcat.cloud/categraf/inputs/xskyapi"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
 )
 
 type MetricsAgent struct {
-	InputFilters  map[string]struct{}
-	InputReaders  *Readers
-	InputProvider inputs.Provider
+	InputFilters   map[string]struct{}
+	InputReaders   *Readers
+	InputProviders []inputs.Provider
 }
 
 type Readers struct {
@@ -144,7 +162,7 @@ func NewMetricsAgent() AgentModule {
 		log.Println("E! init metrics agent error: ", err)
 		return nil
 	}
-	agent.InputProvider = provider
+	agent.InputProviders = provider
 	return agent
 }
 
@@ -159,12 +177,22 @@ func (ma *MetricsAgent) FilterPass(inputKey string) bool {
 }
 
 func (ma *MetricsAgent) Start() error {
-	if _, err := ma.InputProvider.LoadConfig(); err != nil {
+	for idx := range ma.InputProviders {
+		err := ma.start(idx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (ma *MetricsAgent) start(idx int) error {
+	if _, err := ma.InputProviders[idx].LoadConfig(); err != nil {
 		log.Println("E! input provider load config get err: ", err)
 	}
-	ma.InputProvider.StartReloader()
+	ma.InputProviders[idx].StartReloader()
 
-	names, err := ma.InputProvider.GetInputs()
+	names, err := ma.InputProviders[idx].GetInputs()
 	if err != nil {
 		return err
 	}
@@ -180,19 +208,21 @@ func (ma *MetricsAgent) Start() error {
 			continue
 		}
 
-		configs, err := ma.InputProvider.GetInputConfig(name)
+		configs, err := ma.InputProviders[idx].GetInputConfig(name)
 		if err != nil {
 			log.Println("E! failed to get configuration of plugin:", name, "error:", err)
 			continue
 		}
 
-		ma.RegisterInput(name, configs)
+		ma.RegisterInput(inputs.FormatInputName(ma.InputProviders[idx].Name(), name), configs)
 	}
 	return nil
 }
 
 func (ma *MetricsAgent) Stop() error {
-	ma.InputProvider.StopReloader()
+	for idx := range ma.InputProviders {
+		ma.InputProviders[idx].StopReloader()
+	}
 	for name := range ma.InputReaders.Iter() {
 		inputs, _ := ma.InputReaders.GetInput(name)
 		for sum, r := range inputs {
@@ -204,7 +234,7 @@ func (ma *MetricsAgent) Stop() error {
 }
 
 func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithFormat) {
-	_, inputKey := inputs.ParseInputName(name)
+	typ, inputKey := inputs.ParseInputName(name)
 	if !ma.FilterPass(inputKey) {
 		return
 	}
@@ -215,7 +245,17 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 		return
 	}
 
-	newInputs, err := ma.InputProvider.LoadInputConfig(configs, creator())
+	idx := -1
+	for i := range ma.InputProviders {
+		if ma.InputProviders[i].Name() == typ {
+			idx = i
+		}
+	}
+	if idx == -1 {
+		log.Println("E! input provider:", typ, "not found")
+		// hint and panic next line
+	}
+	newInputs, err := ma.InputProviders[idx].LoadInputConfig(configs, creator())
 	if err != nil {
 		log.Println("E! failed to load configuration of plugin:", name, "error:", err)
 		return
@@ -236,6 +276,11 @@ func (ma *MetricsAgent) inputGo(name string, sum string, input inputs.Input) {
 	if err = inputs.MayInit(input); err != nil {
 		if !errors.Is(err, types.ErrInstancesEmpty) {
 			log.Println("E! failed to init input:", name, "error:", err)
+		} else {
+			if config.Config.DebugMode {
+				_, inputKey := inputs.ParseInputName(name)
+				log.Println("W! no instances for input: ", inputKey)
+			}
 		}
 		return
 	}

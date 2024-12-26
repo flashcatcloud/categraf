@@ -1,7 +1,10 @@
 package prometheus
 
 import (
+	"bytes"
+	"log"
 	"math"
+	"mime"
 	"net/http"
 
 	dto "github.com/prometheus/client_model/go"
@@ -11,21 +14,28 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+const (
+	MetricHeader = "# HELP "
+)
+
 type Parser struct {
 	NamePrefix            string
 	DefaultTags           map[string]string
 	Header                http.Header
 	IgnoreMetricsFilter   filter.Filter
 	IgnoreLabelKeysFilter filter.Filter
+	DuplicationAllowed    bool
 }
 
-func NewParser(namePrefix string, defaultTags map[string]string, header http.Header, ignoreMetricsFilter, ignoreLabelKeysFilter filter.Filter) *Parser {
+func NewParser(namePrefix string, defaultTags map[string]string, header http.Header,
+	duplicationAllowed bool, ignoreMetricsFilter, ignoreLabelKeysFilter filter.Filter) *Parser {
 	return &Parser{
 		NamePrefix:            namePrefix,
 		DefaultTags:           defaultTags,
 		Header:                header,
 		IgnoreMetricsFilter:   ignoreMetricsFilter,
 		IgnoreLabelKeysFilter: ignoreLabelKeysFilter,
+		DuplicationAllowed:    duplicationAllowed,
 	}
 }
 
@@ -33,7 +43,7 @@ func EmptyParser() *Parser {
 	return &Parser{}
 }
 
-func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
+func (p *Parser) parse(buf []byte, slist *types.SampleList) error {
 	metricFamilies, err := util.Parse(buf, p.Header)
 	if err != nil {
 		return err
@@ -54,6 +64,26 @@ func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
 			} else {
 				util.HandleGaugeCounter(p.NamePrefix, m, tags, metricName, nil, slist)
 			}
+		}
+	}
+
+	return nil
+}
+func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
+	var MetricHeaderBytes = []byte(MetricHeader)
+	mediatype, _, _ := mime.ParseMediaType(p.Header.Get("Content-Type"))
+	if mediatype == "application/vnd.google.protobuf" || !p.DuplicationAllowed {
+		return p.parse(buf, slist)
+	}
+
+	metrics := bytes.Split(buf, MetricHeaderBytes)
+	for i := range metrics {
+		if i != 0 {
+			metrics[i] = append(append([]byte(nil), MetricHeaderBytes...), metrics[i]...)
+		}
+		err := p.parse(metrics[i], slist)
+		if err != nil {
+			log.Println("E! parse metrics failed, error:", err, "metrics:", metrics[i])
 		}
 	}
 

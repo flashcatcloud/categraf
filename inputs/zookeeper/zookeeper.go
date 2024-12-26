@@ -3,7 +3,7 @@ package zookeeper
 import (
 	crypto_tls "crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"regexp"
@@ -91,6 +91,10 @@ func (ins *Instance) Init() error {
 	if len(ins.ZkHosts()) == 0 {
 		return types.ErrInstancesEmpty
 	}
+	// set default timeout
+	if ins.Timeout == 0 {
+		ins.Timeout = 10
+	}
 	return nil
 }
 
@@ -110,6 +114,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *types.SampleList, zkHost string) {
 	defer wg.Done()
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("E! Recovered in zookeeper gatherOneHost ", zkHost, r)
+		}
+	}()
 
 	tags := map[string]string{"zk_host": zkHost, "zk_cluster": ins.ClusterName}
 	begun := time.Now()
@@ -129,6 +138,9 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *types.SampleList, 
 	}
 
 	defer mntrConn.Close()
+	// prevent blocking
+	mntrConn.SetDeadline(time.Now().Add(time.Duration(ins.Timeout) * time.Second))
+
 	ins.gatherMntrResult(mntrConn, slist, tags)
 
 	// zk_ruok
@@ -140,7 +152,11 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *types.SampleList, 
 	}
 
 	defer ruokConn.Close()
+	// prevent blocking
+	ruokConn.SetDeadline(time.Now().Add(time.Duration(ins.Timeout) * time.Second))
+
 	ins.gatherRuokResult(ruokConn, slist, tags)
+
 }
 
 func (ins *Instance) gatherMntrResult(conn net.Conn, slist *types.SampleList, globalTags map[string]string) {
@@ -226,12 +242,14 @@ func (ins *Instance) gatherRuokResult(conn net.Conn, slist *types.SampleList, gl
 func sendZookeeperCmd(conn net.Conn, cmd string) string {
 	_, err := conn.Write([]byte(cmd))
 	if err != nil {
-		log.Println("E! failed to exec Zookeeper command:", cmd)
+		log.Printf("E! failed to exec Zookeeper command: %s response from '%s': %s", cmd, conn.RemoteAddr().String(), err)
+		return ""
 	}
 
-	res, err := ioutil.ReadAll(conn)
+	res, err := io.ReadAll(conn)
 	if err != nil {
 		log.Printf("E! failed read Zookeeper command: '%s' response from '%s': %s", cmd, conn.RemoteAddr().String(), err)
+		return ""
 	}
 	return string(res)
 }

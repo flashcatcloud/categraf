@@ -194,7 +194,7 @@ func (v *Instance) Drop() {
 	// after the last Gather() has finished. We do, however, need to
 	// wait for any discovery to complete by trying to grab the
 	// "busy" mutex.
-	if config.Config.DebugMode {
+	if v.DebugMod {
 		log.Printf("D! Waiting for endpoint %q to finish", v.endpoints.URL.Host)
 	}
 	func() {
@@ -214,7 +214,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 	if err != nil {
 		// acc.AddError(err)
-		log.Printf("E! fail to gather\n", err)
+		log.Println("E! fail to gather: ", err)
 	}
 
 }

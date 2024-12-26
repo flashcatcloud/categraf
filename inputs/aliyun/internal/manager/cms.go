@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	cms20190101 "github.com/alibabacloud-go/cms-20190101/v8/client"
 	cms2021101 "github.com/alibabacloud-go/cms-export-20211101/v2/client"
@@ -23,7 +24,8 @@ const (
 	MaxPageNum      = 99
 )
 
-func (m *Manager) ListMetrics(ctx context.Context, req *cms20190101.DescribeMetricMetaListRequest) ([]*cms20190101.DescribeMetricMetaListResponseBodyResourcesResource, error) {
+func (m *Manager) ListMetrics(ctx context.Context, req *cms20190101.DescribeMetricMetaListRequest) (int, []*cms20190101.DescribeMetricMetaListResponseBodyResourcesResource, error) {
+	count := 1
 	if req.PageNumber == nil {
 		req.SetPageNumber(DefaultPageNum)
 	}
@@ -38,11 +40,11 @@ func (m *Manager) ListMetrics(ctx context.Context, req *cms20190101.DescribeMetr
 	}
 	resp, err := m.cms.DescribeMetricMetaList(req)
 	if err != nil {
-		return nil, err
+		return count, nil, err
 	}
 	totalCount, err := strconv.Atoi(*resp.Body.TotalCount)
 	if err != nil {
-		return nil, err
+		return count, nil, err
 	}
 
 	pageSize, pageNum := pageCaculator(totalCount)
@@ -51,14 +53,15 @@ func (m *Manager) ListMetrics(ctx context.Context, req *cms20190101.DescribeMetr
 	resources = append(resources, resp.Body.Resources.Resource...)
 	var i int32
 	for i = 2; i < 2+pageNum; i++ {
+		count++
 		req.SetPageNumber(i)
 		resp, err := m.cms.DescribeMetricMetaList(req)
 		if err != nil {
-			return nil, err
+			return count, nil, err
 		}
 		resources = append(resources, resp.Body.Resources.Resource...)
 	}
-	return resources, nil
+	return count, resources, nil
 }
 
 func pageCaculator(totalCount int) (size, num int32) {
@@ -78,58 +81,47 @@ func pageCaculator(totalCount int) (size, num int32) {
 
 func (m *Manager) dataPointConverter(metricName, ns, datapoints string) ([]types.Point, error) {
 	points := make([]types.Point, 0, 100)
+	datapoints = strings.Replace(datapoints, "\"Value\":\"\"", "\"Value\":0", -1)
 	err := json.Unmarshal([]byte(datapoints), &points)
 	if err != nil {
 		return nil, err
 	}
-	r := types.Point{}
 	result := make([]types.Point, 0, len(points))
 	for _, point := range points {
-		r.UserID = point.UserID
-		r.NodeID = point.NodeID
-		r.ClusterID = point.ClusterID
-		r.InstanceID = point.InstanceID
-		r.Namespace = ns
-		r.Timestamp = point.Timestamp
-
-		if point.Val != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "value")
-			r.Value = tea.Float64(*point.Val)
-			result = append(result, r)
+		point.Namespace = ns
+		attributes := map[string]*float64{
+			"value":   point.Val,
+			"maximum": point.Max,
+			"minimum": point.Min,
+			"average": point.Avg,
+			"sum":     point.Sum,
 		}
-		if point.Max != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "maximum")
-			r.Value = tea.Float64(*point.Max)
-			result = append(result, r)
-		}
-		if point.Min != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "minimum")
-			r.Value = tea.Float64(*point.Min)
-			result = append(result, r)
-		}
-
-		if point.Avg != nil {
-			r.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), "average")
-			r.Value = tea.Float64(*point.Avg)
-			result = append(result, r)
+		for attrName, attrValue := range attributes {
+			if attrValue != nil {
+				point.MetricName = fmt.Sprintf("%s_%s", stringx.SnakeCase(metricName), attrName)
+				point.Value = tea.Float64(*attrValue)
+				result = append(result, point)
+			}
 		}
 	}
 	return result, nil
 }
-func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetricListRequest) ([]types.Point, error) {
+func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetricListRequest) (int, []types.Point, error) {
 
+	count := 1
 	resp, err := m.cms.DescribeMetricList(req)
 	result := make([]types.Point, 0, 100)
 	if err != nil {
-		return nil, err
+		return count, nil, err
 	}
 	points, err := m.dataPointConverter(*req.MetricName, *req.Namespace, *resp.Body.Datapoints)
 	if err != nil {
-		return nil, err
+		return count, nil, err
 	}
 	result = append(result, points...)
 	for resp.Body != nil && resp.Body.NextToken != nil {
 		req.NextToken = resp.Body.NextToken
+		count++
 		resp, err = m.cms.DescribeMetricList(req)
 		if err != nil {
 			log.Println(err)
@@ -137,12 +129,12 @@ func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetric
 		}
 		points, err := m.dataPointConverter(*req.MetricName, *req.Namespace, *resp.Body.Datapoints)
 		if err != nil {
-			return nil, err
+			return count, nil, err
 		}
 		result = append(result, points...)
 	}
 
-	return result, nil
+	return count, result, nil
 }
 
 func (m *Manager) GetEcsHosts() ([]*cms20190101.DescribeMonitoringAgentHostsResponseBodyHostsHost, error) {

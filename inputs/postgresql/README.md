@@ -1,12 +1,25 @@
 # postgresql
 
-postgresql 监控采集插件，fork 自：telegraf/postgresql 
+postgresql 监控采集插件
+
+## authorization
+
+```shell
+create user categraf with password 'categraf';
+ 
+alter user categraf set default_transaction_read_only=on;
+
+grant usage on schema public to categraf;
+
+grant select on all tables in schema public to categraf ;
+```
 
 ## configuration
 
 ```toml
-[[inputs.postgresql]]
+[[instances]]
 address = ""
+# labels = { region="", zone="" }
 ## postgresql 的连接信息
 # address = "host=1.2.3.4 port=5432 user=postgres password=123456 sslmode=disable"
 

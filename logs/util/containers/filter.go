@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	coreconfig "flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/logs/util"
 )
 
 const (
@@ -205,6 +206,9 @@ func newMetricFilterFromConfig() (*Filter, error) {
 	// is used by all core and python checks (so components sending metrics).
 	includeList := coreconfig.GetContainerIncludeList()
 	excludeList := coreconfig.GetContainerExcludeList()
+	if len(excludeList) == 0 {
+		excludeList = append(excludeList, categrafContainer)
+	}
 
 	excludeList = append(excludeList,
 		pauseContainerGCR,
@@ -222,7 +226,6 @@ func newMetricFilterFromConfig() (*Filter, error) {
 		pauseContainerECR,
 		pauseContainerUpstream,
 		pauseContainerCDK,
-		categrafContainer,
 	)
 	return NewFilter(includeList, excludeList)
 }
@@ -274,7 +277,7 @@ func (cf Filter) IsExcluded(containerName, containerImage, podNamespace string) 
 	// Check if excludeListed
 	for _, r := range cf.ImageExcludeList {
 		match := r.MatchString(containerImage)
-		if coreconfig.Config.DebugMode {
+		if util.Debug() {
 			log.Printf("D!, exclude item :%+v, container image:%s, %t\n", r, containerImage, match)
 		}
 		if match {

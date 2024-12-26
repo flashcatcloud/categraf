@@ -1,6 +1,6 @@
 # kafka
 
-kafka 监控采集插件，由kafka-exporter（https://github.com/davidmparrott/kafka_exporter）封装而来。
+kafka 监控采集插件，由 [kafka-exporter](https://github.com/davidmparrott/kafka_exporter) 封装而来。
 
 ## Configuration
 
@@ -17,7 +17,7 @@ davidmparrott版本  fork自 https://github.com/danielqsj/kafka_exporter   (以�
 
 
 
-danielqsj版本作为原始版本, github版本也相对活跃, prometheus生态使用较多  
+danielqsj版本作为原始版本, github版本也相对活跃, prometheus生态使用较多
 categraf kafka plugin基于davidmparrott版本, 以下配置可以对danielqsj版本做一些兼容
 
 1. 增加metric: kafka_broker_info

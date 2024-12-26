@@ -6,8 +6,11 @@
 package httpx
 
 import (
+	"crypto/tls"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -66,4 +69,55 @@ func (c *ResetClient) checkReset() {
 	// the related open connection(s) will remain open until the client is GC'ed
 	c.httpClient.CloseIdleConnections()
 	c.httpClient = c.httpClientFactory()
+}
+
+type Option func(client *http.Client)
+
+func Timeout(timeout time.Duration) Option {
+	return func(client *http.Client) {
+		client.Timeout = timeout
+	}
+}
+
+func TlsConfig(tlsCfg *tls.Config) Option {
+	return func(client *http.Client) {
+		client.Transport.(*http.Transport).TLSClientConfig = tlsCfg
+	}
+}
+
+func Proxy(proxy func(r *http.Request) (*url.URL, error)) Option {
+	return func(client *http.Client) {
+		client.Transport.(*http.Transport).Proxy = proxy
+	}
+}
+
+func NetDialer(dialer *net.Dialer) Option {
+	return func(client *http.Client) {
+		client.Transport.(*http.Transport).DialContext = dialer.DialContext
+	}
+}
+func FollowRedirects(followRedirects bool) Option {
+	return func(client *http.Client) {
+		if !followRedirects {
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			}
+		}
+	}
+}
+
+func DisableKeepAlives(disableKeepAlives bool) Option {
+	return func(client *http.Client) {
+		client.Transport.(*http.Transport).DisableKeepAlives = disableKeepAlives
+	}
+}
+
+func CreateHTTPClient(opts ...Option) *http.Client {
+	client := &http.Client{
+		Transport: &http.Transport{},
+	}
+	for _, opt := range opts {
+		opt(client)
+	}
+	return client
 }

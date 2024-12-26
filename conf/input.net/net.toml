@@ -6,3 +6,6 @@
 
 # # setting interfaces will tell categraf to gather these explicit interfaces
 # interfaces = ["eth0"]
+ 
+# enable_loopback_stats=true
+# enable_link_down_stats=true

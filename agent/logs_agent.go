@@ -26,6 +26,7 @@ import (
 	"flashcat.cloud/categraf/logs/pipeline"
 	"flashcat.cloud/categraf/logs/restart"
 	"flashcat.cloud/categraf/logs/status"
+	"flashcat.cloud/categraf/logs/util"
 
 	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
@@ -62,7 +63,7 @@ type LogsAgent struct {
 func NewLogsAgent() AgentModule {
 	if coreconfig.Config == nil ||
 		!coreconfig.Config.Logs.Enable ||
-		(len(coreconfig.Config.Logs.Items) == 0 && coreconfig.Config.Logs.CollectContainerAll == false) {
+		(len(coreconfig.Config.Logs.Items) == 0 && coreconfig.Config.Logs.EnableCollectContainer == false) {
 		return nil
 	}
 
@@ -98,7 +99,7 @@ func NewLogsAgent() AgentModule {
 	diagnosticMessageReceiver := diagnostic.NewBufferedMessageReceiver()
 
 	// setup the pipeline provider that provides pairs of processor and sender
-	pipelineProvider := pipeline.NewProvider(logsconfig.NumberOfPipelines, auditor, diagnosticMessageReceiver, processingRules, endpoints, destinationsCtx)
+	pipelineProvider := pipeline.NewProvider(coreconfig.NumberOfPipelines(), auditor, diagnosticMessageReceiver, processingRules, endpoints, destinationsCtx)
 
 	validatePodContainerID := coreconfig.ValidatePodContainerID()
 	//
@@ -118,7 +119,7 @@ func NewLogsAgent() AgentModule {
 		listener.NewLauncher(sources, coreconfig.LogFrameSize(), pipelineProvider),
 		journald.NewLauncher(sources, pipelineProvider, auditor),
 	}
-	if coreconfig.GetContainerCollectAll() {
+	if coreconfig.EnableCollectContainer() {
 		log.Println("collect docker logs...")
 		inputs = append(inputs, container.NewLauncher(containerLaunchables))
 	}
@@ -138,9 +139,9 @@ func NewLogsAgent() AgentModule {
 
 func (la *LogsAgent) Start() error {
 	la.startInner()
-	if coreconfig.GetContainerCollectAll() {
+	if coreconfig.EnableCollectContainer() {
 		// collect container all
-		if coreconfig.Config.DebugMode {
+		if util.Debug() {
 			log.Println("Adding ContainerCollectAll source to the Logs Agent")
 		}
 		kubesource := logsconfig.NewLogSource(logsconfig.ContainerCollectAll,

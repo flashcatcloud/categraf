@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -62,7 +61,7 @@ type (
 		tls.ClientConfig
 		client *http.Client
 
-		*cache.BasicCache
+		*cache.BasicCache[string]
 		stop chan struct{}
 	}
 )
@@ -80,9 +79,7 @@ func (ins *Instance) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
-	ins.URL = strings.Replace(ins.URL, "$hostname", config.Config.GetHostname(), -1)
-	ins.URL = strings.Replace(ins.URL, "$ip", config.Config.Global.IP, -1)
-	ins.URL = os.Expand(ins.URL, config.GetEnv)
+	ins.URL = config.Expand(ins.URL)
 	u, err := url.Parse(ins.URL)
 	if err != nil {
 		return fmt.Errorf("failed to parse scrape url: %s, error: %s", ins.URL, err)
@@ -94,7 +91,7 @@ func (ins *Instance) Init() error {
 	}
 
 	ins.stop = make(chan struct{})
-	ins.BasicCache = cache.NewBasicCache()
+	ins.BasicCache = cache.NewBasicCache[string]()
 	go ins.cache()
 
 	if ins.Timeout <= 0 {
@@ -158,7 +155,7 @@ func (ins *Instance) cache() {
 				log.Println("E! failed to request for url:", podUrl.String(), "error:", err)
 				continue
 			}
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				log.Println("E! failed to read body for url:", podUrl.String(), "error:", err)
 				continue
@@ -218,15 +215,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	ins.setHeaders(req)
 
-	labels := map[string]string{}
-
-	urlKey, urlVal, err := ins.GenerateLabel(ins.u)
+	labels, err := ins.GenerateLabel(ins.u)
 	if err != nil {
 		log.Println("E! failed to generate url label value:", err)
 		return
 	}
-
-	labels[urlKey] = urlVal
 
 	res, err := ins.client.Do(req)
 	if err != nil {
@@ -341,7 +334,7 @@ func (ins *Instance) makeLabels(m *dto.Metric, defaultLabels map[string]string) 
 					}
 				}
 			} else {
-				if config.Config.DebugMode {
+				if ins.DebugMod {
 					log.Println(cacheKey(namespace, podName), "not in cache")
 				}
 			}

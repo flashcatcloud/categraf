@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gogo/protobuf/proto"
@@ -15,21 +14,30 @@ import (
 const agentHostnameLabelKey = "agent_hostname"
 
 func readerGzipBody(contentEncoding string, request *http.Request) (bytes []byte, err error) {
-	if contentEncoding == "gzip" {
-		var (
-			r *gzip.Reader
-		)
+	switch contentEncoding {
+	case "gzip":
+		var r *gzip.Reader
 		r, err = gzip.NewReader(request.Body)
 		if err != nil {
 			return nil, err
 		}
-
 		defer r.Close()
-		bytes, err = ioutil.ReadAll(r)
-	} else {
+
+		bytes, err = io.ReadAll(r)
+	case "snappy":
 		defer request.Body.Close()
-		bytes, err = ioutil.ReadAll(request.Body)
+		var compressed []byte
+		compressed, err = io.ReadAll(request.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		bytes, err = snappy.Decode(nil, compressed)
+	default:
+		defer request.Body.Close()
+		bytes, err = io.ReadAll(request.Body)
 	}
+
 	if err != nil || len(bytes) == 0 {
 		return nil, errors.New("request parameter error")
 	}
@@ -40,7 +48,7 @@ func readerGzipBody(contentEncoding string, request *http.Request) (bytes []byte
 // DecodeWriteRequest from an io.Reader into a prompb.WriteRequest, handling
 // snappy decompression.
 func DecodeWriteRequest(r io.Reader) (*prompb.WriteRequest, error) {
-	compressed, err := ioutil.ReadAll(r)
+	compressed, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

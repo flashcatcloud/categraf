@@ -2,12 +2,16 @@ package snmp
 
 import (
 	"fmt"
+	"log"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gosnmp/gosnmp"
+
+	coreconfig "flashcat.cloud/categraf/config"
 )
 
 // GosnmpWrapper wraps a *gosnmp.GoSNMP object so we can use it as a snmpConnection.
@@ -30,15 +34,24 @@ func (gs GosnmpWrapper) Walk(oid string, fn gosnmp.WalkFunc) error {
 }
 
 func NewWrapper(s ClientConfig) (GosnmpWrapper, error) {
-	gs := GosnmpWrapper{&gosnmp.GoSNMP{
-		Timeout: 5 * time.Second,
-	}}
-
-	if s.Timeout != 0 {
-		gs.Timeout = time.Duration(s.Timeout)
+	var logger gosnmp.Logger
+	if coreconfig.Config.DebugLevel > 4 {
+		logger = gosnmp.NewLogger(log.New(os.Stdout, "", 0))
 	}
 
-	gs.Retries = s.Retries
+	gs := GosnmpWrapper{&gosnmp.GoSNMP{
+		Timeout:                 time.Duration(s.Timeout),
+		AppOpts:                 s.AppOpts,
+		Logger:                  logger,
+		MaxOids:                 s.MaxOids,
+		MaxRepetitions:          s.MaxRepetitions,
+		Retries:                 s.Retries,
+		UseUnconnectedUDPSocket: s.UnconnectedUDPSocket,
+	}}
+
+	if gs.Timeout == 0 {
+		gs.Timeout = 6 * time.Second
+	}
 
 	switch s.Version {
 	case 3:
@@ -58,8 +71,6 @@ func NewWrapper(s ClientConfig) (GosnmpWrapper, error) {
 			gs.Community = s.Community
 		}
 	}
-
-	gs.MaxRepetitions = s.MaxRepetitions
 
 	if s.Version == 3 {
 		gs.ContextName = s.ContextName

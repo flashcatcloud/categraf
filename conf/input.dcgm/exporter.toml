@@ -1,0 +1,31 @@
+#[[instances]]
+# path to the file, that contains the DCGM fields to collect
+# collectors = "conf/input.dcgm/default-counters.csv"
+
+# Enable kubernetes mapping metrics to kubernetes pods
+# kubernetes=false
+
+# Choose Type of GPU ID to use to map kubernetes resources to pods. Possible values: "uid", "device-name"
+# kubernetes-gpu-id-type = "uid"
+
+# Use old 1.x namespace
+# use-old-namespace = false
+
+  cpu-devices = "f"
+
+# gpu devices
+  devices = "f"
+
+  switch-devices = "f"
+
+# ConfigMap <NAMESPACE>:<NAME> for metric data
+  configmap-data = "none"
+
+# Connect to remote hostengine at <HOST>:<PORT>
+# remote-hostengine-info = "localhost:5555"
+
+# Accept GPUs that are fake, for testing purposes only
+# fake-gpus = false
+
+# Replaces every blank space in the GPU model name with a dash, ensuring a continuous, space-free identifier.
+# replace-blanks-in-model-name = false

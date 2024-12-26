@@ -168,8 +168,8 @@ func openFalcon(c *gin.Context) {
 		ts   = time.Now().Unix()
 	)
 
-	ignoreHostname := c.GetBool("ignore_hostname")
-	ignoreGlobalLabels := c.GetBool("ignore_global_labels")
+	ignoreHostname := config.Config.HTTP.IgnoreHostname || c.GetBool("ignore_hostname")
+	ignoreGlobalLabels := config.Config.HTTP.IgnoreGlobalLabels || c.GetBool("ignore_global_labels")
 	count := len(arr)
 	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < count; i++ {
@@ -190,7 +190,7 @@ func openFalcon(c *gin.Context) {
 		}
 		// add global labels
 		if !ignoreGlobalLabels {
-			for k, v := range config.Config.Global.Labels {
+			for k, v := range config.GlobalLabels() {
 				if _, has := tags[k]; has {
 					continue
 				}

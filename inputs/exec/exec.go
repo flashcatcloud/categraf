@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	osExec "os/exec"
 	"path/filepath"
 	"runtime"
@@ -28,6 +29,8 @@ const MaxStderrBytes int = 512
 
 type Instance struct {
 	config.InstanceConfig
+
+	Scripts map[string]string `toml:"scripts"`
 
 	Commands   []string        `toml:"commands"`
 	Timeout    config.Duration `toml:"timeout"`
@@ -63,6 +66,20 @@ func (e *Exec) GetInstances() []inputs.Instance {
 }
 
 func (ins *Instance) Init() error {
+	if len(ins.Scripts) > 0 {
+		for script, content := range ins.Scripts {
+			dir := filepath.Dir(script)
+			file := filepath.Base(script)
+			err := os.MkdirAll(dir, 0755)
+			if err != nil {
+				return err
+			}
+			err = os.WriteFile(filepath.Join(dir, file), []byte(content), 0755)
+			if err != nil {
+				return fmt.Errorf("write script %s error: %s", script, err)
+			}
+		}
+	}
 	if len(ins.Commands) == 0 {
 		return types.ErrInstancesEmpty
 	}
@@ -138,6 +155,10 @@ func (ins *Instance) ProcessCommand(slist *types.SampleList, command string, wg 
 		log.Println("E! exec_command:", command, "error:", runErr, "stderr:", string(errbuf))
 		return
 	}
+	if len(out) == 0 {
+		log.Println("E! exec_command:", command, "output is empty?, please check your command:", string(out))
+		return
+	}
 
 	err := ins.parser.Parse(out, slist)
 	if err != nil {
@@ -165,15 +186,16 @@ func commandRun(command string, timeout time.Duration) ([]byte, []byte, error) {
 		return nil, nil, fmt.Errorf("exec %s timeout", command)
 	}
 
-	if runError != nil {
-		return nil, nil, runError
-	}
-
-	out = removeWindowsCarriageReturns(out)
 	if stderr.Len() > 0 {
 		stderr = removeWindowsCarriageReturns(stderr)
 		stderr = truncate(stderr)
 	}
+
+	if runError != nil {
+		return nil, stderr.Bytes(), runError
+	}
+
+	out = removeWindowsCarriageReturns(out)
 
 	return out.Bytes(), stderr.Bytes(), nil
 }
