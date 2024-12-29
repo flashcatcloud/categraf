@@ -300,7 +300,7 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 
 	bs, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("E! failed to read response body:", err)
+		log.Println("E! failed to read response body:", err, "target:", target)
 		return tags, fields, nil
 	}
 
