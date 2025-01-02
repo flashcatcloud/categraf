@@ -180,7 +180,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				if err != nil {
 					if ocspissuer == nil {
 						tags["ocsp_stapled"] = "no"
-						fields["ocsp_error"] = err.Error()
 					} else {
 						ocspissuer = nil // retry parsing w/out issuer cert
 						resp, err = ocsp.ParseResponse(*ocspresp, ocspissuer)
@@ -188,7 +187,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				}
 				if err != nil {
 					tags["ocsp_stapled"] = "no"
-					fields["ocsp_error"] = err.Error()
 				} else {
 					tags["ocsp_stapled"] = "yes"
 					if ocspissuer != nil {
@@ -234,8 +232,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 func (ins *Instance) processCertificate(cert *x509.Certificate, opts x509.VerifyOptions) error {
 	chains, err := cert.Verify(opts)
 	if err != nil {
-		log.Printf("W! Invalid certificate %v: %v", cert.SerialNumber.Text(16), err)
 		if ins.DebugMod {
+			log.Printf("W! Invalid certificate %v: %v", cert.SerialNumber.Text(16), err)
 			log.Printf("W! cert DNS names:    %v", cert.DNSNames)
 			log.Printf("W! cert IP addresses: %v", cert.IPAddresses)
 			log.Printf("W! cert subject:      %v", cert.Subject)
