@@ -125,6 +125,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		return
 	}
 
+	if err := ins.sourcesToURLs(); err != nil {
+		log.Printf("E! failed to update sources: %v", err)
+		return
+	}
+
 	now := time.Now()
 	collectedUrls := append(ins.locations, ins.collectCertURLs()...)
 	for _, location := range collectedUrls {
@@ -273,6 +278,7 @@ func (ins *Instance) processCertificate(cert *x509.Certificate, opts x509.Verify
 }
 
 func (ins *Instance) sourcesToURLs() error {
+	ins.locations = []*url.URL{}
 	for _, target := range ins.Targets {
 		if strings.HasPrefix(target, "file://") || strings.HasPrefix(target, "/") {
 			target = filepath.ToSlash(strings.TrimPrefix(target, "file://"))
