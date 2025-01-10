@@ -9,7 +9,6 @@
 [[instances]]
 targets = [
 #     "http://localhost",
-#     "https://www.baidu.com"
 ]
 
 ## append some labels for series
@@ -29,6 +28,13 @@ targets = [
 
 ## Set response_timeout (default 5 seconds)
 # response_timeout = "5s"
+
+## enalbe http trace(defaults to false)
+## add traceid for traceing
+## add http_response_remote_addr for remote add and port 
+## add fields http_response_dns_time -> http_response_connect_time -> http_response_tls_time -> http_response_first_response_time -> http_response_end_response_time
+## all the fields add equal to http_response_response_time
+#trace = false
 
 ## Whether to follow redirects from the server (defaults to false)
 # follow_redirects = false

@@ -1,12 +1,14 @@
 package http_response
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"regexp"
 	"strings"
@@ -18,6 +20,7 @@ import (
 	"flashcat.cloud/categraf/pkg/httpx"
 	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
+	"github.com/google/uuid"
 )
 
 const (
@@ -44,6 +47,7 @@ type Instance struct {
 	ExpectResponseRegularExpression string          `toml:"expect_response_regular_expression"`
 	ExpectResponseStatusCode        *int            `toml:"expect_response_status_code"`
 	ExpectResponseStatusCodes       string          `toml:"expect_response_status_codes"`
+	Trace                           *bool           `toml:"trace"`
 	config.HTTPProxy
 
 	client httpClient
@@ -192,7 +196,13 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 		log.Println("D! http_response... target:", target)
 	}
 
-	labels := map[string]string{"target": target}
+	var labels map[string]string
+	if ins.Trace != nil && *ins.Trace {
+		traceid := uuid.New().String()
+		labels = map[string]string{"target": target, "traceid": traceid}
+	} else {
+		labels = map[string]string{"target": target}
+	}
 	fields := map[string]interface{}{}
 	// Add extra tags in batches
 	if m, ok := ins.Mappings[target]; ok {
@@ -248,9 +258,42 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 
 	// Start Timer
 	start := time.Now()
+	dns_time := start
+	conn_time := start
+	tls_time := start
+	first_res_time := start
+
+	if ins.Trace != nil && *ins.Trace {
+		trace := &httptrace.ClientTrace{
+			// request
+			DNSDone: func(info httptrace.DNSDoneInfo) {
+				dns_time = time.Now()
+				fields["dns_time"] = time.Since(start).Seconds()
+			},
+			ConnectDone: func(network, addr string, err error) {
+				conn_time = time.Now()
+				tags["remote_addr"] = addr
+				fields["connect_time"] = time.Since(dns_time).Seconds()
+			},
+			TLSHandshakeDone: func(info tls.ConnectionState, err error) {
+				tls_time = time.Now()
+				fields["tls_time"] = time.Since(conn_time).Seconds()
+			},
+			GotFirstResponseByte: func() {
+				first_res_time = time.Now()
+				if tls_time == start {
+					fields["first_response_time"] = time.Since(conn_time).Seconds()
+				} else {
+					fields["first_response_time"] = time.Since(tls_time).Seconds()
+				}
+			},
+		}
+		request = request.WithContext(httptrace.WithClientTrace(request.Context(), trace))
+	}
 	resp, err := ins.client.Do(request)
 
 	// metric: response_time
+	fields["end_response_time"] = time.Since(first_res_time).Seconds()
 	fields["response_time"] = time.Since(start).Seconds()
 
 	// If an error in returned, it means we are dealing with a network error, as
