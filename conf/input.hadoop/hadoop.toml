@@ -1,0 +1,526 @@
+# hadoop.toml
+
+# 通用配置
+[common]
+useSASL = false
+saslUsername = "HTTP/_HOST"
+saslDisablePAFXFast = true
+saslMechanism = "gssapi"
+kerberosAuthType = "keytabAuth"
+keyTabPath = "/path/to/keytab"
+kerberosConfigPath = "/path/to/krb5.conf"
+realm = "EXAMPLE.COM"
+
+# 组件配置
+[[components]]
+name = "YarnResourceManager"
+port = 8088
+processName = "org.apache.hadoop.yarn.server.resourcemanager.ResourceManager"
+allowRecursiveParse = true
+allowMetricsWhiteList = true
+jmxUrlSuffix = "/jmx"
+white_list = [
+        # 集群整体运行状态和资源使用情况
+        "NumActiveNMs", # 活跃的NodeManager数量,反映集群规模和健康状态
+        "NumUnhealthyNMs", # 不健康的NodeManager数量,反映集群异常情况
+        "NumLostNMs", # 丢失连接的NodeManager数量
+        "NumDecommissionedNMs", # 下线的NodeManager数量
+        "CapabilityMB", # 集群总内存容量
+        "CapabilityVirtualCores", # 集群总CPU核心数
+        "UtilizedMB", # 已使用内存量
+        "UtilizedVirtualCores", # 已使用CPU核心数
+
+        # 应用程序运行状态
+        "ActiveApplications", # 当前运行的应用数量
+        "AppsSubmitted", # 提交的应用总数
+        "AppsRunning", # 运行中的应用数
+        "AppsPending", # 等待运行的应用数
+        "AppsCompleted", # 完成的应用数
+        "AppsFailed", # 失败的应用数
+        "AppsKilled", # 被kill的应用数
+
+        # 容器资源分配
+        "AllocatedContainers", # 已分配的容器数
+        "AllocatedMB", # 已分配的内存
+        "AllocatedVCores", # 已分配的CPU核心
+        "PendingContainers", # 等待分配的容器数
+        "PendingMB", # 等待分配的内存
+        "PendingVCores", # 等待分配的CPU核心
+        "ReservedContainers", # 预留的容器数
+        "ReservedMB", # 预留的内存
+        "ReservedVCores", # 预留的CPU核心
+
+        # 队列资源使用
+        "UsedCapacity", # 队列资源使用率
+        "AbsoluteUsedCapacity", # 绝对资源使用率
+        "MaxCapacity", # 最大容量
+        "AbsoluteCapacity", # 绝对容量
+        "UsedAMResourceMB", # AM使用的内存
+        "UsedAMResourceVCores", # AM使用的CPU核心
+
+        # RPC服务状态
+        "RpcProcessingTimeNumOps", # RPC处理总数
+        "RpcProcessingTimeAvgTime", # RPC平均处理时间
+        "RpcAuthenticationSuccesses", # RPC认证成功数
+        "RpcAuthenticationFailures", # RPC认证失败数
+        "RpcAuthorizationSuccesses", # RPC授权成功数
+        "RpcAuthorizationFailures", # RPC授权失败数
+        "NumOpenConnections", # 打开的RPC连接数
+        "CallQueueLength", # RPC调用队列长度
+        "ReceivedBytes", # 接收的字节数
+        "SentBytes", # 发送的字节数
+
+        # JVM状态
+        "MemHeapUsedM", # JVM堆内存使用量
+        "MemHeapCommittedM", # JVM堆内存提交量
+        "MemHeapMaxM", # JVM最大堆内存
+        "MemNonHeapUsedM", # 非堆内存使用量
+        "GcCount", # GC次数
+        "GcTimeMillis", # GC总时间
+        "ThreadsNew", # 新建线程数
+        "ThreadsRunnable", # 运行中线程数
+        "ThreadsBlocked", # 阻塞线程数
+        "ThreadsWaiting", # 等待线程数
+        "ThreadsTimedWaiting", # 定时等待线程数
+
+        # 系统资源使用
+        "ProcessCpuLoad", # 进程CPU负载
+        "SystemCpuLoad", # 系统CPU负载
+        "OpenFileDescriptorCount", # 打开文件描述符数量
+        "MaxFileDescriptorCount", # 最大文件描述符数量
+        "CommittedVirtualMemorySize", # 提交的虚拟内存大小
+        "FreePhysicalMemorySize", # 空闲物理内存
+        "TotalPhysicalMemorySize", # 总物理内存
+        "SystemLoadAverage", # 系统平均负载
+
+        # 调度器性能指标
+        "AMResourceLimitMB", # AM资源限制(内存)
+        "AMResourceLimitVCores", # AM资源限制(CPU)
+        "AggregateContainersAllocated", # 总分配容器数
+        "AggregateContainersReleased", # 总释放容器数
+        "AggregateNodeLocalContainersAllocated", # 本地分配容器数
+        "AggregateRackLocalContainersAllocated", # 机架本地分配容器数
+        "AggregateOffSwitchContainersAllocated", # 跨机架分配容器数
+
+        # 资源抢占指标
+        "AggregateContainersPreempted", # 被抢占的容器总数
+        "AggregateMemoryMBPreempted", # 被抢占的内存总量
+        "AggregateVcoresPreempted", # 被抢占的CPU核心总数
+
+        # 应用主节点指标
+        "ActiveUsers", # 活跃用户数
+        "AppAttemptFirstContainerAllocationDelayNumOps", # 首个容器分配延迟操作数
+        "AppAttemptFirstContainerAllocationDelayAvgTime" ,# 首个容器平均分配延迟时间
+
+        # 日志和错误统计
+        "LogFatal", # 致命错误日志数
+        "LogError", # 错误日志数
+        "LogWarn", # 警告日志数
+        "LogInfo", # 信息日志数
+
+        # 安全认证指标
+        "LoginSuccessNumOps", # 登录成功次数
+        "LoginFailureNumOps", # 登录失败次数
+        "RenewalFailures", # 令牌续期失败次数
+
+        # 资源管理器状态
+        "State", # ResourceManager状态(active/standby)
+        "SecurityEnabled", # 安全特性是否启用
+        "HostAndPort", # ResourceManager主机和端口
+
+        # 节点健康状况
+        "NumRebootedNMs", # 重启的NodeManager数量
+        "NumShutdownNMs", # 关闭的NodeManager数量
+        "NumDecommissioningNMs", # 正在下线的NodeManager数量
+
+        # 资源调度延迟指标
+        "AMContainerAllocationDelayNumOps", # AM容器分配延迟操作数
+        "AMContainerAllocationDelayAvgTime", # AM容器平均分配延迟
+        "AMLaunchDelayNumOps", # AM启动延迟操作数
+        "AMLaunchDelayAvgTime", # AM平均启动延迟
+        "AMRegisterDelayNumOps", # AM注册延迟操作数
+        "AMRegisterDelayAvgTime", # AM平均注册延迟
+
+        # 资源利用率统计
+        "GuaranteedMB", # 保证可用内存
+        "GuaranteedVCores", # 保证可用CPU核心
+        "MaxCapacityMB", # 最大内存容量
+        "MaxCapacityVCores", # 最大CPU核心数
+
+        # 队列容量配置
+        "GuaranteedCapacity", # 保证容量比例
+        "MaxAbsoluteCapacity", # 最大绝对容量比例
+        "GuaranteedAbsoluteCapacity", # 保证绝对容量比例
+
+        # RPC服务质量指标
+        "RpcQueueTimeNumOps", # RPC队列等待操作数
+        "RpcQueueTimeAvgTime", # RPC平均队列等待时间
+        "RpcSlowCalls", # RPC慢调用数
+        "NumDroppedConnections", # 丢弃的连接数
+
+        # 资源管理器性能指标
+        "RmEventProcCPUAvg", # RM事件处理CPU平均使用率
+        "RmEventProcCPUMax", # RM事件处理CPU最大使用率
+
+        # 节点本地性统计
+        "AggregateNodeLocalContainersAllocated", # 节点本地容器分配数
+        "AggregateRackLocalContainersAllocated", # 机架本地容器分配数
+        "AggregateOffSwitchContainersAllocated", # 非本地容器分配数
+
+        # 资源抢占统计
+        "AggregateMemoryMBSecondsPreempted", # 内存抢占量(MB*秒)
+        "AggregateVcoreSecondsPreempted", # CPU核心抢占量(核心*秒)
+
+        # 运行时统计
+        "running_0", # 运行时间0-60秒的应用数
+        "running_60", # 运行时间60-300秒的应用数
+        "running_300", # 运行时间300-1440秒的应用数
+        "running_1440" # 运行时间超过1440秒的应用数
+    ]
+
+
+[[components]]
+name = "YarnNodeManager"
+port = 8042
+processName = "Dproc_nodemanager"
+allowRecursiveParse = true
+allowMetricsWhiteList = true
+jmxUrlSuffix = "/jmx"
+white_list = [
+    # 容器状态指标 (7个)
+    "ContainersLaunched",        # 已启动的容器总数
+    "ContainersCompleted",       # 已完成的容器总数
+    "ContainersFailed",          # 失败的容器总数
+    "ContainersKilled",          # 被杀死的容器总数
+    "ContainersIniting",         # 正在初始化的容器数量
+    "ContainersRunning",         # 当前运行中的容器数量
+    "ContainerLaunchDurationAvgTime",  # 容器启动平均耗时
+
+    # 资源分配指标 (6个)
+    "AllocatedGB",               # 已分配内存(GB)
+    "AvailableGB",               # 可用内存(GB)
+    "AllocatedVCores",           # 已分配虚拟CPU核心数
+    "AvailableVCores",           # 可用虚拟CPU核心数
+    "AllocatedContainers",       # 已分配的容器数量
+    "AvailableProcessors",       # 可用处理器总数
+
+    # 磁盘和目录状态 (4个)
+    "BadLocalDirs",              # 异常的本地目录数
+    "BadLogDirs",                # 异常的日志目录数
+    "GoodLocalDirsDiskUtilizationPerc",  # 正常本地目录的磁盘使用率
+    "GoodLogDirsDiskUtilizationPerc",    # 正常日志目录的磁盘使用率
+
+    # Shuffle相关指标 (4个)
+    "ShuffleOutputBytes",        # Shuffle输出字节数
+    "ShuffleOutputsFailed",      # Shuffle输出失败次数
+    "ShuffleOutputsOK",          # Shuffle输出成功次数
+    "ShuffleConnections",        # Shuffle连接数
+
+    # 系统资源指标 (5个)
+    "SystemCpuLoad",             # 系统CPU负载
+    "ProcessCpuLoad",            # 进程CPU负载
+    "FreePhysicalMemorySize",    # 可用物理内存大小(字节)
+    "TotalPhysicalMemorySize",   # 总物理内存大小(字节)
+    "CommittedVirtualMemorySize", # 已提交的虚拟内存大小(字节)
+
+    # RPC和网络指标 (4个)
+    "RpcQueueTimeAvgTime",       # RPC队列平均等待时间(毫秒)
+    "RpcProcessingTimeAvgTime",  # RPC处理平均时间(毫秒)
+    "ReceivedBytes",             # 接收的总字节数
+    "SentBytes"                  # 发送的总字节数
+]
+
+
+[[components]]
+name = "HadoopNameNode"
+port = 50070
+processName = "org.apache.hadoop.hdfs.server.namenode.NameNode"
+allowRecursiveParse = true
+allowMetricsWhiteList = true
+jmxUrlSuffix = "/jmx"
+white_list = [
+    # 1. NameNode 基本健康状态
+    "FSState", # NameNode 文件系统状态(Operational/SafeMode等)
+    "HAState", # HA状态(active/standby)
+    "State", # NameNode 状态
+    "SafeMode", # 是否处于安全模式
+
+    # 2. 文件系统容量使用情况
+    "CapacityTotal", # 总容量
+    "CapacityUsed", # 已使用容量
+    "CapacityRemaining", # 剩余容量
+    "PercentUsed", # 使用率百分比
+    "NonDfsUsedSpace", # 非 HDFS 使用空间
+
+    # 3. 数据节点健康状态
+    "NumLiveDataNodes", # 存活数据节点数
+    "NumDeadDataNodes", # 死亡数据节点数
+    "NumDecomLiveDataNodes", # 正在退役的存活节点数
+    "NumDecomDeadDataNodes", # 正在退役的死亡节点数
+    "NumStaleDataNodes", # 过期数据节点数
+    "VolumeFailuresTotal", # 磁盘故障总数
+
+    # 4. 块状态和复制
+    "BlocksTotal", # 总块数
+    "MissingBlocks", # 丢失的块数
+    "CorruptBlocks", # 损坏的块数
+    "UnderReplicatedBlocks", # 副本数不足的块数
+    "PendingReplicationBlocks", # 等待复制的块数
+    "ScheduledReplicationBlocks", # 已调度复制的块数
+    "PendingDeletionBlocks", # 等待删除的块数
+    "ExcessBlocks", # 多余的块数
+    "PostponedMisreplicatedBlocks", # 推迟处理的错误复制块数
+
+    # 5. 文件系统操作性能
+    "TotalFileOps", # 总文件操作数
+    "CreateFileOps", # 创建文件操作数
+    "DeleteFileOps", # 删除文件操作数
+    "FileInfoOps", # 获取文件信息操作数
+    "GetListingOps", # 获取目录列表操作数
+    "FilesTotal", # 总文件数
+    "GetBlockLocations", # 获取块位置操作数
+    "AddBlockOps", # 添加块操作数
+
+    # 6. RPC 性能指标
+    "RpcProcessingTimeAvgTime", # RPC处理平均时间
+    "RpcQueueTimeAvgTime", # RPC队列等待平均时间
+    "RpcSlowCalls", # 慢RPC调用数
+    "NumOpenConnections", # 开放连接数
+    "CallQueueLength", # 调用队列长度
+    "ReceivedBytes", # 接收字节数
+    "SentBytes", # 发送字节数
+    "RpcAuthenticationFailures", # RPC认证失败数
+
+    # 7. JVM 健康状态
+    "MemHeapUsedM", # 堆内存使用量
+    "MemHeapCommittedM", # 堆内存提交量
+    "MemHeapMaxM", # 最大堆内存
+    "MemNonHeapUsedM", # 非堆内存使用量
+    "GcCount", # GC次数
+    "GcTimeMillis", # GC耗时
+    "ThreadsRunnable", # 可运行线程数
+    "ThreadsBlocked", # 阻塞线程数
+    "ThreadsWaiting", # 等待线程数
+
+    # 8. 事务和编辑日志
+    "LastWrittenTransactionId", # 最后写入的事务ID
+    "TransactionsSinceLastCheckpoint", # 距上次检查点的事务数
+    "TransactionsSinceLastLogRoll", # 距上次日志滚动的事务数
+    "LastCheckpointTime", # 最后检查点时间
+    "JournalTransactionInfo", # 日志事务信息
+
+    # 9. 安全相关
+    "SecurityEnabled", # 安全是否启用
+    "TokenFailure", # 令牌失败数
+    "LoginFailureNumOps", # 登录失败次数
+    "RpcAuthorizationFailures", # RPC授权失败数
+
+    # 10. 系统资源使用
+    "ProcessCpuLoad", # 进程CPU负载
+    "SystemCpuLoad", # 系统CPU负载
+    "OpenFileDescriptorCount", # 打开文件描述符数
+    "MaxFileDescriptorCount", # 最大文件描述符数
+    "CommittedVirtualMemorySize", # 提交的虚拟内存大小
+
+    # 11. 启动和恢复
+    "NNStartedTimeInMillis", # NameNode启动时间
+    "ElapsedTime", # 启动耗时
+    "SafeModeTime", # 安全模式时间
+    "FsImageLoadTime", # 文件系统镜像加载时间
+
+    # 12. 数据节点通信
+    "ExpiredHeartbeats", # 过期心跳数
+    "StaleDataNodes", # 过期数据节点数
+    "NumStaleStorages", # 过期存储数
+    "TotalLoad", # 总负载
+
+    # 13. 缓存相关
+    "CacheCapacity", # 缓存容量
+    "CacheUsed", # 缓存使用量
+    "TotalSyncCount", # 同步总数
+
+    # 14. 快照相关
+    "SnapshottableDirectories", # 可快照目录数
+    "Snapshots", # 快照数
+    "SnapshotStats", # 快照统计
+
+    # 15. 日志级别统计
+    "LogFatal", # 致命错误日志数
+    "LogError", # 错误日志数
+    "LogWarn", # 警告日志数
+    "LogInfo", # 信息日志数
+
+    # 16. 线程统计
+    "PeakThreadCount", # 峰值线程数
+    "DaemonThreadCount", # 守护线程数
+    "TotalStartedThreadCount", # 总启动线程数
+
+    # 17. 内存池使用
+    "CodeCacheUsed", # 代码缓存使用量
+    "MetaspaceUsed", # 元空间使用量
+    "CompressedClassSpaceUsed", # 压缩类空间使用量
+
+    # 18. 垃圾回收
+    "GcCountParNew", # 新生代GC次数
+    "GcTimeMillisParNew", # 新生代GC时间
+    "GcCountConcurrentMarkSweep", # CMS GC次数
+    "GcTimeMillisConcurrentMarkSweep", # CMS GC时间
+
+    # 19. 加密相关
+    "NumEncryptionZones", # 加密区域数
+
+    # 20. 其他重要指标
+    "UpgradeFinalized", # 升级是否完成
+    "Uptime", # 运行时间
+    "Version", # 版本信息
+    "ClusterId", # 集群ID
+    "BlockPoolId", # 块池ID
+]
+
+
+
+[[components]]
+name = "HadoopDataNode"
+port = 1022
+processName = "Dproc_datanode"
+allowRecursiveParse = true
+allowMetricsWhiteList = true
+jmxUrlSuffix = "/jmx"
+white_list = [
+    # 系统资源相关 - 最基础且重要的系统资源指标
+    "SystemCpuLoad",              # 系统CPU负载,反映整体性能
+    "ProcessCpuLoad",             # DataNode进程CPU负载
+    "HeapMemoryUsage",            # JVM堆内存使用情况
+    "NonHeapMemoryUsage",         # JVM非堆内存使用情况
+    "FreePhysicalMemorySize",     # 系统可用物理内存
+    "TotalPhysicalMemorySize",    # 系统总物理内存
+    "OpenFileDescriptorCount",    # 打开文件描述符数量
+    "MaxFileDescriptorCount",     # 最大文件描述符限制
+    "SystemLoadAverage",          # 系统平均负载
+    "AvailableProcessors",        # 可用处理器数量
+
+    # DataNode存储相关 - 直接反映存储状态的核心指标
+    "Capacity",                   # 总存储容量
+    "DfsUsed",                    # HDFS已使用空间
+    "Remaining",                  # 剩余可用空间
+    "NumFailedVolumes",           # 失败的存储卷数量
+    "LastVolumeFailureDate",      # 最后一次卷失败时间
+    "EstimatedCapacityLostTotal", # 预计总容量损失
+    "BlocksTotal",                # 总块数
+    "VolumeFailures",             # 存储卷失败次数
+    "StorageInfo",                # 存储信息
+    "NumBlocksCached",            # 缓存的块数量
+
+    # 数据传输相关 - 反映数据读写性能
+    "BytesRead",                  # 读取的字节数
+    "BytesWritten",              # 写入的字节数
+    "TotalReadTime",             # 总读取时间
+    "TotalWriteTime",            # 总写入时间
+    "ReadBlockOpNumOps",         # 读块操作数
+    "WriteBlockOpNumOps",        # 写块操作数
+    "BlockChecksumOpNumOps",     # 块校验和操作数
+    "BlockReportsNumOps",        # 块报告操作数
+    "RemoteBytesRead",           # 远程读取字节数
+    "RemoteBytesWritten",        # 远程写入字节数
+
+    # GC相关 - JVM垃圾回收状态
+    "GcCount",                   # GC次数
+    "GcTimeMillis",              # GC耗时
+    "GcNumWarnThresholdExceeded", # GC警告阈值超过次数
+    "GcTotalExtraSleepTime",     # GC额外睡眠时间
+    "LastGcInfo",                # 最后一次GC信息
+    "CollectionCount",           # 收集次数
+    "CollectionTime",            # 收集时间
+
+    # 线程相关 - 反映DataNode内部线程状态
+    "ThreadCount",               # 总线程数
+    "DaemonThreadCount",         # 守护线程数
+    "PeakThreadCount",          # 峰值线程数
+    "TotalStartedThreadCount",   # 启动的总线程数
+    "ThreadsNew",               # 新建线程数
+    "ThreadsRunnable",          # 可运行线程数
+    "ThreadsBlocked",           # 阻塞线程数
+    "ThreadsWaiting",           # 等待线程数
+    "ThreadsTimedWaiting",      # 限时等待线程数
+    "ThreadsTerminated",        # 终止线程数
+
+    # RPC相关 - 反映与其他组件的通信状态
+    "RpcProcessingTimeNumOps",   # RPC处理操作数
+    "RpcProcessingTimeAvgTime",  # RPC平均处理时间
+    "RpcQueueTimeNumOps",        # RPC队列操作数
+    "RpcQueueTimeAvgTime",       # RPC平均队列时间
+    "RpcAuthenticationFailures", # RPC认证失败次数
+    "RpcAuthenticationSuccesses", # RPC认证成功次数
+    "RpcAuthorizationFailures",  # RPC授权失败次数
+    "RpcAuthorizationSuccesses", # RPC授权成功次数
+    "NumOpenConnections",        # 开放连接数
+    "CallQueueLength",          # 调用队列长度
+
+    # 块操作相关 - 反映数据块处理状态
+    "BlocksReceived",           # 接收的块数
+    "BlocksReplicated",         # 复制的块数
+    "BlocksVerified",           # 验证的块数
+    "BlocksRemoved",            # 移除的块数
+    "BlocksCached",             # 缓存的块数
+    "BlocksUncached",           # 未缓存的块数
+    "BlockVerificationFailures", # 块验证失败次数
+    "BlocksInPendingIBR",       # 待处理IBR中的块数
+    "BlocksDeletedInPendingIBR", # 待处理IBR中删除的块数
+    "BlocksReceivedInPendingIBR", # 待处理IBR中接收的块数
+
+    # 心跳相关 - 反映与NameNode的通信状态
+    "HeartbeatsTotal",          # 总心跳数
+    "HeartbeatsTotalAvgTime",   # 平均心跳时间
+    "HeartbeatsNumOps",         # 心跳操作数
+    "HeartbeatsAvgTime",        # 心跳平均时间
+    "LastHeartbeat",            # 最后心跳时间
+    "LastHeartbeatResponseTime", # 最后心跳响应时间
+
+    # 缓存相关 - 反映数据缓存状态
+    "CacheReportsNumOps",       # 缓存报告操作数
+    "CacheReportsAvgTime",      # 缓存报告平均时间
+    "CacheCapacity",            # 缓存容量
+    "CacheUsed",                # 已使用缓存
+    "NumBlocksFailedToCache",   # 缓存失败块数
+    "NumBlocksFailedToUncache", # 取消缓存失败块数
+
+    # 日志相关 - 反映系统运行状态
+    "LogFatal",                 # 致命错误日志数
+    "LogError",                 # 错误日志数
+    "LogWarn",                  # 警告日志数
+    "LogInfo",                  # 信息日志数
+
+    # 类加载相关 - 反映JVM类加载状态
+    "TotalLoadedClassCount",    # 总加载类数
+    "LoadedClassCount",         # 当前加载类数
+    "UnloadedClassCount",       # 卸载类数
+    "TotalCompilationTime",     # 总编译时间
+
+    # 内存池相关 - 反映详细内存使用状态
+    "CodeCacheUsage",           # 代码缓存使用情况
+    "MetaspaceUsage",          # 元空间使用情况
+    "CompressedClassSpaceUsage", # 压缩类空间使用情况
+    "EdenSpaceUsage",          # Eden区使用情况
+    "SurvivorSpaceUsage",      # Survivor区使用情况
+    "OldGenUsage",             # 老年代使用情况
+
+    # 网络相关 - 反映网络状态
+    "PacketAckRoundTripTimeNanos", # 数据包确认往返时间
+    "SendDataPacketBlockedOnNetworkNanos", # 发送数据包网络阻塞时间
+    "SendDataPacketTransferNanos", # 数据包传输时间
+    "DatanodeNetworkErrors",    # DataNode网络错误数
+
+    # 安全相关 - 反映安全状态
+    "SecurityEnabled",          # 安全是否启用
+    "TokenFailure",            # Token失败次数
+    "RemoveTokenNumOps",       # 移除Token操作数
+    "StoreTokenNumOps",        # 存储Token操作数
+
+    # 性能诊断相关 - 反映系统性能状态
+    "SlowDisks",               # 慢磁盘信息
+    "XceiverCount",            # Xceiver数量
+    "DataNodeActiveXceiversCount", # 活动Xceiver数量
+    "XmitsInProgress",         # 正在进行的传输数
+    "DataNodeBlockRecoveryWorkerCount", # 块恢复工作线程数
+    "DataNodePacketResponderCount", # 数据包响应线程数
+]

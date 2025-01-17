@@ -36,6 +36,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/gnmi"
 	_ "flashcat.cloud/categraf/inputs/googlecloud"
 	_ "flashcat.cloud/categraf/inputs/greenplum"
+	_ "flashcat.cloud/categraf/inputs/hadoop"
 	_ "flashcat.cloud/categraf/inputs/haproxy"
 	_ "flashcat.cloud/categraf/inputs/http_response"
 	_ "flashcat.cloud/categraf/inputs/influxdb"
