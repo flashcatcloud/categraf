@@ -28,7 +28,7 @@ type CommonConfig struct {
 type Hadoop struct {
 	config.PluginConfig
 	CommonConfig
-	Components []ComponentOption `toml:"Components"`
+	Components []ComponentOption `toml:"components"`
 	components *singlylinkedlist.List
 }
 
