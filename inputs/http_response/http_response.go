@@ -1,12 +1,14 @@
 package http_response
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"regexp"
 	"strings"
@@ -44,6 +46,7 @@ type Instance struct {
 	ExpectResponseRegularExpression string          `toml:"expect_response_regular_expression"`
 	ExpectResponseStatusCode        *int            `toml:"expect_response_status_code"`
 	ExpectResponseStatusCodes       string          `toml:"expect_response_status_codes"`
+	Trace                           *bool           `toml:"trace"`
 	config.HTTPProxy
 
 	client httpClient
@@ -248,10 +251,44 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 
 	// Start Timer
 	start := time.Now()
+	dns_time := start
+	conn_time := start
+	tls_time := start
+	first_res_time := start
+
+	if ins.Trace != nil && *ins.Trace {
+		trace := &httptrace.ClientTrace{
+			// request
+			DNSDone: func(info httptrace.DNSDoneInfo) {
+				dns_time = time.Now()
+				fields["dns_time"] = time.Since(start).Milliseconds()
+			},
+			ConnectDone: func(network, addr string, err error) {
+				conn_time = time.Now()
+				tags["remote_addr"] = addr
+				fields["connect_time"] = time.Since(dns_time).Milliseconds()
+			},
+			TLSHandshakeDone: func(info tls.ConnectionState, err error) {
+				tls_time = time.Now()
+				fields["tls_time"] = time.Since(conn_time).Milliseconds()
+			},
+			GotFirstResponseByte: func() {
+				first_res_time = time.Now()
+				if tls_time == start {
+					fields["first_response_time"] = time.Since(conn_time).Milliseconds()
+				} else {
+					fields["first_response_time"] = time.Since(tls_time).Milliseconds()
+				}
+			},
+		}
+		request = request.WithContext(httptrace.WithClientTrace(request.Context(), trace))
+	}
 	resp, err := ins.client.Do(request)
 
 	// metric: response_time
+	fields["end_response_time"] = time.Since(first_res_time).Milliseconds()
 	fields["response_time"] = time.Since(start).Seconds()
+	fields["response_time_ms"] = time.Since(start).Milliseconds()
 
 	// If an error in returned, it means we are dealing with a network error, as
 	// HTTP error codes do not generate errors in the net/http library
