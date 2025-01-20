@@ -20,7 +20,6 @@ import (
 	"flashcat.cloud/categraf/pkg/httpx"
 	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
-	"github.com/google/uuid"
 )
 
 const (
@@ -196,13 +195,7 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 		log.Println("D! http_response... target:", target)
 	}
 
-	var labels map[string]string
-	if ins.Trace != nil && *ins.Trace {
-		traceid := uuid.New().String()
-		labels = map[string]string{"target": target, "traceid": traceid}
-	} else {
-		labels = map[string]string{"target": target}
-	}
+	labels := map[string]string{"target": target}
 	fields := map[string]interface{}{}
 	// Add extra tags in batches
 	if m, ok := ins.Mappings[target]; ok {
@@ -268,23 +261,23 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 			// request
 			DNSDone: func(info httptrace.DNSDoneInfo) {
 				dns_time = time.Now()
-				fields["dns_time"] = time.Since(start).Seconds()
+				fields["dns_time"] = time.Since(start).Milliseconds()
 			},
 			ConnectDone: func(network, addr string, err error) {
 				conn_time = time.Now()
 				tags["remote_addr"] = addr
-				fields["connect_time"] = time.Since(dns_time).Seconds()
+				fields["connect_time"] = time.Since(dns_time).Milliseconds()
 			},
 			TLSHandshakeDone: func(info tls.ConnectionState, err error) {
 				tls_time = time.Now()
-				fields["tls_time"] = time.Since(conn_time).Seconds()
+				fields["tls_time"] = time.Since(conn_time).Milliseconds()
 			},
 			GotFirstResponseByte: func() {
 				first_res_time = time.Now()
 				if tls_time == start {
-					fields["first_response_time"] = time.Since(conn_time).Seconds()
+					fields["first_response_time"] = time.Since(conn_time).Milliseconds()
 				} else {
-					fields["first_response_time"] = time.Since(tls_time).Seconds()
+					fields["first_response_time"] = time.Since(tls_time).Milliseconds()
 				}
 			},
 		}
@@ -293,8 +286,9 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	resp, err := ins.client.Do(request)
 
 	// metric: response_time
-	fields["end_response_time"] = time.Since(first_res_time).Seconds()
+	fields["end_response_time"] = time.Since(first_res_time).Milliseconds()
 	fields["response_time"] = time.Since(start).Seconds()
+	fields["response_time_ms"] = time.Since(start).Milliseconds()
 
 	// If an error in returned, it means we are dealing with a network error, as
 	// HTTP error codes do not generate errors in the net/http library
