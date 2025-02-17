@@ -128,11 +128,12 @@ func handleSignal(ag *agent.Agent) {
 EXIT:
 	for {
 		sig := <-sc
-		log.Println("I! received signal:", sig.String())
 		switch sig {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
+			log.Println("I! received signal:", sig.String())
 			break EXIT
 		case syscall.SIGHUP:
+			log.Println("I! received signal:", sig.String())
 			ag.Reload()
 		case syscall.SIGPIPE:
 			// https://pkg.go.dev/os/signal#hdr-SIGPIPE
