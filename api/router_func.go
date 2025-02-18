@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/prometheus/prometheus/prompb"
@@ -64,4 +65,18 @@ func DecodeWriteRequest(r io.Reader) (*prompb.WriteRequest, error) {
 	}
 
 	return &req, nil
+}
+
+type Option func(c *gin.Context) bool
+
+func QueryBoolWithValues(k string, vs ...string) Option {
+	return func(c *gin.Context) bool {
+		v := c.Query(k)
+		for _, vv := range vs {
+			if vv == v {
+				return true
+			}
+		}
+		return v == "true"
+	}
 }

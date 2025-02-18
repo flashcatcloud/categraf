@@ -150,8 +150,8 @@ func openTSDB(c *gin.Context) {
 		ts   = time.Now().Unix()
 	)
 
-	ignoreHostname := config.Config.HTTP.IgnoreHostname || c.GetBool("ignore_hostname")
-	ignoreGlobalLabels := config.Config.HTTP.IgnoreGlobalLabels || c.GetBool("ignore_global_labels")
+	ignoreHostname := config.Config.HTTP.IgnoreHostname || QueryBoolWithValues("ignore_hostname")(c)
+	ignoreGlobalLabels := config.Config.HTTP.IgnoreGlobalLabels || QueryBoolWithValues("ignore_global_labels")(c)
 	count := len(list)
 	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < len(list); i++ {
