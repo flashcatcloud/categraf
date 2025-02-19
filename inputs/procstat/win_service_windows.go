@@ -4,6 +4,7 @@
 package procstat
 
 import (
+	"fmt"
 	"log"
 	"unsafe"
 
@@ -50,6 +51,9 @@ func queryPidWithWinServiceName(winServiceName string) (uint32, error) {
 	p = (*windows.SERVICE_STATUS_PROCESS)(unsafe.Pointer(&buf[0]))
 	if err := windows.QueryServiceStatusEx(srv.Handle, windows.SC_STATUS_PROCESS_INFO, &buf[0], uint32(len(buf)), &bytesNeeded); err != nil {
 		return 0, err
+	}
+	if p.CurrentState != windows.SERVICE_RUNNING {
+		return 0, fmt.Errorf("winServiceName %s is not running, currentState:%d", winServiceName, p.CurrentState)
 	}
 
 	return p.ProcessId, nil
