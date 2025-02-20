@@ -50,6 +50,8 @@ type Instance struct {
 	searchString string
 	solarisMode  bool
 	procs        map[PID]Process
+
+	ExcludeSearchString bool `toml:"exclude_search_string"`
 }
 
 func (ins *Instance) Init() error {
@@ -156,9 +158,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	var (
 		pids []PID
 		err  error
-		tags = map[string]string{"search_string": ins.searchString}
+		tags = map[string]string{}
 		opts = []Filter{}
 	)
+
+	if !ins.ExcludeSearchString {
+		tags["search_string"] = ins.searchString
+	}
 
 	if ins.SearchUser != "" {
 		opts = append(opts, UserFilter(ins.SearchUser))
