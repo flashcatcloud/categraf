@@ -1,0 +1,7 @@
+# # collect interval
+# interval = 15
+[[instances]]
+interface = "ens38"
+
+[[instances]]
+interface = "ens33"
