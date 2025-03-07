@@ -60,6 +60,12 @@ type (
 		InitInternalConfig() error
 		Process(*types.SampleList) *types.SampleList
 	}
+
+	ServiceInput interface {
+		Input
+
+		Start(slist *types.SampleList) error
+	}
 )
 
 type Creator func() Input
