@@ -41,15 +41,16 @@ func Start() {
 
 	configRoutes(r)
 
+	addr := config.Expand(conf.Address)
 	srv := &http.Server{
-		Addr:         conf.Address,
+		Addr:         addr,
 		Handler:      r,
 		ReadTimeout:  time.Duration(conf.ReadTimeout) * time.Second,
 		WriteTimeout: time.Duration(conf.WriteTimeout) * time.Second,
 		IdleTimeout:  time.Duration(conf.IdleTimeout) * time.Second,
 	}
 
-	log.Println("I! http server listening on:", conf.Address)
+	log.Println("I! http server listening on:", addr)
 
 	var err error
 	if conf.CertFile != "" && conf.KeyFile != "" {
