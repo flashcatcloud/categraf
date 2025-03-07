@@ -259,6 +259,26 @@ func (hrp *HTTPProvider) LoadConfig() (bool, error) {
 	return changed, nil
 }
 
+func (hrp *HTTPProvider) serviceInput(inputKey string) bool {
+	switch inputKey {
+	case "zabbix":
+		return true
+	}
+	return false
+}
+
+func (hrp *HTTPProvider) preStop(inputKey string) error {
+	if hrp.serviceInput(inputKey) {
+		if dcm, ok := hrp.del.get(inputKey); ok {
+			for sum := range dcm {
+				hrp.op.DeregisterInput(FormatInputName(hrp.Name(), inputKey), sum)
+			}
+			time.Sleep(time.Duration(1) * time.Second)
+		}
+	}
+	return nil
+}
+
 func (hrp *HTTPProvider) StartReloader() {
 	go func() {
 		for {
@@ -272,6 +292,7 @@ func (hrp *HTTPProvider) StartReloader() {
 					if hrp.add.len() > 0 {
 						log.Println("I! http provider: new or updated inputs:", hrp.add)
 						for inputKey, cm := range hrp.add.iter() {
+							hrp.preStop(inputKey)
 							for _, conf := range cm {
 								hrp.op.RegisterInput(FormatInputName(hrp.Name(), inputKey), []cfg.ConfigWithFormat{conf})
 							}
@@ -281,6 +302,9 @@ func (hrp *HTTPProvider) StartReloader() {
 					if hrp.del.len() > 0 {
 						log.Println("I! http provider: deleted inputs:", hrp.del)
 						for inputKey, cm := range hrp.del.iter() {
+							if hrp.serviceInput(inputKey) {
+								continue
+							}
 							for sum := range cm {
 								hrp.op.DeregisterInput(FormatInputName(hrp.Name(), inputKey), sum)
 							}
