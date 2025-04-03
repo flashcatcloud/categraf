@@ -22,7 +22,7 @@ type fileListCollector struct {
 }
 
 func init() {
-	registerCollector("filenotify", defaultEnabled, NewFileNotifyCollector)
+	registerCollector("filenotify", defaultDisabled, NewFileNotifyCollector)
 }
 
 func NewFileNotifyCollector() (Collector, error) {
