@@ -44,7 +44,7 @@ func (e *Exporter) Init() error {
 
 	r := prometheus.NewRegistry()
 	e.exporterMetricsRegistry = r
-	nc, err := collector.NewNodeCollector(e.Collectors...)
+	nc, err := collector.NewNodeCollector(e.DebugMod, e.Collectors...)
 	if err != nil {
 		return fmt.Errorf("couldn't create collector: %s", err)
 	}

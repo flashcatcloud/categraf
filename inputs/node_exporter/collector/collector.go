@@ -66,6 +66,8 @@ func registerCollector(collector string, isDefaultEnabled bool, factory func() (
 type NodeCollector struct {
 	Collectors map[string]Collector
 	filters    []string
+
+	DebugMode bool
 }
 
 // DisableDefaultCollectors sets the collector state to false for all collectors which
@@ -120,7 +122,7 @@ func (nc *NodeCollector) Init(filters ...string) {
 }
 
 // NewNodeCollector creates a new NodeCollector.
-func NewNodeCollector(filters ...string) (*NodeCollector, error) {
+func NewNodeCollector(debugMode bool, filters ...string) (*NodeCollector, error) {
 	nc := &NodeCollector{}
 	nc.Init(filters...)
 	f := make(map[string]bool)
@@ -150,6 +152,7 @@ func NewNodeCollector(filters ...string) (*NodeCollector, error) {
 		}
 	}
 	nc.Collectors = collectors
+	nc.DebugMode = debugMode
 	return nc, nil
 }
 
@@ -186,7 +189,9 @@ func (n *NodeCollector) execute(name string, c Collector, ch chan<- prometheus.M
 		}
 		success = 0
 	} else {
-		log.Println("I!", "collector succeeded", "name", name, "duration_seconds", duration.Seconds())
+		if n.DebugMode {
+			log.Println("I!", "collector succeeded", "name", name, "duration_seconds", duration.Seconds())
+		}
 		success = 1
 	}
 	ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, duration.Seconds(), name)
