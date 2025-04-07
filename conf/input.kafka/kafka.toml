@@ -105,3 +105,10 @@ kafka_uris = []
 # if disable calculating lag rate
 # Default is false
 # disable_calculate_lag_rate = false
+
+## 初始连接等待的最长时间,单位秒
+# dial_timeout=30
+## 等待响应的最长时间
+# read_timeout=30
+## 等待发送的最长时间
+# write_timeout=30
