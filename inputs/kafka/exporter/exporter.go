@@ -99,6 +99,10 @@ type Options struct {
 	PruneIntervalSeconds       int
 	DisableCalculateLagRate    bool
 	RenameUncommitOffsetsToLag bool
+
+	DialTimeout  time.Duration
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
 }
 
 // CanReadCertAndKey returns true if the certificate and key files already exists,
@@ -145,6 +149,10 @@ func New(logger log.Logger, opts Options, topicFilter, topicExclude, groupFilter
 		return nil, err
 	}
 	config.Version = kafkaVersion
+
+	config.Net.DialTimeout = opts.DialTimeout
+	config.Net.ReadTimeout = opts.ReadTimeout
+	config.Net.WriteTimeout = opts.WriteTimeout
 
 	if opts.UseSASL {
 		// Convert to lowercase so that SHA512 and SHA256 is still valid
