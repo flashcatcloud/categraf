@@ -136,6 +136,10 @@ type Instance struct {
 
 	l klog.Logger        `toml:"-"`
 	e *exporter.Exporter `toml:"-"`
+
+	DialTimeout  int `toml:"dial_timeout"`
+	ReadTimeout  int `toml:"read_timeout"`
+	WriteTimeout int `toml:"write_timeout"`
 }
 
 func (ins *Instance) Init() error {
@@ -186,6 +190,15 @@ func (ins *Instance) Init() error {
 	if len(ins.GroupExclude) == 0 {
 		ins.GroupExclude = "^$"
 	}
+	if ins.DialTimeout == 0 {
+		ins.DialTimeout = 30
+	}
+	if ins.ReadTimeout == 0 {
+		ins.ReadTimeout = 30
+	}
+	if ins.WriteTimeout == 0 {
+		ins.WriteTimeout = 30
+	}
 
 	options := exporter.Options{
 		Uri:                        ins.KafkaURIs,
@@ -209,6 +222,9 @@ func (ins *Instance) Init() error {
 		PruneIntervalSeconds:       ins.PruneIntervalSeconds,
 		DisableCalculateLagRate:    ins.DisableCalculateLagRate,
 		RenameUncommitOffsetsToLag: ins.RenameUncommitOffsetsToLag,
+		DialTimeout:                time.Duration(ins.DialTimeout) * time.Second,
+		ReadTimeout:                time.Duration(ins.ReadTimeout) * time.Second,
+		WriteTimeout:               time.Duration(ins.WriteTimeout) * time.Second,
 	}
 
 	ins.l = level.NewFilter(klog.NewLogfmtLogger(klog.NewSyncWriter(os.Stderr)), levelFilter(ins.LogLevel))

@@ -43,6 +43,7 @@ var (
 	status       = flag.Bool("status", false, "Show categraf service status")
 	update       = flag.Bool("update", false, "Update categraf binary")
 	updateFile   = flag.String("update_url", "", "new version for categraf to download")
+	userMode     = flag.Bool("user", false, "Install categraf service with user mode")
 )
 
 func init() {
@@ -164,7 +165,7 @@ func (p *program) Stop(s service.Service) error {
 }
 
 func serviceProcess() error {
-	svcConfig := agentInstall.ServiceConfig()
+	svcConfig := agentInstall.ServiceConfig(*userMode)
 	prg := &program{}
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
