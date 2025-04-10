@@ -27,7 +27,7 @@ func (m *Instance) Init() error {
 	}
 	// Set defaults
 	if m.Timeout == 0 {
-		m.Timeout = 20
+		m.Timeout = 10000
 	}
 
 	return nil
