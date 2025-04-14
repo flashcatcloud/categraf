@@ -16,6 +16,12 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+type TargetStatus struct {
+	mu        sync.RWMutex
+	healthy   bool
+	lastSeen  time.Time
+	failCount int
+}
 type Instance struct {
 	config.InstanceConfig
 	// The SNMP agent to query. Format is [SCHEME://]ADDR[:PORT] (e.g.
@@ -46,6 +52,19 @@ type Instance struct {
 	translator Translator
 
 	Mappings map[string]map[string]string `toml:"mappings"`
+
+	// Track health status of each agent
+	targetStatus         map[string]*TargetStatus
+	targetStatusInit     sync.Once
+	healthMonitorStarted bool
+
+	// Configuration for health monitoring
+	HealthCheckInterval time.Duration `toml:"health_check_interval"`
+	HealthCheckTimeout  time.Duration `toml:"health_check_timeout"`
+	MaxFailCount        int           `toml:"max_fail_count"`
+	RecoveryInterval    time.Duration `toml:"recovery_interval"`
+
+	stop chan struct{}
 }
 
 func (ins *Instance) Init() error {
@@ -86,6 +105,31 @@ func (ins *Instance) Init() error {
 	if len(ins.AgentHostTag) == 0 {
 		ins.AgentHostTag = "agent_host"
 	}
+	if ins.HealthCheckInterval == 0 {
+		ins.HealthCheckInterval = 60 * time.Second
+	}
+	if ins.HealthCheckTimeout == 0 {
+		ins.HealthCheckTimeout = 5 * time.Second
+	}
+	if ins.MaxFailCount == 0 {
+		ins.MaxFailCount = 3
+	}
+	if ins.RecoveryInterval == 0 {
+		ins.RecoveryInterval = 5 * time.Minute
+	}
+
+	// Initialize target status tracking
+	ins.targetStatusInit.Do(func() {
+		ins.targetStatus = make(map[string]*TargetStatus)
+		for _, agent := range ins.Agents {
+			ins.targetStatus[agent] = &TargetStatus{
+				healthy:  true,
+				lastSeen: time.Now(),
+			}
+		}
+	})
+
+	ins.stop = make(chan struct{})
 
 	return nil
 }
@@ -134,6 +178,7 @@ func (ins *Instance) up(slist *types.SampleList, i int) {
 	if err != nil {
 		if strings.Contains(err.Error(), "refused") || strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "reset") {
 			slist.PushSample(inputName, "up", 0, etags)
+			ins.markAgentUnhealthy(target)
 			return
 		}
 	}
@@ -144,6 +189,9 @@ func (ins *Instance) up(slist *types.SampleList, i int) {
 // Any error encountered does not halt the process. The errors are accumulated
 // and returned at the end.
 func (ins *Instance) Gather(slist *types.SampleList) {
+	if !ins.healthMonitorStarted {
+		ins.StartHealthMonitor()
+	}
 	var wg sync.WaitGroup
 	for i, agent := range ins.Agents {
 		wg.Add(1)
@@ -167,6 +215,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			if m, ok := ins.Mappings[agent]; ok {
 				extraTags = m
 			}
+			if status, exists := ins.targetStatus[agent]; exists {
+				status.mu.Lock()
+				status.healthy = true
+				status.failCount = 0
+				status.lastSeen = time.Now()
+				status.mu.Unlock()
+			}
+
 			if !ins.DisableUp {
 				ins.up(slist, i)
 			}
@@ -176,15 +232,27 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				log.Printf("agent %s ins: %s", agent, err)
 				return
 			}
+
+			if !ins.isAgentHealthy(agent) {
+				log.Printf("Skipping unhealthy agent %s during collection", agent)
+				return
+			}
 			if err := ins.gatherTable(slist, gs, t, topTags, extraTags, false); err != nil {
 				log.Printf("agent %s ins: %s", agent, err)
+				ins.markAgentUnhealthy(agent)
 			}
 
+			markCnt := 0
 			// Now is the real tables.
 			for _, t := range ins.Tables {
 				if err := ins.gatherTable(slist, gs, t, topTags, extraTags, true); err != nil {
 					log.Printf("agent %s ins: gathering table %s error: %s", agent, t.Name, err)
+					markCnt++
 				}
+			}
+			if markCnt == len(ins.Tables) {
+				// 所有table都有error 标记agent问题
+				ins.markAgentUnhealthy(agent)
 			}
 		}(i, agent)
 	}
@@ -248,6 +316,9 @@ func (ins *Instance) getConnection(idx int) (snmpConnection, error) {
 	}
 
 	agent := ins.Agents[idx]
+	if !ins.isAgentHealthy(agent) {
+		return nil, fmt.Errorf("agent %s is marked as unhealthy", agent)
+	}
 
 	var err error
 	var gs GosnmpWrapper
@@ -264,6 +335,7 @@ func (ins *Instance) getConnection(idx int) (snmpConnection, error) {
 	ins.connectionCache[idx] = gs
 
 	if err := gs.Connect(); err != nil {
+		ins.markAgentUnhealthy(agent)
 		return nil, fmt.Errorf("setting up connection: %w", err)
 	}
 
@@ -321,4 +393,8 @@ func fastPingRtt(ip string, timeout int) (float64, error) {
 	}
 
 	return rt, err
+}
+
+func (ins *Instance) Drop() {
+	close(ins.stop)
 }
