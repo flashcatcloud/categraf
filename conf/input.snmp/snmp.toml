@@ -96,4 +96,3 @@ agents = [
 #oid = "IF-MIB::ifDescr"
 #name = "ifDescr"
 #is_tag = true
-
