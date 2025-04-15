@@ -16,6 +16,16 @@ agents = [
 ## Timeout for each request.
 # timeout = "5s"
 
+## health check
+# 健康检查的周期
+# health_check_interval=60s
+# 健康检查超时
+# health_check_timeout=5s
+# 健康检查失败达到多少次判定设备异常
+# max_fail_count=3
+# 异常后隔多久再检查
+# recovery_interval=5m
+
 ## SNMP version; can be 1, 2, or 3.
 # version = 2
 
