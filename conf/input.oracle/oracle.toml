@@ -1,7 +1,7 @@
 # # collect interval
 # interval = 15
 
-#[[instances]]
+# [[instances]]
 # address = "10.1.2.3:1521/orcl"
 # username = "monitor"
 # password = "123456"
