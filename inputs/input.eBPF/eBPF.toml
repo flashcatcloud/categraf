@@ -1,0 +1,10 @@
+interval = 1
+[[instances]]
+## List of interfaces to pull metrics for
+# interface_include = ["eth0"]
+interface = "ens38"
+
+[[instances]]
+## List of interfaces to pull metrics for
+# interface_include = ["eth0"]
+interface = "ens33"
