@@ -145,7 +145,7 @@ SELECT
     dt.tablespace_size - dt.free_space as bytes,
     dt.tablespace_size as max_bytes,
     dt.free_space as free,
-    ((dt.tablespace_size - dt.free_space) / dt.tablespace_size)
+    ((dt.tablespace_size - dt.free_space) / dt.tablespace_size) AS used_percent
 FROM  dba_temp_free_space dt
 order by tablespace
 '''
