@@ -125,7 +125,7 @@ IgnoreZeroResult = true
 [[metrics]]
 mesurement = "tablespace"
 label_fields = [ "tablespace", "type" ]
-metric_fields = [ "bytes", "max_bytes", "free" ]
+metric_fields = [ "bytes", "max_bytes", "free", "used_percent" ]
 timeout = "3s"
 request = '''
 SELECT
@@ -134,7 +134,7 @@ SELECT
     dt.block_size * dtum.used_space as bytes,
     dt.block_size * dtum.tablespace_size as max_bytes,
     dt.block_size * (dtum.tablespace_size - dtum.used_space) as free,
-    dtum.used_percent
+    dtum.used_percent as used_percent
 FROM  dba_tablespace_usage_metrics dtum, dba_tablespaces dt
 WHERE dtum.tablespace_name = dt.tablespace_name
 and dt.contents != 'TEMPORARY'
@@ -145,7 +145,7 @@ SELECT
     dt.tablespace_size - dt.free_space as bytes,
     dt.tablespace_size as max_bytes,
     dt.free_space as free,
-    ((dt.tablespace_size - dt.free_space) / dt.tablespace_size) AS used_percent
+    ((dt.tablespace_size - dt.free_space) / dt.tablespace_size) as used_percent
 FROM  dba_temp_free_space dt
 order by tablespace
 '''
