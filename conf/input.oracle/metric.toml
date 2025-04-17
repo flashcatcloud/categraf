@@ -1,3 +1,4 @@
+# 基于 categraf 下的 oracle 插件采集 Oracle 数据库实例指标配置文件
 [[metrics]]
 mesurement = "sessions"
 label_fields = [ "status", "type" ]
@@ -34,8 +35,17 @@ label_fields = [ "resource_name" ]
 metric_fields = [ "current_utilization", "limit_value" ]
 timeout = "3s"
 request = '''
-SELECT resource_name,current_utilization,CASE WHEN TRIM(limit_value) LIKE 'UNLIMITED' THEN '-1' ELSE TRIM(limit_value) END as limit_value FROM v$resource_limit
+  SELECT 
+    resource_name,
+    current_utilization,
+    CASE 
+      WHEN TRIM(limit_value) LIKE 'UNLIMITED' THEN '-1' 
+      ELSE TRIM(limit_value) 
+    END as limit_value 
+  FROM v$resource_limit
 '''
+# 如果查询没有返回结果 即忽略错误 默认不忽略错误
+IgnoreZeroResult = true
 
 [[metrics]]
 mesurement = "asm_diskgroup"
@@ -43,7 +53,16 @@ label_fields = [ "name" ]
 metric_fields = [ "total", "free" ]
 timeout = "3s"
 request = '''
-SELECT name,total_mb*1024*1024 as total,free_mb*1024*1024 as free FROM v$asm_diskgroup_stat where exists (select 1 from v$datafile where name like '+%')
+  SELECT 
+    name,
+    total_mb * 1024 * 1024 AS total,
+    free_mb * 1024 * 1024 AS free
+  FROM 
+    v$asm_diskgroup_stat 
+  WHERE 
+    EXISTS (
+      SELECT 1 FROM v$datafile WHERE name LIKE '+%'
+    )
 '''
 IgnoreZeroResult = true
 
@@ -53,17 +72,23 @@ metric_fields = [ "value" ]
 field_to_append = "name"
 timeout = "3s"
 request = '''
-SELECT name, value FROM v$sysstat WHERE name IN ('parse count (total)', 'execute count', 'user commits', 'user rollbacks')
+  SELECT name, value 
+  FROM v$sysstat 
+  WHERE name IN (
+    'parse count (total)', 
+    'execute count', 
+    'user commits', 
+    'user rollbacks'
+  )
 '''
 
 [[metrics]]
 mesurement = "process"
 metric_fields = [ "count" ]
 timeout = "3s"
-request = '''
-SELECT COUNT(*) as count FROM v$process
-'''
+request = "SELECT COUNT(*) as count FROM v$process"
 
+# 11g 及以下版本
 [[metrics]]
 mesurement = "wait_time"
 metric_fields = [ "value" ]
@@ -78,6 +103,24 @@ FROM
 WHERE
   m.wait_class_id=n.wait_class_id AND n.wait_class != 'Idle'
 '''
+IgnoreZeroResult = true
+
+# 12c 及以上版本或 CDB 模式
+[[metrics]]
+mesurement = "wait_time"
+label_fields = [ "wait_class", "con_id" ]
+metric_fields = [ "time_waited_sec_total" ]
+field_to_append= "wait_class"
+timeout = "3s"
+request = '''
+select
+  wait_class,
+  round(time_waited/100,3) time_waited_sec_total,
+  con_id
+from v$system_wait_class
+where wait_class <> 'Idle'
+'''
+IgnoreZeroResult = true
 
 [[metrics]]
 mesurement = "tablespace"
@@ -90,10 +133,150 @@ SELECT
     dt.contents as type,
     dt.block_size * dtum.used_space as bytes,
     dt.block_size * dtum.tablespace_size as max_bytes,
-    dt.block_size * (dtum.tablespace_size - dtum.used_space) as free
+    dt.block_size * (dtum.tablespace_size - dtum.used_space) as free,
+    dtum.used_percent
 FROM  dba_tablespace_usage_metrics dtum, dba_tablespaces dt
 WHERE dtum.tablespace_name = dt.tablespace_name
-ORDER by tablespace
+and dt.contents != 'TEMPORARY'
+union
+SELECT
+    dt.tablespace_name as tablespace,
+    'TEMPORARY' as type,
+    dt.tablespace_size - dt.free_space as bytes,
+    dt.tablespace_size as max_bytes,
+    dt.free_space as free,
+    ((dt.tablespace_size - dt.free_space) / dt.tablespace_size)
+FROM  dba_temp_free_space dt
+order by tablespace
+'''
+
+[[metrics]]
+mesurement = "db_system"
+label_fields = [ "name" ]
+metric_fields = [ "value" ]
+timeout = "3s"
+request = '''
+select name, value 
+from v$parameter 
+where name in ('cpu_count', 'sga_max_size', 'pga_aggregate_limit')
+'''
+
+[[metrics]]
+mesurement = "top_sql"
+label_fields = [ "sql_id", "sql_text" ]
+metric_fields = [ "elapsed" ]
+timeout = "3s"
+request = '''
+select * from (
+select sql_id, elapsed_time / 1000000 as elapsed, SUBSTRB(REPLACE(sql_text,'',' '),1,55) as sql_text
+from   V$SQLSTATS
+order by elapsed_time desc
+) where ROWNUM <= 15
+'''
+IgnoreZeroResult = true
+
+[[metrics]]
+mesurement = "cache_hit_ratio"
+label_fields = [ "cache_hit_type" ]
+metric_fields = [ "value" ]
+timeout = "3s"
+request = '''
+select metric_name cache_hit_type, value
+from v$sysmetric
+where group_id=2 and metric_id in (2000,2050,2112,2110)
+'''
+IgnoreZeroResult = true
+
+[[metrics]]
+mesurement = "parameter_sessions"
+metric_fields = [ "value" ]
+timeout = "3s"
+request = "select value  from v$parameter t where t.name = 'sessions'"
+
+[[metrics]]
+mesurement = "env"
+label_fields = [ "host_name" ]
+metric_fields = [ "is_rac" ]
+timeout = "3s"
+request = '''
+select host_name,
+decode((select value from v$option where parameter = 'Real Application Clusters'), 'TRUE',1,0) as is_rac
+from v$instance
+'''
+
+[[metrics]]
+mesurement = "env"
+label_fields = [ "version" ]
+metric_fields = [ "running_time" ]
+timeout = "3s"
+request = '''
+SELECT version, trunc(sysdate - startup_time) AS running_time FROM v$instance
+'''
+
+[[metrics]]
+mesurement = "env"
+label_fields = [ "platform_name", "log_mode", "force_logging", "flashback_on", "database_role", "open_mode", "nls_characterset" ]
+metric_fields = [ "value" ]
+timeout = "3s"
+request = '''
+select platform_name, log_mode, force_logging, flashback_on, database_role, open_mode,
+(select value from nls_database_parameters where parameter = 'NLS_CHARACTERSET') as nls_characterset, 1 as value 
+from v$database
+'''
+
+[[metrics]]
+mesurement = "env"
+label_fields = [ "name" ]
+metric_fields = [ "redo_value" ]
+timeout = "3s"
+request = '''
+with temp as(
+  select 
+    count(group#) as group_num,
+    min(members) as member_num,
+    min(bytes/1024/1024) as log_size 
+  from v$log
+)
+select  'group_num' as name ,group_num as redo_value from temp
+union all
+select  'member_num' as name ,member_num as redo_value from temp
+union all
+select  'log_size' as name ,log_size as redo_value from temp
+'''
+
+[[metrics]]
+mesurement = "env"
+metric_fields = [ "redo_switch_value" ]
+timeout = "3s"
+request = '''
+select max(sequence#) as redo_switch_value from v$log
+'''
+
+[[metrics]]
+mesurement = "env"
+metric_fields = [ "vols" ]
+timeout = "3s"
+request = '''
+select to_char(sum(bytes)) as vols from dba_segments
+'''
+
+[[metrics]]
+mesurement = "events"
+label_fields = [ "event_name"]
+metric_fields = [ "value" ]
+timeout = "3s"
+request = '''
+select event as event_name, count(*) as value
+   from v$session_wait
+      where wait_time >= -1 group by event order by 2 desc
+'''
+
+[[metrics]]
+mesurement = "db_time"
+metric_fields = [ "value" ]
+timeout = "3s"
+request = '''
+select value from v$sys_time_model t where t.STAT_NAME = 'DB time'
 '''
 
 [[metrics]]
@@ -102,22 +285,199 @@ metric_fields = [ "value" ]
 field_to_append = "metric_name"
 timeout = "3s"
 request = '''
-select METRIC_NAME,VALUE from v$sysmetric where group_id=2
+select replace(metric_name,'%','') as metric_name ,value from v$sysmetric  where group_id = 2 and metric_name != 'Average Synchronous Single-Block Read Latency'
 '''
 
+[[metrics]]
+mesurement = "sysstat"
+metric_fields = [ "value" ]
+field_to_append = "name"
+timeout = "3s"
+request = '''
+select name , trunc(sum(value), 2) as value
+  from (select decode(name,
+                      'physical read total IO requests',
+                      'Oracle IOPS',
+                      'physical write total IO requests',
+                      'Oracle IOPS',
+                      'redo writes',
+                      'Oracle IOPS',
+                      'physical read total bytes',
+                      'Oracle MBPS',
+                      'physical write total bytes',
+                      'Oracle MBPS',
+                      'redo size',
+                      'Oracle MBPS') as name,
+               decode(name,
+                      'physical read total IO requests',
+                      value,
+                      'physical write total IO requests',
+                      value,
+                      'redo writes',
+                      value,
+                      'physical read total bytes',
+                      value / 1024 / 1024,
+                      'physical write total bytes',
+                      value / 1024 / 1024,
+                      'redo size',
+                      value / 1024 / 1024) as value
+          from v$sysstat
+         where name in (
+                        'physical read total bytes',
+                        'physical write total bytes',
+                        'physical read total IO requests',
+                        'physical write total IO requests',
+                        'redo writes',
+                        'redo size'))
+ where name is not null
+ group by name
+union all
+SELECT a.name, a.value
+  FROM v$sysstat a, v$statname b
+ where a.statistic# = b.statistic#
+   and b.name in (
+                  'consistent gets',
+                  'execute count',
+                  'parse count (hard)',
+                  'parse count (total)',
+                  'redo size',
+                  'redo writes',
+                  'sorts (disk)',
+                  'sorts (memory)',
+                  'sorts (rows)',
+                  'user commits',
+            'user rollbacks',
+            'logons cumulative',
+                  'bytes sent via SQL*Net to client',
+                  'bytes received via SQL*Net from client')
+'''
+
+[[metrics]]
+mesurement = "recovery_file_dest"
+metric_fields = [ "value" ]
+timeout = "3s"
+request = '''
+select sum(t.PERCENT_SPACE_USED) as value from V$RECOVERY_AREA_USAGE t
+'''
+
+[[metrics]]
+mesurement = "recovery_file_dest"
+label_fields = [ "file_type"]
+metric_fields = [ "percent_space_used" ]
+request = '''
+select t.file_type,t.percent_space_used from V$RECOVERY_AREA_USAGE t
+'''
+
+[[metrics]]
+mesurement = "rman_status"
+metric_fields = [ "value"]
+timeout = "3s"
+request = '''
+select decode(max(t.COMPLETION_TIME),'', 0,case when sysdate-max(t.COMPLETION_TIME) > 1 then 0 else 1 end) as value
+  from v$backup_piece t
+ where t.STATUS = 'A'
+'''
+
+[[metrics]]
+mesurement = "rman_info"
+label_fields = [ "recid", "lv_type", "controlfile_included", "status", "device_type", "start_time", "completion_time", "elapsed_seconds", "bak_size", "compressed", "tag" ]
+metric_fields = [ "value"]
+timeout = "3s"
+request = '''
+select a.recid as recid,
+               decode(b.incremental_level,
+                      '',
+                      decode(backup_type, 'L', 'Archivelog', 'ControlFile'),
+                      1,
+                      'Incr-1',
+                      0,
+                      'Incr-0',
+                      b.incremental_level) as lv_type,
+               b.controlfile_included as controlfile_included,
+               decode(a.status,
+                      'A',
+                      'AVAILABLE',
+                      'D',
+                      'DELETED',
+                      'X',
+                      'EXPIRED',
+                      'ERROR') as status,
+               a.device_type as device_type,
+               a.start_time as start_time,
+               a.completion_time as completion_time,
+               a.elapsed_seconds as elapsed_seconds,
+               round(a.bytes / 1024 / 1024 / 1024,3) as bak_size,
+               a.compressed as compressed,
+               a.tag as tag,
+               1 as value
+          from v$backup_piece a, v$backup_set b
+         where a.set_stamp = b.set_stamp
+           and a.deleted = 'NO'
+           and a.set_count = b.set_count
+           and a.start_time > sysdate-8
+         order by a.completion_time desc
+'''
+
+[[metrics]]
+mesurement = "dataguard_exist"
+metric_fields = [ "value" ]
+timeout = "3s"
+request = '''
+select decode(db_unique_name, 'NONE', 0, 1) as value
+  from v$archive_dest_status
+ where dest_name = 'LOG_ARCHIVE_DEST_2'
+'''
+
+[[metrics]]
+mesurement = "dataguard_status"
+metric_fields = [ "value" ]
+timeout = "3s"
+request = '''
+select case
+         when db_unique_name = 'NONE' then
+          0
+         when status != 'VALID' then
+          1
+         else
+          decode(recovery_mode,
+                 'IDLE',
+                 1,
+                 'MANAGED',
+                 2,
+                 'MANAGED REAL TIME APPLY',
+                 2,
+                 'LOGICAL REAL TIME APPLY',
+                 2,
+                 'LOGICAL APPLY',
+                 2,
+                 1)
+       end as value
+  from v$archive_dest_status
+ where dest_name = 'LOG_ARCHIVE_DEST_2'
+'''
 
 [[metrics]]
 mesurement = "archivelog"
+label_fields = [ "log_day" ]
 metric_fields = [ "count" ]
 timeout = "3s"
 request = '''
-select  count(*) as count from v$archived_log  group by trunc(completion_time)
+select to_char(trunc(completion_time), 'YYYY-MM-DD') as log_day, count(*) as count 
+from v$archived_log 
+group by trunc(completion_time)
 '''
+IgnoreZeroResult = true
 
 [[metrics]]
 mesurement = "applylag"
 metric_fields = [ "value" ]
 timeout = "3s"
 request = '''
-SELECT TO_NUMBER(EXTRACT(SECOND FROM TO_DSINTERVAL (value))) as value FROM v$dataguard_stats WHERE name = 'apply lag'
+SELECT ROUND(EXTRACT(DAY FROM TO_DSINTERVAL(value)) * 86400 +
+             EXTRACT(HOUR FROM TO_DSINTERVAL(value)) * 3600 +
+             EXTRACT(MINUTE FROM TO_DSINTERVAL(value)) * 60 +
+             EXTRACT(SECOND FROM TO_DSINTERVAL(value))) AS value
+FROM v$dataguard_stats
+WHERE name = 'apply lag'
 '''
+IgnoreZeroResult = true
