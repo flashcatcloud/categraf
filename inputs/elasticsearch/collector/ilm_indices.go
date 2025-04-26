@@ -15,12 +15,15 @@ package collector
 
 import (
 	"encoding/json"
+	"flashcat.cloud/categraf/pkg/filter"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"path"
+	"sort"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -34,10 +37,12 @@ type ilmMetric struct {
 
 // Index Lifecycle Management information object
 type IlmIndiciesCollector struct {
-	client *http.Client
-	url    *url.URL
-
-	ilmMetric ilmMetric
+	client               *http.Client
+	url                  *url.URL
+	indicesIncluded      []string
+	numMostRecentIndices int
+	indexMatchers        map[string]filter.Filter
+	ilmMetric            ilmMetric
 }
 
 type IlmResponse struct {
@@ -58,12 +63,15 @@ var (
 )
 
 // NewIlmIndicies defines Index Lifecycle Management Prometheus metrics
-func NewIlmIndicies(client *http.Client, url *url.URL) *IlmIndiciesCollector {
+func NewIlmIndicies(client *http.Client, url *url.URL, indicesIncluded []string, numMostRecentIndices int, indexMatchers map[string]filter.Filter) *IlmIndiciesCollector {
 	subsystem := "ilm_index"
 
 	return &IlmIndiciesCollector{
-		client: client,
-		url:    url,
+		client:               client,
+		url:                  url,
+		indicesIncluded:      indicesIncluded,
+		numMostRecentIndices: numMostRecentIndices,
+		indexMatchers:        indexMatchers,
 
 		ilmMetric: ilmMetric{
 			Type: prometheus.GaugeValue,
@@ -87,7 +95,12 @@ func (i *IlmIndiciesCollector) fetchAndDecodeIlm() (IlmResponse, error) {
 	var ir IlmResponse
 
 	u := *i.url
-	u.Path = path.Join(u.Path, "/_all/_ilm/explain")
+	//add indices filter
+	if len(i.indicesIncluded) == 0 {
+		u.Path = path.Join(u.Path, "/_all/_ilm/explain")
+	} else {
+		u.Path = path.Join(u.Path, "/"+strings.Join(i.indicesIncluded, ",")+"/_ilm/explain")
+	}
 
 	res, err := i.client.Get(u.String())
 	if err != nil {
@@ -134,6 +147,9 @@ func (i *IlmIndiciesCollector) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	//add config i.numMostRecentIndices process code
+	ilmResp = i.gatherIndividualIndicesStats(ilmResp)
+
 	for indexName, indexIlm := range ilmResp.Indices {
 		ch <- prometheus.MustNewConstMetric(
 			i.ilmMetric.Desc,
@@ -142,4 +158,63 @@ func (i *IlmIndiciesCollector) Collect(ch chan<- prometheus.Metric) {
 			indexName, indexIlm.Phase, indexIlm.Action, indexIlm.Step,
 		)
 	}
+}
+
+func (i *IlmIndiciesCollector) gatherIndividualIndicesStats(resp IlmResponse) IlmResponse {
+	newIndicesMappings := make(map[string]IlmIndexResponse)
+
+	// Sort indices into buckets based on their configured prefix, if any matches.
+	categorizedIndexNames := i.categorizeIndices(resp)
+	for _, matchingIndices := range categorizedIndexNames {
+		// Establish the number of each category of indices to use. User can configure to use only the latest 'X' amount.
+		indicesCount := len(matchingIndices)
+		indicesToTrackCount := indicesCount
+
+		// Sort the indices if configured to do so.
+		if i.numMostRecentIndices > 0 {
+			if i.numMostRecentIndices < indicesToTrackCount {
+				indicesToTrackCount = i.numMostRecentIndices
+			}
+			sort.Strings(matchingIndices)
+		}
+
+		// Gather only the number of indexes that have been configured, in descending order (most recent, if date-stamped).
+		for i := indicesCount - 1; i >= indicesCount-indicesToTrackCount; i-- {
+			indexName := matchingIndices[i]
+			newIndicesMappings[indexName] = resp.Indices[indexName]
+		}
+	}
+	//return new IlmResponse
+	var iml IlmResponse
+	iml.Indices = newIndicesMappings
+	return iml
+}
+
+func (i *IlmIndiciesCollector) categorizeIndices(resp IlmResponse) map[string][]string {
+	categorizedIndexNames := make(map[string][]string, len(resp.Indices))
+	// If all indices are configured to be gathered, bucket them all together.
+	if len(i.indicesIncluded) == 0 || i.indicesIncluded[0] == "_all" {
+		for indexName := range resp.Indices {
+			categorizedIndexNames["_all"] = append(categorizedIndexNames["_all"], indexName)
+		}
+
+		return categorizedIndexNames
+	}
+
+	// Bucket each returned index with its associated configured index (if any match).
+	for indexName := range resp.Indices {
+		match := indexName
+		for name, matcher := range i.indexMatchers {
+			// If a configured index matches one of the returned indexes, mark it as a match.
+			if matcher.Match(match) {
+				match = name
+				break
+			}
+		}
+
+		// Bucket all matching indices together for sorting.
+		categorizedIndexNames[match] = append(categorizedIndexNames[match], indexName)
+	}
+
+	return categorizedIndexNames
 }
