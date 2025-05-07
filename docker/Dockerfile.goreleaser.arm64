@@ -1,4 +1,4 @@
-FROM --platform=$TARGETPLATFORM ubuntu:23.04
+FROM --platform=$TARGETPLATFORM ubuntu:24.04
 
 COPY docker/nsswitch.conf /etc/nsswitch.conf
 

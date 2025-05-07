@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"flashcat.cloud/categraf/pkg/filter"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -34,8 +35,11 @@ func TestIndices(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to parse URL: %s", err)
 		}
-		indices := make([]string, 0)
-		i := NewIndices(http.DefaultClient, u, false, false, indices)
+		//indices := make([]string, 0)
+		indicesIncluded := make([]string, 0)
+		var numMostRecentIndices int = 0
+		indexMatchers := make(map[string]filter.Filter)
+		i := NewIndices(http.DefaultClient, u, false, true, indicesIncluded, numMostRecentIndices, indexMatchers)
 		stats, err := i.fetchAndDecodeIndexStats()
 		if err != nil {
 			t.Fatalf("Failed to fetch or decode indices stats: %s", err)
@@ -56,7 +60,7 @@ func TestIndices(t *testing.T) {
 		if stats.Indices["foo_1"].Total.Indexing.IndexTotal == 0 {
 			t.Errorf("Wrong indexing total recorded")
 		}
-		if stats.Aliases != nil {
+		if len(stats.Aliases) != 0 {
 			t.Errorf("Aliases are populated when they should not be")
 		}
 	}
@@ -109,8 +113,11 @@ func TestAliases(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to parse URL: %s", err)
 		}
-		indices := make([]string, 0)
-		i := NewIndices(http.DefaultClient, u, false, true, indices)
+		//indices := make([]string, 0)
+		indicesIncluded := make([]string, 0)
+		var numMostRecentIndices int = 0
+		indexMatchers := make(map[string]filter.Filter)
+		i := NewIndices(http.DefaultClient, u, false, true, indicesIncluded, numMostRecentIndices, indexMatchers)
 		stats, err := i.fetchAndDecodeIndexStats()
 		if err != nil {
 			t.Fatalf("Failed to fetch or decode indices stats: %s", err)
