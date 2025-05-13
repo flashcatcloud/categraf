@@ -125,7 +125,7 @@ IgnoreZeroResult = true
 [[metrics]]
 mesurement = "tablespace"
 label_fields = [ "tablespace", "type" ]
-metric_fields = [ "bytes", "max_bytes", "free" ]
+metric_fields = [ "bytes", "max_bytes", "free", "used_percent" ]
 timeout = "3s"
 request = '''
 SELECT
