@@ -18,6 +18,7 @@ vendor:
 	GOPROXY=https://goproxy.cn go mod vendor
 
 vendor-ci:
+	go mod tidy
 	go mod vendor
 
 build:
