@@ -77,6 +77,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/procstat"
 	_ "flashcat.cloud/categraf/inputs/prometheus"
 	_ "flashcat.cloud/categraf/inputs/rabbitmq"
+	_ "flashcat.cloud/categraf/inputs/redfish"
 	_ "flashcat.cloud/categraf/inputs/redis"
 	_ "flashcat.cloud/categraf/inputs/redis_sentinel"
 	_ "flashcat.cloud/categraf/inputs/rocketmq_offset"
