@@ -30,6 +30,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/dns_query"
 	_ "flashcat.cloud/categraf/inputs/docker"
 	_ "flashcat.cloud/categraf/inputs/elasticsearch"
+	_ "flashcat.cloud/categraf/inputs/emc_unity"
 	_ "flashcat.cloud/categraf/inputs/ethtool"
 	_ "flashcat.cloud/categraf/inputs/exec"
 	_ "flashcat.cloud/categraf/inputs/filecount"
