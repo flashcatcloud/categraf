@@ -2,7 +2,6 @@ package emc_unity
 
 import (
 	"crypto/tls"
-	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
