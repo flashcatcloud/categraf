@@ -48,6 +48,8 @@ type (
 		RegionID     string `json:"regionId,omitempty"`
 		QueueName    string `json:"queueName,omitempty"`
 		VHostQueue   string `json:"vhostQueue,omitempty"`
+		//hybrid db
+		Hostname string `json:"hostname,omitempty"`
 	}
 )
 
