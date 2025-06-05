@@ -16,7 +16,7 @@ on:
 env:
   GO111MODULE: on
   GONOSUMDB: "*"
-  GOSUMDB: off
+  #GOSUMDB: off
 
 jobs:
   CommitLint:
