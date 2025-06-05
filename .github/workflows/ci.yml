@@ -42,6 +42,8 @@ jobs:
       - uses: WillAbides/setup-go-faster@v1.14.0
         with:
           go-version: "1.24"
+      - name: Tidy Go modules
+        run: go mod tidy
       - name: Run golang-ci-lint
         uses: golangci/golangci-lint-action@v3.6.0
         with:
