@@ -116,7 +116,7 @@ func (ins *Instance) Init() error {
 	if _, ok := ins.command.(*CommandEthtool); !ok {
 		errMsg := "Conversion failed"
 		log.Println("E! ", errMsg)
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("%v", errMsg)
 	}
 
 	return ins.command.Init()

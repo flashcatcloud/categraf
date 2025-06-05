@@ -112,7 +112,7 @@ func parseFilters(filters []string) (imageFilters, nameFilters, namespaceFilters
 			namespaceFilters = append(namespaceFilters, r)
 		default:
 			warnmsg := fmt.Sprintf("Container filter %q is unknown, ignoring it. The supported filters are 'image', 'name' and 'kube_namespace'", filter)
-			log.Printf(warnmsg)
+			log.Println(warnmsg)
 			filterWarnings = append(filterWarnings, warnmsg)
 
 		}
