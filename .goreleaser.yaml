@@ -16,6 +16,7 @@ builds:
     binary: categraf
     env:
       - CGO_ENABLED=0
+      - GODEBUG=x509negativeserial=1
     goos:
       - linux
     goarch:
@@ -28,6 +29,7 @@ builds:
     binary: categraf
     env:
       - CGO_ENABLED=0
+      - GODEBUG=x509negativeserial=1
     goos:
       - linux
     goarch:
@@ -54,6 +56,7 @@ builds:
     binary: categraf
     env:
       - CGO_ENABLED=0
+      - GODEBUG=x509negativeserial=1
     goos:
       - linux
     goarch:
@@ -73,6 +76,7 @@ builds:
     binary: categraf
     env:
       - CGO_ENABLED=0
+      - GODEBUG=x509negativeserial=1
     goos:
       - linux
     goarch:
