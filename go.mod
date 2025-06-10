@@ -4,8 +4,6 @@ godebug x509negativeserial=1
 
 go 1.24.3
 
-toolchain go1.24.3
-
 require (
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137
 	github.com/chai2010/winsvc v0.0.0-20200705094454-db7ec320025c
