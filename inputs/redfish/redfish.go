@@ -100,7 +100,7 @@ type Tag struct {
 func (i *Instance) Init() error {
 	for idx, v := range i.Addresses {
 		if v.URL == "" {
-			return errors.New("did not provide IP")
+			return types.ErrInstancesEmpty
 		}
 
 		base, err := url.Parse(v.URL)
