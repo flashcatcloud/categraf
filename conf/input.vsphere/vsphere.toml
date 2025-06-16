@@ -21,6 +21,7 @@
     "cpu.ready.summation",
     "cpu.run.summation",
     "cpu.usagemhz.average",
+    "cpu.usage.average",
     "cpu.used.summation",
     "cpu.wait.summation",
     "mem.active.average",
