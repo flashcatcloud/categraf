@@ -130,6 +130,7 @@ archives:
     wrap_in_directory: true
     files:
       - conf/*
+      - scripts/win_run.bat
 
   - id: categraf-slim
     builds:
@@ -142,6 +143,7 @@ archives:
     wrap_in_directory: true
     files:
       - conf/*
+      - scripts/win_run.bat
 
 release:
   github:
