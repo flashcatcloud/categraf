@@ -56,7 +56,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/alecthomas/participle v0.4.1 // indirect
@@ -185,7 +185,6 @@ require (
 replace gopkg.in/yaml.v2 => github.com/rfratto/go-yaml v0.0.0-20211119180816-77389c3526dc
 
 require (
-	cloud.google.com/go/compute v1.23.3 // indirect
 	github.com/Azure/azure-sdk-for-go v65.0.0+incompatible // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.28 // indirect
@@ -335,13 +334,12 @@ require (
 	go.uber.org/goleak v1.2.0 // indirect
 	golang.org/x/crypto v0.36.0
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/oauth2 v0.16.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.12.0
 	golang.org/x/term v0.30.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	google.golang.org/api v0.149.0
-	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20231106174013-bbf56f31fb17
 	google.golang.org/grpc v1.61.1
 	google.golang.org/protobuf v1.33.0
