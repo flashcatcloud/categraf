@@ -187,15 +187,21 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				log.Println("E! failed to exec query commonMetrics error:", err)
 			}
 		}
-		log.Println("E!metrics=", len(ins.Metrics))
+		log.Printf("I! metrics count: %d", len(ins.Metrics))
 		waitMetrics := new(sync.WaitGroup)
+
+		if len(connects) == 0 {
+			log.Println("W! No available connections for custom metrics")
+			return
+		}
 
 		for i := 0; i < len(ins.Metrics); i++ {
 			m := ins.Metrics[i]
+			connIdx := i % len(connects)
 			waitMetrics.Add(1)
 			//tags := map[string]string{"address": ins.Address}
 			//go ins.scrapeMetric(waitMetrics, slist, m, tags)
-			go ins.execCustomQuery(&connects[i], waitMetrics, slist, m)
+			go ins.execCustomQuery(&connects[connIdx], waitMetrics, slist, m)
 		}
 		waitMetrics.Wait()
 
