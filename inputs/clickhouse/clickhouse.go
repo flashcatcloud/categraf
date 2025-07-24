@@ -187,7 +187,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				log.Println("E! failed to exec query commonMetrics error:", err)
 			}
 		}
-		log.Println("I!metrics=", len(ins.Metrics))
+		log.Printf("I! metrics count: %d", len(ins.Metrics))
 		waitMetrics := new(sync.WaitGroup)
 
 		if len(connects) == 0 {
