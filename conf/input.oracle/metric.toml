@@ -364,6 +364,7 @@ select sum(t.PERCENT_SPACE_USED) as value from V$RECOVERY_AREA_USAGE t
 mesurement = "recovery_file_dest"
 label_fields = [ "file_type"]
 metric_fields = [ "percent_space_used" ]
+timeout = "3s"
 request = '''
 select t.file_type,t.percent_space_used from V$RECOVERY_AREA_USAGE t
 '''
