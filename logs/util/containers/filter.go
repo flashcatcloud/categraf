@@ -63,7 +63,7 @@ const (
 	pauseContainerUpstream = `image:upstream/pause.*`
 	// - cdk/pause-amd64
 	pauseContainerCDK = `image:cdk/pause.*`
-	categrafContainer = `image:flashcatcloud/categraf.*`
+	categrafContainer = `image:.*categraf.*`
 
 	// filter prefixes for inclusion/exclusion
 	imageFilterPrefix         = `image:`

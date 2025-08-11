@@ -238,7 +238,7 @@ data:
     ## Pod labels to be added as tags.  An empty array for both include and
     ## exclude will include all labels.
     # label_include = []
-    # label_exclude = ["*"]
+    # label_exclude = ["image:.*categraf.*"]
 
     ## Set response_timeout (default 5 seconds)
     # response_timeout = "5s"

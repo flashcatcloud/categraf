@@ -60,6 +60,8 @@ enable_collect_container=false
 
 # 是否采集所有pod的stdout stderr
 collect_container_all = true
+# 容器日志解析, 支持的参数: docker/containerd/podman
+container_logs_parser="containerd"
   ## glog processing rules
   # [[logs.Processing_rules]]
   ## single log configure
