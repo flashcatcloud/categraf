@@ -149,6 +149,8 @@ data:
     frame_size = 9000
     ##
     collect_container_all = true
+    #container_include=["name:.*"]
+    container_exclude=["image:.*categraf.*"]
       ## 全局的处理规则
       [[logs.Processing_rules]]
       ## 单个日志采集配置
