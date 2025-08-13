@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"sync"
 	"time"
@@ -81,6 +82,7 @@ func InitHostInfo() error {
 			return err
 		}
 		ip = fmt.Sprint(nip)
+		//log.Println("当前获取到的$ip地址为：" + ip + "\n")
 	}
 	var sn string
 	// allow sn empty
@@ -109,7 +111,13 @@ func (c *HostInfoCache) update() {
 		if err != nil {
 			log.Println("E! failed to get ip:", err)
 		} else {
-			HostInfo.SetIP(fmt.Sprint(ip))
+			//log.Println("当前获取到的$ip地址为：" + fmt.Sprint(ip) + "\n")
+			nip := net.ParseIP(fmt.Sprint(ip))
+			if !nip.IsLoopback() {
+				HostInfo.SetIP(fmt.Sprint(ip))
+			} else {
+				log.Println("判断新获取的到$ip为回环地址，不做更新。新获取的到$ip为：" + fmt.Sprint(ip) + "\n")
+			}
 		}
 		sn, err := GetBiosSn()
 		if err == nil {
