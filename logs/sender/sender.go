@@ -50,8 +50,8 @@ func (s *Sender) Start() {
 // this call blocks until inputChan is flushed
 func (s *Sender) Stop() {
 	close(s.inputChan)
-	s.destinations.Close()
 	<-s.done
+	s.destinations.Close()
 }
 
 // Flush sends synchronously the messages that this sender has to send.

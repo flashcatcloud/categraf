@@ -408,6 +408,9 @@ func (ins *Instance) makeLabels(point internalTypes.Point, labels ...map[string]
 	if len(point.VHostQueue) != 0 {
 		result["vhost_queue"] = point.VHostQueue
 	}
+	if len(point.Hostname) != 0 {
+		result["hostname"] = point.Hostname
+	}
 	return result
 }
 

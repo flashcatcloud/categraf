@@ -16,6 +16,7 @@ builds:
     binary: categraf
     env:
       - CGO_ENABLED=0
+      - GODEBUG=x509negativeserial=1
     goos:
       - linux
     goarch:
@@ -28,6 +29,7 @@ builds:
     binary: categraf
     env:
       - CGO_ENABLED=0
+      - GODEBUG=x509negativeserial=1
     goos:
       - linux
     goarch:
@@ -54,6 +56,7 @@ builds:
     binary: categraf
     env:
       - CGO_ENABLED=0
+      - GODEBUG=x509negativeserial=1
     goos:
       - linux
     goarch:
@@ -73,6 +76,7 @@ builds:
     binary: categraf
     env:
       - CGO_ENABLED=0
+      - GODEBUG=x509negativeserial=1
     goos:
       - linux
     goarch:
@@ -126,6 +130,7 @@ archives:
     wrap_in_directory: true
     files:
       - conf/*
+      - scripts/win_run.bat
 
   - id: categraf-slim
     builds:
@@ -138,6 +143,7 @@ archives:
     wrap_in_directory: true
     files:
       - conf/*
+      - scripts/win_run.bat
 
 release:
   github:

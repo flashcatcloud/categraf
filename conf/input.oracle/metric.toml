@@ -34,6 +34,7 @@ mesurement = "resource"
 label_fields = [ "resource_name" ]
 metric_fields = [ "current_utilization", "limit_value" ]
 timeout = "3s"
+ignore_zero_result = true
 request = '''
   SELECT 
     resource_name,
@@ -44,14 +45,13 @@ request = '''
     END as limit_value 
   FROM v$resource_limit
 '''
-# 如果查询没有返回结果 即忽略错误 默认不忽略错误
-IgnoreZeroResult = true
 
 [[metrics]]
 mesurement = "asm_diskgroup"
 label_fields = [ "name" ]
 metric_fields = [ "total", "free" ]
 timeout = "3s"
+ignore_zero_result = true
 request = '''
   SELECT 
     name,
@@ -64,7 +64,6 @@ request = '''
       SELECT 1 FROM v$datafile WHERE name LIKE '+%'
     )
 '''
-IgnoreZeroResult = true
 
 [[metrics]]
 mesurement = "activity"
@@ -94,6 +93,7 @@ mesurement = "wait_time"
 metric_fields = [ "value" ]
 label_fields = ["wait_class"]
 timeout = "3s"
+ignore_zero_result = true
 request = '''
 SELECT
   n.wait_class as WAIT_CLASS,
@@ -103,7 +103,6 @@ FROM
 WHERE
   m.wait_class_id=n.wait_class_id AND n.wait_class != 'Idle'
 '''
-IgnoreZeroResult = true
 
 # 12c 及以上版本或 CDB 模式
 [[metrics]]
@@ -112,6 +111,7 @@ label_fields = [ "wait_class", "con_id" ]
 metric_fields = [ "time_waited_sec_total" ]
 field_to_append= "wait_class"
 timeout = "3s"
+ignore_zero_result = true
 request = '''
 select
   wait_class,
@@ -120,7 +120,6 @@ select
 from v$system_wait_class
 where wait_class <> 'Idle'
 '''
-IgnoreZeroResult = true
 
 [[metrics]]
 mesurement = "tablespace"
@@ -166,6 +165,7 @@ mesurement = "top_sql"
 label_fields = [ "sql_id", "sql_text" ]
 metric_fields = [ "elapsed" ]
 timeout = "3s"
+ignore_zero_result = true
 request = '''
 select * from (
 select sql_id, elapsed_time / 1000000 as elapsed, SUBSTRB(REPLACE(sql_text,'',' '),1,55) as sql_text
@@ -173,19 +173,18 @@ from   V$SQLSTATS
 order by elapsed_time desc
 ) where ROWNUM <= 15
 '''
-IgnoreZeroResult = true
 
 [[metrics]]
 mesurement = "cache_hit_ratio"
 label_fields = [ "cache_hit_type" ]
 metric_fields = [ "value" ]
 timeout = "3s"
+ignore_zero_result = true
 request = '''
 select metric_name cache_hit_type, value
 from v$sysmetric
 where group_id=2 and metric_id in (2000,2050,2112,2110)
 '''
-IgnoreZeroResult = true
 
 [[metrics]]
 mesurement = "parameter_sessions"
@@ -356,6 +355,7 @@ SELECT a.name, a.value
 mesurement = "recovery_file_dest"
 metric_fields = [ "value" ]
 timeout = "3s"
+ignore_zero_result = true
 request = '''
 select sum(t.PERCENT_SPACE_USED) as value from V$RECOVERY_AREA_USAGE t
 '''
@@ -364,6 +364,8 @@ select sum(t.PERCENT_SPACE_USED) as value from V$RECOVERY_AREA_USAGE t
 mesurement = "recovery_file_dest"
 label_fields = [ "file_type"]
 metric_fields = [ "percent_space_used" ]
+timeout = "3s"
+ignore_zero_result = true
 request = '''
 select t.file_type,t.percent_space_used from V$RECOVERY_AREA_USAGE t
 '''
@@ -461,17 +463,18 @@ mesurement = "archivelog"
 label_fields = [ "log_day" ]
 metric_fields = [ "count" ]
 timeout = "3s"
+ignore_zero_result = true
 request = '''
 select to_char(trunc(completion_time), 'YYYY-MM-DD') as log_day, count(*) as count 
 from v$archived_log 
 group by trunc(completion_time)
 '''
-IgnoreZeroResult = true
 
 [[metrics]]
 mesurement = "applylag"
 metric_fields = [ "value" ]
 timeout = "3s"
+ignore_zero_result = true
 request = '''
 SELECT ROUND(EXTRACT(DAY FROM TO_DSINTERVAL(value)) * 86400 +
              EXTRACT(HOUR FROM TO_DSINTERVAL(value)) * 3600 +
@@ -480,4 +483,3 @@ SELECT ROUND(EXTRACT(DAY FROM TO_DSINTERVAL(value)) * 86400 +
 FROM v$dataguard_stats
 WHERE name = 'apply lag'
 '''
-IgnoreZeroResult = true
