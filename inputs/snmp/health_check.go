@@ -15,7 +15,7 @@ func (ins *Instance) StartHealthMonitor() {
 	ins.healthMonitorStarted = true
 
 	go func() {
-		ticker := time.NewTicker(ins.HealthCheckInterval)
+		ticker := time.NewTicker(time.Duration(ins.HealthCheckInterval))
 		defer ticker.Stop()
 
 		for {
@@ -45,7 +45,7 @@ func (ins *Instance) checkAgentHealth(i int, agent string) {
 		timeSinceLastCheck := time.Since(status.lastSeen)
 		status.mu.RUnlock()
 
-		if timeSinceLastCheck < ins.RecoveryInterval {
+		if timeSinceLastCheck < time.Duration(ins.RecoveryInterval) {
 			return
 		}
 	}
