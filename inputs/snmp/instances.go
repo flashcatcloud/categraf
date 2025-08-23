@@ -59,10 +59,10 @@ type Instance struct {
 	healthMonitorStarted bool
 
 	// Configuration for health monitoring
-	HealthCheckInterval time.Duration `toml:"health_check_interval"`
-	HealthCheckTimeout  time.Duration `toml:"health_check_timeout"`
-	MaxFailCount        int           `toml:"max_fail_count"`
-	RecoveryInterval    time.Duration `toml:"recovery_interval"`
+	HealthCheckInterval config.Duration `toml:"health_check_interval"`
+	HealthCheckTimeout  config.Duration `toml:"health_check_timeout"`
+	MaxFailCount        int             `toml:"max_fail_count"`
+	RecoveryInterval    config.Duration `toml:"recovery_interval"`
 
 	stop chan struct{}
 }
@@ -106,16 +106,16 @@ func (ins *Instance) Init() error {
 		ins.AgentHostTag = "agent_host"
 	}
 	if ins.HealthCheckInterval == 0 {
-		ins.HealthCheckInterval = 60 * time.Second
+		ins.HealthCheckInterval = config.Duration(60 * time.Second)
 	}
 	if ins.HealthCheckTimeout == 0 {
-		ins.HealthCheckTimeout = 5 * time.Second
+		ins.HealthCheckTimeout = config.Duration(5 * time.Second)
 	}
 	if ins.MaxFailCount == 0 {
 		ins.MaxFailCount = 3
 	}
 	if ins.RecoveryInterval == 0 {
-		ins.RecoveryInterval = 5 * time.Minute
+		ins.RecoveryInterval = config.Duration(5 * time.Minute)
 	}
 
 	// Initialize target status tracking
