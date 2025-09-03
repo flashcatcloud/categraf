@@ -149,7 +149,7 @@ func (ins *Instance) up(slist *types.SampleList, i int) {
 	for k, v := range ins.GetLabels() {
 		etags[k] = v
 	}
-	if m, ok := ins.Mappings[host]; ok {
+	if m, ok := ins.Mappings[target]; ok {
 		for k, v := range m {
 			etags[k] = v
 		}
