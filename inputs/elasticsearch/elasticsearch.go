@@ -56,6 +56,7 @@ type (
 		ExportIndices         bool            `toml:"export_indices"`
 		ExportIndicesSettings bool            `toml:"export_indices_settings"`
 		ExportIndicesMappings bool            `toml:"export_indices_mappings"`
+		ExportIndicesAliases  bool            `toml:"export_indices_aliases"`
 		ExportIndexAliases    bool            `toml:"export_index_aliases"`
 		ExportILM             bool            `toml:"export_ilm"`
 		ExportShards          bool            `toml:"export_shards"`
@@ -67,6 +68,7 @@ type (
 		ClusterInfoInterval   config.Duration `toml:"cluster_info_interval"`
 		AwsRegion             string          `toml:"aws_region"`
 		AwsRoleArn            string          `toml:"aws_role_arn"`
+		NumMostRecentIndices  int             `toml:"num_most_recent_indices"`
 
 		EsURL *url.URL
 		*http.Client
@@ -141,6 +143,10 @@ func (ins *Instance) Init() error {
 	ins.Client, err = ins.createHTTPClient()
 	if err != nil {
 		return err
+	}
+	if ins.ExportIndexAliases {
+		log.Println("export_index_aliases is deprecated, use export_indices_aliases instead")
+		ins.ExportIndicesAliases = true
 	}
 
 	return nil
@@ -244,7 +250,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				if err := inputs.Collect(sC, slist); err != nil {
 					log.Println("E! failed to collect shards metrics:", err)
 				}
-				iC := collector.NewIndices(ins.Client, EsUrl, ins.ExportShards, ins.ExportIndexAliases, ins.IndicesInclude)
+				iC := collector.NewIndices(ins.Client, EsUrl, ins.ExportShards, ins.ExportIndicesAliases, ins.IndicesInclude, ins.NumMostRecentIndices, ins.indexMatchers)
 				if err := inputs.Collect(iC, slist); err != nil {
 					log.Println("E! failed to collect indices metrics:", err)
 				}
@@ -269,13 +275,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			}
 
 			if ins.ExportIndicesSettings {
-				if err := inputs.Collect(collector.NewIndicesSettings(ins.Client, EsUrl), slist); err != nil {
+				if err := inputs.Collect(collector.NewIndicesSettings(ins.Client, EsUrl, ins.IndicesInclude, ins.NumMostRecentIndices, ins.indexMatchers), slist); err != nil {
 					log.Println("E! failed to collect indices settings metrics:", err)
 				}
 			}
 
 			if ins.ExportIndicesMappings {
-				if err := inputs.Collect(collector.NewIndicesMappings(ins.Client, EsUrl), slist); err != nil {
+				if err := inputs.Collect(collector.NewIndicesMappings(ins.Client, EsUrl, ins.IndicesInclude, ins.NumMostRecentIndices, ins.indexMatchers), slist); err != nil {
 					log.Println("E! failed to collect indices mappings metrics:", err)
 				}
 			}
@@ -290,7 +296,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				if err := inputs.Collect(collector.NewIlmStatus(ins.Client, EsUrl), slist); err != nil {
 					log.Println("E! failed to collect ilm status metrics:", err)
 				}
-				if err := inputs.Collect(collector.NewIlmIndicies(ins.Client, EsUrl), slist); err != nil {
+				if err := inputs.Collect(collector.NewIlmIndicies(ins.Client, EsUrl, ins.IndicesInclude, ins.NumMostRecentIndices, ins.indexMatchers), slist); err != nil {
 					log.Println("E! failed to collect ilm indices metrics:", err)
 				}
 			}

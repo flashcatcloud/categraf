@@ -1,15 +1,32 @@
 # # collect interval
 #interval = 3600
+#
+
+#[mappings]
+#"baidu.com" = { "app" = "baidu" }
+#"google.com" = { "app" = "google" }
 
 #[[instances]]
-## Used to collect domain name information.
+## [deprecated] Used to collect domain name information.
 #domain = "baidu.com"
+
+# domains 
+#domains = ["baidu.com","google.com","aliyun.com"]
+
+## timeout in seconds
+# timeout = 30
+
+## whois server
+# server = "whois.iana.org"
 
 ## append some labels for series
 #labels = { region="n9e", product="test1" }
 
 ## interval = global.interval * interval_times
 #interval_times = 1
+
+## concurrent
+# concurrent = 1
 
 
 #[[instances]]

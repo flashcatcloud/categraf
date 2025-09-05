@@ -1,0 +1,19 @@
+name: Close Inactive Issues
+on:
+  issues:
+    types: [opened]
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch: #
+jobs:
+  close-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          stale-issue-message: 'This issue has been inactive for 30 days and will be closed if no further activity occurs.'
+          close-issue-message: 'This issue has been automatically closed due to inactivity. Please feel free to reopen it'
+          days-before-stale: 30
+          days-before-close: 7
+          stale-issue-label: 'stale'

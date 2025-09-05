@@ -137,6 +137,10 @@ func freeipmiConfigPipe(config string) (string, error) {
 }
 
 func Execute(cmd string, args []string, config string, target string, debugMod bool) Result {
+	if _, err := exec.LookPath(cmd); err != nil {
+		return Result{nil, fmt.Errorf("executable %s not found in $PATH", cmd)}
+	}
+
 	pipe, err := freeipmiConfigPipe(config)
 	if err != nil {
 		return Result{nil, err}
