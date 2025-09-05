@@ -3,6 +3,9 @@ package diskio
 import (
 	"fmt"
 	"log"
+	"time"
+
+	"github.com/shirou/gopsutil/v3/disk"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -19,6 +22,8 @@ type DiskIO struct {
 	config.PluginConfig
 	Devices      []string `toml:"devices"`
 	deviceFilter filter.Filter
+	lastSeen     time.Time
+	lastStat     map[string]disk.IOCountersStat
 }
 
 func init() {
@@ -65,7 +70,8 @@ func (d *DiskIO) Gather(slist *types.SampleList) {
 		return
 	}
 
-	for _, io := range diskio {
+	now := time.Now()
+	for k, io := range diskio {
 		if d.deviceFilter != nil && !d.deviceFilter.Match(io.Name) {
 			continue
 		}
@@ -83,7 +89,22 @@ func (d *DiskIO) Gather(slist *types.SampleList) {
 			"merged_reads":     io.MergedReadCount,
 			"merged_writes":    io.MergedWriteCount,
 		}
+		if lastValue, exists := d.lastStat[k]; exists {
+			deltaRWCount := float64(io.ReadCount + io.WriteCount - lastValue.ReadCount - lastValue.WriteCount)
+			deltaRWTime := float64(io.ReadTime + io.WriteTime - lastValue.ReadTime - lastValue.WriteTime)
+			deltaIOTime := float64(io.IoTime - lastValue.IoTime)
+			if deltaRWCount > 0 {
+				fields["io_await"] = deltaRWTime / deltaRWCount
+				fields["io_svctm"] = deltaIOTime / deltaRWCount
+			}
+			itv := float64(now.Sub(d.lastSeen).Milliseconds())
+			if itv > 0 {
+				fields["io_util"] = 100 * deltaIOTime / itv
+			}
+		}
 
 		slist.PushSamples("diskio", fields, map[string]string{"name": io.Name})
 	}
+	d.lastSeen = now
+	d.lastStat = diskio
 }

@@ -93,6 +93,9 @@ type Instance struct {
 	labelFilter     filter.Filter
 	containerFilter filter.Filter
 	stateFilter     filter.Filter
+
+	engineHost    string
+	serverVersion string
 }
 
 func (ins *Instance) Init() error {
@@ -226,6 +229,8 @@ func (ins *Instance) gatherContainer(container types.Container, slist *itypes.Sa
 		"container_name":  cname,
 		"container_image": imageName,
 		// "container_version": imageVersion,
+		"engine_host":    ins.engineHost,
+		"server_version": ins.serverVersion,
 	}
 
 	if ins.ContainerIDLabelEnable {
@@ -298,40 +303,55 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *it
 		}
 	}
 
-	statefields := make(map[string]interface{})
-	finished, err := time.Parse(time.RFC3339, info.State.FinishedAt)
-	if err == nil && !finished.IsZero() {
-		statefields["status_finished_at"] = finished.Unix()
-	} else {
-		// set finished to now for use in uptime
-		finished = time.Now()
-	}
-
-	started, err := time.Parse(time.RFC3339, info.State.StartedAt)
-	if err == nil && !started.IsZero() {
-		statefields["status_started_at"] = started.Unix()
-
-		uptime := finished.Sub(started)
-		if finished.Before(started) {
-			uptime = time.Since(started)
+	if info.State != nil {
+		tags["container_status"] = info.State.Status
+		oomKilled := func() int {
+			if info.State.OOMKilled == true {
+				return 1
+			}
+			return 0
 		}
-		statefields["status_uptime"] = uptime.Seconds()
-	}
-
-	slist.PushSamples("docker_container", statefields, tags)
-
-	if info.State.Health != nil {
-		slist.PushSample("docker_container", "health_failing_streak", info.ContainerJSONBase.State.Health.FailingStreak, tags)
-		var containerHealthStatesNum int
-		switch info.ContainerJSONBase.State.Health.Status {
-		case "healthy":
-			containerHealthStatesNum = 0
-		case "starting":
-			containerHealthStatesNum = 1
-		default:
-			containerHealthStatesNum = 2
+		statefields := map[string]interface{}{
+			"status_oomkilled":     oomKilled(),
+			"status_pid":           info.State.Pid,
+			"status_exitcode":      info.State.ExitCode,
+			"status_restart_count": info.RestartCount,
+			//"container_id":  container.ID,
 		}
-		slist.PushSample("docker_container", "health_status", containerHealthStatesNum, tags)
+		finished, err := time.Parse(time.RFC3339, info.State.FinishedAt)
+		if err == nil && !finished.IsZero() {
+			statefields["status_finished_at"] = finished.Unix()
+		} else {
+			// set finished to now for use in uptime
+			finished = time.Now()
+		}
+
+		started, err := time.Parse(time.RFC3339, info.State.StartedAt)
+		if err == nil && !started.IsZero() {
+			statefields["status_started_at"] = started.Unix()
+
+			uptime := finished.Sub(started)
+			if finished.Before(started) {
+				uptime = time.Since(started)
+			}
+			statefields["status_uptime"] = uptime.Seconds()
+		}
+
+		slist.PushSamples("docker_container", statefields, tags)
+
+		if info.State.Health != nil {
+			slist.PushSample("docker_container", "health_failing_streak", info.ContainerJSONBase.State.Health.FailingStreak, tags)
+			var containerHealthStatesNum int
+			switch info.ContainerJSONBase.State.Health.Status {
+			case "healthy":
+				containerHealthStatesNum = 0
+			case "starting":
+				containerHealthStatesNum = 1
+			default:
+				containerHealthStatesNum = 2
+			}
+			slist.PushSample("docker_container", "health_status", containerHealthStatesNum, tags)
+		}
 	}
 
 	ins.parseContainerStats(v, slist, tags, daemonOSType)
@@ -651,7 +671,10 @@ func (ins *Instance) gatherSwarmInfo(slist *itypes.SampleList) {
 	}
 
 	for _, service := range services {
-		tags := map[string]string{}
+		tags := map[string]string{
+			"engine_host":    ins.engineHost,
+			"server_version": ins.serverVersion,
+		}
 		fields := make(map[string]interface{})
 		tags["service_id"] = service.ID
 		tags["service_name"] = service.Spec.Name
@@ -694,8 +717,13 @@ func (ins *Instance) gatherInfo(slist *itypes.SampleList) error {
 		"docker_n_images":                info.Images,
 		"docker_memory_total":            info.MemTotal,
 	}
+	ins.engineHost = info.Name
+	ins.serverVersion = info.ServerVersion
 
-	slist.PushSamples("", fields)
+	slist.PushSamples("", fields, map[string]string{
+		"engine_host":    ins.engineHost,
+		"server_version": ins.serverVersion,
+	})
 	return nil
 }
 

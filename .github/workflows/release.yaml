@@ -5,11 +5,11 @@ on:
     tags:
       - 'v*'
 env:
-  GO_VERSION: 1.21
+  GO_VERSION: 1.24
 
 jobs:
   goreleaser:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Install libpcap
         run: sudo apt-get install -y libpcap-dev

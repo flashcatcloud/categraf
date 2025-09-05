@@ -1,0 +1,5459 @@
+{
+    "__inputs": [
+      {
+        "name": "DS_PROMETHEUS",
+        "label": "prometheus",
+        "description": "",
+        "type": "datasource",
+        "pluginId": "prometheus",
+        "pluginName": "Prometheus"
+      }
+    ],
+    "__elements": {},
+    "__requires": [
+      {
+        "type": "panel",
+        "id": "gauge",
+        "name": "Gauge",
+        "version": ""
+      },
+      {
+        "type": "grafana",
+        "id": "grafana",
+        "name": "Grafana",
+        "version": "11.5.2"
+      },
+      {
+        "type": "datasource",
+        "id": "prometheus",
+        "name": "Prometheus",
+        "version": "1.0.0"
+      },
+      {
+        "type": "panel",
+        "id": "stat",
+        "name": "Stat",
+        "version": ""
+      },
+      {
+        "type": "panel",
+        "id": "state-timeline",
+        "name": "State timeline",
+        "version": ""
+      },
+      {
+        "type": "panel",
+        "id": "table",
+        "name": "Table",
+        "version": ""
+      },
+      {
+        "type": "panel",
+        "id": "timeseries",
+        "name": "Time series",
+        "version": ""
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": {
+            "type": "grafana",
+            "uid": "-- Grafana --"
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "description": "Oracle 数据库大盘，通过 Categraf 采集器下的 Oracle 插件抓取数据库指标",
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": null,
+    "links": [],
+    "panels": [
+      {
+        "collapsed": true,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "panels": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "description": "数据库总览信息",
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "inspect": false
+                },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green"
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": [
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "instance"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "监控实例"
+                    },
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "purple",
+                        "mode": "fixed"
+                      }
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "address"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "green",
+                        "mode": "fixed"
+                      }
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "数据库实例"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "platform_name (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "blue",
+                        "mode": "fixed"
+                      }
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "平台"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "host_name (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "yellow",
+                        "mode": "fixed"
+                      }
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "主机名"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "Value #B (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "0": {
+                              "color": "purple",
+                              "index": 0,
+                              "text": "单实例"
+                            },
+                            "1": {
+                              "color": "blue",
+                              "index": 1,
+                              "text": "集群"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "RAC"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "Value #E (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-background"
+                      }
+                    },
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "0": {
+                              "color": "red",
+                              "index": 0,
+                              "text": "Down"
+                            },
+                            "1": {
+                              "color": "green",
+                              "index": 1,
+                              "text": "Up"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "在线状态"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "version (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "blue",
+                        "mode": "fixed"
+                      }
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "版本"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "Value #A (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "unit",
+                      "value": "s"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "green",
+                        "mode": "fixed"
+                      }
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "运行时长"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "open_mode (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "打开状态"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    },
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "MIGRATE": {
+                              "color": "blue",
+                              "index": 4,
+                              "text": "数据库迁移"
+                            },
+                            "MOUNTED": {
+                              "color": "orange",
+                              "index": 2,
+                              "text": "挂载未打开"
+                            },
+                            "NOMOUNT": {
+                              "color": "red",
+                              "index": 3,
+                              "text": "启动未挂载"
+                            },
+                            "READ ONLY": {
+                              "color": "yellow",
+                              "index": 1,
+                              "text": "打开只读取"
+                            },
+                            "READ WRITE": {
+                              "color": "green",
+                              "index": 0,
+                              "text": "打开可读写"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "database_role (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "FAR SYNC": {
+                              "color": "purple",
+                              "index": 4,
+                              "text": "远程同步实例"
+                            },
+                            "LOGICAL STANDBY": {
+                              "color": "orange",
+                              "index": 2,
+                              "text": "逻辑备库"
+                            },
+                            "PHYSICAL STANDBY": {
+                              "color": "yellow",
+                              "index": 1,
+                              "text": "物理备库"
+                            },
+                            "PRIMARY": {
+                              "color": "green",
+                              "index": 0,
+                              "text": "主库"
+                            },
+                            "SNAPSHOT STANDBY": {
+                              "color": "blue",
+                              "index": 3,
+                              "text": "快照备库"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "数据库角色"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "flashback_on (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-background"
+                      }
+                    },
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "NO": {
+                              "color": "orange",
+                              "index": 0,
+                              "text": "未启用"
+                            },
+                            "RESTORE POINT ONLY": {
+                              "color": "purple",
+                              "index": 2,
+                              "text": "启用还原点"
+                            },
+                            "YES": {
+                              "color": "green",
+                              "index": 1,
+                              "text": "已启用"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "闪回状态"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "force_logging (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-background"
+                      }
+                    },
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "NO": {
+                              "color": "orange",
+                              "index": 1,
+                              "text": "未启用"
+                            },
+                            "YES": {
+                              "color": "green",
+                              "index": 0,
+                              "text": "已启用"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "redo 日志"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "Value #D (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "unit",
+                      "value": "bytes"
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "数据量"
+                    },
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "purple",
+                        "mode": "fixed"
+                      }
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "Value #F (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "是否有 DG"
+                    },
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "0": {
+                              "color": "orange",
+                              "index": 0,
+                              "text": "NO"
+                            },
+                            "1": {
+                              "color": "green",
+                              "index": 1,
+                              "text": "YES"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "Value #G (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "mappings",
+                      "value": [
+                        {
+                          "options": {
+                            "0": {
+                              "color": "yellow",
+                              "index": 0,
+                              "text": "未启用"
+                            },
+                            "1": {
+                              "color": "red",
+                              "index": 1,
+                              "text": "ERR"
+                            },
+                            "2": {
+                              "color": "green",
+                              "index": 2,
+                              "text": "OK"
+                            }
+                          },
+                          "type": "value"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "DG 状态"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "log_mode (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "blue",
+                        "mode": "fixed"
+                      }
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "归档模式"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                },
+                {
+                  "matcher": {
+                    "id": "byName",
+                    "options": "nls_characterset (lastNotNull)"
+                  },
+                  "properties": [
+                    {
+                      "id": "custom.minWidth"
+                    },
+                    {
+                      "id": "custom.width"
+                    },
+                    {
+                      "id": "custom.align",
+                      "value": "center"
+                    },
+                    {
+                      "id": "custom.cellOptions",
+                      "value": {
+                        "type": "color-text"
+                      }
+                    },
+                    {
+                      "id": "color",
+                      "value": {
+                        "fixedColor": "purple",
+                        "mode": "fixed"
+                      }
+                    },
+                    {
+                      "id": "displayName",
+                      "value": "字符集"
+                    },
+                    {
+                      "id": "custom.filterable"
+                    },
+                    {
+                      "id": "noValue",
+                      "value": "N/A"
+                    }
+                  ]
+                }
+              ]
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 24,
+              "x": 0,
+              "y": 1
+            },
+            "id": 2,
+            "options": {
+              "cellHeight": "sm",
+              "footer": {
+                "countRows": false,
+                "fields": "",
+                "reducer": [
+                  "sum"
+                ],
+                "show": false
+              },
+              "showHeader": true
+            },
+            "pluginVersion": "11.5.2",
+            "targets": [
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "oracle_env_running_time{region=\"$region\"}",
+                "format": "table",
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "A"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "oracle_env_is_rac{region=\"$region\"}",
+                "format": "table",
+                "hide": false,
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "B"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "oracle_env_value{region=\"$region\"}",
+                "format": "table",
+                "hide": false,
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "C"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "oracle_env_vols{region=\"$region\"}",
+                "format": "table",
+                "hide": false,
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "D"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "oracle_up{region=\"$region\"}",
+                "format": "table",
+                "hide": false,
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "E"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "oracle_dataguard_exist_value{region=\"$region\"}",
+                "format": "table",
+                "hide": false,
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "F"
+              },
+              {
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "${DS_PROMETHEUS}"
+                },
+                "editorMode": "code",
+                "exemplar": false,
+                "expr": "oracle_dataguard_status_value{region=\"$region\"}",
+                "format": "table",
+                "hide": false,
+                "instant": true,
+                "legendFormat": "__auto",
+                "range": false,
+                "refId": "G"
+              }
+            ],
+            "title": "数据库总览",
+            "transformations": [
+              {
+                "id": "merge",
+                "options": {}
+              },
+              {
+                "id": "groupBy",
+                "options": {
+                  "fields": {
+                    "Value #A": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "Value #B": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "Value #D": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "Value #E": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "Value #F": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "Value #G": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "address": {
+                      "aggregations": [],
+                      "operation": "groupby"
+                    },
+                    "database_role": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "flashback_on": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "force_logging": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "host_name": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "instance": {
+                      "aggregations": [],
+                      "operation": "groupby"
+                    },
+                    "log_mode": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "nls_characterset": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "open_mode": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "platform_name": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    },
+                    "version": {
+                      "aggregations": [
+                        "lastNotNull"
+                      ],
+                      "operation": "aggregate"
+                    }
+                  }
+                }
+              },
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {},
+                  "includeByName": {},
+                  "indexByName": {
+                    "Value #A (lastNotNull)": 7,
+                    "Value #B (lastNotNull)": 4,
+                    "Value #D (lastNotNull)": 12,
+                    "Value #E (lastNotNull)": 5,
+                    "Value #F (lastNotNull)": 13,
+                    "Value #G (lastNotNull)": 14,
+                    "address": 1,
+                    "database_role (lastNotNull)": 9,
+                    "flashback_on (lastNotNull)": 10,
+                    "force_logging (lastNotNull)": 11,
+                    "host_name (lastNotNull)": 3,
+                    "instance": 0,
+                    "log_mode (lastNotNull)": 15,
+                    "nls_characterset (lastNotNull)": 16,
+                    "open_mode (lastNotNull)": 8,
+                    "platform_name (lastNotNull)": 2,
+                    "version (lastNotNull)": 6
+                  },
+                  "renameByName": {}
+                }
+              }
+            ],
+            "type": "table"
+          }
+        ],
+        "title": "资源总览 - 总数【${total}】",
+        "type": "row"
+      },
+      {
+        "collapsed": false,
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 1
+        },
+        "id": 3,
+        "panels": [],
+        "title": "监控实例：【${instance}】数据库实例：【${address}】",
+        "type": "row"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "No data 表示 oracledb_exporter 进程宕掉或其他异常",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "index": 0,
+                    "text": "Down"
+                  },
+                  "1": {
+                    "color": "green",
+                    "index": 1,
+                    "text": "Up"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 3,
+          "x": 0,
+          "y": 2
+        },
+        "id": 4,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_up{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "instant": true,
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "数据库连接状态",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "No data 表示 oracledb_exporter 进程宕掉或其他异常",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "index": 0,
+                    "text": "ERR"
+                  },
+                  "1": {
+                    "color": "green",
+                    "index": 1,
+                    "text": "OK"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 3,
+          "x": 3,
+          "y": 2
+        },
+        "id": 5,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "percentChangeColorMode": "standard",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showPercentChange": false,
+          "textMode": "auto",
+          "wideLayout": true
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_rman_status_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "instant": true,
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "RMAN备份",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "No data 表示 oracledb_exporter 进程宕掉或其他异常",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "fillOpacity": 100,
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineWidth": 0,
+              "spanNulls": true
+            },
+            "displayName": "状态",
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "index": 0,
+                    "text": "Down"
+                  },
+                  "1": {
+                    "color": "green",
+                    "index": 1,
+                    "text": "Up"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 9,
+          "x": 6,
+          "y": 2
+        },
+        "id": 6,
+        "interval": "1m",
+        "options": {
+          "alignValue": "left",
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": false
+          },
+          "mergeValues": false,
+          "rowHeight": 1,
+          "showValue": "never",
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "none",
+            "sort": "desc"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_up{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "instant": false,
+            "legendFormat": "__auto",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "数据库可用性",
+        "type": "state-timeline"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库实时会话信息",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "活跃会话"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "none"
+                },
+                {
+                  "id": "min"
+                },
+                {
+                  "id": "max"
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "mode": "thresholds"
+                  }
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "yellow",
+                        "value": 100
+                      },
+                      {
+                        "color": "red",
+                        "value": 1000
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "总会话"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "none"
+                },
+                {
+                  "id": "min"
+                },
+                {
+                  "id": "max"
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "mode": "thresholds"
+                  }
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "yellow",
+                        "value": 200
+                      },
+                      {
+                        "color": "red",
+                        "value": 20000
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "会话与限额百分比"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "percent"
+                },
+                {
+                  "id": "min",
+                  "value": 0
+                },
+                {
+                  "id": "max",
+                  "value": 100
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "mode": "thresholds"
+                  }
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "#EAB839",
+                        "value": 80
+                      },
+                      {
+                        "color": "red",
+                        "value": 95
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 9,
+          "x": 15,
+          "y": 2
+        },
+        "id": 7,
+        "interval": "1m",
+        "options": {
+          "minVizHeight": 75,
+          "minVizWidth": 75,
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "sizing": "auto"
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum(oracle_sessions_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\", status=~\"ACTIVE\"})",
+            "format": "time_series",
+            "instant": true,
+            "legendFormat": "活跃会话",
+            "range": false,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum(oracle_sessions_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"})",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "总会话",
+            "range": false,
+            "refId": "B"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum(oracle_sessions_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}) / sum(oracle_parameter_sessions_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}) * 100",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "会话与限额百分比",
+            "range": false,
+            "refId": "C"
+          }
+        ],
+        "title": "实时会话数",
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库每秒处理请求的总成本，用于判断数据库整体负载的高低",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "s"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "id": 15,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "oracle_sysmetric_database_time_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"} / 100",
+            "hide": false,
+            "legendFormat": "DB_Time（单位：秒）",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "平均每秒耗时",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库每秒发生的逻辑读次数",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "id": 16,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "oracle_sysmetric_logical_reads_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "hide": false,
+            "legendFormat": "每秒逻辑读（单位：block）",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "每秒逻辑读",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库表空间信息",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "instance"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "监控实例"
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "purple",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "address"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "green",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "数据库实例"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "tablespace"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "blue",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "表空间名称"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "type (lastNotNull)"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "yellow",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "类型"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #A (lastNotNull)"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "unit",
+                  "value": "bytes"
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "orange",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "已分配容量"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #B (lastNotNull)"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "green",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "unit",
+                  "value": "bytes"
+                },
+                {
+                  "id": "displayName",
+                  "value": "剩余容量"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #C (lastNotNull)"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "unit",
+                  "value": "bytes"
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "red",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "最大容量"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value #D (lastNotNull)"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "mode": "lcd",
+                    "type": "gauge",
+                    "valueDisplayMode": "color"
+                  }
+                },
+                {
+                  "id": "unit",
+                  "value": "percent"
+                },
+                {
+                  "id": "min",
+                  "value": 0
+                },
+                {
+                  "id": "max",
+                  "value": 100
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "mode": "continuous-GrYlRd"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "使用率"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 16
+        },
+        "id": 8,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "countRows": false,
+            "fields": "",
+            "reducer": [
+              "sum"
+            ],
+            "show": false
+          },
+          "showHeader": true,
+          "sortBy": [
+            {
+              "desc": true,
+              "displayName": "使用率"
+            }
+          ]
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_tablespace_bytes{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_tablespace_free{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "table",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "B"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_tablespace_max_bytes{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "table",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "C"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "(1- oracle_tablespace_free{address=~\"$address\", instance=\"$instance\", region=~\"$region\"} / oracle_tablespace_max_bytes{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}) * 100",
+            "format": "table",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "D"
+          }
+        ],
+        "title": "表空间",
+        "transformations": [
+          {
+            "id": "merge",
+            "options": {}
+          },
+          {
+            "id": "groupBy",
+            "options": {
+              "fields": {
+                "Value #A": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "Value #B": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "Value #C": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "Value #D": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "Value #E": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "Value #F": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "Value #G": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "address": {
+                  "aggregations": [],
+                  "operation": "groupby"
+                },
+                "database_role": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "flashback_on": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "force_logging": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "host_name": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "instance": {
+                  "aggregations": [],
+                  "operation": "groupby"
+                },
+                "log_mode": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "nls_characterset": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "open_mode": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "platform_name": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "tablespace": {
+                  "aggregations": [],
+                  "operation": "groupby"
+                },
+                "type": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                },
+                "version": {
+                  "aggregations": [
+                    "lastNotNull"
+                  ],
+                  "operation": "aggregate"
+                }
+              }
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "includeByName": {},
+              "indexByName": {
+                "Value #A (lastNotNull)": 4,
+                "Value #B (lastNotNull)": 5,
+                "Value #C (lastNotNull)": 6,
+                "Value #D (lastNotNull)": 7,
+                "address": 1,
+                "instance": 0,
+                "tablespace": 2,
+                "type (lastNotNull)": 3
+              },
+              "renameByName": {}
+            }
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库会话信息",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 2,
+              "pointSize": 1,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 25
+        },
+        "id": 9,
+        "interval": "1m",
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum(oracle_sessions_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\", status=~\"ACTIVE\"})",
+            "format": "time_series",
+            "instant": false,
+            "legendFormat": "活跃会话",
+            "range": true,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum(oracle_sessions_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"})",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "legendFormat": "总会话",
+            "range": true,
+            "refId": "B"
+          }
+        ],
+        "title": "会话数",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库每秒用户数/事务数",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 2,
+              "pointSize": 1,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 25
+        },
+        "id": 10,
+        "interval": "1m",
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_logons_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "instant": false,
+            "legendFormat": "活跃会话",
+            "range": true,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_user_transaction_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "legendFormat": "总会话",
+            "range": true,
+            "refId": "B"
+          }
+        ],
+        "title": "每秒用户数/事务数",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库读写 IOPS",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 2,
+              "pointSize": 1,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "iops"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 33
+        },
+        "id": 17,
+        "interval": "1m",
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_physical_read_total_io_requests_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "instant": false,
+            "legendFormat": "读 IOPS",
+            "range": true,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_physical_write_total_io_requests_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"} + oracle_sysmetric_redo_writes_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "legendFormat": "写 IOPS",
+            "range": true,
+            "refId": "B"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_physical_read_total_io_requests_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"} + oracle_sysmetric_physical_write_total_io_requests_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"} + oracle_sysmetric_redo_writes_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "legendFormat": "总 IOPS",
+            "range": true,
+            "refId": "C"
+          }
+        ],
+        "title": "数据库 IOPS",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库每秒读写带宽MBPS",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 2,
+              "pointSize": 1,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "MBs"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 33
+        },
+        "id": 18,
+        "interval": "1m",
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_physical_read_total_bytes_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"} / 1024 / 1024",
+            "format": "time_series",
+            "instant": false,
+            "legendFormat": "每秒IO读（单位：MB）",
+            "range": true,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "(oracle_sysmetric_physical_write_total_bytes_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"} + oracle_sysmetric_redo_generated_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}) / 1024 / 1024",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "legendFormat": "每秒IO写（单位：MB）",
+            "range": true,
+            "refId": "B"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracledb_sysmetric_physical_read_total_bytes_per_sec{address=~\"$address\", instance=\"$instance\", job=\"$job\"} / 1024 / 1024+ (oracledb_sysmetric_physical_write_total_bytes_per_sec{address=~\"$address\", instance=\"$instance\", job=\"$job\"} + oracledb_sysmetric_redo_generated_per_sec{address=~\"$address\", instance=\"$instance\", job=\"$job\"}) / 1024 / 1024",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "legendFormat": "总读写（单位：MB）",
+            "range": true,
+            "refId": "C"
+          }
+        ],
+        "title": "数据库 MBPS",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "代表 Oracle 实例通过 SQL*Net 协议从客户端接收/发送的数据总量",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 2,
+              "pointSize": 1,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "MBs"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 41
+        },
+        "id": 19,
+        "interval": "1m",
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "rate(oracle_sysstat_bytes_received_via_sqlnet_from_client_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}[$__rate_interval]) / 1024 / 1024",
+            "format": "time_series",
+            "instant": false,
+            "legendFormat": "From Client（单位：MB）",
+            "range": true,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "rate(oracle_sysstat_bytes_sent_via_sqlnet_to_client_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}[$__rate_interval]) / 1024 / 1024",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "legendFormat": "To Client（单位：MB）",
+            "range": true,
+            "refId": "B"
+          }
+        ],
+        "title": "每秒接收/每秒发送",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "代表 Oracle 实例每秒执行多少条 SQL",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 2,
+              "pointSize": 1,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 41
+        },
+        "id": 20,
+        "interval": "1m",
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "irate(oracle_sysstat_execute_count_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}[$__rate_interval])",
+            "format": "time_series",
+            "hide": false,
+            "instant": false,
+            "legendFormat": "每秒次数（单位：次）",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "每秒 SQL 执行次数",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库实例实时命中率",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "#EAB839",
+                  "value": 90
+                },
+                {
+                  "color": "blue",
+                  "value": 95
+                },
+                {
+                  "color": "green",
+                  "value": 99
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 24,
+          "x": 0,
+          "y": 49
+        },
+        "id": 11,
+        "interval": "1m",
+        "options": {
+          "minVizHeight": 75,
+          "minVizWidth": 75,
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "sizing": "auto",
+          "text": {
+            "titleSize": 12
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_buffer_cache_hit_ratio_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "instant": true,
+            "legendFormat": "Buffer Cache",
+            "range": false,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_library_cache_hit_ratio_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "Library Cache",
+            "range": false,
+            "refId": "B"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_row_cache_hit_ratio_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "Row Cache",
+            "range": false,
+            "refId": "C"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_pga_cache_hit__value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "PGA Cache",
+            "range": false,
+            "refId": "D"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_memory_sorts_ratio_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "Memory Sorts Ratio",
+            "range": false,
+            "refId": "E"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_redo_allocation_hit_ratio_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "Redo Allocation",
+            "range": false,
+            "refId": "F"
+          }
+        ],
+        "title": "实例命中率【实时】",
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库实例平均命中率",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "#EAB839",
+                  "value": 90
+                },
+                {
+                  "color": "blue",
+                  "value": 95
+                },
+                {
+                  "color": "green",
+                  "value": 99
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 24,
+          "x": 0,
+          "y": 55
+        },
+        "id": 12,
+        "interval": "1m",
+        "options": {
+          "minVizHeight": 75,
+          "minVizWidth": 75,
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": "",
+            "values": false
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true,
+          "sizing": "auto",
+          "text": {
+            "titleSize": 12
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "avg_over_time(oracle_sysmetric_buffer_cache_hit_ratio_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}[$__rate_interval])",
+            "format": "time_series",
+            "instant": true,
+            "legendFormat": "Buffer Cache",
+            "range": false,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "avg_over_time(oracle_sysmetric_library_cache_hit_ratio_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}[$__rate_interval])",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "Library Cache",
+            "range": false,
+            "refId": "B"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "avg_over_time(oracle_sysmetric_row_cache_hit_ratio_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}[$__rate_interval])",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "Row Cache",
+            "range": false,
+            "refId": "C"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "avg_over_time(oracle_sysmetric_pga_cache_hit__value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}[$__rate_interval])",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "PGA Cache",
+            "range": false,
+            "refId": "D"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "avg_over_time(oracle_sysmetric_memory_sorts_ratio_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}[$__rate_interval])",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "Memory Sorts Ratio",
+            "range": false,
+            "refId": "E"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "avg_over_time(oracle_sysmetric_redo_allocation_hit_ratio_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}[$__rate_interval])",
+            "format": "time_series",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "Redo Allocation",
+            "range": false,
+            "refId": "F"
+          }
+        ],
+        "title": "实例命中率【平均】",
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "Oracle 数据库恢复区的总体空间使用百分比",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "hue",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "dashed"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "percentage",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 61
+        },
+        "id": 13,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "expr": "oracle_recovery_file_dest_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "legendFormat": "{{address}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "恢复区空间使用率",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "Oracle 数据库恢复区的总体空间使用百分比",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "inspect": false
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "percentage",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "instance"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "监控实例"
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "purple",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "address"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "blue",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "数据库实例"
+                },
+                {
+                  "id": "noValue"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "file_type"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "green",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "文件类型"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "mode": "lcd",
+                    "type": "gauge",
+                    "valueDisplayMode": "color"
+                  }
+                },
+                {
+                  "id": "unit",
+                  "value": "percent"
+                },
+                {
+                  "id": "min",
+                  "value": 0
+                },
+                {
+                  "id": "max",
+                  "value": 100
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "mode": "continuous-GrYlRd"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "使用百分比"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 61
+        },
+        "id": 14,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "countRows": false,
+            "fields": "",
+            "reducer": [
+              "sum"
+            ],
+            "show": false
+          },
+          "showHeader": true
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_recovery_file_dest_percent_space_used{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "table",
+            "hide": false,
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "恢复区空间使用率",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "ident": true,
+                "job": true,
+                "region": true
+              },
+              "includeByName": {},
+              "indexByName": {
+                "Time": 0,
+                "Value": 6,
+                "__name__": 1,
+                "address": 3,
+                "file_type": 4,
+                "instance": 2,
+                "job": 5
+              },
+              "renameByName": {}
+            }
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "Oracle 数据库等待事件",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "inspect": false
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "percentage",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "instance"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "purple",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "监控实例"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "address"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "数据库实例"
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "blue",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "event_name"
+              },
+              "properties": [
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "green",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "事件名称"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "yellow",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "数量"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                },
+                {
+                  "id": "unit",
+                  "value": "none"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 69
+        },
+        "id": 21,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "countRows": false,
+            "fields": "",
+            "reducer": [
+              "sum"
+            ],
+            "show": false
+          },
+          "showHeader": true
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_events_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "等待事件【实时】",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "ident": true,
+                "job": true,
+                "region": true
+              },
+              "includeByName": {},
+              "indexByName": {
+                "Time": 0,
+                "Value": 6,
+                "__name__": 1,
+                "address": 3,
+                "event_name": 4,
+                "instance": 2,
+                "job": 5
+              },
+              "renameByName": {}
+            }
+          },
+          {
+            "id": "sortBy",
+            "options": {
+              "fields": {},
+              "sort": [
+                {
+                  "desc": true,
+                  "field": "Value"
+                }
+              ]
+            }
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "Oracle 实例自启动以来产生的 REDO 总量（单位：字节）",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "inspect": false
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "percentage",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "instance"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "purple",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "监控实例"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "address"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "数据库实例"
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "blue",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "name"
+              },
+              "properties": [
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "green",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "名称"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Value"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "yellow",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "名称值"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                },
+                {
+                  "id": "unit",
+                  "value": "none"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 69
+        },
+        "id": 22,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "countRows": false,
+            "fields": "",
+            "reducer": [
+              "sum"
+            ],
+            "show": false
+          },
+          "showHeader": true
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_env_redo_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "redo 记录",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "ident": true,
+                "job": true,
+                "region": true
+              },
+              "includeByName": {},
+              "indexByName": {
+                "Time": 0,
+                "Value": 6,
+                "__name__": 1,
+                "address": 3,
+                "instance": 2,
+                "job": 5,
+                "name": 4
+              },
+              "renameByName": {}
+            }
+          },
+          {
+            "id": "sortBy",
+            "options": {
+              "fields": {},
+              "sort": [
+                {
+                  "desc": true,
+                  "field": "Value"
+                }
+              ]
+            }
+          }
+        ],
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "Oracle 实例每秒产生的 REDO 总量",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "percentage",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "MBs"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 77
+        },
+        "id": 23,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_sysmetric_redo_generated_per_sec_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"} / 1024 / 1024",
+            "format": "time_series",
+            "instant": false,
+            "legendFormat": "{{address}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "每秒 redo 大小",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "Oracle 实例每秒产生的 REDO 总量",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "percentage",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "MBs"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 77
+        },
+        "id": 24,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "increase(oracle_env_redo_switch_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}[$__rate_interval])",
+            "format": "time_series",
+            "instant": false,
+            "legendFormat": "__auto",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "每秒 redo 大小",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "description": "数据库启动的 rman 备份信息",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              },
+              "inspect": false
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "percentage",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "instance"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "purple",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "监控实例"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "address"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "数据库实例"
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "blue",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "recid"
+              },
+              "properties": [
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.minWidth",
+                  "value": 60
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "green",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "备份标识"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "tag"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth",
+                  "value": 200
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "yellow",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "备份标签"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                },
+                {
+                  "id": "unit",
+                  "value": "none"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "lv_type"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "orange",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "备份类型"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "start_time"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "super-light-red",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "开始时间"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "completion_time"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "super-light-orange",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "完成时间"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "bak_size"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "green",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "备份大小"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                },
+                {
+                  "id": "unit",
+                  "value": "gbytes"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "compressed"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "压缩备份"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                },
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "NO": {
+                          "color": "yellow",
+                          "index": 1
+                        },
+                        "YES": {
+                          "color": "orange",
+                          "index": 0
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "controlfile_included"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "控制文件"
+                },
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "NO": {
+                          "color": "yellow",
+                          "index": 1
+                        },
+                        "YES": {
+                          "color": "orange",
+                          "index": 0
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "device_type"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "red",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "介质类型"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "elapsed_seconds"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "color",
+                  "value": {
+                    "fixedColor": "yellow",
+                    "mode": "fixed"
+                  }
+                },
+                {
+                  "id": "unit",
+                  "value": "dtdurations"
+                },
+                {
+                  "id": "displayName",
+                  "value": "备份耗时"
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "status"
+              },
+              "properties": [
+                {
+                  "id": "custom.minWidth"
+                },
+                {
+                  "id": "custom.width"
+                },
+                {
+                  "id": "custom.align",
+                  "value": "center"
+                },
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-text"
+                  }
+                },
+                {
+                  "id": "displayName",
+                  "value": "备份状态"
+                },
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "AVAILABLE": {
+                          "color": "green",
+                          "index": 0,
+                          "text": "可用"
+                        },
+                        "DELETED": {
+                          "color": "yellow",
+                          "index": 1,
+                          "text": "已删除"
+                        },
+                        "ERROR": {
+                          "color": "red",
+                          "index": 3,
+                          "text": "异常"
+                        },
+                        "EXPIRED": {
+                          "color": "orange",
+                          "index": 2,
+                          "text": "过期"
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                },
+                {
+                  "id": "noValue",
+                  "value": "N/A"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 85
+        },
+        "id": 25,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "countRows": false,
+            "fields": "",
+            "reducer": [
+              "sum"
+            ],
+            "show": false
+          },
+          "showHeader": true
+        },
+        "pluginVersion": "11.5.2",
+        "targets": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_PROMETHEUS}"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "oracle_rman_info_value{address=~\"$address\", instance=\"$instance\", region=~\"$region\"}",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "__auto",
+            "range": false,
+            "refId": "A"
+          }
+        ],
+        "title": "rman 备份信息",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "Value": true,
+                "__name__": true,
+                "ident": true,
+                "job": true,
+                "region": true
+              },
+              "includeByName": {},
+              "indexByName": {
+                "Time": 0,
+                "Value": 16,
+                "__name__": 1,
+                "address": 4,
+                "bak_size": 10,
+                "completion_time": 9,
+                "compressed": 11,
+                "controlfile_included": 12,
+                "device_type": 13,
+                "elapsed_seconds": 14,
+                "instance": 3,
+                "job": 2,
+                "lv_type": 7,
+                "recid": 5,
+                "start_time": 8,
+                "status": 15,
+                "tag": 6
+              },
+              "renameByName": {}
+            }
+          }
+        ],
+        "type": "table"
+      }
+    ],
+    "refresh": "",
+    "schemaVersion": 40,
+    "tags": [
+      "categraf",
+      "prometheus",
+      "oracle"
+    ],
+    "templating": {
+      "list": [
+        {
+          "current": {},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "definition": "label_values(oracle_up,region)",
+          "description": "数据库所在区域",
+          "label": "区域",
+          "name": "region",
+          "options": [],
+          "query": {
+            "qryType": 1,
+            "query": "label_values(oracle_up,region)",
+            "refId": "PrometheusVariableQueryEditor-VariableQuery"
+          },
+          "refresh": 1,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "definition": "label_values(oracle_up{region=~\"$region\"},instance)",
+          "description": "抓取采集数据库实例的指标导出器主机地址",
+          "label": "监控实例",
+          "name": "instance",
+          "options": [],
+          "query": {
+            "qryType": 1,
+            "query": "label_values(oracle_up{region=~\"$region\"},instance)",
+            "refId": "PrometheusVariableQueryEditor-VariableQuery"
+          },
+          "refresh": 1,
+          "regex": "",
+          "type": "query"
+        },
+        {
+          "current": {},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "definition": "query_result(count by (address) (count_over_time(oracle_up{region=~\"$region\", instance=~\"$instance\"}[$__range])))",
+          "description": "数据库实例信息",
+          "label": "数据库实例",
+          "name": "address",
+          "options": [],
+          "query": {
+            "qryType": 3,
+            "query": "query_result(count by (address) (count_over_time(oracle_up{region=~\"$region\", instance=~\"$instance\"}[$__range])))",
+            "refId": "PrometheusVariableQueryEditor-VariableQuery"
+          },
+          "refresh": 1,
+          "regex": "/address=\\\"(.*)\\\"/",
+          "type": "query"
+        },
+        {
+          "current": {},
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "definition": "query_result(count(oracle_up{region=~\"$region\"}))",
+          "description": "在当前 job 下的数据库总数",
+          "hide": 2,
+          "label": "汇总",
+          "name": "total",
+          "options": [],
+          "query": {
+            "qryType": 3,
+            "query": "query_result(count(oracle_up{region=~\"$region\"}))",
+            "refId": "PrometheusVariableQueryEditor-VariableQuery"
+          },
+          "refresh": 1,
+          "regex": "/{} (.*) .*/",
+          "sort": 5,
+          "type": "query"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-5m",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "Asia/Shanghai",
+    "title": "Categraf OracleDB Dashboard for Prometheus",
+    "uid": "categraf-oracle-xiaofei-prom",
+    "version": 36,
+    "weekStart": ""
+  }

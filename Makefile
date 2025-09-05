@@ -17,7 +17,9 @@ all: build
 vendor:
 	GOPROXY=https://goproxy.cn go mod vendor
 
-vendor-ci:
+tidy-mod: 
+	go mod tidy
+vendor-ci: tidy-mod
 	go mod vendor
 
 build:
@@ -77,5 +79,5 @@ pack:build-linux build-windows
 go-version-check:
 	bash ./scripts/ci/go_version_check.sh
 
-go-vet-check:
+go-vet-check: tidy-mod
 	bash ./scripts/ci/go_vet.sh

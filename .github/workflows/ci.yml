@@ -16,7 +16,7 @@ on:
 env:
   GO111MODULE: on
   GONOSUMDB: "*"
-  GOSUMDB: off
+  #GOSUMDB: off
 
 jobs:
   CommitLint:
@@ -41,7 +41,9 @@ jobs:
           fetch-depth: 1
       - uses: WillAbides/setup-go-faster@v1.14.0
         with:
-          go-version: "1.21"
+          go-version: "1.24"
+      - name: Tidy Go modules
+        run: go mod tidy
       - name: Run golang-ci-lint
         uses: golangci/golangci-lint-action@v3.6.0
         with:
@@ -64,7 +66,7 @@ jobs:
           fetch-depth: 1
       - uses: WillAbides/setup-go-faster@v1.14.0
         with:
-          go-version: "1.21"
+          go-version: "1.24"
       - name: make vendor
         run: make vendor-ci
       - name: go build linux

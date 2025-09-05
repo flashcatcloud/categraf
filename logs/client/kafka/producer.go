@@ -50,7 +50,7 @@ func New(typ string, brokers []string, config *sarama.Config) (Producer, error) 
 		return apw, nil
 	case SyncProducer:
 		p, err := sarama.NewSyncProducer(brokers, config)
-		return &SyncProducerWrapper{syncProducer: p}, err
+		return &SyncProducerWrapper{syncProducer: p, stop: stop}, err
 	default:
 		return nil, fmt.Errorf("unknown producer type: %s", typ)
 	}

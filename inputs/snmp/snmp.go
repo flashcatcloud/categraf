@@ -107,3 +107,9 @@ func (s *Snmp) GetInstances() []inputs.Instance {
 	}
 	return ret
 }
+
+func (s *Snmp) Drop() {
+	for _, i := range s.Instances {
+		i.Drop()
+	}
+}

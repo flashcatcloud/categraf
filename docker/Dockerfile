@@ -1,4 +1,4 @@
-FROM ubuntu:23.04
+FROM ubuntu:24.04
 
 RUN echo 'hosts: files dns' >> /etc/nsswitch.conf
 
