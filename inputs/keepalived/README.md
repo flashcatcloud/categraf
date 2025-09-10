@@ -1,6 +1,6 @@
 # Keepalived
 
-categraf keepalived plugin for [Keepalived](https://keepalived.org) metrics.
+forked from [keepalived-exporter](https://github.com/mehdy/keepalived-exporter)
 
 ## Configuration
 
