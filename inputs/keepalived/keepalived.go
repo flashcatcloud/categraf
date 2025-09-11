@@ -17,6 +17,8 @@ const inputName = "keepalived"
 type Keepalived struct {
 	config.PluginConfig
 
+	Enable bool `toml:"enable"`
+
 	SigJson bool   `toml:"sig_json"`
 	PidPath string `toml:"pid_path"`
 
@@ -43,6 +45,10 @@ func (*Keepalived) Name() string {
 
 func (k *Keepalived) Gather(slist *types.SampleList) {
 	// default options
+	if !k.Enable {
+		return
+	}
+
 	if k.PidPath == "" {
 		k.PidPath = "/var/run/keepalived.pid"
 	}
