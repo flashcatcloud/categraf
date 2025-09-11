@@ -48,6 +48,7 @@ func (k *Keepalived) Gather(slist *types.SampleList) {
 	if !k.Enable {
 		return
 	}
+
 	if k.PidPath == "" {
 		k.PidPath = "/var/run/keepalived.pid"
 	}
