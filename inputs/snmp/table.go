@@ -731,7 +731,76 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 		return tr.SnmpFormatEnum(ent.Name, ent.Value, true)
 	}
 
+	if conv == "percent" {
+		v = ent.Value
+		switch vt := v.(type) {
+		case float32:
+			return float64(vt), nil
+		case float64:
+			return vt, nil
+		case int:
+			return float64(vt), nil
+		case int8:
+			return float64(vt), nil
+		case int16:
+			return float64(vt), nil
+		case int32:
+			return float64(vt), nil
+		case int64:
+			return float64(vt), nil
+		case uint:
+			return float64(vt), nil
+		case uint8:
+			return float64(vt), nil
+		case uint16:
+			return float64(vt), nil
+		case uint32:
+			return float64(vt), nil
+		case uint64:
+			return float64(vt), nil
+		case []byte:
+			return parsePercentString(string(vt))
+		case string:
+			return parsePercentString(vt)
+		default:
+			return nil, fmt.Errorf("invalid type (%T) for percent conversion", v)
+		}
+	}
+
 	return nil, fmt.Errorf("invalid conversion type '%s'", conv)
+}
+
+func parsePercentString(str string) (interface{}, error) {
+	// 处理空字符串或N/A
+	if na := strings.TrimSpace(str); na == "N/A" || na == "" {
+		return 0, nil
+	}
+
+	// 移除两端空格
+	str = strings.TrimSpace(str)
+
+	// 提取数字部分
+	var numericStr string
+	for i, char := range str {
+		// 保留数字和小数点
+		if (char >= '0' && char <= '9') || char == '.' {
+			numericStr += string(char)
+		} else if char == '%' || char == ' ' {
+			// 忽略百分号和空格
+			continue
+		} else if i > 0 && len(numericStr) > 0 {
+			// 如果已经提取了数字，并且遇到其他字符，则认为是单位，停止提取
+			break
+		}
+	}
+
+	// 转换为浮点数
+	value, err := strconv.ParseFloat(numericStr, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid percent string: %s", str)
+	}
+
+	return value, nil
 }
 
 func byteConvert(str string) (interface{}, error) {
