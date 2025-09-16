@@ -10,6 +10,9 @@ forked from [keepalived-exporter](https://github.com/mehdy/keepalived-exporter)
 # # collect interval
 # interval = 15
 
+# Set to true to enable this plugin (change false -> true).
+enable = false
+
 # Send SIGJSON and decode JSON file instead of parsing text files, defaults to `false`.
 sig_json = false
 
