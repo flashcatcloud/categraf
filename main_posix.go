@@ -55,7 +55,6 @@ func exitStatus(status unix.WaitStatus) int {
 }
 
 func reap() (exits []exit, err error) {
-
 	var (
 		ws  unix.WaitStatus
 		rus unix.Rusage
