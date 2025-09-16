@@ -1,0 +1,27 @@
+# # collect interval
+# interval = 15
+
+# Set to true to enable this plugin (change false -> true).
+enable = false
+
+# Send SIGJSON and decode JSON file instead of parsing text files, defaults to `false`.
+sig_json = false
+
+# A path for Keepalived PID, defaults to `/var/run/keepalived.pid`
+pid_path = ""
+
+# Health Check script path to be execute for each VIP.
+# Check Script Example:
+#!/usr/bin/env bash
+#ping $1 -c 1 -W 1
+check_script_path = ""
+
+#This is when the keepalived is running with PID 1 in the container so we can use the standard docker API to send signal to the keepalived process.
+# Keepalived container name to export metrics from Keepalived container.
+container_name = ""
+
+# In case the keepalived process is not running with PID 1, this method will exec to the container and use the provided PID path to send the signal.
+container_pid_path = ""
+
+# Keepalived container tmp volume path, defaults to `/tmp`.
+container_tmp = ""

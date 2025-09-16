@@ -48,6 +48,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/jolokia_agent"
 	_ "flashcat.cloud/categraf/inputs/jolokia_proxy"
 	_ "flashcat.cloud/categraf/inputs/kafka"
+	_ "flashcat.cloud/categraf/inputs/keepalived"
 	_ "flashcat.cloud/categraf/inputs/kernel"
 	_ "flashcat.cloud/categraf/inputs/kernel_vmstat"
 	_ "flashcat.cloud/categraf/inputs/kubernetes"
