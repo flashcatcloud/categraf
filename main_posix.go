@@ -77,23 +77,23 @@ func reap() (exits []exit, err error) {
 	}
 }
 func reapDaemon() {
-	if os.Getpid() == 1 {
-		unix.Prctl(unix.PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0)
-		signals := make(chan os.Signal, 2)
-		signal.Notify(signals, unix.SIGCHLD)
-		for {
-			sig := <-signals
-			switch sig {
-			case unix.SIGCHLD:
-				exits, err := reap()
-				if err != nil {
-					
-					log.Printf("E! reaping children failed: %v", err)
-					continue
-				}
-				for _, e := range exits {
-					log.Printf("I! reaped pid: %d, status: %d", e.pid, e.status)
-				}
+	if os.Getpid() != 1 {
+		return
+	}
+	unix.Prctl(unix.PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0)
+	signals := make(chan os.Signal, 2)
+	signal.Notify(signals, unix.SIGCHLD)
+	for {
+		sig := <-signals
+		switch sig {
+		case unix.SIGCHLD:
+			exits, err := reap()
+			if err != nil {	
+				log.Printf("E! reaping children failed: %v", err)
+				continue
+			}
+			for _, e := range exits {
+				log.Printf("I! reaped pid: %d, status: %d", e.pid, e.status)
 			}
 		}
 	}
