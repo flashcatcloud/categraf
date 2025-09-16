@@ -88,7 +88,7 @@ func reapDaemon() {
 			case unix.SIGCHLD:
 				exits, err := reap()
 				if err != nil {
-					// 考虑在这里记录错误日志
+					
 					log.Printf("E! reaping children failed: %v", err)
 					continue
 				}
