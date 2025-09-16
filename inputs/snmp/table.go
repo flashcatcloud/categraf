@@ -731,7 +731,87 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 		return tr.SnmpFormatEnum(ent.Name, ent.Value, true)
 	}
 
+	if conv == "percent" {
+		v = ent.Value
+		switch vt := v.(type) {
+		case float32:
+			return float64(vt), nil
+		case float64:
+			return vt, nil
+		case int:
+			return float64(vt), nil
+		case int8:
+			return float64(vt), nil
+		case int16:
+			return float64(vt), nil
+		case int32:
+			return float64(vt), nil
+		case int64:
+			return float64(vt), nil
+		case uint:
+			return float64(vt), nil
+		case uint8:
+			return float64(vt), nil
+		case uint16:
+			return float64(vt), nil
+		case uint32:
+			return float64(vt), nil
+		case uint64:
+			return float64(vt), nil
+		case []byte:
+			return parsePercentString(string(vt))
+		case string:
+			return parsePercentString(vt)
+		default:
+			return nil, fmt.Errorf("invalid type (%T) for percent conversion", v)
+		}
+	}
+
 	return nil, fmt.Errorf("invalid conversion type '%s'", conv)
+}
+
+func parsePercentString(str string) (interface{}, error) {
+	// 处理空字符串或N/A
+	if na := strings.TrimSpace(str); na == "N/A" || na == "" {
+		return 0, nil
+	}
+	
+	// 移除两端空格
+	str = strings.TrimSpace(str)
+	
+	// 使用正则表达式提取数字部分
+	// 匹配数字和小数点，忽略百分号和空格
+	re := regexp.MustCompile(`^\s*([0-9]+\.?[0-9]*)\s*%?\s*`)
+	matches := re.FindStringSubmatch(str)
+	
+	if len(matches) < 2 {
+		// 如果没有匹配到数字，可能百分号在前面，尝试移除所有非数字字符后再次匹配
+		cleanStr := ""
+		for _, char := range str {
+			if (char >= '0' && char <= '9') || char == '.' {
+				cleanStr += string(char)
+			}
+		}
+		
+		if cleanStr == "" {
+			return nil, fmt.Errorf("invalid percent string: %s", str)
+		}
+		
+		// 尝试直接解析清理后的字符串
+		value, err := strconv.ParseFloat(cleanStr, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid percent string: %s", str)
+		}
+		return value, nil
+	}
+	
+	// 转换为浮点数
+	value, err := strconv.ParseFloat(matches[1], 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid percent string: %s", str)
+	}
+	
+	return value, nil
 }
 
 func byteConvert(str string) (interface{}, error) {
