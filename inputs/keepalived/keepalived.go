@@ -1,6 +1,7 @@
 package keepalived
 
 import (
+	"io"
 	"log/slog"
 	"time"
 
@@ -64,6 +65,11 @@ func (k *Keepalived) Gather(slist *types.SampleList) {
 			k.ContainerTmp,
 			k.ContainerPidPath,
 		)
+		defer func() {
+			if d, ok := c.(io.Closer); ok {
+				_ = d.Close()
+			}
+		}()
 	} else {
 		c = host.NewKeepalivedHostCollectorHost(k.SigJson, k.PidPath)
 	}
