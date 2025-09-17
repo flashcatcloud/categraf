@@ -68,11 +68,6 @@ func isKeyArray(key string) bool {
 		return true
 	}
 
-	slog.Debug("Unsupported array key",
-		"Key", key,
-		"SupportedKeys", supportedKeys,
-	)
-
 	return false
 }
 
