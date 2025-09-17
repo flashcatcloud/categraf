@@ -316,3 +316,10 @@ func (k *KeepalivedContainerCollectorHost) HasJSONSignalSupport() (bool, error) 
 
 	return false, nil
 }
+
+func (k *KeepalivedContainerCollectorHost) Close() error {
+	if k.dockerCli != nil {
+		return k.dockerCli.Close()
+	}
+	return nil
+}
