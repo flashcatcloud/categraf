@@ -3,6 +3,8 @@ package keepalived
 import (
 	"io"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -45,6 +47,23 @@ func (*Keepalived) Name() string {
 }
 
 func (k *Keepalived) Gather(slist *types.SampleList) {
+	if k.DebugMod {
+		opts := &slog.HandlerOptions{
+			Level:     slog.LevelDebug,
+			AddSource: true,
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == slog.SourceKey {
+					if source, ok := a.Value.Any().(*slog.Source); ok {
+						source.File = filepath.Base(source.File)
+						return slog.Any(slog.SourceKey, source)
+					}
+				}
+				return a
+			},
+		}
+		logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
+		slog.SetDefault(logger)
+	}
 	// default options
 	if !k.Enable {
 		return
@@ -57,21 +76,44 @@ func (k *Keepalived) Gather(slist *types.SampleList) {
 		k.ContainerTmp = "/tmp"
 	}
 
-	var c collector.Collector
+	var (
+		c      collector.Collector
+		closer io.Closer
+	)
+	defer func() {
+		if closer != nil {
+			_ = closer.Close()
+		}
+	}()
+
 	if k.ContainerName != "" {
-		c = container.NewKeepalivedContainerCollectorHost(
+		coll, err := container.NewKeepalivedContainerCollectorHost(
 			k.SigJson,
 			k.ContainerName,
 			k.ContainerTmp,
 			k.ContainerPidPath,
 		)
-		defer func() {
-			if d, ok := c.(io.Closer); ok {
-				_ = d.Close()
-			}
-		}()
+		if err != nil {
+			slog.Error("failed to create keepalived collector",
+				"mode", "container",
+				"container", k.ContainerName,
+				"error", err)
+			slist.PushSample(inputName, "up", 0)
+			return
+		}
+		c = coll
+		closer = coll
 	} else {
-		c = host.NewKeepalivedHostCollectorHost(k.SigJson, k.PidPath)
+		coll, err := host.NewKeepalivedHostCollectorHost(k.SigJson, k.PidPath)
+		if err != nil {
+			slog.Error("failed to create keepalived collector",
+				"mode", "host",
+				"pidPath", k.PidPath,
+				"error", err)
+			slist.PushSample(inputName, "up", 0)
+			return
+		}
+		c = coll
 	}
 
 	// json support check
@@ -79,11 +121,13 @@ func (k *Keepalived) Gather(slist *types.SampleList) {
 		jsonSupport, err := c.HasJSONSignalSupport()
 		if err != nil {
 			slog.Error("Error checking JSON signal support", "error", err)
+			slist.PushSample(inputName, "up", 0)
 			return
 		}
 
 		if !jsonSupport {
 			slog.Error("Keepalived does not support JSON signal. Please use a version that supports it.")
+			slist.PushSample(inputName, "up", 0)
 			return
 		}
 	}
@@ -94,6 +138,7 @@ func (k *Keepalived) Gather(slist *types.SampleList) {
 
 	err := inputs.Collect(kaCollector, slist)
 	if err != nil {
-		slog.Error("Keepalived does not support JSON signal. Please use a version that supports it.")
+		slog.Error("Failed to collect keepalived metrics", "error", err)
+		slist.PushSample(inputName, "up", 0)
 	}
 }
