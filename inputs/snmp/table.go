@@ -775,43 +775,26 @@ func parsePercentString(str string) (interface{}, error) {
 	if na := strings.TrimSpace(str); na == "N/A" || na == "" {
 		return 0, nil
 	}
-	
+
 	// 移除两端空格
 	str = strings.TrimSpace(str)
-	
-	// 使用正则表达式提取数字部分
-	// 匹配数字和小数点，忽略百分号和空格
-	re := regexp.MustCompile(`^\s*([0-9]+\.?[0-9]*)\s*%?\s*`)
-	matches := re.FindStringSubmatch(str)
-	
-	if len(matches) < 2 {
-		// 如果没有匹配到数字，可能百分号在前面，尝试移除所有非数字字符后再次匹配
-		cleanStr := ""
-		for _, char := range str {
-			if (char >= '0' && char <= '9') || char == '.' {
-				cleanStr += string(char)
-			}
-		}
-		
-		if cleanStr == "" {
-			return nil, fmt.Errorf("invalid percent string: %s", str)
-		}
-		
-		// 尝试直接解析清理后的字符串
-		value, err := strconv.ParseFloat(cleanStr, 64)
+
+	// 只匹配百分比格式（如"36%"、"36.2%"、"36 %"等）
+	// 匹配数字和小数点，后面跟着可选的空格和百分号
+	percentRe := regexp.MustCompile(`([0-9]+\.?[0-9]*)\s*%`)
+	percentMatches := percentRe.FindStringSubmatch(str)
+
+	if len(percentMatches) >= 2 {
+		// 找到了百分比格式，直接提取数字部分
+		value, err := strconv.ParseFloat(percentMatches[1], 64)
 		if err != nil {
 			return nil, fmt.Errorf("invalid percent string: %s", str)
 		}
 		return value, nil
 	}
-	
-	// 转换为浮点数
-	value, err := strconv.ParseFloat(matches[1], 64)
-	if err != nil {
-		return nil, fmt.Errorf("invalid percent string: %s", str)
-	}
-	
-	return value, nil
+
+	// 如果没有找到百分比格式，返回错误
+	return nil, fmt.Errorf("not a percent string: %s", str)
 }
 
 func byteConvert(str string) (interface{}, error) {
