@@ -24,16 +24,20 @@ const inputName = "oracle"
 type Instance struct {
 	config.InstanceConfig
 
-	Address               string         `toml:"address"`
-	Username              string         `toml:"username"`
-	Password              string         `toml:"password"`
-	IsSysDBA              bool           `toml:"is_sys_dba"`
-	IsSysOper             bool           `toml:"is_sys_oper"`
-	DisableConnectionPool bool           `toml:"disable_connection_pool"`
-	MaxOpenConnections    int            `toml:"max_open_connections"`
-	Metrics               []MetricConfig `toml:"metrics"`
-	GlobalMetrics         []MetricConfig `toml:"-"`
-	client                *sql.DB
+	Address               string `toml:"address"`
+	Username              string `toml:"username"`
+	Password              string `toml:"password"`
+	IsSysDBA              bool   `toml:"is_sys_dba"`
+	IsSysOper             bool   `toml:"is_sys_oper"`
+	DisableConnectionPool bool   `toml:"disable_connection_pool"`
+	MaxOpenConnections    int    `toml:"max_open_connections"`
+
+	ConnMaxIdleTime config.Duration `toml:"conn_max_idle_time"` // 新增
+	ConnMaxLifetime config.Duration `toml:"conn_max_lifetime"`  // 新增
+
+	Metrics       []MetricConfig `toml:"metrics"`
+	GlobalMetrics []MetricConfig `toml:"-"`
+	client        *sql.DB
 }
 
 type MetricConfig struct {
@@ -104,10 +108,20 @@ func (ins *Instance) Init() error {
 		ins.MaxOpenConnections = 2
 	}
 
+	// 设置默认值
+	if ins.ConnMaxIdleTime == 0 {
+		ins.ConnMaxIdleTime = config.Duration(time.Minute * 15) // 默认15分钟
+	}
+	if ins.ConnMaxLifetime == 0 {
+		ins.ConnMaxLifetime = config.Duration(time.Hour * 24) // 默认24小时
+	}
+
 	ins.client.SetMaxOpenConns(ins.MaxOpenConnections)
 	ins.client.SetMaxIdleConns(ins.MaxOpenConnections)
-	ins.client.SetConnMaxIdleTime(time.Duration(0))
-	ins.client.SetConnMaxLifetime(time.Duration(0))
+	// ins.client.SetConnMaxIdleTime(time.Duration(0))
+	// ins.client.SetConnMaxLifetime(time.Duration(0))
+	ins.client.SetConnMaxIdleTime(time.Duration(ins.ConnMaxIdleTime))
+	ins.client.SetConnMaxLifetime(time.Duration(ins.ConnMaxLifetime))
 
 	return nil
 }
@@ -146,9 +160,15 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}(time.Now())
 
 	if err := ins.client.Ping(); err != nil {
-		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
-		log.Println("E! failed to ping oracle:", ins.Address, "error:", err)
-		return
+
+		log.Println("I! attempting to rebuild oracle connection:", ins.Address)
+		ins.Drop()
+		ins.Init()
+		if err := ins.client.Ping(); err != nil {
+			slist.PushFront(types.NewSample(inputName, "up", 0, tags))
+			log.Println("E! failed to ping oracle:", ins.Address, "error:", err)
+			return
+		}
 	} else {
 		slist.PushFront(types.NewSample(inputName, "up", 1, tags))
 	}
