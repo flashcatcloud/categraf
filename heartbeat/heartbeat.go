@@ -128,7 +128,6 @@ func work(ps *system.SystemPS, client *http.Client) {
 		"cpu_num":       runtime.NumCPU(),
 		"cpu_util":      cpuUsagePercent,
 		"mem_util":      memUsagePercent,
-		"unixtime":      time.Now().UnixMilli(),
 		"global_labels": config.GlobalLabels(),
 		"host_ip":       hostIP,
 	}
@@ -145,6 +144,7 @@ func work(ps *system.SystemPS, client *http.Client) {
 		log.Println("E! failed to collect system info:", err)
 	}
 
+	data["unixtime"] = time.Now().UnixMilli()
 	bs, err := json.Marshal(data)
 	if err != nil {
 		log.Println("E! failed to marshal heartbeat request:", err)

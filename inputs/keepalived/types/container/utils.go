@@ -16,14 +16,14 @@ func (k *KeepalivedContainerCollectorHost) dockerExecCmd(cmd []string) (*bytes.B
 		Cmd:          cmd,
 	})
 	if err != nil {
-		slog.Error("Error creating exec container", "CMD", cmd, "error", err)
+		slog.Debug("Error creating exec container", "CMD", cmd, "error", err)
 
 		return nil, err
 	}
 
 	response, err := k.dockerCli.ContainerExecAttach(context.Background(), rst.ID, types.ExecStartCheck{})
 	if err != nil {
-		slog.Error("Error attaching a connection to an exec process", "CMD", cmd, "error", err)
+		slog.Debug("Error attaching a connection to an exec process", "CMD", cmd, "error", err)
 
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (k *KeepalivedContainerCollectorHost) dockerExecCmd(cmd []string) (*bytes.B
 
 	data, err := io.ReadAll(response.Reader)
 	if err != nil {
-		slog.Error("Error reading response from docker command",
+		slog.Debug("Error reading response from docker command",
 			"error", err,
 			"CMD", cmd,
 		)

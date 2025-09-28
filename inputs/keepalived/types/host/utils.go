@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"log/slog"
-	"os"
 )
 
 func parseSigNum(sigNum bytes.Buffer, sigString string) int64 {
@@ -15,7 +14,7 @@ func parseSigNum(sigNum bytes.Buffer, sigString string) int64 {
 			"signum", sigNum.String(),
 			"error", err,
 		)
-		os.Exit(1)
+		return -1
 	}
 
 	return signum

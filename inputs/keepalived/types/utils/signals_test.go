@@ -28,11 +28,24 @@ func TestHasSigNumSupport(t *testing.T) {
 func TestGetDefaultSignal(t *testing.T) {
 	t.Parallel()
 
-	if dataSignal := syscall.SIGUSR1; GetDefaultSignal("DATA") != dataSignal {
-		t.Fail()
+	tests := []struct {
+		name      string
+		sigString string
+		expected  syscall.Signal
+	}{
+		{"DATA signal", "DATA", syscall.SIGUSR1},
+		{"STATS signal", "STATS", syscall.SIGUSR2},
 	}
 
-	if statsSignal := syscall.SIGUSR2; GetDefaultSignal("STATS") != statsSignal {
-		t.Fail()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual, err := GetDefaultSignal(tt.sigString)
+			if err != nil {
+				t.Fatalf("GetDefaultSignal(%q) returned unexpected error: %v", tt.sigString, err)
+			}
+			if actual != tt.expected {
+				t.Errorf("GetDefaultSignal(%q) = %v, want %v", tt.sigString, actual, tt.expected)
+			}
+		})
 	}
 }
