@@ -63,7 +63,7 @@ builds:
       - amd64
       - arm64
     tags:
-      - no_ibex 
+      - no_ibex
       - no_traces
       - no_logs
       - no_prometheus
@@ -83,7 +83,7 @@ builds:
       - amd64
       - arm64
     tags:
-      - no_ibex 
+      - no_ibex
       - no_traces
       - no_logs
     ldflags:
@@ -143,7 +143,6 @@ archives:
     wrap_in_directory: true
     files:
       - conf/*
-      - scripts/win_run.bat
 
 release:
   github:
