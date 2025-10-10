@@ -8,7 +8,7 @@ snapshot:
 checksum:
   name_template: 'checksums.txt'
 changelog:
-  disable: true
+  use: github-native
 
 builds:
   - id: linux-arm64
