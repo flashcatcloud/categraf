@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build linux
 
 package main
 
@@ -25,10 +25,6 @@ func runAgent(ag *agent.Agent) {
 
 func doOSsvc() {
 }
-
-var (
-	pprofStart uint32
-)
 
 func profile() {
 	sc := make(chan os.Signal, 1)
@@ -88,7 +84,7 @@ func reapDaemon() {
 		switch sig {
 		case unix.SIGCHLD:
 			exits, err := reap()
-			if err != nil {	
+			if err != nil {
 				log.Printf("E! reaping children failed: %v", err)
 				continue
 			}
