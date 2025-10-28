@@ -68,13 +68,38 @@ func (o *Origin) TagsToJsonString() string {
 	tagsMap := make(map[string]string)
 	tags := append(o.tags, o.LogSource.Config.Tags...)
 	for _, tag := range tags {
-		pair := strings.FieldsFunc(tag, func(r rune) bool {
-			return r == '=' || r == ':'
-		})
-		if len(pair) == 2 {
-			tagsMap[pair[0]] = pair[1]
+		if tag == "" {
+			continue
 		}
+
+		// 找到第一个 '=' 或 ':'
+		iEq := strings.IndexRune(tag, '=')
+		iColon := strings.IndexRune(tag, ':')
+		idx := -1
+		if iEq >= 0 && iColon >= 0 {
+			if iEq < iColon {
+				idx = iEq
+			} else {
+				idx = iColon
+			}
+		} else if iEq >= 0 {
+			idx = iEq
+		} else if iColon >= 0 {
+			idx = iColon
+		}
+
+		if idx < 0 {
+			continue
+		}
+
+		key := strings.TrimSpace(tag[:idx])
+		value := strings.TrimSpace(tag[idx+1:])
+		if key == "" {
+			continue
+		}
+		tagsMap[key] = value
 	}
+
 	ret := ""
 	if len(tagsMap) != 0 {
 		data, err := json.Marshal(tagsMap)

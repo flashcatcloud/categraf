@@ -8,7 +8,7 @@ snapshot:
 checksum:
   name_template: 'checksums.txt'
 changelog:
-  disable: true
+  use: github-native
 
 builds:
   - id: linux-arm64
@@ -63,7 +63,7 @@ builds:
       - amd64
       - arm64
     tags:
-      - no_ibex 
+      - no_ibex
       - no_traces
       - no_logs
       - no_prometheus
@@ -83,7 +83,7 @@ builds:
       - amd64
       - arm64
     tags:
-      - no_ibex 
+      - no_ibex
       - no_traces
       - no_logs
     ldflags:
@@ -121,11 +121,16 @@ archives:
     builds:
       - linux-amd64
       - linux-arm64
-      - windows
     format: tar.gz
-    format_overrides:
-      - goos: windows
-        format: zip
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    wrap_in_directory: true
+    files:
+      - conf/*
+
+  - id: categraf-common-win
+    builds:
+      - windows
+    format: zip
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
     files:
@@ -143,7 +148,6 @@ archives:
     wrap_in_directory: true
     files:
       - conf/*
-      - scripts/win_run.bat
 
 release:
   github:
