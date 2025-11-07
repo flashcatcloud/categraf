@@ -7,6 +7,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	cms20190101 "github.com/alibabacloud-go/cms-20190101/v8/client"
 	cms2021101 "github.com/alibabacloud-go/cms-export-20211101/v2/client"
@@ -106,10 +107,29 @@ func (m *Manager) dataPointConverter(metricName, ns, datapoints string) ([]types
 	}
 	return result, nil
 }
-func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetricListRequest) (int, []types.Point, error) {
 
+func (m *Manager) requestDebugLog(req *cms20190101.DescribeMetricListRequest, resp *cms20190101.DescribeMetricListResponse, page int, cost time.Duration) {
+	if m.debugMode {
+		var reqid, token string
+		if resp.Body != nil {
+			if resp.Body.RequestId != nil {
+				reqid = *resp.Body.RequestId
+			}
+			if resp.Body.NextToken != nil {
+				token = *resp.Body.NextToken
+			}
+		}
+		log.Printf("cms.DescribeMetricList request took %s, namespace:%s, metric name:%s, page:%d, request id:%s, next token:%s",
+			cost, *req.Namespace, *req.MetricName, page, reqid, token)
+	}
+}
+
+func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetricListRequest) (int, []types.Point, error) {
 	count := 1
+	now := time.Now()
 	resp, err := m.cms.DescribeMetricList(req)
+	cost := time.Since(now)
+	m.requestDebugLog(req, resp, count, cost)
 	result := make([]types.Point, 0, 100)
 	if err != nil {
 		return count, nil, err
@@ -122,7 +142,10 @@ func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetric
 	for resp.Body != nil && resp.Body.NextToken != nil {
 		req.NextToken = resp.Body.NextToken
 		count++
+		now = time.Now()
 		resp, err = m.cms.DescribeMetricList(req)
+		cost = time.Since(now)
+		m.requestDebugLog(req, resp, count, cost)
 		if err != nil {
 			log.Println(err)
 			continue

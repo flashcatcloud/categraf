@@ -179,8 +179,11 @@ func (ins *Instance) initialize() error {
 	}
 
 	if ins.client == nil {
-		cms := manager.NewCmsClient(*ins.AccessKeyID, *ins.AccessKeySecret, *ins.Region, *ins.Endpoint)
-		m, err := manager.New(cms)
+		opts := []manager.Option{
+			manager.NewCmsClient(*ins.AccessKeyID, *ins.AccessKeySecret, *ins.Region, *ins.Endpoint),
+			manager.WithDebugMode(ins.DebugMod),
+		}
+		m, err := manager.New(opts...)
 		if err != nil {
 			return fmt.Errorf("connect to aliyun error, %s", err)
 		}
