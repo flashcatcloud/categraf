@@ -119,11 +119,8 @@ func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetric
 		return count, nil, err
 	}
 	result = append(result, points...)
-	for resp.Body != nil && resp.Body.NextToken != nil && len(*resp.Body.NextToken) != 0 {
+	for resp.Body != nil && resp.Body.NextToken != nil && strings.TrimSpace(*resp.Body.NextToken) != "" {
 		req.NextToken = resp.Body.NextToken
-		if strings.TrimSpace(*req.NextToken) == "" {
-			break
-		}
 		count++
 		resp, err = m.cms.DescribeMetricList(req)
 		if err != nil {
