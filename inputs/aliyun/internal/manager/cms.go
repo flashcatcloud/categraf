@@ -128,8 +128,7 @@ func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetric
 	count := 1
 	now := time.Now()
 	resp, err := m.cms.DescribeMetricList(req)
-	cost := time.Since(now)
-	m.requestDebugLog(req, resp, count, cost)
+	m.requestDebugLog(req, resp, count, time.Since(now))
 	result := make([]types.Point, 0, 100)
 	if err != nil {
 		return count, nil, err
@@ -144,8 +143,7 @@ func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetric
 		count++
 		now = time.Now()
 		resp, err = m.cms.DescribeMetricList(req)
-		cost = time.Since(now)
-		m.requestDebugLog(req, resp, count, cost)
+		m.requestDebugLog(req, resp, count, time.Since(now))
 		if err != nil {
 			log.Println(err)
 			continue
