@@ -15,6 +15,7 @@ import (
 	"github.com/alibabacloud-go/tea/tea"
 
 	"flashcat.cloud/categraf/inputs/aliyun/internal/types"
+	"flashcat.cloud/categraf/pkg/limiter"
 	"flashcat.cloud/categraf/pkg/stringx"
 )
 
@@ -124,7 +125,8 @@ func (m *Manager) requestDebugLog(req *cms20190101.DescribeMetricListRequest, re
 	}
 }
 
-func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetricListRequest) (int, []types.Point, error) {
+func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetricListRequest, lmtr *limiter.RateLimiter) (int, []types.Point, error) {
+	<-lmtr.C
 	count := 1
 	now := time.Now()
 	resp, err := m.cms.DescribeMetricList(req)
@@ -141,6 +143,7 @@ func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetric
 	for resp.Body != nil && resp.Body.NextToken != nil && strings.TrimSpace(*resp.Body.NextToken) != "" {
 		req.NextToken = resp.Body.NextToken
 		count++
+		<-lmtr.C
 		now = time.Now()
 		resp, err = m.cms.DescribeMetricList(req)
 		m.requestDebugLog(req, resp, count, time.Since(now))

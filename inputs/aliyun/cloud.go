@@ -281,9 +281,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.metricCache.isValid() {
 		for _, filtered := range ins.metricCache.metrics {
 			for j := range filtered.metrics {
-				<-lmtr.C
 				wg.Add(1)
-				go ins.sendMetrics(filtered.metrics[j], &wg, slist)
+				go ins.sendMetrics(filtered.metrics[j], &wg, slist, lmtr)
 			}
 		}
 	} else {
@@ -294,16 +293,15 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		}
 		for _, filtered := range filteredMetrics {
 			for j := range filtered.metrics {
-				<-lmtr.C
 				wg.Add(1)
-				go ins.sendMetrics(filtered.metrics[j], &wg, slist)
+				go ins.sendMetrics(filtered.metrics[j], &wg, slist, lmtr)
 			}
 		}
 	}
 	wg.Wait()
 }
 
-func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup, slist *types.SampleList) {
+func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup, slist *types.SampleList, lmtr *limiter.RateLimiter) {
 	defer wg.Done()
 
 	ctx := context.Background()
@@ -323,7 +321,7 @@ func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup
 	if !ins.windowStart.IsZero() {
 		req.StartTime = tea.String(ins.windowStart.Format(timefmt))
 	}
-	n, points, err := ins.client.GetMetric(ctx, req)
+	n, points, err := ins.client.GetMetric(ctx, req, lmtr)
 	slist.PushFront(types.NewSample(inputName, "cms_request_count", n, map[string]string{
 		"namespace":   metric.Namespace,
 		"metric_name": metric.MetricName,

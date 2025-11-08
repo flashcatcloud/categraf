@@ -7,8 +7,8 @@ import (
 
 // NewRateLimiter returns a rate limiter that will will emit from the C
 // channel only 'n' times every 'rate' seconds.
-func NewRateLimiter(n int, rate time.Duration) *rateLimiter {
-	r := &rateLimiter{
+func NewRateLimiter(n int, rate time.Duration) *RateLimiter {
+	r := &RateLimiter{
 		C:        make(chan bool),
 		rate:     rate,
 		n:        n,
@@ -19,7 +19,7 @@ func NewRateLimiter(n int, rate time.Duration) *rateLimiter {
 	return r
 }
 
-type rateLimiter struct {
+type RateLimiter struct {
 	C    chan bool
 	rate time.Duration
 	n    int
@@ -28,13 +28,13 @@ type rateLimiter struct {
 	wg       sync.WaitGroup
 }
 
-func (r *rateLimiter) Stop() {
+func (r *RateLimiter) Stop() {
 	close(r.shutdown)
 	r.wg.Wait()
 	close(r.C)
 }
 
-func (r *rateLimiter) limiter() {
+func (r *RateLimiter) limiter() {
 	defer r.wg.Done()
 	ticker := time.NewTicker(r.rate)
 	defer ticker.Stop()
