@@ -866,7 +866,7 @@ func byteConvert(str string) (interface{}, error) {
 //   "42.3 units"              -> 42.3
 //   "Value is -12.7e3 volts"  -> -12700
 //   "N/A"                     -> error
-func heuristicsDataExtract(s string) (float64, error) {
+func heuristicDataExtract(s string) (float64, error) {
 	if len(s) == 0 {
 		return 0, fmt.Errorf("empty string, cannot extract float value")
 	}
