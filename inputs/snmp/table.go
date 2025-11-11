@@ -559,7 +559,7 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 	if _, err := fmt.Sscanf(conv, "float(%d)", &d); err == nil || conv == "float" {
 		floatConv := func(vt string) float64 {
 			var ret float64
-			floatVal, err := heuristicsDataExtract(vt)
+			floatVal, err := heuristicDataExtract(vt)
 			if err != nil {
 				log.Printf("E! failed to extract float from string: %s, error: %v", vt, err)
 				vf, _ := strconv.ParseFloat(vt, 64)
