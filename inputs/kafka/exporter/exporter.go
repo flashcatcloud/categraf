@@ -413,12 +413,26 @@ func (e *Exporter) collect(ch chan<- prometheus.Metric) {
 
 	level.Info(e.logger).Log("msg", "Generating consumergroup metrics")
 	if len(e.client.Brokers()) > 0 {
+		processedBrokers := make(map[int32]bool)
+		semaphore := make(chan struct{}, 3)
 		for _, broker := range e.client.Brokers() {
-			wg.Add(1)
+			if processedBrokers[broker.ID()] {
+				level.Debug(e.logger).Log("msg", "Broker already processed, skipping", "broker", broker.ID())
+				continue
+			}
+			processedBrokers[broker.ID()] = true
 
+			wg.Add(1)
+			semaphore <- struct{}{}
 			broker := broker
 			go func() {
 				defer wg.Done()
+				defer func() { <-semaphore }()
+				defer func() {
+					if r := recover(); r != nil {
+						level.Error(e.logger).Log("msg", "Panic in metricsForConsumerGroup", "broker", broker.ID(), "panic", r)
+					}
+				}()
 				e.metricsForConsumerGroup(broker, offsetMap, ch)
 			}()
 		}
@@ -551,11 +565,38 @@ func (e *Exporter) metricsForTopic(topic string, offsetMap map[string]map[int32]
 
 func (e *Exporter) metricsForConsumerGroup(broker *sarama.Broker, offsetMap map[string]map[int32]int64, ch chan<- prometheus.Metric) {
 	level.Debug(e.logger).Log("msg", "Fetching consumer group metrics for broker", "broker", broker.ID(), "broker_addr", broker.Addr())
-	if err := broker.Open(e.client.Config()); err != nil && err != sarama.ErrAlreadyConnected {
-		level.Error(e.logger).Log("msg", "Error connecting to broker", "broker", broker.ID(), "broker_addr", broker.Addr(), "err", err.Error())
-		return
+	needClose := false
+	connected, _ := broker.Connected()
+	level.Debug(e.logger).Log(
+		"msg", "Broker connection check",
+		"broker_id", broker.ID(),
+		"broker_addr", broker.Addr(),
+		"is_connected", connected,
+	)
+	if !connected {
+		err := broker.Open(e.client.Config())
+		if err != nil {
+			if err == sarama.ErrAlreadyConnected {
+				// Broker already connected, continue using
+				level.Debug(e.logger).Log("msg", "Broker already connected", "broker", broker.ID())
+			} else if err == sarama.ErrBrokerNotAvailable {
+				// Broker not available, skip
+				level.Warn(e.logger).Log("msg", "Broker not available, skipping", "broker", broker.ID(), "err", err.Error())
+				return
+			} else {
+				// Other errors, log and skip
+				level.Error(e.logger).Log("msg", "Error connecting to broker", "broker", broker.ID(), "broker_addr", broker.Addr(), "err", err.Error())
+				return
+			}
+		} else {
+			// New connection successful, need to close at function end
+			needClose = true
+		}
 	}
-	defer broker.Close()
+
+	if needClose {
+		defer broker.Close()
+	}
 
 	level.Debug(e.logger).Log("msg", "listing consumergroups for broker", "broker", broker.ID(), "broker_addr", broker.Addr())
 	groups, err := broker.ListGroups(&sarama.ListGroupsRequest{})
@@ -576,7 +617,7 @@ func (e *Exporter) metricsForConsumerGroup(broker *sarama.Broker, offsetMap map[
 		return
 	}
 	for _, group := range describeGroups.Groups {
-		offsetFetchRequest := sarama.OffsetFetchRequest{ConsumerGroup: group.GroupId, Version: 1}
+		offsetFetchRequest := sarama.OffsetFetchRequest{ConsumerGroup: group.GroupId, Version: e.fetchOffsetVersion()}
 		if e.offsetShowAll {
 			for topic, partitions := range offsetMap {
 				for partition := range partitions {
@@ -638,6 +679,7 @@ func (e *Exporter) metricsForConsumerGroup(broker *sarama.Broker, offsetMap map[
 						nextOffset, err := e.client.GetOffset(topic, partition, sarama.OffsetNewest)
 						if err != nil {
 							level.Error(e.logger).Log("msg", "Error getting next offset for topic/partition", "topic", topic, "partition", partition, "err", err.Error())
+							nextOffset = -1
 						}
 						if !e.disableCalculateLagRate {
 							e.consumerGroupLagTable.createOrUpdate(group.GroupId, topic, partition, nextOffset)
@@ -646,7 +688,7 @@ func (e *Exporter) metricsForConsumerGroup(broker *sarama.Broker, offsetMap map[
 						// If the topic is consumed by that consumer group, but no offset associated with the partition
 						// forcing lag to -1 to be able to alert on that
 						var lag int64
-						if currentOffset == -1 {
+						if currentOffset == -1 || nextOffset == -1 {
 							lag = -1
 						} else {
 							lag = nextOffset - currentOffset
@@ -747,7 +789,7 @@ func (e *Exporter) metricsForLag(ch chan<- prometheus.Metric) {
 						ch <- prometheus.MustNewConstMetric(e.promDesc.topicPartitionLagMillis, prometheus.GaugeValue, lagMillis, group, topic, strconv.FormatInt(int64(partition), 10))
 					}
 				} else {
-					level.Error(e.logger).Log("msg", "Could not get latest latest consumed offset", "group", group, "topic", topic, "partition", partition)
+					level.Error(e.logger).Log("msg", "Could not get latest consumed offset", "group", group, "topic", topic, "partition", partition)
 				}
 			}
 		}
@@ -787,28 +829,40 @@ func getNextLowerOffset(offsets []int64, k int64) int64 {
 // use it.
 func (e *Exporter) RunPruner() {
 	ticker := time.NewTicker(time.Duration(e.kafkaOpts.PruneIntervalSeconds) * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			client, err := sarama.NewClient(e.kafkaOpts.Uri, e.saramaConfig)
-			if err != nil {
-				level.Error(e.logger).Log("msg", "Error initializing kafka client for RunPruner", "err", err.Error())
-				return
-			}
-			e.consumerGroupLagTable.Prune(e.logger, client, e.kafkaOpts.MaxOffsets)
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						level.Error(e.logger).Log("msg", "Pruner panic", "error", r)
+					}
+				}()
 
-			client.Close()
+				client, err := sarama.NewClient(e.kafkaOpts.Uri, e.saramaConfig)
+				if err != nil {
+					level.Error(e.logger).Log("msg", "Error initializing kafka client for RunPruner", "err", err.Error())
+					return // only return from anonymous function, don't exit goroutine
+				}
+				defer client.Close() // Use defer to ensure closure
+
+				e.consumerGroupLagTable.Prune(e.logger, client, e.kafkaOpts.MaxOffsets)
+			}()
 		case <-e.quitPruneCh:
-			ticker.Stop()
 			return
 		}
 	}
 }
 
 func (e *Exporter) Close() {
-	close(e.quitPruneCh)
-	e.client.Close()
+	if e.quitPruneCh != nil {
+		close(e.quitPruneCh)
+	}
+	if e.client != nil {
+		e.client.Close()
+	}
 }
 
 func (e *Exporter) initializeMetrics() {
