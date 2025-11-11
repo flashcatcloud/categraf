@@ -557,6 +557,19 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 
 	var d int
 	if _, err := fmt.Sscanf(conv, "float(%d)", &d); err == nil || conv == "float" {
+		floatConv := func(vt string) float64 {
+			var ret float64
+			floatVal, err := heuristicsDataExtract(vt)
+			if err != nil {
+				log.Printf("E! failed to extract float from string: %s, error: %v", vt, err)
+				vf, _ := strconv.ParseFloat(vt, 64)
+				ret = vf / math.Pow10(d)
+			} else {
+				ret = floatVal / math.Pow10(d)
+			}
+			return ret
+		}
+
 		v = ent.Value
 		switch vt := v.(type) {
 		case float32:
@@ -584,23 +597,9 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 		case uint64:
 			v = float64(vt) / math.Pow10(d)
 		case []byte:
-			floatVal, err := heuristicsDataExtract(string(vt))
-			if err != nil {
-				log.Printf("E! failed to extract float from string: %s, error: %v", string(vt), err)
-				vf, _ := strconv.ParseFloat(string(vt), 64)
-				v = vf / math.Pow10(d)
-			} else {
-				v = floatVal / math.Pow10(d)
-			}
+			v = floatConv(string(vt))
 		case string:
-			floatVal, err := heuristicsDataExtract(vt)
-			if err != nil {
-				log.Printf("E! failed to extract float from string: %s, error: %v", string(vt), err)
-				vf, _ := strconv.ParseFloat(vt, 64)
-				v = vf / math.Pow10(d)
-			} else {
-				v = floatVal / math.Pow10(d)
-			}
+			v = floatConv(vt)
 		}
 		return v, nil
 	}
