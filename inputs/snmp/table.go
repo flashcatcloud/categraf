@@ -557,6 +557,19 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 
 	var d int
 	if _, err := fmt.Sscanf(conv, "float(%d)", &d); err == nil || conv == "float" {
+		floatConv := func(vt string) float64 {
+			var ret float64
+			floatVal, err := heuristicDataExtract(vt)
+			if err != nil {
+				log.Printf("E! failed to extract float from string: %s, error: %v", vt, err)
+				vf, _ := strconv.ParseFloat(vt, 64)
+				ret = vf / math.Pow10(d)
+			} else {
+				ret = floatVal / math.Pow10(d)
+			}
+			return ret
+		}
+
 		v = ent.Value
 		switch vt := v.(type) {
 		case float32:
@@ -584,11 +597,9 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 		case uint64:
 			v = float64(vt) / math.Pow10(d)
 		case []byte:
-			vf, _ := strconv.ParseFloat(string(vt), 64)
-			v = vf / math.Pow10(d)
+			v = floatConv(string(vt))
 		case string:
-			vf, _ := strconv.ParseFloat(vt, 64)
-			v = vf / math.Pow10(d)
+			v = floatConv(vt)
 		}
 		return v, nil
 	}
@@ -844,4 +855,102 @@ func byteConvert(str string) (interface{}, error) {
 		return nil, fmt.Errorf("invalid unit of %s", unit)
 	}
 	return result, nil
+}
+
+// heuristicsDataExtract attempts to extract the first floating-point number from the input string.
+// It scans the string for a valid float (optionally with a decimal point and exponent) and returns its value.
+// Returns an error if no valid number is found or if parsing fails.
+//
+// Example input strings this function can handle:
+//   "Temperature: 23.5C"      -> 23.5
+//   "42.3 units"              -> 42.3
+//   "Value is -12.7e3 volts"  -> -12700
+//   "N/A"                     -> error
+func heuristicDataExtract(s string) (float64, error) {
+	if len(s) == 0 {
+		return 0, fmt.Errorf("empty string, cannot extract float value")
+	}
+
+	var (
+		start    = -1
+		end      = -1
+		hasDot   = false
+		hasExp   = false
+		hasDigit = false
+		i        = 0
+	)
+
+	for i < len(s) {
+		c := s[i]
+
+		if c > 127 {
+			if start != -1 {
+				end = i
+				break
+			}
+			i++
+			continue
+		}
+
+		if start == -1 {
+			if c >= '0' && c <= '9' {
+				start = i
+				hasDigit = true
+			} else if c == '-' || c == '+' {
+				if i+1 < len(s) && ((s[i+1] >= '0' && s[i+1] <= '9') || s[i+1] == '.') {
+					if c == '-' && i > 0 {
+						prev := s[i-1]
+						if prev != ' ' && prev != '\t' && prev != ':' && prev != '=' && prev != '(' && prev != ',' {
+							i++
+							continue
+						}
+					}
+					start = i
+				}
+			} else if c == '.' {
+				if i+1 < len(s) && s[i+1] >= '0' && s[i+1] <= '9' {
+					start = i
+					hasDot = true
+				}
+			}
+		} else {
+			if c >= '0' && c <= '9' {
+				hasDigit = true
+			} else if c == '.' && !hasDot && !hasExp {
+				hasDot = true
+			} else if (c == 'e' || c == 'E') && !hasExp && hasDigit {
+				hasExp = true
+				if i+1 < len(s) && (s[i+1] == '+' || s[i+1] == '-') {
+					i++
+				}
+			} else if c == '+' || c == '-' {
+				if i > 0 && (s[i-1] == 'e' || s[i-1] == 'E') {
+					// Allow '+' or '-' immediately after 'e' or 'E' in exponent part of float
+				} else {
+					end = i
+					break
+				}
+			} else {
+				end = i
+				break
+			}
+		}
+		i++
+	}
+
+	if start != -1 && end == -1 {
+		end = len(s)
+	}
+
+	if start == -1 || !hasDigit {
+		return 0, fmt.Errorf("no valid number found in string: %s", s)
+	}
+
+	numStr := s[start:end]
+	val, err := strconv.ParseFloat(numStr, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse number '%s' from string '%s': %w", numStr, s, err)
+	}
+
+	return val, nil
 }
