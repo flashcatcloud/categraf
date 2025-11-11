@@ -127,7 +127,6 @@ func (ins *Instance) gatherBinaryLogs(slist *types.SampleList, db *sql.DB, tags 
 	}
 	defer rows.Close()
 
-	// parse DSN and save host as a tag
 	var (
 		size      uint64
 		count     uint64
