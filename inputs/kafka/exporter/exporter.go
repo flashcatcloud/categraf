@@ -679,7 +679,7 @@ func (e *Exporter) metricsForConsumerGroup(broker *sarama.Broker, offsetMap map[
 						nextOffset, err := e.client.GetOffset(topic, partition, sarama.OffsetNewest)
 						if err != nil {
 							level.Error(e.logger).Log("msg", "Error getting next offset for topic/partition", "topic", topic, "partition", partition, "err", err.Error())
-							nextOffset = currentOffset
+							nextOffset = -1
 						}
 						if !e.disableCalculateLagRate {
 							e.consumerGroupLagTable.createOrUpdate(group.GroupId, topic, partition, nextOffset)
@@ -688,7 +688,7 @@ func (e *Exporter) metricsForConsumerGroup(broker *sarama.Broker, offsetMap map[
 						// If the topic is consumed by that consumer group, but no offset associated with the partition
 						// forcing lag to -1 to be able to alert on that
 						var lag int64
-						if currentOffset == -1 {
+						if currentOffset == -1 || nextOffset == -1 {
 							lag = -1
 						} else {
 							lag = nextOffset - currentOffset
