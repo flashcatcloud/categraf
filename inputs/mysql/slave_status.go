@@ -120,6 +120,9 @@ func columnValue(scanArgs []interface{}, slaveCols []string, colName string) str
 }
 
 func (ins *Instance) gatherBinaryLogs(slist *types.SampleList, db *sql.DB, tags map[string]string) error {
+	if !ins.GatherBinaryLogs {
+		return nil
+	}
 	// run query
 	rows, err := db.Query(binaryLogsQuery)
 	if err != nil {
