@@ -7,11 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
-	"github.com/go-sql-driver/mysql"
 )
 
 const inputName = "mysql"
@@ -45,6 +46,9 @@ type Instance struct {
 	GatherTableSize                 bool `toml:"gather_table_size"`
 	GatherSystemTableSize           bool `toml:"gather_system_table_size"`
 	GatherSlaveStatus               bool `toml:"gather_slave_status"`
+	GatherBinaryLogs                bool `toml:"gather_binary_logs"`
+	GatherReplicaStatus             bool `toml:"gather_replica_status"`
+	GatherAllSlaveChannels          bool `toml:"gather_all_slave_channels"`
 
 	DisableGlobalStatus      bool `toml:"disable_global_status"`
 	DisableGlobalVariables   bool `toml:"disable_global_variables"`
@@ -61,6 +65,7 @@ func (ins *Instance) Init() error {
 	if ins.Address == "" {
 		return types.ErrInstancesEmpty
 	}
+	ins.Address = config.Expand(ins.Address)
 
 	if ins.UseTLS {
 		tlsConfig, err := ins.ClientConfig.TLSConfig()
@@ -231,4 +236,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	ins.gatherTableSize(slist, db, tags, true)
 	ins.gatherSlaveStatus(slist, db, tags)
 	ins.gatherCustomQueries(slist, db, tags)
+	ins.gatherBinaryLogs(slist, db, tags)
+	ins.gatherReplicaStatus(slist, db, tags)
+
 }
