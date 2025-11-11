@@ -857,6 +857,15 @@ func byteConvert(str string) (interface{}, error) {
 	return result, nil
 }
 
+// heuristicsDataExtract attempts to extract the first floating-point number from the input string.
+// It scans the string for a valid float (optionally with a decimal point and exponent) and returns its value.
+// Returns an error if no valid number is found or if parsing fails.
+//
+// Example input strings this function can handle:
+//   "Temperature: 23.5C"      -> 23.5
+//   "42.3 units"              -> 42.3
+//   "Value is -12.7e3 volts"  -> -12700
+//   "N/A"                     -> error
 func heuristicsDataExtract(s string) (float64, error) {
 	if len(s) == 0 {
 		return 0, fmt.Errorf("empty string, cannot extract float value")
