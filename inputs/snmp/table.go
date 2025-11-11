@@ -916,6 +916,7 @@ func heuristicsDataExtract(s string) (float64, error) {
 				}
 			} else if c == '+' || c == '-' {
 				if i > 0 && (s[i-1] == 'e' || s[i-1] == 'E') {
+					// Allow '+' or '-' immediately after 'e' or 'E' in exponent part of float
 				} else {
 					end = i
 					break
