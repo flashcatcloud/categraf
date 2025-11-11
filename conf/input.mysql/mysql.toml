@@ -28,6 +28,14 @@
 # gather_system_table_size = false
 # gather_slave_status = true
 
+# ## gather metrics from all channels from SHOW SLAVE STATUS command output
+# gather_all_slave_channels = false
+
+# gather metrics from SHOW REPLICA STATUS command output
+# gather_replica_status = true
+## gather metrics from SHOW BINARY LOGS command output
+# gather_binary_logs = true
+
 # # timeout
 # timeout_seconds = 3
 
