@@ -1,15 +1,3 @@
----
-title: "snmp zabbix插件"
-linkTitle: "snmp zabbix插件"
-description: "本文介绍监控数据采集器 Categraf 的 snmp zabbix 采集插件与配置"
-date: "2025-11-12T09:52:29+08:00"
-keywords: ["Nightingale", "Categraf", "metrics", "snmp_zabbix"]
-titleImage: "/images/docs/介绍背板.png"
-weight: 6
----
-
-# SNMP_Zabbix 插件用户文档
-
 ## 一、插件概述
 ### 1.1 插件功能介绍
 snmp_zabbix 是一个专为 Categraf 监控系统开发的 SNMP 数据采集插件，其最大特色是能够直接使用 Zabbix 的 YAML 格式模板文件。这意味着您可以利用 Zabbix 丰富的模板生态系统，无需重新编写监控配置。
