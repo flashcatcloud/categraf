@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -58,19 +57,13 @@ type MonitorItem struct {
 	Preprocessing []PreprocessStep `json:"preprocessing,omitempty"`
 }
 
-var labelKeyRegex = regexp.MustCompile(`^[\w\.]+\.(\w+)\[.*$`)
-
 func extractLabelKey(itemKey string) string {
-	matches := labelKeyRegex.FindStringSubmatch(itemKey)
-	if len(matches) > 1 {
-		return matches[1] // a.b.c.alias[params] -> alias
-	}
-	// Fallback for simpler keys like "alias[params]"
 	if idx := strings.Index(itemKey, "["); idx > 0 {
-		return itemKey[:idx]
+		return itemKey[:idx] // a.b.c.alias[params] -> a.b.c.alias
 	}
-	return "item_label" // Default label key
+	return itemKey // if [ is not found, return the original string
 }
+
 func NewDiscoveryEngine(client *SNMPClientManager, template *ZabbixTemplate) *DiscoveryEngine {
 	return &DiscoveryEngine{
 		client:   client,
