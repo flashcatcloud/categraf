@@ -12,10 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"flashcat.cloud/categraf/pkg/cfg"
-	"flashcat.cloud/categraf/pkg/tls"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/toolkits/pkg/file"
+
+	"flashcat.cloud/categraf/pkg/cfg"
+	"flashcat.cloud/categraf/pkg/tls"
 )
 
 const (
