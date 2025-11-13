@@ -41,7 +41,7 @@ require (
 	github.com/prometheus/prometheus v0.40.0
 	github.com/shirou/gopsutil/v3 v3.22.5
 	github.com/sirupsen/logrus v1.9.3
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.11.1
 	github.com/toolkits/pkg v1.3.7
 	github.com/ulricqin/gosnmp v0.0.1
 	github.com/xdg/scram v1.0.5
@@ -57,6 +57,7 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
+	cyphar.com/go-pathrs v0.2.1 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/alecthomas/participle v0.4.1 // indirect
@@ -80,6 +81,7 @@ require (
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
+	github.com/cyphar/filepath-securejoin v0.6.0 // indirect
 	github.com/dennwc/ioctl v1.0.0 // indirect
 	github.com/dlclark/regexp2 v1.11.4 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
@@ -173,7 +175,7 @@ require (
 	github.com/nats-io/nats-server/v2 v2.10.27
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
 	github.com/openconfig/gnmi v0.11.0
-	github.com/opencontainers/selinux v1.11.0
+	github.com/opencontainers/selinux v1.13.0
 	github.com/percona/percona-toolkit v0.0.0-20211210121818-b2860eee3152
 	github.com/pion/dtls/v2 v2.2.12
 	github.com/prometheus-community/go-runit v0.1.0
