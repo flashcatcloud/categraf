@@ -57,6 +57,13 @@ type MonitorItem struct {
 	Preprocessing []PreprocessStep `json:"preprocessing,omitempty"`
 }
 
+func extractLabelKey(itemKey string) string {
+	if idx := strings.Index(itemKey, "["); idx > 0 {
+		return itemKey[:idx] // a.b.c.alias[params] -> a.b.c.alias
+	}
+	return itemKey // 如果没有找到 [ 就返回原字符串
+}
+
 func NewDiscoveryEngine(client *SNMPClientManager, template *ZabbixTemplate) *DiscoveryEngine {
 	return &DiscoveryEngine{
 		client:   client,
@@ -554,7 +561,7 @@ func (d *DiscoveryEngine) ApplyItemPrototypes(discoveries []DiscoveryItem, rule 
 			switch prototype.ValueType {
 			case "CHAR", "1", "TEXT", "4":
 				item.IsLabelProvider = true
-				item.LabelKey = prototype.Key
+				item.LabelKey = extractLabelKey(prototype.Key)
 			default:
 				item.IsLabelProvider = false
 			}
