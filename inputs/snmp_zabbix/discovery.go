@@ -61,7 +61,7 @@ func extractLabelKey(itemKey string) string {
 	if idx := strings.Index(itemKey, "["); idx > 0 {
 		return itemKey[:idx] // a.b.c.alias[params] -> a.b.c.alias
 	}
-	return itemKey // 如果没有找到 [ 就返回原字符串
+	return itemKey // if [ is not found, return the original string
 }
 
 func NewDiscoveryEngine(client *SNMPClientManager, template *ZabbixTemplate) *DiscoveryEngine {
