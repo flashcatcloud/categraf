@@ -362,8 +362,6 @@ func (c *SNMPCollector) processValue(value interface{}, item MonitorItem) (inter
 			return strVal, fields, nil
 		}
 	}
-
-	return value, fields, nil
 }
 
 func (c *SNMPCollector) convertSNMPValue(pdu gosnmp.SnmpPDU, item MonitorItem) interface{} {
