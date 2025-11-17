@@ -114,7 +114,7 @@ wget https://github.com/zabbix/zabbix/blob/master/templates/net/cisco/cisco_snmp
 |Windows 服务器|Windows by SNMP|templates/os/windows_snmp/template_os_windows_snmp.yaml|
 |通用网络设备|Network Generic Device by SNMP|templates/net/generic_snmp/template_net_generic_snmp.yaml|
 
-**这部分模板已经放到https://github.com/flashcatcloud/categraf/blob/master/conf/zbx_templates**
+这部分模板已经放到https://github.com/flashcatcloud/categraf/blob/master/conf/zbx_templates
 ### 2.3 模板文件格式转换（XML to YAML）
 
 如果只有 XML 格式的模板，需要进行转换：
@@ -469,11 +469,10 @@ item_prototypes:
     snmp_oid: .1.3.6.1.2.1.31.1.1.1.18.{#SNMPINDEX}
     key: net.if.alias[{#IFNAME}]
     value_type: TEXT              # 文本类型
-    # 这个值会被提取为 "alias" 标签
 ```
 Label Provider 机制：
 - 识别 CHAR/TEXT 类型的监控项
-- 提取标签键（从 key 中解析，如 net.if.alias -> alias）
+- 提取标签键（从 key 中解析，如 net.if.alias -> net_if_alias）
 - 缓存标签值并关联到相同索引的其他监控项
 - 在输出指标时自动添加这些标签
 
@@ -1203,6 +1202,20 @@ discovery_rules:
         - macro: '{#IFTYPE}'
           value: '6'
           operator: EQUALS
+```
+
+### 9.5 标签relable
+跟snmp插件相比，默认的设备标签从agent_host变成了snmp_agent , 如果你想修改,假如你想把key从snmp_agent修改回agent_host 可以添加如下配置
+```
+[[instances.relabel_configs]]
+source_labels = ["snmp_agent"]
+target_label = "agent_host"
+replacement = '$1'
+action = "replace"
+
+[[instances.relabel_configs]]
+regex = "snmp_agent"
+action = "labeldrop"
 ```
 
 ## 十、限制和注意事项
