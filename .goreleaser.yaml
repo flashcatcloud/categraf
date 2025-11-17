@@ -178,7 +178,6 @@ dockers:
       - conf/input.kernel_vmstat/kernel_vmstat.toml
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
-      - conf/input.kubernetes/kubernetes.toml
       - conf/input.processes/processes.toml
     use: buildx
     build_flag_templates:
@@ -206,7 +205,6 @@ dockers:
       - conf/input.kernel_vmstat/kernel_vmstat.toml
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
-      - conf/input.kubernetes/kubernetes.toml
       - conf/input.processes/processes.toml
     use: buildx
     build_flag_templates:
@@ -234,7 +232,6 @@ dockers:
       - conf/input.kernel_vmstat/kernel_vmstat.toml
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
-      - conf/input.kubernetes/kubernetes.toml
       - conf/input.processes/processes.toml
     use: buildx
     build_flag_templates:
@@ -262,7 +259,6 @@ dockers:
       - conf/input.kernel_vmstat/kernel_vmstat.toml
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
-      - conf/input.kubernetes/kubernetes.toml
       - conf/input.processes/processes.toml
     use: buildx
     build_flag_templates:
@@ -284,3 +280,14 @@ docker_manifests:
       - flashcatcloud/categraf:{{ .Tag }}-amd64
       - flashcatcloud/categraf:{{ .Tag }}-arm64v8
 
+announce:
+  webhook:
+    enabled: true
+    skip_tls_verify: true
+    message_template: '{ "text": {"content": "{{ .ProjectName }} {{.Tag}} is out! Check it out at {{ .ReleaseURL }}"}, "msgtype":"text"}'
+    content_type: "application/json"
+    endpoint_url: "https://oapi.dingtalk.com/robot/send?access_token={{ .Env.DING_TALK_TOKEN }}"
+    # headers:
+    #   Authorization: "Bearer <token>"
+    headers:
+      User-Agent: "goreleaser"
