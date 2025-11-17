@@ -1204,7 +1204,7 @@ discovery_rules:
           operator: EQUALS
 ```
 
-### 9.5 标签relable
+### 9.5 标签relabel
 跟snmp插件相比，默认的设备标签从agent_host变成了snmp_agent , 如果你想修改,假如你想把key从snmp_agent修改回agent_host 可以添加如下配置
 ```
 [[instances.relabel_configs]]
