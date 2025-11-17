@@ -114,7 +114,7 @@ wget https://github.com/zabbix/zabbix/blob/master/templates/net/cisco/cisco_snmp
 |Windows 服务器|Windows by SNMP|templates/os/windows_snmp/template_os_windows_snmp.yaml|
 |通用网络设备|Network Generic Device by SNMP|templates/net/generic_snmp/template_net_generic_snmp.yaml|
 
-**这部分模板已经放到https://github.com/flashcatcloud/categraf/blob/master/inputs/snmp_zabbix/templates**
+**这部分模板已经放到https://github.com/flashcatcloud/categraf/blob/master/conf/zbx_templates**
 ### 2.3 模板文件格式转换（XML to YAML）
 
 如果只有 XML 格式的模板，需要进行转换：
