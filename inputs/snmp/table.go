@@ -485,7 +485,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 			log.Println("filters_expression err:", err)
 		}
 	}
-	stricMode := t.FilterMode == StrictMode
+	strictMode := t.FilterMode == StrictMode
 	for _, r := range rows {
 		if expr == nil {
 			rt.Rows = append(rt.Rows, r)
@@ -493,7 +493,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 		}
 		params := make(map[string]interface{})
 		for rk, rv := range t.filtersMap {
-			if stricMode {
+			if strictMode {
 				params[rk] = false
 			}
 			for k, v := range r.Tags {
