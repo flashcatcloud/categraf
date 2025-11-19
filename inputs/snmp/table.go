@@ -23,6 +23,10 @@ const (
 	defaultExprPrefix = "expr"
 )
 
+const (
+	StrictMode = "strict"
+)
+
 // Table holds the configuration for an SNMP table.
 type Table struct {
 	// Name will be the name of the measurement.
@@ -48,6 +52,7 @@ type Table struct {
 
 	Filters          []string `toml:"filters"`
 	FilterExpression string   `toml:"filters_expression"`
+	FilterMode       string   `toml:"filters_mode"`
 
 	filterFormat int                `toml:"-"`
 	filtersMap   map[string]*Filter `toml:"-"`
@@ -480,6 +485,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 			log.Println("filters_expression err:", err)
 		}
 	}
+	strictMode := t.FilterMode == StrictMode
 	for _, r := range rows {
 		if expr == nil {
 			rt.Rows = append(rt.Rows, r)
@@ -487,6 +493,9 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 		}
 		params := make(map[string]interface{})
 		for rk, rv := range t.filtersMap {
+			if strictMode {
+				params[rk] = false
+			}
 			for k, v := range r.Tags {
 				if strings.HasPrefix(k, rv.key) {
 					if rv.re.MatchString(v) {
@@ -862,10 +871,11 @@ func byteConvert(str string) (interface{}, error) {
 // Returns an error if no valid number is found or if parsing fails.
 //
 // Example input strings this function can handle:
-//   "Temperature: 23.5C"      -> 23.5
-//   "42.3 units"              -> 42.3
-//   "Value is -12.7e3 volts"  -> -12700
-//   "N/A"                     -> error
+//
+//	"Temperature: 23.5C"      -> 23.5
+//	"42.3 units"              -> 42.3
+//	"Value is -12.7e3 volts"  -> -12700
+//	"N/A"                     -> error
 func heuristicDataExtract(s string) (float64, error) {
 	if len(s) == 0 {
 		return 0, fmt.Errorf("empty string, cannot extract float value")
