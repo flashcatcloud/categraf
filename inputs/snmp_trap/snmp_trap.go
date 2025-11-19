@@ -273,7 +273,7 @@ func setTrapOid(tags map[string]string, oid string, e snmp.MibEntry) {
 func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFunc {
 	return func(packet *gosnmp.SnmpPacket, addr *net.UDPAddr) {
 		if s.DebugMod {
-			log.Printf("收到 Trap 来自: %s, 数据包内容: %v", addr.IP.String(), packet.SafeString())
+			log.Printf("Received Trap from: %s, packet content: %v", addr.IP.String(), packet.SafeString())
 		}
 		fields := map[string]interface{}{}
 		tags := map[string]string{}
