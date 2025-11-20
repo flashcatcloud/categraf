@@ -47,7 +47,6 @@ type Template struct {
 	DiscoveryRules []DiscoveryRule `yaml:"discovery_rules,omitempty"`
 	Triggers       []Trigger       `yaml:"triggers,omitempty"`
 	Graphs         []Graph         `yaml:"graphs,omitempty"`
-	Dashboards     []Dashboard     `yaml:"dashboards,omitempty"`
 	HttpTests      []HttpTest      `yaml:"httptests,omitempty"`
 	Macros         []Macro         `yaml:"macros,omitempty"`
 	Tags           []Tag           `yaml:"tags,omitempty"`
@@ -471,29 +470,6 @@ type MessageTemplate struct {
 	Recovery    string `yaml:"recovery"`
 	Subject     string `yaml:"subject"`
 	Message     string `yaml:"message"`
-}
-
-type Dashboard struct {
-	UUID          string          `yaml:"uuid,omitempty"`
-	Name          string          `yaml:"name"`
-	DisplayPeriod string          `yaml:"display_period,omitempty"`
-	AutoStart     string          `yaml:"auto_start,omitempty"`
-	Pages         []DashboardPage `yaml:"pages"`
-}
-
-type DashboardPage struct {
-	Name    string   `yaml:"name,omitempty"`
-	Widgets []Widget `yaml:"widgets,omitempty"`
-}
-
-type Widget struct {
-	Type   string            `yaml:"type"`
-	Name   string            `yaml:"name,omitempty"`
-	X      string            `yaml:"x"`
-	Y      string            `yaml:"y"`
-	Width  string            `yaml:"width"`
-	Height string            `yaml:"height"`
-	Fields map[string]string `yaml:"fields,omitempty"`
 }
 
 type HttpTest struct {
