@@ -51,7 +51,8 @@ func (c *SNMPCollector) CollectItems(ctx context.Context, items []MonitorItem, s
 	agentItems := c.groupItemsByAgent(items)
 
 	var wg sync.WaitGroup
-	resultChan := make(chan CollectionResult, len(items))
+	// 使用带缓冲的 channel 防止阻塞
+	resultChan := make(chan CollectionResult, len(items)+10)
 
 	// 并发收集每个agent的数据
 	for agent, agentItemList := range agentItems {
@@ -72,8 +73,10 @@ func (c *SNMPCollector) CollectItems(ctx context.Context, items []MonitorItem, s
 	for result := range resultChan {
 		if result.Error != nil {
 			// 记录错误但继续处理其他结果
-			log.Printf("E! collected agent: %s, key: %s, value: %v, error:%v",
-				result.Agent, result.Key, result.Value, result.Error)
+			// 降低日志级别或增加频率限制，防止日志刷屏
+			if c.config.DebugMode {
+				log.Printf("D! collected agent: %s, key: %s, error: %v", result.Agent, result.Key, result.Error)
+			}
 			continue
 		}
 
@@ -101,8 +104,10 @@ func (c *SNMPCollector) groupItemsByAgent(items []MonitorItem) map[string][]Moni
 }
 
 func (c *SNMPCollector) collectFromAgent(ctx context.Context, agent string, items []MonitorItem, resultChan chan<- CollectionResult) {
+	// 获取Agent级别的锁，确保同一时间只有一个采集任务在运行
 	unlock := c.client.acquire(agent)
 	defer unlock()
+
 	client, err := c.client.GetClient(agent)
 	if err != nil {
 		for _, item := range items {
@@ -115,7 +120,16 @@ func (c *SNMPCollector) collectFromAgent(ctx context.Context, agent string, item
 		return
 	}
 
-	const batchSize = 60
+	// 批量大小
+	batchSize := c.config.MaxRepetitions
+	if batchSize <= 0 {
+		batchSize = 10 // 默认值
+	}
+	// 如果配置强制为1，则batchSize也设为1，实际上退化为单个Get
+	if c.config.MaxRepetitions == 1 {
+		batchSize = 1
+	}
+
 	for i := 0; i < len(items); i += batchSize {
 		end := i + batchSize
 		if end > len(items) {
@@ -123,173 +137,132 @@ func (c *SNMPCollector) collectFromAgent(ctx context.Context, agent string, item
 		}
 
 		batchItems := items[i:end]
+
+		// 如果 batchSize 为 1，直接使用单个采集逻辑，避免 GetBulk 的开销
+		if batchSize == 1 {
+			c.collectIndividually(client, agent, batchItems, resultChan)
+			continue
+		}
+
 		oids := make([]string, len(batchItems))
 		for j, item := range batchItems {
 			oids[j] = item.OID
 		}
+
+		// 尝试批量请求
 		results, err := c.bulkGet(client, oids)
 		if err != nil {
-			// 如果批量请求失败，尝试单独请求这个批次的OID
-			// 注意：这里传递的是 batchItems，而不是全部的 items
+			// 只有在调试模式下才打印详细的批量失败日志
+			if c.config.DebugMode {
+				log.Printf("D! bulk request failed for agent %s (size: %d): %v. Falling back to individual collection.", agent, len(oids), err)
+			}
+			// 降级：尝试单独请求这个批次的OID
 			c.collectIndividually(client, agent, batchItems, resultChan)
-			continue // 继续下一个批次
+			continue
 		}
+
 		for j, result := range results {
 			if j >= len(batchItems) {
 				break
 			}
 
 			item := batchItems[j]
-			if item.IsLabelProvider {
-				if result.Error == nil {
-					rawValue := c.convertSNMPValue(result.Value, item)
-					// Labels usually don't need complex preprocessing, but we can support it
-					processedValue := rawValue
-					if len(item.Preprocessing) > 0 {
-						// Apply preprocessing
-						processed, err := ApplyPreprocessingWithContext(
-							rawValue,
-							item.Preprocessing,
-							c.preprocessingCtx,
-							item.Key,
-							agent,
-						)
-						if err == nil {
-							processedValue = processed
-						}
-					}
-
-					if strVal, ok := processedValue.(string); ok {
-						c.labelCache.Set(agent, item.DiscoveryRuleKey, item.DiscoveryIndex, item.LabelKey, strVal)
-					}
-				}
-				continue
-			}
-			collectionResult := CollectionResult{
-				Agent: agent,
-				Key:   item.Key,
-				Time:  time.Now(),
-				Tags:  c.buildTags(agent, item),
-			}
-
-			if result.Error != nil {
-				collectionResult.Error = result.Error
-			} else {
-				// 1. 先将SNMP PDU转换为通用的Go类型
-				rawValue := c.convertSNMPValue(result.Value, item)
-				// 2. 应用预处理
-				processedValue := rawValue
-				if len(item.Preprocessing) > 0 {
-					processed, err := ApplyPreprocessingWithContext(
-						rawValue,
-						item.Preprocessing,
-						c.preprocessingCtx,
-						item.Key,
-						agent,
-					)
-					if err != nil {
-						// 预处理失败，继续使用原始转换值
-						if !strings.Contains(err.Error(), "no previous value") {
-							log.Printf("E! preprocessing failed for %s: %v", item.Key, err)
-						}
-						processedValue = rawValue
-					} else {
-						processedValue = processed
-					}
-				}
-
-				finalValue, fields, err := c.processValue(processedValue, item)
-				if err != nil {
-					collectionResult.Error = err
-				} else {
-					// 更新 fields 中的值，确保它反映的是最终处理过的值
-					if floatVal, convErr := ConvertToFloat64(finalValue); convErr == nil {
-						fields["value"] = floatVal
-					} else {
-						// 如果无法转为float，则使用其原始形态（可能是字符串）
-						fields["value"] = finalValue
-					}
-
-					collectionResult.Value = finalValue
-					collectionResult.Fields = fields
-					collectionResult.Type = item.Type
-				}
-			}
-			resultChan <- collectionResult
+			c.processSingleResult(agent, item, result, resultChan)
 		}
 	}
 }
 
 func (c *SNMPCollector) collectIndividually(client *gosnmp.GoSNMP, agent string, items []MonitorItem, resultChan chan<- CollectionResult) {
 	for _, item := range items {
-		result, err := client.Get([]string{item.OID})
-		if item.IsLabelProvider {
-			if err == nil && len(result.Variables) > 0 {
-				rawValue := c.convertSNMPValue(result.Variables[0], item)
-				processedValue := rawValue
-				if len(item.Preprocessing) > 0 {
-					processed, preprocErr := ApplyPreprocessingWithContext(
-						rawValue, item.Preprocessing, c.preprocessingCtx, item.Key, agent)
-					if preprocErr == nil {
-						processedValue = processed
-					}
-				}
-				if strVal, ok := processedValue.(string); ok {
-					c.labelCache.Set(agent, item.DiscoveryRuleKey, item.DiscoveryIndex, item.LabelKey, strVal)
-				}
-			}
-			continue //  item是label 不需要metric的处理
-		}
+		// 使用 Get 而不是 BulkGet
+		pduResult, err := client.Get([]string{item.OID})
 
-		collectionResult := CollectionResult{
-			Agent: agent,
-			Key:   item.Key,
-			Time:  time.Now(),
-			Tags:  c.buildTags(agent, item),
-		}
+		var bulkResult BulkGetResult
+		bulkResult.OID = item.OID
 
 		if err != nil {
-			collectionResult.Error = err
-		} else if len(result.Variables) > 0 {
-			// 1. 先将SNMP PDU转换为通用的Go类型
-			rawValue := c.convertSNMPValue(result.Variables[0], item)
-			// 2. 应用预处理
+			bulkResult.Error = err
+		} else if len(pduResult.Variables) > 0 {
+			bulkResult.Value = pduResult.Variables[0]
+		} else {
+			bulkResult.Error = fmt.Errorf("no data returned for OID %s", item.OID)
+		}
+
+		c.processSingleResult(agent, item, bulkResult, resultChan)
+	}
+}
+
+func (c *SNMPCollector) processSingleResult(agent string, item MonitorItem, result BulkGetResult, resultChan chan<- CollectionResult) {
+	if item.IsLabelProvider {
+		if result.Error == nil {
+			rawValue := c.convertSNMPValue(result.Value, item)
 			processedValue := rawValue
 			if len(item.Preprocessing) > 0 {
-				processed, preprocErr := ApplyPreprocessingWithContext(
+				processed, err := ApplyPreprocessingWithContext(
 					rawValue,
 					item.Preprocessing,
 					c.preprocessingCtx,
 					item.Key,
 					agent,
 				)
-				if preprocErr != nil {
-					log.Printf("E! preprocessing failed for %s in individual collection: %v", item.Key, preprocErr)
-					processedValue = rawValue
-				} else {
+				if err == nil {
 					processedValue = processed
 				}
 			}
 
-			finalValue, fields, procErr := c.processValue(processedValue, item)
-			if procErr != nil {
-				collectionResult.Error = procErr
-			} else {
-				if floatVal, convErr := ConvertToFloat64(finalValue); convErr == nil {
-					fields["value"] = floatVal
-				} else {
-					fields["value"] = finalValue
-				}
-				collectionResult.Value = finalValue
-				collectionResult.Fields = fields
-				collectionResult.Type = item.Type
+			if strVal, ok := processedValue.(string); ok {
+				c.labelCache.Set(agent, item.DiscoveryRuleKey, item.DiscoveryIndex, item.LabelKey, strVal)
 			}
-		} else {
-			collectionResult.Error = fmt.Errorf("no data returned for OID %s", item.OID)
+		}
+		return
+	}
+
+	collectionResult := CollectionResult{
+		Agent: agent,
+		Key:   item.Key,
+		Time:  time.Now(),
+		Tags:  c.buildTags(agent, item),
+	}
+
+	if result.Error != nil {
+		collectionResult.Error = result.Error
+	} else {
+		rawValue := c.convertSNMPValue(result.Value, item)
+		processedValue := rawValue
+		if len(item.Preprocessing) > 0 {
+			processed, err := ApplyPreprocessingWithContext(
+				rawValue,
+				item.Preprocessing,
+				c.preprocessingCtx,
+				item.Key,
+				agent,
+			)
+			if err != nil {
+				if !strings.Contains(err.Error(), "no previous value") && c.config.DebugMode {
+					log.Printf("D! preprocessing failed for %s: %v", item.Key, err)
+				}
+				processedValue = rawValue
+			} else {
+				processedValue = processed
+			}
 		}
 
-		resultChan <- collectionResult
+		finalValue, fields, err := c.processValue(processedValue, item)
+		if err != nil {
+			collectionResult.Error = err
+		} else {
+			if floatVal, convErr := ConvertToFloat64(finalValue); convErr == nil {
+				fields["value"] = floatVal
+			} else {
+				fields["value"] = finalValue
+			}
+
+			collectionResult.Value = finalValue
+			collectionResult.Fields = fields
+			collectionResult.Type = item.Type
+		}
 	}
+	resultChan <- collectionResult
 }
 
 type BulkGetResult struct {
@@ -299,6 +272,8 @@ type BulkGetResult struct {
 }
 
 func (c *SNMPCollector) bulkGet(client *gosnmp.GoSNMP, oids []string) ([]BulkGetResult, error) {
+	// 这里的实现假设 oids 数量已经由 caller 控制好了。
+
 	result, err := client.Get(oids)
 	if err != nil {
 		return nil, err
@@ -314,7 +289,10 @@ func (c *SNMPCollector) bulkGet(client *gosnmp.GoSNMP, oids []string) ([]BulkGet
 	for i, oid := range oids {
 		results[i] = BulkGetResult{OID: oid}
 
-		if pdu, ok := valueMap[oid]; ok {
+		// 尝试多种形式的OID匹配（有没有前导点）
+		oidNoDot := strings.TrimPrefix(oid, ".")
+
+		if pdu, ok := valueMap[oidNoDot]; ok {
 			if pdu.Type == gosnmp.NoSuchObject || pdu.Type == gosnmp.NoSuchInstance {
 				results[i].Error = fmt.Errorf("OID not found on device: %s", oid)
 			} else {
@@ -331,7 +309,6 @@ func (c *SNMPCollector) bulkGet(client *gosnmp.GoSNMP, oids []string) ([]BulkGet
 func (c *SNMPCollector) processValue(value interface{}, item MonitorItem) (interface{}, map[string]interface{}, error) {
 	fields := make(map[string]interface{})
 
-	// 根据item类型处理值
 	switch item.ValueType {
 	case "float":
 		if floatVal, err := c.convertToFloat(value); err == nil {
@@ -352,7 +329,6 @@ func (c *SNMPCollector) processValue(value interface{}, item MonitorItem) (inter
 		fields["value"] = strVal
 		return strVal, fields, nil
 	default:
-		// 自动检测类型
 		if floatVal, err := c.convertToFloat(value); err == nil {
 			fields["value"] = floatVal
 			return floatVal, fields, nil
@@ -380,20 +356,14 @@ func (c *SNMPCollector) convertSNMPValue(pdu gosnmp.SnmpPDU, item MonitorItem) i
 	case gosnmp.OctetString:
 		if bytes, ok := pdu.Value.([]byte); ok {
 			if hasJsPreprocessing {
-				// 如果有JS预处理，则提供JS脚本期望的、带空格的十六进制字符串
 				return bytesToHexSpacedStr(bytes)
 			} else if hasIpMacPreprocessing {
-				// 如果是IP或MAC地址格式化，直接传递原始字节切片效率最高
 				return bytes
 			}
-
-			// 尝试转换为字符串
 			str := string(bytes)
-			// 检查是否包含不可打印字符
 			if c.isPrintableString(str) {
 				return str
 			}
-			// 如果包含不可打印字符，返回十六进制表示
 			return fmt.Sprintf("%x", bytes)
 		}
 		return fmt.Sprintf("%v", pdu.Value)
@@ -410,7 +380,6 @@ func (c *SNMPCollector) convertSNMPValue(pdu gosnmp.SnmpPDU, item MonitorItem) i
 		return pdu.Value
 	case gosnmp.TimeTicks:
 		if ticks, ok := pdu.Value.(uint32); ok {
-			// 转换为秒
 			return float64(ticks) / 100.0
 		}
 		return pdu.Value
@@ -495,7 +464,6 @@ func (c *SNMPCollector) convertToUint(value interface{}) (uint64, error) {
 func (c *SNMPCollector) buildTags(agent string, item MonitorItem) map[string]string {
 	tags := make(map[string]string)
 
-	// 基础标签
 	tags["snmp_agent"] = agent
 	tags["snmp_host"] = getHostFromAgentStr(agent)
 	tags["oid"] = item.OID
@@ -509,16 +477,13 @@ func (c *SNMPCollector) buildTags(agent string, item MonitorItem) map[string]str
 		}
 	}
 
-	// 从item key中提取额外的标签信息
 	if strings.Contains(item.Key, "[") && strings.Contains(item.Key, "]") {
-		// 提取Zabbix风格的参数，如 if.in.octets[1] -> interface_index=1
 		start := strings.Index(item.Key, "[")
 		end := strings.Index(item.Key, "]")
 		if start < end {
 			param := item.Key[start+1 : end]
 			keyBase := item.Key[:start]
 
-			// 根据key类型添加相应的标签
 			if strings.Contains(keyBase, "if.") {
 				tags["interface_index"] = param
 				keyIdx := strings.LastIndex(param, ".")
@@ -536,7 +501,6 @@ func (c *SNMPCollector) buildTags(agent string, item MonitorItem) map[string]str
 	if item.Key != "" {
 		tags["item_key"] = item.Key
 	}
-	// 添加item信息作为标签
 	if item.Name != "" {
 		tags["item"] = item.Name
 	}
@@ -556,7 +520,6 @@ func (c *SNMPCollector) buildTags(agent string, item MonitorItem) map[string]str
 }
 
 func (c *SNMPCollector) addMetricToAccumulator(result CollectionResult, slist *types.SampleList) {
-	// 构建measurement名称
 	measurement := c.buildMeasurementName(result.Key)
 	for _, fv := range result.Fields {
 		sample := types.NewSample("", measurement, fv, result.Tags).SetTime(result.Time)
@@ -565,20 +528,13 @@ func (c *SNMPCollector) addMetricToAccumulator(result CollectionResult, slist *t
 }
 
 func (c *SNMPCollector) buildMeasurementName(key string) string {
-	// 将Zabbix风格的key转换为categraf measurement名称
 	measurement := strings.ReplaceAll(key, ".", "_")
-
-	// 移除参数部分，如 if_in_octets[1] -> if_in_octets
 	if idx := strings.Index(measurement, "["); idx != -1 {
 		measurement = measurement[:idx]
 	}
-
-	// 添加前缀以避免冲突
 	return "snmp_" + measurement
 }
 
-// bytesToHexSpacedStr converts a byte slice to a space-separated hex string.
-// Example: []byte{0x6B, 0x97, 0x9A, 0x04} -> "6B 97 9A 04"
 func bytesToHexSpacedStr(data []byte) string {
 	hexParts := make([]string, len(data))
 	for i, b := range data {

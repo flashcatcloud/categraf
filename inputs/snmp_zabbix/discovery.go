@@ -195,7 +195,8 @@ func (d *DiscoveryEngine) performSNMPDiscovery(ctx context.Context, agent string
 	}
 }
 
-// 新增函数用于处理 walk[...] 语法
+// performMultiOidWalkDiscovery 处理 walk[...] 语法
+// 改为顺序执行，防止复用 client 导致的 Request ID 错乱
 func (d *DiscoveryEngine) performMultiOidWalkDiscovery(ctx context.Context, client *gosnmp.GoSNMP, discoveryOID string) ([][]gosnmp.SnmpPDU, error) {
 	// 解析出 walk[] 中的所有 OID
 	content := discoveryOID[5 : len(discoveryOID)-1]
@@ -206,12 +207,9 @@ func (d *DiscoveryEngine) performMultiOidWalkDiscovery(ctx context.Context, clie
 	}
 
 	var allPdus [][]gosnmp.SnmpPDU
-	var wg sync.WaitGroup
-	pduChan := make(chan struct {
-		pdus  []gosnmp.SnmpPDU
-		index int
-		err   error
-	}, len(oidStrings))
+
+	// 用于临时存储结果，保证顺序
+	results := make([][][]gosnmp.SnmpPDU, len(oidStrings))
 
 	for i, oidStr := range oidStrings {
 		oid := strings.TrimSpace(oidStr)
@@ -219,29 +217,13 @@ func (d *DiscoveryEngine) performMultiOidWalkDiscovery(ctx context.Context, clie
 			return nil, fmt.Errorf("invalid OID '%s' in walk[]: %w", oid, err)
 		}
 
-		wg.Add(1)
-		go func(oidToWalk string, idx int) {
-			defer wg.Done()
-			pdus, err := client.BulkWalkAll(oidToWalk)
-			pduChan <- struct {
-				pdus  []gosnmp.SnmpPDU
-				index int
-				err   error
-			}{pdus, idx, err}
-		}(oid, i)
-	}
-
-	wg.Wait()
-	close(pduChan)
-
-	// 按顺序收集结果以匹配预处理参数
-	results := make([][][]gosnmp.SnmpPDU, len(oidStrings))
-	for res := range pduChan {
-		if res.err != nil {
-			// 如果任何一个 walk 失败，整个发现都失败
-			return nil, fmt.Errorf("SNMP walk failed for OID %s: %w", oidStrings[res.index], res.err)
+		// 这里不需要 acquire 锁，因为上层 performSNMPDiscovery 已经持有锁了
+		pdus, err := client.BulkWalkAll(oid)
+		if err != nil {
+			return nil, fmt.Errorf("SNMP walk failed for OID %s: %w", oid, err)
 		}
-		results[res.index] = append(results[res.index], res.pdus)
+
+		results[i] = append(results[i], pdus)
 	}
 
 	for _, pduGroup := range results {
