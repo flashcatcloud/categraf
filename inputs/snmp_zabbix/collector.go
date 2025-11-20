@@ -125,10 +125,6 @@ func (c *SNMPCollector) collectFromAgent(ctx context.Context, agent string, item
 	if batchSize <= 0 {
 		batchSize = 10 // 默认值
 	}
-	// 如果配置强制为1，则batchSize也设为1，实际上退化为单个Get
-	if c.config.MaxRepetitions == 1 {
-		batchSize = 1
-	}
 
 	for i := 0; i < len(items); i += batchSize {
 		end := i + batchSize
