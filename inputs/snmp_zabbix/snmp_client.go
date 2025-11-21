@@ -53,9 +53,9 @@ func NewSNMPClientManager(config *Config) *SNMPClientManager {
 	manager := &SNMPClientManager{
 		config:              config,
 		clients:             make(map[string]*ClientWrapper),
-		healthCheckInterval: 30 * time.Second, // 默认30秒检查一次
-		healthCheckTimeout:  5 * time.Second,  // 健康检查超时时间
-		maxRetries:          3,                // 最大重试次数
+		healthCheckInterval: config.healthCheckInterval,
+		healthCheckTimeout:  config.healthCheckTimeout,
+		maxRetries:          config.healthCheckRetries,
 		stopHealthCheck:     make(chan struct{}),
 	}
 
