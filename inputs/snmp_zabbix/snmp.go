@@ -149,6 +149,10 @@ type Instance struct {
 	DisableUp     bool `toml:"disable_up"`
 	DisableICMPUp bool `toml:"disable_icmp_up"`
 	DisableSnmpUp bool `toml:"disable_snmp_up"`
+
+	HealthcheckInterval time.Duration `toml:"healthcheck_interval"`
+	HealthcheckTimeout  time.Duration `toml:"healthcheck_timeout"`
+	HealthcheckRetries  int           `toml:"healthcheck_retries"`
 }
 
 type FieldConfig struct {
@@ -221,6 +225,15 @@ func (s *Instance) Init() error {
 	}
 	if len(s.SecName) != 0 && len(s.Username) == 0 {
 		s.Username = s.SecName
+	}
+	if s.HealthcheckInterval == 0 {
+		s.HealthcheckInterval = 30 * time.Second
+	}
+	if s.HealthcheckTimeout == 0 {
+		s.HealthcheckTimeout = 5 * time.Second
+	}
+	if s.HealthcheckRetries == 0 {
+		s.HealthcheckRetries = 3
 	}
 
 	// 初始化配置

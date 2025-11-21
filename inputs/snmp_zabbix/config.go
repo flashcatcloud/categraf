@@ -32,6 +32,10 @@ type Config struct {
 	DebugMode            bool
 
 	config.InternalConfig
+
+	healthCheckInterval time.Duration
+	healthCheckTimeout  time.Duration
+	healthCheckRetries  int
 }
 
 type AgentConfig struct {
@@ -69,6 +73,10 @@ func NewConfig(s *Instance) (*Config, error) {
 
 		UnconnectedUDPSocket: s.UnconnectedUDPSocket,
 		DebugMode:            s.DebugMod,
+
+		healthCheckInterval: s.HealthcheckInterval,
+		healthCheckTimeout:  s.HealthcheckTimeout,
+		healthCheckRetries:  s.HealthcheckRetries,
 	}
 	config.InternalConfig = s.InternalConfig
 
