@@ -43,10 +43,6 @@ type ClientWrapper struct {
 	errorCount   uint64
 	lastSuccess  time.Time
 	createTime   time.Time
-	// meta 信息
-	metaSysName     string
-	metaSysLocation string
-	metaSysDesc     string
 }
 
 func NewSNMPClientManager(config *Config) *SNMPClientManager {
@@ -243,11 +239,6 @@ func (m *SNMPClientManager) performAllHealthChecks() {
 			defer wg.Done()
 			m.checkClientHealth(a)
 		}(agent)
-		wg.Add(1)
-		go func(a string) {
-			defer wg.Done()
-			m.getClientMetaInfo(a)
-		}(agent)
 	}
 
 	// 等待所有检查完成，但设置超时
@@ -262,28 +253,6 @@ func (m *SNMPClientManager) performAllHealthChecks() {
 		// 所有检查完成
 	case <-time.After(m.healthCheckTimeout * 2):
 		log.Println("Health check timeout, some checks may not have completed")
-	}
-}
-
-func (m *SNMPClientManager) getClientMetaInfo(agent string) {
-	m.mu.RLock()
-	wrapper, exists := m.clients[agent]
-	m.mu.RUnlock()
-
-	if !exists {
-		return
-	}
-
-	// meta info
-	err := m.performMetaRequestWithLock(agent, wrapper)
-
-	wrapper.mu.Lock()
-	defer wrapper.mu.Unlock()
-
-	if err != nil {
-		// 检查是否超过最大重试次数
-		log.Printf("require client %s meta info failed: %v",
-			agent, err)
 	}
 }
 
@@ -331,80 +300,6 @@ func (m *SNMPClientManager) checkClientHealth(agent string) {
 	}
 }
 
-func (m *SNMPClientManager) extractMetaValue(v gosnmp.SnmpPDU) string {
-	var ret string
-	if v.Type == gosnmp.OctetString {
-		ret = fmt.Sprintf("%s", string(v.Value.([]byte)))
-	} else {
-		ret = fmt.Sprintf("%v", v.Value)
-	}
-	return ret
-}
-
-func (m *SNMPClientManager) performMetaRquestNoLock(wrapper *ClientWrapper) error {
-	if wrapper.client == nil {
-		return fmt.Errorf("client is nil")
-	}
-	// 创建带超时的context
-	ctx, cancel := context.WithTimeout(context.Background(), m.healthCheckTimeout+10*time.Second)
-	defer cancel()
-
-	// 使用goroutine执行SNMP请求
-	errChan := make(chan error, 3)
-	go func() {
-		// sysDesc
-		desc, err := wrapper.client.Get([]string{".1.3.6.1.2.1.1.1.0"})
-		if err != nil {
-			errChan <- fmt.Errorf("get sysDescr failed: %w", err)
-			return
-		}
-
-		if len(desc.Variables) == 0 {
-			errChan <- fmt.Errorf("snmp sysDescr no data")
-			return
-		} else {
-			wrapper.metaSysDesc = m.extractMetaValue(desc.Variables[0])
-		}
-
-		// sysLocation
-		location, err := wrapper.client.Get([]string{".1.3.6.1.2.1.1.6.0"})
-		if err != nil {
-			errChan <- fmt.Errorf("get sysLocation failed: %w", err)
-			return
-		}
-
-		if len(location.Variables) == 0 {
-			errChan <- fmt.Errorf("snmp sysLocation no data")
-			return
-		} else {
-			wrapper.metaSysLocation = m.extractMetaValue(location.Variables[0])
-		}
-
-		// sysName
-		sysName, err := wrapper.client.Get([]string{".1.3.6.1.2.1.1.5.0"})
-		if err != nil {
-			errChan <- fmt.Errorf("get sysName failed: %w", err)
-			return
-		}
-
-		if len(sysName.Variables) == 0 {
-			errChan <- fmt.Errorf("snmp sysName no data")
-			return
-		} else {
-			wrapper.metaSysLocation = m.extractMetaValue(sysName.Variables[0])
-		}
-
-		errChan <- nil
-	}()
-
-	select {
-	case err := <-errChan:
-		return err
-	case <-ctx.Done():
-		return fmt.Errorf("require meta info timeout")
-	}
-}
-
 // performHealthCheck 执行实际的健康检查
 func (m *SNMPClientManager) performHealthCheckNoLock(wrapper *ClientWrapper) error {
 	if wrapper.client == nil {
@@ -439,12 +334,6 @@ func (m *SNMPClientManager) performHealthCheckNoLock(wrapper *ClientWrapper) err
 	case <-ctx.Done():
 		return fmt.Errorf("health check timeout")
 	}
-}
-
-func (m *SNMPClientManager) performMetaRequestWithLock(agent string, wrapper *ClientWrapper) error {
-	unlock := m.acquire(agent)
-	defer unlock()
-	return m.performMetaRquestNoLock(wrapper)
 }
 
 func (m *SNMPClientManager) performHealthCheckWithLock(agent string, wrapper *ClientWrapper) error {
