@@ -276,6 +276,10 @@ func (ins *Instance) gather(buf []byte, header http.Header, defaultLabels map[st
 }
 
 func (ins *Instance) ignoreLabel(label string) bool {
+	// 永远保留pod、namespace这两个标签以便能够从 cadvisor metric 中获取 pod/namespace 来查 cache。
+	if label == "pod" || label == "namespace" {
+		return false
+	}
 	if ins.chooseLabelKeysFilter != nil {
 		if ins.chooseLabelKeysFilter.Match(label) {
 			return false
