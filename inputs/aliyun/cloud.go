@@ -179,8 +179,11 @@ func (ins *Instance) initialize() error {
 	}
 
 	if ins.client == nil {
-		cms := manager.NewCmsClient(*ins.AccessKeyID, *ins.AccessKeySecret, *ins.Region, *ins.Endpoint)
-		m, err := manager.New(cms)
+		opts := []manager.Option{
+			manager.NewCmsClient(*ins.AccessKeyID, *ins.AccessKeySecret, *ins.Region, *ins.Endpoint),
+			manager.WithDebugMode(ins.DebugMod),
+		}
+		m, err := manager.New(opts...)
 		if err != nil {
 			return fmt.Errorf("connect to aliyun error, %s", err)
 		}
@@ -225,21 +228,21 @@ func (ins *Instance) getFilteredMetrics(slist *types.SampleList) ([]filteredMetr
 						if len(name) == 0 {
 							name = metric.MetricName
 						}
-						if isSelected(metric, name, f.Dimensions, f.Namespace, f.MetricRegexp[name]) {
+						if isSelected(metric, name, f.Namespace, f.MetricRegexp[name]) {
 							metrics = append(metrics, internalTypes.Metric{
 								MetricName: metric.MetricName,
 								Namespace:  metric.Namespace,
-								Dimensions: metric.Dimensions,
+								Dimensions: f.Dimensions,
 								LabelStr:   metric.LabelStr,
 							})
 						}
 					}
 				} else {
-					if isSelected(metric, "", f.Dimensions, f.Namespace, nil) {
+					if isSelected(metric, "", f.Namespace, nil) {
 						metrics = append(metrics, internalTypes.Metric{
 							MetricName: metric.MetricName,
 							Namespace:  metric.Namespace,
-							Dimensions: metric.Dimensions,
+							Dimensions: f.Dimensions,
 							LabelStr:   metric.LabelStr,
 						})
 					}
@@ -278,9 +281,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.metricCache.isValid() {
 		for _, filtered := range ins.metricCache.metrics {
 			for j := range filtered.metrics {
-				<-lmtr.C
 				wg.Add(1)
-				go ins.sendMetrics(filtered.metrics[j], &wg, slist)
+				go ins.sendMetrics(filtered.metrics[j], &wg, slist, lmtr)
 			}
 		}
 	} else {
@@ -291,16 +293,15 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		}
 		for _, filtered := range filteredMetrics {
 			for j := range filtered.metrics {
-				<-lmtr.C
 				wg.Add(1)
-				go ins.sendMetrics(filtered.metrics[j], &wg, slist)
+				go ins.sendMetrics(filtered.metrics[j], &wg, slist, lmtr)
 			}
 		}
 	}
 	wg.Wait()
 }
 
-func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup, slist *types.SampleList) {
+func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup, slist *types.SampleList, lmtr *limiter.RateLimiter) {
 	defer wg.Done()
 
 	ctx := context.Background()
@@ -320,7 +321,7 @@ func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup
 	if !ins.windowStart.IsZero() {
 		req.StartTime = tea.String(ins.windowStart.Format(timefmt))
 	}
-	n, points, err := ins.client.GetMetric(ctx, req)
+	n, points, err := ins.client.GetMetric(ctx, req, lmtr)
 	slist.PushFront(types.NewSample(inputName, "cms_request_count", n, map[string]string{
 		"namespace":   metric.Namespace,
 		"metric_name": metric.MetricName,
@@ -408,6 +409,9 @@ func (ins *Instance) makeLabels(point internalTypes.Point, labels ...map[string]
 	if len(point.VHostQueue) != 0 {
 		result["vhost_queue"] = point.VHostQueue
 	}
+	if len(point.Hostname) != 0 {
+		result["hostname"] = point.Hostname
+	}
 	return result
 }
 
@@ -463,14 +467,11 @@ func (ins *Instance) fetchNamespaceMetrics(slist *types.SampleList, namespaces [
 	return result, nil
 }
 
-func isSelected(metric internalTypes.Metric, name, dimensions, namespace string, metricregex *regexp.Regexp) bool {
+func isSelected(metric internalTypes.Metric, name, namespace string, metricregex *regexp.Regexp) bool {
 	if metricregex != nil {
 		if len(name) != 0 && name != metric.MetricName && !metricregex.MatchString(metric.MetricName) {
 			return false
 		}
-	}
-	if len(dimensions) != 0 && metric.Dimensions != dimensions {
-		return false
 	}
 	if len(namespace) != 0 && metric.Namespace != namespace {
 		return false

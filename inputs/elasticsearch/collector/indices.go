@@ -15,6 +15,7 @@ package collector
 
 import (
 	"encoding/json"
+	"flashcat.cloud/categraf/pkg/filter"
 	"fmt"
 	"io"
 	"log"
@@ -59,13 +60,15 @@ type aliasMetric struct {
 
 // Indices information struct
 type Indices struct {
-	client          *http.Client
-	url             *url.URL
-	shards          bool
-	aliases         bool
-	indicesIncluded []string
-	clusterInfoCh   chan *clusterinfo.Response
-	lastClusterInfo *clusterinfo.Response
+	client               *http.Client
+	url                  *url.URL
+	shards               bool
+	aliases              bool
+	indicesIncluded      []string
+	numMostRecentIndices int
+	indexMatchers        map[string]filter.Filter
+	clusterInfoCh        chan *clusterinfo.Response
+	lastClusterInfo      *clusterinfo.Response
 
 	up                prometheus.Gauge
 	totalScrapes      prometheus.Counter
@@ -77,7 +80,7 @@ type Indices struct {
 }
 
 // NewIndices defines Indices Prometheus metrics
-func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases bool, indicesIncluded []string) *Indices {
+func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases bool, indicesIncluded []string, numMostRecentIndices int, indexMatchers map[string]filter.Filter) *Indices {
 
 	indexLabels := labels{
 		keys: func(...string) []string {
@@ -122,12 +125,14 @@ func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases b
 	}
 
 	indices := &Indices{
-		client:          client,
-		url:             url,
-		shards:          shards,
-		aliases:         includeAliases,
-		indicesIncluded: indicesIncluded,
-		clusterInfoCh:   make(chan *clusterinfo.Response),
+		client:               client,
+		url:                  url,
+		shards:               shards,
+		aliases:              includeAliases,
+		indicesIncluded:      indicesIncluded,
+		numMostRecentIndices: numMostRecentIndices,
+		indexMatchers:        indexMatchers,
+		clusterInfoCh:        make(chan *clusterinfo.Response),
 		lastClusterInfo: &clusterinfo.Response{
 			ClusterName: "unknown_cluster",
 		},
@@ -2427,6 +2432,9 @@ func (i *Indices) fetchAndDecodeIndexStats() (indexStatsResponse, error) {
 		return isr, err
 	}
 
+	//add config i.numMostRecentIndices process code
+	isr.Indices = i.gatherIndividualIndicesStats(isr.Indices)
+
 	if i.aliases {
 		isr.Aliases = map[string][]string{}
 		asr, err := i.fetchAndDecodeAliases()
@@ -2441,9 +2449,12 @@ func (i *Indices) fetchAndDecodeIndexStats() (indexStatsResponse, error) {
 				aliasList = append(aliasList, aliasName)
 			}
 
+			//add aliases for filtering indexes
 			if len(aliasList) > 0 {
-				sort.Strings(aliasList)
-				isr.Aliases[indexName] = aliasList
+				if _, ok := isr.Indices[indexName]; ok {
+					sort.Strings(aliasList)
+					isr.Aliases[indexName] = aliasList
+				}
 			}
 		}
 	}
@@ -2494,6 +2505,66 @@ func (i *Indices) queryURL(u *url.URL) ([]byte, error) {
 	}
 
 	return bts, nil
+}
+
+// gatherSortedIndicesStats gathers stats for all indices in no particular order.
+func (i *Indices) gatherIndividualIndicesStats(indices map[string]IndexStatsIndexResponse) map[string]IndexStatsIndexResponse {
+
+	newIndices := make(map[string]IndexStatsIndexResponse)
+	// Sort indices into buckets based on their configured prefix, if any matches.
+	categorizedIndexNames := i.categorizeIndices(indices)
+	for _, matchingIndices := range categorizedIndexNames {
+		// Establish the number of each category of indices to use. User can configure to use only the latest 'X' amount.
+		indicesCount := len(matchingIndices)
+		indicesToTrackCount := indicesCount
+
+		// Sort the indices if configured to do so.
+		if i.numMostRecentIndices > 0 {
+			if i.numMostRecentIndices < indicesToTrackCount {
+				indicesToTrackCount = i.numMostRecentIndices
+			}
+			sort.Strings(matchingIndices)
+		}
+
+		// Gather only the number of indexes that have been configured, in descending order (most recent, if date-stamped).
+		for i := indicesCount - 1; i >= indicesCount-indicesToTrackCount; i-- {
+			indexName := matchingIndices[i]
+
+			newIndices[indexName] = indices[indexName]
+		}
+	}
+
+	return newIndices
+}
+
+func (i *Indices) categorizeIndices(indices map[string]IndexStatsIndexResponse) map[string][]string {
+	categorizedIndexNames := make(map[string][]string, len(indices))
+
+	// If all indices are configured to be gathered, bucket them all together.
+	if len(i.indicesIncluded) == 0 || i.indicesIncluded[0] == "_all" {
+		for indexName := range indices {
+			categorizedIndexNames["_all"] = append(categorizedIndexNames["_all"], indexName)
+		}
+
+		return categorizedIndexNames
+	}
+
+	// Bucket each returned index with its associated configured index (if any match).
+	for indexName := range indices {
+		match := indexName
+		for name, matcher := range i.indexMatchers {
+			// If a configured index matches one of the returned indexes, mark it as a match.
+			if matcher.Match(match) {
+				match = name
+				break
+			}
+		}
+
+		// Bucket all matching indices together for sorting.
+		categorizedIndexNames[match] = append(categorizedIndexNames[match], indexName)
+	}
+
+	return categorizedIndexNames
 }
 
 // Collect gets Indices metric values

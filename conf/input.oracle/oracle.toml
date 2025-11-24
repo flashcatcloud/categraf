@@ -1,7 +1,7 @@
 # # collect interval
 # interval = 15
 
-#[[instances]]
+# [[instances]]
 # address = "10.1.2.3:1521/orcl"
 # username = "monitor"
 # password = "123456"
@@ -9,9 +9,12 @@
 # is_sys_oper = false
 # disable_connection_pool = false
 # max_open_connections = 5
+# conn_max_idle_time = "15m"          # 新增，连接最大空闲时间，默认值 "15m"
+# conn_max_lifetime = "24h"          # 新增，连接最大存活时间，默认值 "24h"
 # # interval = global.interval * interval_times
 # interval_times = 1
 # labels = { region="cloud" }
+
 
 # [[instances.metrics]]
 # mesurement = "sessions"

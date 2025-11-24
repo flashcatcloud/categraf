@@ -1,0 +1,9 @@
+#[[instances]]
+#agents = ["udp://192.168.10.47:161"]
+#community = "public"
+#version = 2
+#timeout ="5s"
+#retries = 3
+#unconnected_udp_socket = true
+
+#template_files = ["/etc/categraf/templates/network_template.yaml"]

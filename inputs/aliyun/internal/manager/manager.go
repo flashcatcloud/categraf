@@ -9,6 +9,8 @@ type (
 	Manager struct {
 		cms   *cmsClient
 		cmsv2 *cmsV2Client
+
+		debugMode bool
 	}
 
 	cmsClient struct {
@@ -44,4 +46,11 @@ func New(opts ...Option) (*Manager, error) {
 		}
 	}
 	return m, nil
+}
+
+func WithDebugMode(d bool) Option {
+	return func(manager *Manager) error {
+		manager.debugMode = d
+		return nil
+	}
 }

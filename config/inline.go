@@ -206,7 +206,9 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 		}
 		// relabel
 		if len(ic.relabelConfigs) != 0 {
-			all := make(modelLabel.Labels, len(ss[i].Labels))
+			newName := ss[i].Metric
+			all := make(modelLabel.Labels, 0, len(ss[i].Labels)+1)
+			all = append(all, modelLabel.Label{Name: modelLabel.MetricName, Value: newName})
 			for k, v := range ss[i].Labels {
 				all = append(all, modelLabel.Label{Name: k, Value: v})
 			}
@@ -216,7 +218,14 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 			}
 			newLabel := make(map[string]string, len(newAll))
 			for _, l := range newAll {
+				if l.Name == modelLabel.MetricName {
+					newName = l.Value
+					continue
+				}
 				newLabel[l.Name] = l.Value
+			}
+			if newName != "" && newName != ss[i].Metric {
+				ss[i].Metric = newName
 			}
 			ss[i].Labels = newLabel
 		}

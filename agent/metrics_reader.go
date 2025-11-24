@@ -39,6 +39,14 @@ func (r *InputReader) startInput() {
 	if r.input.GetInterval() > 0 {
 		interval = time.Duration(r.input.GetInterval())
 	}
+	if si, ok := r.input.(inputs.ServiceInput); ok {
+		slist := types.NewSampleList()
+		err := si.Start(slist)
+		if err != nil {
+			log.Printf("I! startInput err:%v", err)
+			return
+		}
+	}
 	timer := time.NewTimer(0 * time.Second)
 	defer timer.Stop()
 	var start time.Time
@@ -100,7 +108,7 @@ func (r *InputReader) gatherOnce() {
 		go func(ins inputs.Instance) {
 			defer func() {
 				r.waitGroup.Done()
-				<- concurrencyLimiter
+				<-concurrencyLimiter
 			}()
 
 			it := ins.GetIntervalTimes()

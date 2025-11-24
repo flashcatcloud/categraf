@@ -13,8 +13,8 @@ import (
 
 func getNetworkInfo() (networkInfo map[string]interface{}, err error) {
 	networkInfo = make(map[string]interface{})
-
-	out, err := exec.Command("ipconfig", "-all").CombinedOutput()
+	cmd := exec.Command("cmd", "/c", "chcp 65001 >nul && ipconfig /all")
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return
 	}

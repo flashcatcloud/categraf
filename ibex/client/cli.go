@@ -126,7 +126,7 @@ func Meta(id int64) (script string, args string, account string, stdin string, e
 
 	if resp.Message != "" {
 		log.Println("E! rpc call Server.GetTaskMeta:", resp.Message)
-		err = fmt.Errorf(resp.Message)
+		err = fmt.Errorf("%s", resp.Message)
 		return
 	}
 

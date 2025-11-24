@@ -1,0 +1,34 @@
+## collect interval
+# interval = 15
+
+[[instances]]
+  ## List certificate sources, support wildcard expands for files
+  ## Prefix your entry with 'file://' if you intend to use relative paths
+  #targets = ["tcp://example.org:443", "https://www.baidu.com",
+  #          "smtp://smtp.qq.com:25", "udp://127.0.0.1:4433",
+  #          "/etc/ssl/certs/example.pem","/usr/local/openresty/nginx/conf/ssl/*.pem",
+  #          "file:///path/to/*.pem"]
+
+  ## Timeout for SSL connection
+  # timeout = "5s"
+
+  ## Pass a different name into the TLS request (Server Name Indication).
+  ## This is synonymous with tls_server_name, and only one of the two
+  ## options may be specified at one time.
+  ##   example: server_name = "myhost.example.org"
+  # server_name = "myhost.example.org"
+
+  ## Only output the leaf certificates and omit the root ones.
+  # exclude_root_certs = false
+
+## Optional TLS Config
+# use_tls = false
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+# tls_server_name = "myhost.example.org"
+## Use TLS but skip chain & host verification
+# insecure_skip_verify = false
+
+## Set http_proxy (categraf uses the system wide proxy settings if it's is not set)
+# http_proxy = "http://localhost:8888"

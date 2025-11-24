@@ -62,7 +62,6 @@ var _ inputs.Input = new(Bind)
 var _ inputs.InstancesGetter = new(Bind)
 
 func (b *Instance) Init() error {
-	log.Printf("DEBUG: %d", len(b.Urls))
 	if len(b.Urls) == 0 {
 		return types.ErrInstancesEmpty
 	}

@@ -43,6 +43,7 @@ var (
 	status       = flag.Bool("status", false, "Show categraf service status")
 	update       = flag.Bool("update", false, "Update categraf binary")
 	updateFile   = flag.String("update_url", "", "new version for categraf to download")
+	userMode     = flag.Bool("user", false, "Install categraf service with user mode")
 )
 
 func init() {
@@ -128,11 +129,12 @@ func handleSignal(ag *agent.Agent) {
 EXIT:
 	for {
 		sig := <-sc
-		log.Println("I! received signal:", sig.String())
 		switch sig {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
+			log.Println("I! received signal:", sig.String())
 			break EXIT
 		case syscall.SIGHUP:
+			log.Println("I! received signal:", sig.String())
 			ag.Reload()
 		case syscall.SIGPIPE:
 			// https://pkg.go.dev/os/signal#hdr-SIGPIPE
@@ -163,7 +165,7 @@ func (p *program) Stop(s service.Service) error {
 }
 
 func serviceProcess() error {
-	svcConfig := agentInstall.ServiceConfig()
+	svcConfig := agentInstall.ServiceConfig(*userMode)
 	prg := &program{}
 	s, err := service.New(prg, svcConfig)
 	if err != nil {

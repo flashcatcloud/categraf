@@ -4,4 +4,7 @@
 [[instances]]
 # rocketmq_console_ip_port=
 # ignored_topics=[]
+# 启用认证, 没有认证的不用配置
+# username = ""
+# password = ""
 

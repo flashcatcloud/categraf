@@ -10,13 +10,16 @@ import (
 
 // BuildInfo records the compile-time information for use when reporting the mtail version.
 type BuildInfo struct {
-	Version string
+	Branch   string
+	Version  string
+	Revision string
 }
 
 func (b BuildInfo) String() string {
 	return fmt.Sprintf(
-		"mtail version %s go version %s go arch %s go os %s",
+		"mtail version %s git revision %s go version %s go arch %s go os %s",
 		b.Version,
+		b.Revision,
 		runtime.Version(),
 		runtime.GOARCH,
 		runtime.GOOS,

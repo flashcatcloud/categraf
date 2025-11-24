@@ -140,6 +140,15 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		coreconfig.Config.Logs.Config.Net.SASL.Version = coreconfig.Config.Logs.SaslVersion
 		coreconfig.Config.Logs.Config.Net.SASL.Handshake = coreconfig.Config.Logs.SaslHandshake
 		coreconfig.Config.Logs.Config.Net.SASL.AuthIdentity = coreconfig.Config.Logs.SaslAuthIdentity
+
+		if coreconfig.Config.Logs.Config.Net.SASL.Mechanism == sarama.SASLTypeSCRAMSHA256 {
+			coreconfig.Config.Logs.Config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient {
+				return &XDGSCRAMClient{HashGeneratorFcn: SHA256}
+			}
+		}
+		if coreconfig.Config.Logs.Config.Net.SASL.Mechanism == sarama.SASLTypeSCRAMSHA512 {
+			coreconfig.Config.Logs.Config.Net.SASL.SCRAMClientGeneratorFunc = func() sarama.SCRAMClient { return &XDGSCRAMClient{HashGeneratorFcn: SHA512} }
+		}
 	}
 
 	if len(coreconfig.Config.Logs.KafkaVersion) != 0 {

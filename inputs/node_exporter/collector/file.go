@@ -13,7 +13,7 @@ import (
 
 var (
 	fileList = new(string)
-	// kingpin.Flag("collector.file.notifylist", "监听文件列表，多个文件以 , 隔开").Default("/etc/passwd,/etc/shadow").String()
+	// kingpin.Flag("collector.filenotify.list", "监听文件列表，多个文件以 , 隔开").Default("/etc/passwd,/etc/shadow").String()
 	fileMap = make(map[string]string)
 )
 
@@ -22,7 +22,7 @@ type fileListCollector struct {
 }
 
 func init() {
-	registerCollector("filenotify", defaultEnabled, NewFileNotifyCollector)
+	registerCollector("filenotify", defaultDisabled, NewFileNotifyCollector)
 }
 
 func NewFileNotifyCollector() (Collector, error) {
@@ -59,7 +59,7 @@ func (f *fileListCollector) readFile(fileName string) ([]byte, error) {
 }
 
 func fileCollectorInit(params map[string]string) {
-	files, ok := params["collector.file.notifylist"]
+	files, ok := params["collector.filenotify.list"]
 	if !ok {
 		if runtime.GOOS == "linux" {
 			*fileList = "/etc/passwd,/etc/shadow"

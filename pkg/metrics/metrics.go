@@ -120,6 +120,8 @@ func Parse(buf []byte, header http.Header) (map[string]*dto.MetricFamily, error)
 
 	// gather even if the buffer begins with a newline
 	buf = bytes.TrimPrefix(buf, []byte("\n"))
+	// Convert Prometheus info metrics to gauge type since the parser doesn't natively support info type
+	buf = bytes.ReplaceAll(buf, []byte(" info\n"), []byte(" gauge\n"))
 
 	// Read raw data
 	buffer := bytes.NewBuffer(buf)

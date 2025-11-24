@@ -8,15 +8,16 @@ package metrics
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
-	// "github.com/golang/glog"
-	"flashcat.cloud/categraf/inputs/mtail/internal/metrics/datum"
 	"github.com/pkg/errors"
+
+	"flashcat.cloud/categraf/inputs/mtail/internal/metrics/datum"
 )
 
 // Kind enumerates the types of metrics supported.
@@ -64,7 +65,7 @@ func (m Kind) String() string {
 }
 
 // Generate implements the quick.Generator interface for Kind.
-func (Kind) Generate(rand *rand.Rand, size int) reflect.Value {
+func (Kind) Generate(rand *rand.Rand, _ int) reflect.Value {
 	return reflect.ValueOf(Kind(rand.Intn(int(endKind))))
 }
 
@@ -190,7 +191,10 @@ func (m *Metric) RemoveOldestDatum() {
 	}
 	if oldestLV != nil {
 		// glog.V(1).Infof("removeOldest: removing oldest LV: %v", oldestLV)
-		m.RemoveDatum(oldestLV.Labels...)
+		err := m.RemoveDatum(oldestLV.Labels...)
+		if err != nil {
+			log.Println("W!", err)
+		}
 	}
 }
 

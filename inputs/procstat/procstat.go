@@ -50,6 +50,8 @@ type Instance struct {
 	searchString string
 	solarisMode  bool
 	procs        map[PID]Process
+
+	ExcludeSearchString bool `toml:"exclude_search_string"`
 }
 
 func (ins *Instance) Init() error {
@@ -156,9 +158,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	var (
 		pids []PID
 		err  error
-		tags = map[string]string{"search_string": ins.searchString}
+		tags = map[string]string{}
 		opts = []Filter{}
 	)
+
+	if !ins.ExcludeSearchString {
+		tags["search_string"] = ins.searchString
+	}
 
 	if ins.SearchUser != "" {
 		opts = append(opts, UserFilter(ins.SearchUser))
@@ -524,6 +530,10 @@ func (ins *Instance) gatherLimit(slist *types.SampleList, procs map[PID]Process,
 }
 
 func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, tags map[string]string) {
+	attachPid := false
+	if len(procs) > 1 {
+		attachPid = true
+	}
 	for pid := range procs {
 		jvmStat, err := execJstat(pid)
 		if err != nil {
@@ -531,7 +541,10 @@ func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, t
 			continue
 		}
 
-		pidTag := map[string]string{"pid": fmt.Sprint(pid)}
+		pidTag := map[string]string{}
+		if attachPid {
+			pidTag["pid"] = fmt.Sprint(pid)
+		}
 		for k, v := range jvmStat {
 			slist.PushSample(inputName, "jvm_"+k, v, pidTag, ins.makeCmdlineLabelReggroupTag(procs[pid]), tags)
 		}

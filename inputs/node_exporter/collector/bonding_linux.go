@@ -86,6 +86,10 @@ func readBondingStats(root string) (status map[string][2]int, err error) {
 			if errors.Is(err, os.ErrNotExist) {
 				// some older? kernels use slave_ prefix
 				state, err = os.ReadFile(filepath.Join(root, master, fmt.Sprintf("slave_%s", slave), "bonding_slave", "mii_status"))
+				if errors.Is(err, os.ErrNotExist) {
+					//  other older kernels like redhat 6.5
+					state, err = os.ReadFile(filepath.Join(root, master, fmt.Sprintf("slave_%s", slave), "operstate"))
+				}
 			}
 			if err != nil {
 				return nil, err

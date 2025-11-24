@@ -42,6 +42,6 @@ var (
 	}
 )
 
-func ServiceConfig() *service.Config {
+func ServiceConfig(userMode bool) *service.Config {
 	return serviceConfig
 }
