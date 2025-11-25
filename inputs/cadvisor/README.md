@@ -30,6 +30,7 @@ bearer_token_file = "/path/to/token/file"
 # 需要忽略的label key
 ignore_label_keys = ["id","name", "container_label*"]
 # 只采集那些label key, 建议保持为空，采集所有的label。 优先级高于ignore_label_keys。
+# 放开choose_label_keys配置时，如果不使用["*"]，需要里面包含"pod","namespace"，否则采集不到pod标签，例如：["app","pod","namespace"]
 #choose_label_keys = ["*"]
 
 timeout = "3s"
