@@ -709,8 +709,12 @@ func (t *ZabbixTemplate) ExpandMacros(text string, context map[string]string) st
 	// 展开上下文宏 (discovery macros)
 	// Note: macro keys may be stored with or without braces (e.g., "{#SNMPINDEX}" or "SNMPINDEX")
 	for macro, value := range context {
-		// Normalize the macro name by removing any existing braces
-		normalizedMacro := strings.Trim(macro, "{}#")
+		// Normalize the macro name by removing the {# prefix and } suffix if present
+		normalizedMacro := macro
+		if strings.HasPrefix(normalizedMacro, "{#") {
+			normalizedMacro = strings.TrimPrefix(normalizedMacro, "{#")
+			normalizedMacro = strings.TrimSuffix(normalizedMacro, "}")
+		}
 		result = strings.ReplaceAll(result, fmt.Sprintf("{#%s}", normalizedMacro), value)
 		result = strings.ReplaceAll(result, fmt.Sprintf("{%s}", normalizedMacro), value)
 	}
