@@ -711,7 +711,7 @@ func (t *ZabbixTemplate) ExpandMacros(text string, context map[string]string) st
 	for macro, value := range context {
 		// Normalize the macro name by removing the {# prefix and } suffix if present
 		normalizedMacro := macro
-		if strings.HasPrefix(normalizedMacro, "{#") {
+		if strings.HasPrefix(normalizedMacro, "{#") && strings.HasSuffix(normalizedMacro, "}") {
 			normalizedMacro = strings.TrimPrefix(normalizedMacro, "{#")
 			normalizedMacro = strings.TrimSuffix(normalizedMacro, "}")
 		}

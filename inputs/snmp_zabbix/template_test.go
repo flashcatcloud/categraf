@@ -68,6 +68,14 @@ func TestZabbixTemplate_ExpandMacros(t *testing.T) {
 			context:  map[string]string{},
 			expected: "1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}",
 		},
+		{
+			name: "malformed macro key only prefix",
+			text: "1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}",
+			context: map[string]string{
+				"{#SNMPINDEX": "12345", // Missing closing brace - should not be normalized
+			},
+			expected: "1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}", // No match, macro stays unexpanded
+		},
 	}
 
 	for _, tt := range tests {
