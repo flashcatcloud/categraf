@@ -1,0 +1,284 @@
+zabbix_export:
+  version: '7.4'
+  templates:
+    - template: 'Cisco IOS by SNMP Compatible'
+      name: 'Cisco IOS by SNMP Compatible'
+      description: 'Compatible template for Categraf SNMP Zabbix plugin. Removes DEPENDENT items.'
+      groups:
+        - name: 'Templates/Network devices'
+      items:
+        - name: 'System contact details'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.4.0
+          key: system.contact
+          value_type: CHAR
+        - name: 'System description'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.1.0
+          key: system.descr
+          value_type: CHAR
+        - name: 'Hardware model name'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.47.1.1.1.1.13.1
+          key: system.hw.model
+          value_type: CHAR
+        - name: 'Hardware serial number'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.47.1.1.1.1.11.1
+          key: system.hw.serialnumber
+          value_type: CHAR
+        - name: 'Uptime (hardware)'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.25.1.1.0
+          key: system.hw.uptime
+          units: uptime
+          preprocessing:
+            - type: MULTIPLIER
+              parameters: ['0.01']
+        - name: 'System location'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.6.0
+          key: system.location
+          value_type: CHAR
+        - name: 'System name'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.5.0
+          key: system.name
+          value_type: CHAR
+        - name: 'Uptime (network)'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: system.net.uptime
+          units: uptime
+          preprocessing:
+            - type: MULTIPLIER
+              parameters: ['0.01']
+        - name: 'System object ID'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.2.0
+          key: system.objectid
+          value_type: CHAR
+        - name: 'Operating system'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.1.0
+          key: system.sw.os
+          value_type: CHAR
+          preprocessing:
+            - type: REGEX
+              parameters:
+                - 'Version (.+), RELEASE'
+                - \1
+      discovery_rules:
+        - name: 'CPU Discovery'
+          type: SNMP_AGENT
+          key: cpu.discovery
+          delay: 1h
+          snmp_oid: 'walk[1.3.6.1.4.1.9.9.109.1.1.1.1.5,1.3.6.1.4.1.9.9.109.1.1.1.1.8]'
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#SNMPVALUE}'
+                - 1.3.6.1.4.1.9.9.109.1.1.1.1.5
+                - '0'
+                - '{#CPU_UTIL}'
+                - 1.3.6.1.4.1.9.9.109.1.1.1.1.8
+                - '0'
+          item_prototypes:
+            - name: '#{#SNMPINDEX}: CPU utilization'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.109.1.1.1.1.8.{#SNMPINDEX}'
+              key: 'system.cpu.util[{#SNMPINDEX}]'
+              value_type: FLOAT
+              units: '%'
+
+        - name: 'Entity Serial Numbers Discovery'
+          type: SNMP_AGENT
+          key: entity_sn.discovery
+          delay: 1h
+          snmp_oid: 'walk[1.3.6.1.2.1.47.1.1.1.1.5,1.3.6.1.2.1.47.1.1.1.1.7,1.3.6.1.2.1.47.1.1.1.1.11]'
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#ENT_CLASS}'
+                - 1.3.6.1.2.1.47.1.1.1.1.5
+                - '0'
+                - '{#ENT_NAME}'
+                - 1.3.6.1.2.1.47.1.1.1.1.7
+                - '0'
+                - '{#ENT_SN}'
+                - 1.3.6.1.2.1.47.1.1.1.1.11
+                - '0'
+          filter:
+            conditions:
+              - macro: '{#ENT_CLASS}'
+                value: ^3$
+              - macro: '{#ENT_SN}'
+                value: .+
+          item_prototypes:
+            - name: '{#ENT_NAME}: Hardware serial number'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.47.1.1.1.1.11.{#SNMPINDEX}'
+              key: 'system.hw.serialnumber[{#ENT_NAME}]'
+              value_type: CHAR
+
+        - name: 'FAN Discovery'
+          type: SNMP_AGENT
+          key: fan.discovery
+          delay: 1h
+          snmp_oid: 'walk[1.3.6.1.4.1.9.9.13.1.4.1.2,1.3.6.1.4.1.9.9.13.1.4.1.3]'
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#SENSOR_INFO}'
+                - 1.3.6.1.4.1.9.9.13.1.4.1.2
+                - '0'
+                - '{#FAN_STATE}'
+                - 1.3.6.1.4.1.9.9.13.1.4.1.3
+                - '0'
+          item_prototypes:
+            - name: '{#SENSOR_INFO}: Fan status'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.13.1.4.1.3.{#SNMPINDEX}'
+              key: 'sensor.fan.status[{#SENSOR_INFO}]'
+
+        - name: 'Memory Discovery'
+          type: SNMP_AGENT
+          key: memory.discovery
+          delay: 1h
+          snmp_oid: 'walk[1.3.6.1.4.1.9.9.48.1.1.1.2,1.3.6.1.4.1.9.9.48.1.1.1.5,1.3.6.1.4.1.9.9.48.1.1.1.6]'
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#SNMPVALUE}'
+                - 1.3.6.1.4.1.9.9.48.1.1.1.2
+                - '0'
+                - '{#MEM_USED}'
+                - 1.3.6.1.4.1.9.9.48.1.1.1.5
+                - '0'
+                - '{#MEM_FREE}'
+                - 1.3.6.1.4.1.9.9.48.1.1.1.6
+                - '0'
+          item_prototypes:
+            - name: '{#SNMPVALUE}: Free memory'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.48.1.1.1.6.{#SNMPINDEX}'
+              key: 'vm.memory.free[{#SNMPVALUE}]'
+              units: B
+            - name: '{#SNMPVALUE}: Used memory'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.48.1.1.1.5.{#SNMPINDEX}'
+              key: 'vm.memory.used[{#SNMPVALUE}]'
+              units: B
+            - name: '{#SNMPVALUE}: Memory utilization'
+              type: CALCULATED
+              key: 'vm.memory.util[{#SNMPVALUE}]'
+              value_type: FLOAT
+              units: '%'
+              params: 'last(//vm.memory.used[{#SNMPVALUE}])/(last(//vm.memory.free[{#SNMPVALUE}])+last(//vm.memory.used[{#SNMPVALUE}]))*100'
+
+        - name: 'Network interfaces discovery'
+          type: SNMP_AGENT
+          key: net.if.discovery
+          delay: 1h
+          snmp_oid: 'walk[1.3.6.1.2.1.2.2.1.8,1.3.6.1.2.1.2.2.1.7,1.3.6.1.2.1.31.1.1.1.18,1.3.6.1.2.1.31.1.1.1.1,1.3.6.1.2.1.2.2.1.2,1.3.6.1.2.1.2.2.1.3]'
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#IFOPERSTATUS}'
+                - 1.3.6.1.2.1.2.2.1.8
+                - '0'
+                - '{#IFADMINSTATUS}'
+                - 1.3.6.1.2.1.2.2.1.7
+                - '0'
+                - '{#IFALIAS}'
+                - 1.3.6.1.2.1.31.1.1.1.18
+                - '0'
+                - '{#IFNAME}'
+                - 1.3.6.1.2.1.31.1.1.1.1
+                - '0'
+                - '{#IFDESCR}'
+                - 1.3.6.1.2.1.2.2.1.2
+                - '0'
+                - '{#IFTYPE}'
+                - 1.3.6.1.2.1.2.2.1.3
+                - '0'
+          item_prototypes:
+            - name: 'Interface {#IFNAME}({#IFALIAS}): Bits received'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}'
+              key: 'net.if.in[{#IFNAME}]'
+              units: bps
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                - type: MULTIPLIER
+                  parameters: ['8']
+            - name: 'Interface {#IFNAME}({#IFALIAS}): Bits sent'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}'
+              key: 'net.if.out[{#IFNAME}]'
+              units: bps
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                - type: MULTIPLIER
+                  parameters: ['8']
+            - name: 'Interface {#IFNAME}({#IFALIAS}): Speed'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.31.1.1.1.15.{#SNMPINDEX}'
+              key: 'net.if.speed[{#IFNAME}]'
+              units: bps
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters: ['1000000']
+            - name: 'Interface {#IFNAME}({#IFALIAS}): Operational status'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}'
+              key: 'net.if.status[{#IFNAME}]'
+
+        - name: 'PSU Discovery'
+          type: SNMP_AGENT
+          key: psu.discovery
+          delay: 1h
+          snmp_oid: 'walk[1.3.6.1.4.1.9.9.13.1.5.1.2,1.3.6.1.4.1.9.9.13.1.5.1.3]'
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#SENSOR_INFO}'
+                - 1.3.6.1.4.1.9.9.13.1.5.1.2
+                - '0'
+                - '{#PSU_STATE}'
+                - 1.3.6.1.4.1.9.9.13.1.5.1.3
+                - '0'
+          item_prototypes:
+            - name: '{#SENSOR_INFO}: Power supply status'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.13.1.5.1.3.{#SNMPINDEX}'
+              key: 'sensor.psu.status[{#SENSOR_INFO}]'
+
+        - name: 'Temperature Discovery'
+          type: SNMP_AGENT
+          key: temperature.discovery
+          delay: 1h
+          snmp_oid: 'walk[1.3.6.1.4.1.9.9.13.1.3.1.2,1.3.6.1.4.1.9.9.13.1.3.1.3,1.3.6.1.4.1.9.9.13.1.3.1.6]'
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#SNMPVALUE}'
+                - 1.3.6.1.4.1.9.9.13.1.3.1.2
+                - '0'
+                - '{#TEMP_VALUE}'
+                - 1.3.6.1.4.1.9.9.13.1.3.1.3
+                - '0'
+                - '{#TEMP_STATUS}'
+                - 1.3.6.1.4.1.9.9.13.1.3.1.6
+                - '0'
+          item_prototypes:
+            - name: '{#SNMPVALUE}: Temperature status'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.13.1.3.1.6.{#SNMPINDEX}'
+              key: 'sensor.temp.status[{#SNMPVALUE}]'
+            - name: '{#SNMPVALUE}: Temperature'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.9.9.13.1.3.1.3.{#SNMPINDEX}'
+              key: 'sensor.temp.value[{#SNMPVALUE}]'
+              value_type: FLOAT
+              units: °C

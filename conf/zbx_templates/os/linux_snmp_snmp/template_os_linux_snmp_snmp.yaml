@@ -1,0 +1,157 @@
+zabbix_export:
+  version: '7.4'
+  templates:
+    - template: 'Linux by SNMP Compatible'
+      name: 'Linux by SNMP'
+      description: 'Compatible template for Categraf SNMP Zabbix plugin. Removes DEPENDENT items.'
+      groups:
+        - name: 'Templates/Operating systems'
+      items:
+        - name: 'System uptime'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.2.1.1.3.0
+          key: system.uptime
+          value_type: UNSIGNED
+          units: uptime
+          preprocessing:
+            - type: MULTIPLIER
+              parameters: ['0.01']
+        - name: 'System name'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.2.1.1.5.0
+          key: system.name
+          value_type: CHAR
+        - name: 'System description'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.2.1.1.1.0
+          key: system.descr
+          value_type: CHAR
+        - name: 'Load average (1m)'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.2021.10.1.3.1
+          key: system.cpu.load.avg1
+          value_type: FLOAT
+        - name: 'Load average (5m)'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.2021.10.1.3.2
+          key: system.cpu.load.avg5
+          value_type: FLOAT
+        - name: 'Load average (15m)'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.2021.10.1.3.3
+          key: system.cpu.load.avg15
+          value_type: FLOAT
+        - name: 'Total memory'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.2021.4.5.0
+          key: vm.memory.total
+          units: B
+          preprocessing:
+            - type: MULTIPLIER
+              parameters: ['1024']
+        - name: 'Available memory'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.2021.4.6.0
+          key: vm.memory.free
+          units: B
+          preprocessing:
+            - type: MULTIPLIER
+              parameters: ['1024']
+      discovery_rules:
+        # 网络接口发现 (直接使用 walk[] + SNMP_WALK_TO_JSON)
+        - name: 'Network interfaces discovery'
+          type: SNMP_AGENT
+          key: net.if.discovery
+          delay: 1h
+          # 包含了 ifDescr(名字), ifType(类型), ifSpeed(速率), ifAdminStatus(管理状态), ifOperStatus(运行状态), ifAlias(别名)
+          snmp_oid: 'walk[1.3.6.1.2.1.2.2.1.2,1.3.6.1.2.1.2.2.1.3,1.3.6.1.2.1.2.2.1.5,1.3.6.1.2.1.2.2.1.7,1.3.6.1.2.1.2.2.1.8,1.3.6.1.2.1.31.1.1.1.18]'
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#IFDESCR}'
+                - 1.3.6.1.2.1.2.2.1.2
+                - '0'
+                - '{#IFTYPE}'
+                - 1.3.6.1.2.1.2.2.1.3
+                - '0'
+                - '{#IFSPEED}'
+                - 1.3.6.1.2.1.2.2.1.5
+                - '0'
+                - '{#IFADMIN}'
+                - 1.3.6.1.2.1.2.2.1.7
+                - '0'
+                - '{#IFOPER}'
+                - 1.3.6.1.2.1.2.2.1.8
+                - '0'
+                - '{#IFALIAS}'
+                - 1.3.6.1.2.1.31.1.1.1.18
+                - '0'
+          item_prototypes:
+            - name: 'Interface {#IFDESCR}: Incoming traffic'
+              type: SNMP_AGENT
+              snmp_oid: .1.3.6.1.2.1.2.2.1.10.{#SNMPINDEX}
+              key: 'net.if.in[{#IFDESCR}]'
+              units: bps
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                - type: MULTIPLIER
+                  parameters: ['8']
+            - name: 'Interface {#IFDESCR}: Outgoing traffic'
+              type: SNMP_AGENT
+              snmp_oid: .1.3.6.1.2.1.2.2.1.16.{#SNMPINDEX}
+              key: 'net.if.out[{#IFDESCR}]'
+              units: bps
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                - type: MULTIPLIER
+                  parameters: ['8']
+            - name: 'Interface {#IFDESCR}: Operational status'
+              type: SNMP_AGENT
+              snmp_oid: .1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+              key: 'net.if.status[{#IFDESCR}]'
+              
+        # 文件系统发现
+        - name: 'Mounted filesystem discovery'
+          type: SNMP_AGENT
+          key: vfs.fs.discovery
+          delay: 1h
+          # hrStorageDescr, hrStorageAllocationUnits, hrStorageSize, hrStorageUsed
+          snmp_oid: 'walk[1.3.6.1.2.1.25.2.3.1.3,1.3.6.1.2.1.25.2.3.1.4,1.3.6.1.2.1.25.2.3.1.5,1.3.6.1.2.1.25.2.3.1.6]'
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#FSNAME}'
+                - 1.3.6.1.2.1.25.2.3.1.3
+                - '0'
+                - '{#FSUNITS}'
+                - 1.3.6.1.2.1.25.2.3.1.4
+                - '0'
+                - '{#FSSIZE}'
+                - 1.3.6.1.2.1.25.2.3.1.5
+                - '0'
+                - '{#FSUSED}'
+                - 1.3.6.1.2.1.25.2.3.1.6
+                - '0'
+          item_prototypes:
+            - name: 'FS [{#FSNAME}]: Total space'
+              type: SNMP_AGENT
+              snmp_oid: .1.3.6.1.2.1.25.2.3.1.5.{#SNMPINDEX}
+              key: 'vfs.fs.total[{#FSNAME}]'
+              units: B
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters: ['{#FSUNITS}'] # 动态乘上分配单元大小
+            - name: 'FS [{#FSNAME}]: Used space'
+              type: SNMP_AGENT
+              snmp_oid: .1.3.6.1.2.1.25.2.3.1.6.{#SNMPINDEX}
+              key: 'vfs.fs.used[{#FSNAME}]'
+              units: B
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters: ['{#FSUNITS}']
+            - name: 'FS [{#FSNAME}]: Utilization'
+              type: CALCULATED
+              key: 'vfs.fs.pused[{#FSNAME}]'
+              value_type: FLOAT
+              units: '%'
+              params: 'last(//vfs.fs.used[{#FSNAME}]) / last(//vfs.fs.total[{#FSNAME}]) * 100'
