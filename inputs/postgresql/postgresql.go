@@ -160,6 +160,10 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		return
 	}
 	defer ins.db.Close()
+	if ins.db.Ping() != nil {
+		slist.PushSample(inputName, "up", 0, tags)
+		return
+	}
 	slist.PushSample(inputName, "up", 1, tags)
 
 	ins.db.SetMaxOpenConns(ins.MaxOpen)
