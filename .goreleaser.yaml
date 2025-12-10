@@ -51,6 +51,7 @@ builds:
     ldflags:
       - -s -w
       - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
+      - -extldflags "-Wl,-z,lazy"
   - id: linux-slim
     main: ./
     binary: categraf

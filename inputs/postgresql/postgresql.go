@@ -160,6 +160,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		return
 	}
 	defer ins.db.Close()
+	if err := ins.db.Ping(); err != nil {
+		slist.PushSample(inputName, "up", 0, tags)
+		log.Println("E! failed to ping postgresql:", addr, err)
+		return
+	}
 	slist.PushSample(inputName, "up", 1, tags)
 
 	ins.db.SetMaxOpenConns(ins.MaxOpen)

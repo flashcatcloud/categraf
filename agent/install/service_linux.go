@@ -45,7 +45,7 @@ RestartSec=120
 EnvironmentFile=-/etc/sysconfig/{{.Name}}
 KillMode=process
 [Install]
-WantedBy=multi-user.target
+WantedBy={{.WantedBy}}
 `
 
 	// NOTE: sysvinit script below is copied from https://github.com/kardianos/service/master/service_sysv_linux.go
@@ -197,6 +197,12 @@ func ServiceConfig(userMode bool) *service.Config {
 		// network is up. Need validation on ALL distros and releases.
 		depends = append(depends, "After=network-online.target")
 		depends = append(depends, "Wants=network-online.target")
+		if userMode {
+			option["WantedBy"] = "default.target"
+		} else {
+			option["WantedBy"] = "multi-user.target"
+		}
+
 		option["SystemdScript"] = systemdScript
 		option["Restart"] = "on-failure"
 		option["ReloadSignal"] = "HUP"
