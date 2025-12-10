@@ -370,6 +370,7 @@ require (
 
 replace (
 	github.com/googleapis/google-cloud-go/storage => cloud.google.com/go/storage v1.30.1
+	github.com/kardianos/service => github.com/kongfei605/service v1.2.2
 	github.com/prometheus/client_golang => github.com/flashcatcloud/client_golang v1.12.2-0.20220704074148-3b31f0c90903
 	go.opentelemetry.io/collector => github.com/open-telemetry/opentelemetry-collector v0.54.0
 )
