@@ -33,10 +33,14 @@ func (ins *Instance) StartHealthMonitor() {
 }
 
 func (ins *Instance) checkAgentHealth(i int, agent string) {
-	val, _ := ins.targetStatus.LoadOrStore(agent, &TargetStatus{
-		healthy:  true,
-		lastSeen: time.Now(),
-	})
+	val, exists := ins.targetStatus.Load(agent)
+	if !exists {
+		newStatus := &TargetStatus{
+			healthy:  true,
+			lastSeen: time.Now(),
+		}
+		val, _ = ins.targetStatus.LoadOrStore(agent, newStatus)
+	}
 	status := val.(*TargetStatus)
 
 	// Don't check too frequently if already marked as unhealthy
@@ -110,15 +114,18 @@ func (ins *Instance) checkAgentHealth(i int, agent string) {
 }
 
 func (ins *Instance) markAgentUnhealthy(agent string) {
-	newStatus := &TargetStatus{
-		healthy:   false,
-		lastSeen:  time.Now(),
-		failCount: ins.MaxFailCount,
-	}
-	val, loaded := ins.targetStatus.LoadOrStore(agent, newStatus)
-	if !loaded {
-		// New status was stored, we're done
-		return
+	val, exists := ins.targetStatus.Load(agent)
+	if !exists {
+		newStatus := &TargetStatus{
+			healthy:   false,
+			lastSeen:  time.Now(),
+			failCount: ins.MaxFailCount,
+		}
+		var loaded bool
+		val, loaded = ins.targetStatus.LoadOrStore(agent, newStatus)
+		if !loaded {
+			return
+		}
 	}
 
 	// Existing status found, update it
@@ -142,6 +149,7 @@ func (ins *Instance) isAgentHealthy(agent string) bool {
 		return true // Default to considering it healthy if no status exists
 	}
 
+	// Existing status found, update it
 	status := val.(*TargetStatus)
 	status.mu.RLock()
 	defer status.mu.RUnlock()
