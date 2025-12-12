@@ -33,21 +33,20 @@ func (ins *Instance) StartHealthMonitor() {
 }
 
 func (ins *Instance) checkAgentHealth(i int, agent string) {
-	status, exists := ins.targetStatus[agent]
-	if !exists {
-		ins.targetStatus[agent] = &TargetStatus{healthy: true, lastSeen: time.Now()}
-		status = ins.targetStatus[agent]
-	}
+	val, _ := ins.targetStatus.LoadOrStore(agent, &TargetStatus{
+		healthy:  true,
+		lastSeen: time.Now(),
+	})
+	status := val.(*TargetStatus)
 
 	// Don't check too frequently if already marked as unhealthy
-	if !status.healthy {
-		status.mu.RLock()
-		timeSinceLastCheck := time.Since(status.lastSeen)
-		status.mu.RUnlock()
+	status.mu.RLock()
+	healthy := status.healthy
+	timeSinceLastCheck := time.Since(status.lastSeen)
+	status.mu.RUnlock()
 
-		if timeSinceLastCheck < time.Duration(ins.RecoveryInterval) {
-			return
-		}
+	if !healthy && timeSinceLastCheck < time.Duration(ins.RecoveryInterval) {
+		return
 	}
 
 	// Create a connection with shorter timeout for health checking
@@ -111,12 +110,19 @@ func (ins *Instance) checkAgentHealth(i int, agent string) {
 }
 
 func (ins *Instance) markAgentUnhealthy(agent string) {
-	status, exists := ins.targetStatus[agent]
-	if !exists {
-		ins.targetStatus[agent] = &TargetStatus{healthy: false, lastSeen: time.Now(), failCount: ins.MaxFailCount}
+	newStatus := &TargetStatus{
+		healthy:   false,
+		lastSeen:  time.Now(),
+		failCount: ins.MaxFailCount,
+	}
+	val, loaded := ins.targetStatus.LoadOrStore(agent, newStatus)
+	if !loaded {
+		// New status was stored, we're done
 		return
 	}
 
+	// Existing status found, update it
+	status := val.(*TargetStatus)
 	status.mu.Lock()
 	defer status.mu.Unlock()
 
@@ -131,11 +137,12 @@ func (ins *Instance) markAgentUnhealthy(agent string) {
 }
 
 func (ins *Instance) isAgentHealthy(agent string) bool {
-	status, exists := ins.targetStatus[agent]
+	val, exists := ins.targetStatus.Load(agent)
 	if !exists {
 		return true // Default to considering it healthy if no status exists
 	}
 
+	status := val.(*TargetStatus)
 	status.mu.RLock()
 	defer status.mu.RUnlock()
 	return status.healthy

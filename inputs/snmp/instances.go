@@ -54,7 +54,7 @@ type Instance struct {
 	Mappings map[string]map[string]string `toml:"mappings"`
 
 	// Track health status of each agent
-	targetStatus         map[string]*TargetStatus
+	targetStatus         sync.Map // key: agent string, value: *TargetStatus
 	targetStatusInit     sync.Once
 	healthMonitorStarted bool
 
@@ -120,12 +120,11 @@ func (ins *Instance) Init() error {
 
 	// Initialize target status tracking
 	ins.targetStatusInit.Do(func() {
-		ins.targetStatus = make(map[string]*TargetStatus)
 		for _, agent := range ins.Agents {
-			ins.targetStatus[agent] = &TargetStatus{
+			ins.targetStatus.Store(agent, &TargetStatus{
 				healthy:  true,
 				lastSeen: time.Now(),
-			}
+			})
 		}
 	})
 
@@ -215,7 +214,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			if m, ok := ins.Mappings[agent]; ok {
 				extraTags = m
 			}
-			if status, exists := ins.targetStatus[agent]; exists {
+			if val, exists := ins.targetStatus.Load(agent); exists {
+				status := val.(*TargetStatus)
 				status.mu.Lock()
 				status.healthy = true
 				status.failCount = 0
