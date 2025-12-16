@@ -118,15 +118,27 @@ archives:
     files:
       - conf/*
 
-  - id: categraf-common
+  - id: categraf-linux-amd64
     builds:
       - linux-amd64
+    format: tar.gz
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    wrap_in_directory: true
+    files:
+      - conf/*
+      - src: embedded/linux-amd64/*.tar.gz
+        dst: embedded/huatuo.tar.gz
+
+  - id: categraf-linux-arm64
+    builds:
       - linux-arm64
     format: tar.gz
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
     files:
       - conf/*
+      - src: embedded/linux-arm64/*.tar.gz
+        dst: embedded/huatuo.tar.gz
 
   - id: categraf-common-win
     builds:

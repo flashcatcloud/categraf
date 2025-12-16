@@ -1,0 +1,19 @@
+# # collect metrics from huatuo instance
+# [[instances]]
+# # --- Mode 1: Local Sidecar (Process Management + Scrape) ---
+# # Path to install/find huatuo binary. 
+# # If set, Categraf will manage the process lifecycle.
+# install_path = "./huatuo"
+#
+# # Path to tarball for auto-installation if binary is missing.
+# # huatuo_tarball = "embedded/huatuo.tar.gz"
+#
+# # Config overwrites (applied to huatuo-bamai.conf)
+# # Supports dot notation for nested fields.
+# [instances.config_overwrites]
+# "Storage.ES.Address" = "http://127.0.0.1:9200"
+# "Region" = "default"
+#
+# # --- Mode 2: Remote/Unmanaged Scrape Only ---
+# # If install_path is empty and url is set, Categraf only scrapes metrics.
+# # url = "http://127.0.0.1:19704/metrics"
