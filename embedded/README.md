@@ -1,1 +1,0 @@
-# dirctory for embedded
