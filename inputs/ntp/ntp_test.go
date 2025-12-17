@@ -5,22 +5,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/toolkits/pkg/nux"
+	"github.com/beevik/ntp"
 )
 
-func TestGetTwoTime(t *testing.T) {
-	orgTime := time.Now()
+func TestClockOffset(t *testing.T) {
 	log.Println("Begin")
-	serverReciveTime, serverTransmitTime, err := nux.NtpTwoTime("ntp1.aliyun.com", 20)
+	resp, err := ntp.QueryWithOptions("ntp1.aliyun.com", ntp.QueryOptions{
+		Timeout: 20 * time.Second,
+		Version: 4,
+	})
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	dstTime := time.Now()
 
-	// https://en.wikipedia.org/wiki/Network_Time_Protocol
-	duration := ((serverReciveTime.UnixNano() - orgTime.UnixNano()) + (serverTransmitTime.UnixNano() - dstTime.UnixNano())) / 2
-
-	delta := duration / 1e6 // convert to ms
-	log.Println(delta)
+	// offset in ms
+	delta := resp.ClockOffset.Seconds() * 1000
+	log.Println("Offset (ms):", delta)
 }
