@@ -62,7 +62,8 @@ type Instance struct {
 	ConfigOverwrites map[string]interface{} `toml:"config_overwrites"`
 
 	// Mode 2: Remote/Unmanaged
-	URL string `toml:"url"`
+	URL     string          `toml:"url"`
+	Timeout config.Duration `toml:"timeout"`
 
 	// Internal state
 	cmd        *exec.Cmd
@@ -70,6 +71,28 @@ type Instance struct {
 	wg         sync.WaitGroup
 	realURL    string // Actual URL to scrape (configured URL or discovered local port)
 	parser     parser.Parser
+	lock       sync.Mutex
+}
+
+func setNestedMap(m map[string]interface{}, path string, val interface{}) {
+	parts := strings.Split(path, ".")
+	current := m
+	for i := 0; i < len(parts)-1; i++ {
+		part := parts[i]
+		next, ok := current[part]
+		if !ok || next == nil {
+			nextMap := make(map[string]interface{})
+			current[part] = nextMap
+			current = nextMap
+		} else if nextMap, ok := next.(map[string]interface{}); ok {
+			current = nextMap
+		} else {
+			nextMap := make(map[string]interface{})
+			current[part] = nextMap
+			current = nextMap
+		}
+	}
+	current[parts[len(parts)-1]] = val
 }
 
 func (ins *Instance) Init() error {
@@ -84,11 +107,8 @@ func (ins *Instance) Init() error {
 		if err := ins.ensureInstalled(); err != nil {
 			return fmt.Errorf("failed to install huatuo: %w", err)
 		}
-		if err := ins.applyConfig(); err != nil {
-			return fmt.Errorf("failed to apply config: %w", err)
-		}
-		if err := ins.detectPort(); err != nil {
-			return fmt.Errorf("failed to detect port: %w", err)
+		if err := ins.setupConfig(); err != nil {
+			return fmt.Errorf("failed to setup config: %w", err)
 		}
 
 		// Start process asynchronously
@@ -156,6 +176,10 @@ func (ins *Instance) ensureInstalled() error {
 				for _, sub := range subEntries {
 					oldPath := filepath.Join(srcDir, sub.Name())
 					newPath := filepath.Join(ins.InstallPath, sub.Name())
+					// Rename logic: remove dest if exists to ensure overwrite, then rename
+					if err := os.RemoveAll(newPath); err != nil {
+						return fmt.Errorf("failed to remove existing file %s: %w", newPath, err)
+					}
 					if err := os.Rename(oldPath, newPath); err != nil {
 						return fmt.Errorf("failed to move %s to %s: %w", oldPath, newPath, err)
 					}
@@ -189,7 +213,12 @@ func unpackTarGz(r io.Reader, dest string) error {
 			return err
 		}
 
+		// Zip Slip protection
 		target := filepath.Join(dest, header.Name)
+		if !strings.HasPrefix(target, filepath.Clean(dest)+string(os.PathSeparator)) {
+			return fmt.Errorf("illegal file path: %s", target)
+		}
+
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if err := os.MkdirAll(target, 0755); err != nil {
@@ -201,121 +230,95 @@ func unpackTarGz(r io.Reader, dest string) error {
 				return err
 			}
 			if _, err := io.Copy(f, tr); err != nil {
-				f.Close()
+				closeErr := f.Close()
+				if closeErr != nil {
+					return fmt.Errorf("write error: %v; close error: %v", err, closeErr)
+				}
 				return err
 			}
-			f.Close()
+			if err := f.Close(); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func (ins *Instance) applyConfig() error {
-	if len(ins.ConfigOverwrites) == 0 {
-		return nil
-	}
-
-	// Assuming conf at root of unpacked dir
-	candidates := []string{
-		filepath.Join(ins.InstallPath, "huatuo-bamai.conf"),
-		filepath.Join(ins.InstallPath, "conf", "huatuo-bamai.conf"),
-	}
-	var targetFile string
-	for _, c := range candidates {
-		if _, err := os.Stat(c); err == nil {
-			targetFile = c
-			break
-		}
-	}
-	if targetFile == "" {
-		// If both fail, we can't overwrite. But maybe first install?
-		return fmt.Errorf("config file not found in install path")
-	}
-
-	content, err := os.ReadFile(targetFile)
+func (ins *Instance) setupConfig() error {
+	// Find config file
+	targetFile, err := ins.getConfigPath()
 	if err != nil {
-		return err
+		// If overwrites defined, missing config is error
+		if len(ins.ConfigOverwrites) > 0 {
+			return err
+		}
+		// Otherwise, if just using default/existing, we can proceed with default port
+		// But manageProcess needs config... assume default location for process?
+		// Stick to existing logic: if config overwrites empty, we didn't error on applyConfig,
+		// but detectPort used fallback.
+		// However, verify manageProcess logic.
 	}
 
+	// If file found, read and process
 	var data map[string]interface{}
-	if err := toml.Unmarshal(content, &data); err != nil {
-		return err
-	}
+	if targetFile != "" {
+		content, err := os.ReadFile(targetFile)
+		if err != nil {
+			return err
+		}
 
-	for k, v := range ins.ConfigOverwrites {
-		setNestedMap(data, k, v)
-	}
+		if err := toml.Unmarshal(content, &data); err != nil {
+			return err
+		}
 
-	newContent, err := toml.Marshal(data)
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(targetFile, newContent, 0644)
-}
-
-func setNestedMap(m map[string]interface{}, path string, val interface{}) {
-	parts := strings.Split(path, ".")
-	current := m
-	for i := 0; i < len(parts)-1; i++ {
-		part := parts[i]
-		next, ok := current[part]
-		if !ok || next == nil {
-			nextMap := make(map[string]interface{})
-			current[part] = nextMap
-			current = nextMap
-		} else if nextMap, ok := next.(map[string]interface{}); ok {
-			current = nextMap
-		} else {
-			nextMap := make(map[string]interface{})
-			current[part] = nextMap
-			current = nextMap
+		// Apply overwrites if needed
+		if len(ins.ConfigOverwrites) > 0 {
+			for k, v := range ins.ConfigOverwrites {
+				setNestedMap(data, k, v)
+			}
+			newContent, err := toml.Marshal(data)
+			if err != nil {
+				return err
+			}
+			if err := os.WriteFile(targetFile, newContent, 0644); err != nil {
+				return err
+			}
 		}
 	}
-	current[parts[len(parts)-1]] = val
-}
 
-func (ins *Instance) detectPort() error {
-	// Re-read config to find APIServer.TCPAddr
-	candidates := []string{
-		filepath.Join(ins.InstallPath, "huatuo-bamai.conf"),
-		filepath.Join(ins.InstallPath, "conf", "huatuo-bamai.conf"),
-	}
-	var targetFile string
-	for _, c := range candidates {
-		if _, err := os.Stat(c); err == nil {
-			targetFile = c
-			break
+	// Detect port from Map (if available)
+	addr := ":19704" // default
+	if data != nil {
+		if apiServer, ok := data["APIServer"].(map[string]interface{}); ok {
+			if val, ok := apiServer["TCPAddr"].(string); ok {
+				addr = val
+			}
 		}
 	}
-	if targetFile == "" {
-		ins.realURL = "http://127.0.0.1:19704/metrics" // fallback
-		return nil
-	}
 
-	content, err := os.ReadFile(targetFile)
-	if err != nil {
-		return err
-	}
-
-	var data struct {
-		APIServer struct {
-			TCPAddr string
-		}
-	}
-	// Loose decoding just for this field
-	_ = toml.Unmarshal(content, &data)
-
-	addr := data.APIServer.TCPAddr
+	// Normalize addr
 	if addr == "" {
-		addr = ":19704" // Default
+		addr = ":19704"
 	}
 	if strings.HasPrefix(addr, ":") {
 		addr = "127.0.0.1" + addr
 	}
-
 	ins.realURL = fmt.Sprintf("http://%s/metrics", addr)
+
 	return nil
+}
+
+func (ins *Instance) getConfigPath() (string, error) {
+	candidates := []string{
+		filepath.Join(ins.InstallPath, "huatuo-bamai.conf"),
+		filepath.Join(ins.InstallPath, "conf", "huatuo-bamai.conf"),
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(c); err == nil {
+			return c, nil
+		}
+	}
+	return "", fmt.Errorf("config file not found in install path")
 }
 
 func (ins *Instance) manageProcess(ctx context.Context) {
@@ -324,9 +327,13 @@ func (ins *Instance) manageProcess(ctx context.Context) {
 	// Assuming bin is at bin/huatuo-bamai
 	binPath := filepath.Join(ins.InstallPath, "bin", "huatuo-bamai")
 	// Config path
-	confPath := filepath.Join(ins.InstallPath, "huatuo-bamai.conf") // try root first
-	if _, err := os.Stat(confPath); os.IsNotExist(err) {
-		confPath = filepath.Join(ins.InstallPath, "conf", "huatuo-bamai.conf")
+	confPath, err := ins.getConfigPath()
+	if err != nil {
+		// Fallback or error?
+		// If we are here, setupConfig probably succeeded with default or found it.
+		// If not found now, maybe deleted?
+		// Try fallback construction for command arg
+		confPath = filepath.Join(ins.InstallPath, "huatuo-bamai.conf")
 	}
 
 	// Determine region
@@ -348,7 +355,7 @@ func (ins *Instance) manageProcess(ctx context.Context) {
 		default:
 			// Start Process
 			// Huatuo requires root permissions for eBPF and PID file locking
-			cmd := exec.Command(binPath, "--config", filepath.Base(confPath), "--region", region)
+			cmd := exec.Command("sudo", binPath, "--config", filepath.Base(confPath), "--region", region)
 			cmd.Dir = ins.InstallPath // Set workdir to install path so it finds config if relative
 
 			// Redirect stdout/stderr to log?
@@ -359,17 +366,45 @@ func (ins *Instance) manageProcess(ctx context.Context) {
 
 			if err := cmd.Start(); err != nil {
 				log.Printf("E! failed to start huatuo: %v", err)
-				time.Sleep(10 * time.Second)
-				continue
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(10 * time.Second):
+					continue
+				}
 			}
-			ins.cmd = cmd
 
-			// Wait for exit
-			err := cmd.Wait()
-			log.Printf("I! huatuo process exited: %v", err)
+			ins.lock.Lock()
+			ins.cmd = cmd
+			ins.lock.Unlock()
+
+			// Wait for exit or context cancel
+			done := make(chan error, 1)
+			go func() {
+				done <- cmd.Wait()
+			}()
+
+			select {
+			case <-ctx.Done():
+				// Context cancelled, kill process
+				if cmd.Process != nil {
+					_ = cmd.Process.Signal(os.Interrupt)
+					// Give slight grace period?
+					time.Sleep(1 * time.Second)
+					_ = cmd.Process.Kill()
+				}
+				return
+			case err := <-done:
+				log.Printf("I! huatuo process exited: %v", err)
+			}
 
 			// Allow quick restart unless context cancelled
-			time.Sleep(5 * time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(5 * time.Second):
+				// continue loop
+			}
 		}
 	}
 }
@@ -378,14 +413,15 @@ func (ins *Instance) Drop() {
 	if ins.cancelFunc != nil {
 		ins.cancelFunc()
 	}
+	// Lock for cmd access
+	ins.lock.Lock()
 	if ins.cmd != nil && ins.cmd.Process != nil {
 		_ = ins.cmd.Process.Signal(os.Interrupt)
 		// Give it a moment to shut down gracefully
 		time.Sleep(1 * time.Second)
 		_ = ins.cmd.Process.Kill()
 	}
-	// Not waiting for wg here to avoid blocking Drop?
-	// Or should we? Categraf drop implementation usually simple.
+	ins.lock.Unlock()
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
@@ -400,8 +436,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 }
 
 func (ins *Instance) scrape(slist *types.SampleList) error {
+	var timeout = 5 * time.Second
+	if ins.Timeout > 0 {
+		timeout = time.Duration(ins.Timeout)
+	}
+
 	client := http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: timeout,
 	}
 	resp, err := client.Get(ins.realURL)
 	if err != nil {
