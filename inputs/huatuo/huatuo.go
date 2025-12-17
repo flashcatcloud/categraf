@@ -355,7 +355,7 @@ func (ins *Instance) manageProcess(ctx context.Context) {
 		default:
 			// Start Process
 			// Huatuo requires root permissions for eBPF and PID file locking
-			cmd := exec.Command("sudo", binPath, "--config", filepath.Base(confPath), "--region", region)
+			cmd := exec.Command(binPath, "--config", filepath.Base(confPath), "--region", region)
 			cmd.Dir = ins.InstallPath // Set workdir to install path so it finds config if relative
 
 			// Redirect stdout/stderr to log?
