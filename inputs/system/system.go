@@ -84,7 +84,7 @@ func (s *SystemStats) Gather(slist *types.SampleList) {
 			"os_name":        hostInfo.Platform,
 			"os_version":     hostInfo.PlatformVersion,
 			"hostname":       hostInfo.Hostname,
-			"hostip":         config.Config.GetHostIP(),
+			"host_ip":        config.Config.GetHostIP(),
 		})
 	}
 
