@@ -75,5 +75,18 @@ func (s *SystemStats) Gather(slist *types.SampleList) {
 		}
 	}
 
+	hostInfo, err := host.Info()
+	if err != nil {
+		log.Println("E! failed to gather host info:", err)
+	} else {
+		slist.PushSample(inputName, "info", 1, map[string]string{
+			"kernel_version": hostInfo.KernelVersion,
+			"os_name":        hostInfo.Platform,
+			"os_version":     hostInfo.PlatformVersion,
+			"hostname":       hostInfo.Hostname,
+			"host_ip":        config.Config.GetHostIP(),
+		})
+	}
+
 	slist.PushSamples(inputName, fields)
 }
