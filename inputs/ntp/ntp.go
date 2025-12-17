@@ -7,8 +7,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
-
-	"github.com/toolkits/pkg/nux"
+	"github.com/beevik/ntp"
 )
 
 const inputName = "ntp"
@@ -50,21 +49,20 @@ func (n *NTPStat) Gather(slist *types.SampleList) {
 			n.server = server
 		}
 
-		orgTime := time.Now()
-		serverReciveTime, serverTransmitTime, err := nux.NtpTwoTime(n.server, n.TimeOut)
+		resp, err := ntp.QueryWithOptions(n.server, ntp.QueryOptions{
+			Timeout: time.Duration(n.TimeOut) * time.Second,
+			Version: 4,
+		})
+
 		if err != nil {
 			log.Println("E! failed to connect ntp server:", n.server, "error:", err)
 			n.server = ""
 			continue
 		}
 
-		dstTime := time.Now()
-
-		// https://en.wikipedia.org/wiki/Network_Time_Protocol
-		duration := ((serverReciveTime.UnixNano() - orgTime.UnixNano()) + (serverTransmitTime.UnixNano() - dstTime.UnixNano())) / 2
-
-		delta := duration / 1e6 // convert to ms
-		slist.PushFront(types.NewSample(inputName, "offset_ms", delta).SetTime(serverTransmitTime))
+		// offset in ms
+		delta := resp.ClockOffset.Seconds() * 1000
+		slist.PushFront(types.NewSample(inputName, "offset_ms", delta).SetTime(resp.Time))
 		break
 	}
 }
