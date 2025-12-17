@@ -8,7 +8,7 @@ import (
 	"github.com/beevik/ntp"
 )
 
-func TestGetTwoTime(t *testing.T) {
+func TestClockOffset(t *testing.T) {
 	log.Println("Begin")
 	resp, err := ntp.QueryWithOptions("ntp1.aliyun.com", ntp.QueryOptions{
 		Timeout: 20 * time.Second,
