@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"bytes"
+	"io"
 	"log"
 	"math"
 	"mime"
@@ -42,8 +43,8 @@ func EmptyParser() *Parser {
 	return &Parser{}
 }
 
-func (p *Parser) parse(buf []byte, slist *types.SampleList) error {
-	metricFamilies, err := util.Parse(buf, p.Header)
+func (p *Parser) parse(r io.Reader, slist *types.SampleList) error {
+	metricFamilies, err := util.ParseReader(r, p.Header)
 	if err != nil {
 		return err
 	}
@@ -72,37 +73,66 @@ func (p *Parser) parse(buf []byte, slist *types.SampleList) error {
 func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
 	mediatype, _, _ := mime.ParseMediaType(p.Header.Get("Content-Type"))
 	if mediatype == "application/vnd.google.protobuf" || !p.DuplicationAllowed {
-		return p.parse(buf, slist)
+		return p.parse(bytes.NewReader(buf), slist)
 	}
 
 	var (
-		metricHeaderBytes = []byte(MetricHeader)
-		typeHeaderBytes   = []byte("# TYPE ")
+		helpHeader = []byte("# HELP ")
+		typeHeader = []byte("# TYPE ")
+		infoBytes  = []byte(" info\n")
+		gaugeBytes = []byte(" gauge\n")
 	)
 
-	metrics := bytes.Split(buf, metricHeaderBytes)
-	for i := range metrics {
-		if i != 0 {
-			metrics[i] = append(append([]byte(nil), metricHeaderBytes...), metrics[i]...)
+	offset := 0
+	totalLen := len(buf)
+
+	for offset < totalLen {
+		// Find next delimiter position relative to current offset
+		relIdxHelp := bytes.Index(buf[offset:], helpHeader)
+		relIdxType := bytes.Index(buf[offset:], typeHeader)
+
+		var relIdx int
+
+		if relIdxHelp == -1 && relIdxType == -1 {
+			// No more delimiters, take the rest
+			relIdx = totalLen - offset
+		} else if relIdxHelp != -1 && (relIdxType == -1 || relIdxHelp < relIdxType) {
+			relIdx = relIdxHelp
+		} else {
+			relIdx = relIdxType
 		}
 
-		typeMetrics := bytes.Split(metrics[i], typeHeaderBytes)
-		for j := range typeMetrics {
-			if j != 0 {
-				typeMetrics[j] = append(append([]byte(nil), typeHeaderBytes...), typeMetrics[j]...)
-			}
+		// Calculate absolute end of current chunk
+		chunkEnd := offset + relIdx
 
-			if len(bytes.TrimSpace(typeMetrics[j])) == 0 {
-				continue
-			}
+		if chunkEnd > offset {
+			chunk := buf[offset:chunkEnd]
+			// Trim only leading/trailing whitespace to check for empty content
+			if len(bytes.TrimSpace(chunk)) > 0 {
+				// Handle "info" type check and replacement for each chunk
+				// "info->gauge" replacement feature
+				// We do Contains check first to avoid allocation if replacement isn't needed (Zero-Copy path)
+				if bytes.Contains(chunk, infoBytes) {
+					chunk = bytes.ReplaceAll(chunk, infoBytes, gaugeBytes)
+				}
 
-			err := p.parse(typeMetrics[j], slist)
-			if err != nil {
-				log.Println("E! parse metrics failed, error:", err, "metrics:", string(typeMetrics[j]))
+				var reader io.Reader
+				// Check if chunk already has a valid header
+				if bytes.HasPrefix(chunk, helpHeader) || bytes.HasPrefix(chunk, typeHeader) {
+					reader = bytes.NewReader(chunk)
+				} else {
+					// Fallback: prepend TYPE header
+					reader = io.MultiReader(bytes.NewReader(typeHeader), bytes.NewReader(chunk))
+				}
+
+				if err := p.parse(reader, slist); err != nil {
+					log.Println("E! parse metrics failed, error:", err)
+				}
 			}
 		}
+
+		offset = chunkEnd
 	}
-
 	return nil
 }
 
