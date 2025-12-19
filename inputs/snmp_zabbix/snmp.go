@@ -390,7 +390,7 @@ func (s *Instance) Start(_ *types.SampleList) error {
 			}
 		}
 
-		// 添加模板中的静态items
+		// Add static items from template
 		templateItems := s.getTemplateStaticItems()
 		for _, item := range templateItems {
 			s.scheduler.AddItem(item)
