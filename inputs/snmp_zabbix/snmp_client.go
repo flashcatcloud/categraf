@@ -314,14 +314,9 @@ func (m *SNMPClientManager) performHealthCheckNoLock(wrapper *ClientWrapper) err
 	errChan := make(chan error, 1)
 	go func() {
 		// 执行简单的SNMP Get请求 (sysUpTime)
-		result, err := wrapper.client.Get([]string{"1.3.6.1.2.1.1.3.0"})
+		_, err := wrapper.client.Get([]string{"1.3.6.1.2.1.1.3.0"})
 		if err != nil {
 			errChan <- fmt.Errorf("health check SNMP get failed: %w", err)
-			return
-		}
-
-		if len(result.Variables) == 0 {
-			errChan <- fmt.Errorf("health check returned no data")
 			return
 		}
 
