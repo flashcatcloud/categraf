@@ -116,18 +116,19 @@ func getNameAndValue(m *dto.Metric, metricName string) map[string]interface{} {
 }
 
 func Parse(buf []byte, header http.Header) (map[string]*dto.MetricFamily, error) {
+	buf = bytes.TrimPrefix(buf, []byte("\n"))
+	if bytes.Contains(buf, []byte(" info\n")) {
+		buf = bytes.ReplaceAll(buf, []byte(" info\n"), []byte(" gauge\n"))
+	}
+
+	return ParseReader(bytes.NewReader(buf), header)
+}
+
+func ParseReader(r io.Reader, header http.Header) (map[string]*dto.MetricFamily, error) {
 	var parser expfmt.TextParser
 
-	// gather even if the buffer begins with a newline
-	buf = bytes.TrimPrefix(buf, []byte("\n"))
-	// Convert Prometheus info metrics to gauge type since the parser doesn't natively support info type
-	buf = bytes.ReplaceAll(buf, []byte(" info\n"), []byte(" gauge\n"))
+	reader := bufio.NewReader(r)
 
-	// Read raw data
-	buffer := bytes.NewBuffer(buf)
-	reader := bufio.NewReader(buffer)
-
-	// Prepare output
 	metricFamilies := make(map[string]*dto.MetricFamily)
 	mediatype, params, err := mime.ParseMediaType(header.Get("Content-Type"))
 	if err == nil && mediatype == "application/vnd.google.protobuf" &&
