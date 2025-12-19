@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	version        = "1.44" // https://docs.docker.com/engine/api/
 	defaultHeaders = map[string]string{"User-Agent": "engine-api-cli-1.0"}
 )
 
@@ -28,7 +27,10 @@ type Client interface {
 }
 
 func NewEnvClient() (Client, error) {
-	client, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv)
+	client, err := dockerClient.NewClientWithOpts(
+		dockerClient.FromEnv,
+		dockerClient.WithAPIVersionNegotiation(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +49,7 @@ func NewClient(host string, tlsConfig *tls.Config) (Client, error) {
 	client, err := dockerClient.NewClientWithOpts(
 		dockerClient.WithHTTPHeaders(defaultHeaders),
 		dockerClient.WithHTTPClient(httpClient),
-		dockerClient.WithVersion(version),
+		dockerClient.WithAPIVersionNegotiation(),
 		dockerClient.WithHost(host))
 	if err != nil {
 		return nil, err
