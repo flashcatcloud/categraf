@@ -27,8 +27,7 @@ type Parser struct {
 	DuplicationAllowed    bool
 }
 
-func NewParser(namePrefix string, defaultTags map[string]string, header http.Header,
-	duplicationAllowed bool, ignoreMetricsFilter, ignoreLabelKeysFilter filter.Filter) *Parser {
+func NewParser(namePrefix string, defaultTags map[string]string, header http.Header, duplicationAllowed bool, ignoreMetricsFilter, ignoreLabelKeysFilter filter.Filter) *Parser {
 	return &Parser{
 		NamePrefix:            namePrefix,
 		DefaultTags:           defaultTags,
@@ -69,21 +68,38 @@ func (p *Parser) parse(buf []byte, slist *types.SampleList) error {
 
 	return nil
 }
+
 func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
-	var MetricHeaderBytes = []byte(MetricHeader)
 	mediatype, _, _ := mime.ParseMediaType(p.Header.Get("Content-Type"))
 	if mediatype == "application/vnd.google.protobuf" || !p.DuplicationAllowed {
 		return p.parse(buf, slist)
 	}
 
-	metrics := bytes.Split(buf, MetricHeaderBytes)
+	var (
+		metricHeaderBytes = []byte(MetricHeader)
+		typeHeaderBytes   = []byte("# TYPE ")
+	)
+
+	metrics := bytes.Split(buf, metricHeaderBytes)
 	for i := range metrics {
 		if i != 0 {
-			metrics[i] = append(append([]byte(nil), MetricHeaderBytes...), metrics[i]...)
+			metrics[i] = append(append([]byte(nil), metricHeaderBytes...), metrics[i]...)
 		}
-		err := p.parse(metrics[i], slist)
-		if err != nil {
-			log.Println("E! parse metrics failed, error:", err, "metrics:", metrics[i])
+
+		typeMetrics := bytes.Split(metrics[i], typeHeaderBytes)
+		for j := range typeMetrics {
+			if j != 0 {
+				typeMetrics[j] = append(append([]byte(nil), typeHeaderBytes...), typeMetrics[j]...)
+			}
+
+			if len(bytes.TrimSpace(typeMetrics[j])) == 0 {
+				continue
+			}
+
+			err := p.parse(typeMetrics[j], slist)
+			if err != nil {
+				log.Println("E! parse metrics failed, error:", err, "metrics:", string(typeMetrics[j]))
+			}
 		}
 	}
 
