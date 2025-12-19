@@ -518,8 +518,7 @@ func (s *Instance) getTemplateStaticItems() []MonitorItem {
 				IsLabelProvider: false,
 			}
 
-			// Handle LabelProvider logic similar to discovery
-			// If key has brackets like key[...] and value type is Text/Char, it might be a label
+			// Set IsLabelProvider for CHAR/TEXT value types
 			switch tmplItem.ValueType {
 			case "CHAR", "1", "TEXT", "4":
 				monitorItem.IsLabelProvider = true
