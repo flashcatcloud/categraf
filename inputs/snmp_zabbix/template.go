@@ -935,7 +935,7 @@ func ConvertZabbixItemType(itemType string) string {
 	}
 }
 
-// 获取SNMP相关的items和discovery rules
+// 获取SNMP相关的items
 func (t *ZabbixTemplate) GetSNMPItems() []TemplateItem {
 	var snmpItems []TemplateItem
 	for _, item := range t.Items {
