@@ -935,6 +935,17 @@ func ConvertZabbixItemType(itemType string) string {
 	}
 }
 
+// 获取SNMP相关的items
+func (t *ZabbixTemplate) GetSNMPItems() []TemplateItem {
+	var snmpItems []TemplateItem
+	for _, item := range t.Items {
+		if ConvertZabbixItemType(item.Type) == "snmp" {
+			snmpItems = append(snmpItems, item)
+		}
+	}
+	return snmpItems
+}
+
 // 模板验证
 func (t *ZabbixTemplate) Validate() error {
 	if t.ZabbixExport.Version == "" {
