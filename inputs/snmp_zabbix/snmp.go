@@ -488,7 +488,7 @@ func (s *Instance) getTemplateStaticItems() []MonitorItem {
 			name := s.expandMacros(tmplItem.Name)
 			desc := s.expandMacros(tmplItem.Description)
 
-			// 静态Item不应该包含发现宏 {#MACRO}
+			// Static items should not contain discovery macros {#MACRO}
 			if strings.Contains(key, "{#") || strings.Contains(oid, "{#") {
 				if s.DebugMod {
 					log.Printf("W! skipping template item with discovery macros: key=%s, oid=%s", key, oid)
