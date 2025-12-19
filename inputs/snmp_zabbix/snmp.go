@@ -389,6 +389,12 @@ func (s *Instance) Start(_ *types.SampleList) error {
 				s.scheduler.AddItem(item)
 			}
 		}
+
+		// 添加模板中的静态items
+		templateItems := s.getTemplateStaticItems()
+		for _, item := range templateItems {
+			s.scheduler.AddItem(item)
+		}
 	}
 
 	if s.EnableDiscovery && s.template != nil {
@@ -451,4 +457,77 @@ func (s *Instance) Stop() {
 
 func (s *Instance) Drop() {
 	s.Stop()
+}
+
+func (s *Instance) expandMacros(text string) string {
+	if s.template != nil {
+		return s.template.ExpandMacros(text, nil)
+	}
+	return text
+}
+
+func (s *Instance) getTemplateStaticItems() []MonitorItem {
+	if s.template == nil {
+		return nil
+	}
+
+	var items []MonitorItem
+	templateItems := s.template.GetSNMPItems()
+
+	for _, agent := range s.config.Agents {
+		agentAddr := s.config.GetAgentAddress(agent)
+
+		for _, tmplItem := range templateItems {
+			// Check if item is disabled
+			if tmplItem.Status == "DISABLED" || tmplItem.Status == "1" {
+				continue
+			}
+
+			key := s.expandMacros(tmplItem.Key)
+			oid := s.expandMacros(tmplItem.SNMPOID)
+			name := s.expandMacros(tmplItem.Name)
+			desc := s.expandMacros(tmplItem.Description)
+
+			// 静态Item不应该包含发现宏 {#MACRO}
+			if strings.Contains(key, "{#") || strings.Contains(oid, "{#") {
+				if s.DebugMod {
+					log.Printf("W! skipping template item with discovery macros: key=%s, oid=%s", key, oid)
+				}
+				continue
+			}
+
+			tags := make(map[string]string)
+			for _, t := range tmplItem.Tags {
+				tags[t.Tag] = t.Value
+			}
+
+			valueType := ConvertZabbixValueType(tmplItem.ValueType)
+			monitorItem := MonitorItem{
+				Key:             key,
+				OID:             oid,
+				Type:            "snmp",
+				Name:            name,
+				Units:           tmplItem.Units,
+				Delay:           parseZabbixDelay(tmplItem.Delay),
+				Agent:           agentAddr,
+				ValueType:       valueType,
+				Description:     desc,
+				Preprocessing:   tmplItem.Preprocessing,
+				Tags:            tags,
+				IsDiscovered:    false,
+				IsLabelProvider: false,
+			}
+
+			// Handle LabelProvider logic similar to discovery
+			// If key has brackets like key[...] and value type is Text/Char, it might be a label
+			switch tmplItem.ValueType {
+			case "CHAR", "1", "TEXT", "4":
+				monitorItem.IsLabelProvider = true
+				monitorItem.LabelKey = extractLabelKey(key)
+			}
+
+			items = append(items, monitorItem)
+		}
+	}
+	return items
 }
