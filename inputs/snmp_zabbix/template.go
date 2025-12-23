@@ -712,8 +712,24 @@ func (t *ZabbixTemplate) ExpandMacros(text string, context map[string]string) st
 
 	// 展开上下文宏 (discovery macros)
 	for macro, value := range context {
-		result = strings.ReplaceAll(result, fmt.Sprintf("{#%s}", macro), value)
-		result = strings.ReplaceAll(result, fmt.Sprintf("{%s}", macro), value)
+		// 兼容多种形式的上下文键，例如：
+		// "SNMPINDEX", "#SNMPINDEX", "{SNMPINDEX}", "{#SNMPINDEX}"
+		normalized := macro
+
+		// 去掉外围花括号
+		if strings.HasPrefix(normalized, "{") && strings.HasSuffix(normalized, "}") && len(normalized) > 2 {
+			normalized = normalized[1 : len(normalized)-1]
+		}
+
+		// 去掉前导 #（discovery 宏前缀）
+		normalized = strings.TrimPrefix(normalized, "#")
+
+		if normalized == "" {
+			continue
+		}
+
+		result = strings.ReplaceAll(result, fmt.Sprintf("{#%s}", normalized), value)
+		result = strings.ReplaceAll(result, fmt.Sprintf("{%s}", normalized), value)
 	}
 
 	// 展开模板宏 {$MACRO}
