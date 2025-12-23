@@ -114,7 +114,7 @@ func (d *DiscoveryEngine) ExecuteDiscovery(ctx context.Context, agent string, ru
 			}
 			// 预处理的正确输入应该是这个 JSON 字符串
 			valueForPreprocessing = string(jsonBytes)
-			//log.Printf("DEBUG: Serialized discovery result for preprocessing: %s", valueForPreprocessing)
+			// log.Printf("DEBUG: Serialized discovery result for preprocessing: %s", valueForPreprocessing)
 		}
 
 		processedValue, err := ApplyDiscoveryPreprocessing(valueForPreprocessing, rule.Preprocessing)
@@ -218,7 +218,7 @@ func (d *DiscoveryEngine) performMultiOidWalkDiscovery(ctx context.Context, clie
 		}
 
 		// 这里不需要 acquire 锁，因为上层 performSNMPDiscovery 已经持有锁了
-		pdus, err := client.BulkWalkAll(oid)
+		pdus, err := d.walkOID(client, oid)
 		if err != nil {
 			return nil, fmt.Errorf("SNMP walk failed for OID %s: %w", oid, err)
 		}
@@ -252,7 +252,10 @@ func (d *DiscoveryEngine) performZabbixDependentDiscovery(ctx context.Context, c
 		resultChan := make(chan walkResult, 1)
 
 		go func() {
-			pdus, err := client.BulkWalkAll(pair.OID)
+			pdus, err := d.walkOID(client, pair.OID)
+			if err != nil {
+				log.Printf("W!: %v", err)
+			}
 			resultChan <- walkResult{pdus: pdus, err: err}
 		}()
 
@@ -333,6 +336,27 @@ func (d *DiscoveryEngine) parseZabbixDiscoveryOID(discoveryOID string) ([]MacroO
 	return pairs, nil
 }
 
+// walkOID 封装了 SNMP Walk 逻辑，包含针对 SNMPv1 的优化和降级策略
+func (d *DiscoveryEngine) walkOID(client *gosnmp.GoSNMP, oid string) ([]gosnmp.SnmpPDU, error) {
+	if client.Version == gosnmp.Version1 {
+		return client.WalkAll(oid)
+	}
+
+	// 对于 v2c 和 v3，优先尝试 BulkWalkAll
+	pdus, err := client.BulkWalkAll(oid)
+	if err != nil {
+		// 如果 BulkWalk 失败，尝试回退到 WalkAll
+		pdusRetry, errRetry := client.WalkAll(oid)
+		if errRetry == nil {
+			return pdusRetry, nil
+		}
+		// 如果降级也失败，返回组合错误
+		return nil, fmt.Errorf("bulk walk failed: %v, fallback walk failed: %w", err, errRetry)
+	}
+
+	return pdus, nil
+}
+
 func (d *DiscoveryEngine) performStandardDiscovery(ctx context.Context, client *gosnmp.GoSNMP, snmpOID string, rule DiscoveryRule) ([]DiscoveryItem, error) {
 	if err := d.validateOID(snmpOID); err != nil {
 		return nil, fmt.Errorf("invalid SNMP OID '%s': %w", snmpOID, err)
@@ -346,7 +370,7 @@ func (d *DiscoveryEngine) performStandardDiscovery(ctx context.Context, client *
 	resultChan := make(chan walkResult, 1)
 
 	go func() {
-		pdus, err := client.BulkWalkAll(snmpOID)
+		pdus, err := d.walkOID(client, snmpOID)
 		resultChan <- walkResult{pdus: pdus, err: err}
 	}()
 
