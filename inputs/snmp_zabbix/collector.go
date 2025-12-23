@@ -170,6 +170,11 @@ func (c *SNMPCollector) collectFromAgent(ctx context.Context, agent string, item
 
 func (c *SNMPCollector) collectIndividually(client *gosnmp.GoSNMP, agent string, items []MonitorItem, resultChan chan<- CollectionResult) {
 	for _, item := range items {
+		// Skip dependent items in individual collection, they are handled by their masters
+		if strings.EqualFold(item.Type, "dependent") {
+			continue
+		}
+
 		// 使用 Get 而不是 BulkGet
 		pduResult, err := client.Get([]string{item.OID})
 
@@ -220,11 +225,14 @@ func (c *SNMPCollector) processSingleResult(agent string, item MonitorItem, resu
 		Tags:  c.buildTags(agent, item),
 	}
 
+	var masterValue interface{}
+
 	if result.Error != nil {
 		collectionResult.Error = result.Error
 	} else {
 		rawValue := c.convertSNMPValue(result.Value, item)
 		processedValue := rawValue
+
 		if len(item.Preprocessing) > 0 {
 			processed, err := ApplyPreprocessingWithContext(
 				rawValue,
@@ -243,6 +251,8 @@ func (c *SNMPCollector) processSingleResult(agent string, item MonitorItem, resu
 			}
 		}
 
+		masterValue = processedValue
+
 		finalValue, fields, err := c.processValue(processedValue, item)
 		if err != nil {
 			collectionResult.Error = err
@@ -259,6 +269,66 @@ func (c *SNMPCollector) processSingleResult(agent string, item MonitorItem, resu
 		}
 	}
 	resultChan <- collectionResult
+
+	if len(item.DependentItems) > 0 && result.Error == nil {
+		c.processDependentItems(agent, item.DependentItems, masterValue, resultChan)
+	}
+}
+
+func (c *SNMPCollector) processDependentItems(agent string, dependents []MonitorItem, masterValue interface{}, resultChan chan<- CollectionResult) {
+	for _, depItem := range dependents {
+		c.processSingleDependentItem(agent, depItem, masterValue, resultChan)
+	}
+}
+
+func (c *SNMPCollector) processSingleDependentItem(agent string, item MonitorItem, inputValue interface{}, resultChan chan<- CollectionResult) {
+	processedValue := inputValue
+	var err error
+
+	if len(item.Preprocessing) > 0 {
+		processedValue, err = ApplyPreprocessingWithContext(
+			inputValue,
+			item.Preprocessing,
+			c.preprocessingCtx,
+			item.Key,
+			agent,
+		)
+	}
+
+	collectionResult := CollectionResult{
+		Agent: agent,
+		Key:   item.Key,
+		Time:  time.Now(),
+		Tags:  c.buildTags(agent, item),
+	}
+
+	if err != nil {
+		if c.config.DebugMode {
+			log.Printf("D! dependent preprocessing failed for %s: %v", item.Key, err)
+		}
+		return
+	}
+
+	finalValue, fields, err := c.processValue(processedValue, item)
+	if err != nil {
+		collectionResult.Error = err
+	} else {
+		if floatVal, convErr := ConvertToFloat64(finalValue); convErr == nil {
+			fields["value"] = floatVal
+		} else {
+			fields["value"] = finalValue
+		}
+
+		collectionResult.Value = finalValue
+		collectionResult.Fields = fields
+		collectionResult.Type = item.Type
+	}
+
+	resultChan <- collectionResult
+
+	if len(item.DependentItems) > 0 && err == nil {
+		c.processDependentItems(agent, item.DependentItems, processedValue, resultChan)
+	}
 }
 
 type BulkGetResult struct {

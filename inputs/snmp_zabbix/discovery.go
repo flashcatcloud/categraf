@@ -14,6 +14,13 @@ import (
 	"github.com/gosnmp/gosnmp"
 )
 
+const (
+	// DurationNever 代表永不执行 (-1s)
+	DurationNever = -1 * time.Second
+	// DurationImmediately 代表立即执行 (0s)
+	DurationImmediately = 0
+)
+
 type DiscoveryEngine struct {
 	client   *SNMPClientManager
 	template *ZabbixTemplate
@@ -55,6 +62,9 @@ type MonitorItem struct {
 	DiscoveryIndex  string // 从 {#SNMPINDEX} 等宏解析出的唯一索引
 
 	Preprocessing []PreprocessStep `json:"preprocessing,omitempty"`
+
+	// DependentItems 存储依赖于该 Item 的子 Item
+	DependentItems []MonitorItem
 }
 
 func extractLabelKey(itemKey string) string {
@@ -404,6 +414,10 @@ func (d *DiscoveryEngine) extractIndexFromOID(fullOID, baseOID string) string {
 	if !strings.HasPrefix(fullOID, baseOID) {
 		return ""
 	}
+	// 如果比 baseOID 长，必须紧跟切分符（.）
+	if len(fullOID) > len(baseOID) && fullOID[len(baseOID)] != '.' {
+		return ""
+	}
 
 	// 提取索引部分
 	if len(fullOID) <= len(baseOID) {
@@ -529,6 +543,12 @@ func (d *DiscoveryEngine) ApplyItemPrototypes(discoveries []DiscoveryItem, rule 
 	var items []MonitorItem
 	prototypes := rule.ItemPrototypes
 
+	// Flat list to scope item creation per discovery iteration
+	type GeneratedItem struct {
+		MonitorItem
+		MasterKey string
+	}
+
 	for _, discovery := range discoveries {
 		discoveryIndex := ""
 		if idx, ok := discovery.Macros["{#SNMPINDEX}"]; ok {
@@ -538,9 +558,10 @@ func (d *DiscoveryEngine) ApplyItemPrototypes(discoveries []DiscoveryItem, rule 
 			discoveryIndex = idx
 		}
 
+		var currentScopeItems []GeneratedItem
+
 		for _, prototype := range prototypes {
-			if prototype.Status == "DISABLED" ||
-				prototype.Status == "UNSUPPORTED" {
+			if prototype.Status == "DISABLED" || prototype.Status == "UNSUPPORTED" {
 				continue
 			}
 			delay := parseZabbixDelay(prototype.Delay)
@@ -549,8 +570,15 @@ func (d *DiscoveryEngine) ApplyItemPrototypes(discoveries []DiscoveryItem, rule 
 				tags[tag.Tag] = tag.Value
 			}
 
+			// Expand macros in keys to properly link masters and dependents
+			expandedKey := d.expandMacros(prototype.Key, discovery.Macros)
+			expandedMasterKey := ""
+			if prototype.MasterItem.Key != "" {
+				expandedMasterKey = d.expandMacros(prototype.MasterItem.Key, discovery.Macros)
+			}
+
 			item := MonitorItem{
-				Key:              d.expandMacros(prototype.Key, discovery.Macros),
+				Key:              expandedKey,
 				OID:              d.expandMacros(prototype.SNMPOID, discovery.Macros),
 				Type:             ConvertZabbixItemType(prototype.Type),
 				Name:             d.expandMacros(prototype.Name, discovery.Macros),
@@ -571,10 +599,55 @@ func (d *DiscoveryEngine) ApplyItemPrototypes(discoveries []DiscoveryItem, rule 
 			default:
 				item.IsLabelProvider = false
 			}
-			items = append(items, item)
+
+			currentScopeItems = append(currentScopeItems, GeneratedItem{
+				MonitorItem: item,
+				MasterKey:   expandedMasterKey,
+			})
+		}
+
+		// Map for O(1) lookups during dependency linkage
+		localMap := make(map[string]*MonitorItem)
+		var localList []*MonitorItem
+		var dependentList []*GeneratedItem
+
+		for i := range currentScopeItems {
+			ptr := &currentScopeItems[i].MonitorItem
+			localMap[ptr.Key] = ptr
+
+			if currentScopeItems[i].MasterKey != "" {
+				dependentList = append(dependentList, &currentScopeItems[i])
+			} else {
+				localList = append(localList, ptr)
+			}
+		}
+
+		depMap := make(map[string][]string)
+		for _, dep := range dependentList {
+			depMap[dep.MasterKey] = append(depMap[dep.MasterKey], dep.Key)
+		}
+
+		var buildTree func(key string) MonitorItem
+		buildTree = func(key string) MonitorItem {
+			item := *localMap[key]
+			children := depMap[key]
+			for _, childKey := range children {
+				if _, exists := localMap[childKey]; exists {
+					childItem := buildTree(childKey)
+					item.DependentItems = append(item.DependentItems, childItem)
+				}
+			}
+			return item
+		}
+
+		// Only return root items; dependents are nested within them
+		for i := range currentScopeItems {
+			if currentScopeItems[i].MasterKey == "" {
+				root := buildTree(currentScopeItems[i].Key)
+				items = append(items, root)
+			}
 		}
 	}
-
 	return items
 }
 
@@ -606,6 +679,61 @@ func parseZabbixDelay(delayStr string) time.Duration {
 	}
 
 	return 60 * time.Second
+}
+
+// ParseLLDLifetimes 解析 Zabbix 7.0+ 的生命周期配置
+// 返回值: (deleteTTL, disableTTL)
+// -1 (DurationNever): 永不
+// 0 (DurationImmediately): 立即
+// >0: 延迟执行的时长
+func ParseLLDLifetimes(rule DiscoveryRule) (time.Duration, time.Duration) {
+	// 1. 解析 Delete 策略 (彻底删除)
+	deleteTTL := parseStrategy(rule.LifetimeType, rule.Lifetime, 7*24*time.Hour) // 默认删除时间 7d
+
+	// 2. 解析 Disable 策略 (停止采集)
+	// 默认禁用策略：如果未配置，通常 Zabbix 行为是立即禁用(0)或者永不禁用。
+	// 这里我们设定：如果未显式配置，且旧版 logic (lifetime) 存在，则 Disable 默认为 0 (立即禁用，保持旧版行为一致性)
+	disableTTL := parseStrategy(rule.EnabledLifetimeType, rule.EnabledLifetime, DurationImmediately)
+
+	return deleteTTL, disableTTL
+}
+
+// 辅助函数：通用策略解析
+// typeStr:
+//   - "DELETE_NEVER", "DISABLE_NEVER"       -> 返回 DurationNever (-1s)，表示“永不执行”
+//   - "DELETE_IMMEDIATELY", "DISABLE_IMMEDIATELY" -> 返回 DurationImmediately (0s)，表示“立即执行”
+//   - "DELETE_AFTER", "DISABLE_AFTER"       -> 解析 durationStr，得到一个 >0 的延迟时长
+//   - "" (空字符串)                          -> 若 durationStr 非空，则按 *AFTER* 处理；否则返回 defaultValue
+//   - 其他未知值                             -> 返回 defaultValue
+// durationStr: 期望为 Zabbix 风格的延迟字符串，例如 "7d", "1h", "30m" 等；当 typeStr 为 *_AFTER 或为空且 durationStr 非空时生效
+// defaultValue: 当无法从 typeStr 和 durationStr 推导策略时使用的默认时长。
+// 返回值含义：
+//   - DurationNever (-1s): 永不执行
+//   - DurationImmediately (0s): 立即执行
+//   - >0: 表示延迟执行的时长
+func parseStrategy(typeStr, durationStr string, defaultValue time.Duration) time.Duration {
+	// 归一化
+	typeStr = strings.ToUpper(strings.TrimSpace(typeStr))
+
+	switch typeStr {
+	case "DELETE_NEVER", "DISABLE_NEVER":
+		return DurationNever
+	case "DELETE_IMMEDIATELY", "DISABLE_IMMEDIATELY":
+		return DurationImmediately
+	case "DELETE_AFTER", "DISABLE_AFTER":
+		if durationStr == "" {
+			return defaultValue
+		}
+		return parseZabbixDelay(durationStr)
+	default:
+		// 兼容旧版配置或空配置
+		// 如果 explicit type 为空，但 durationStr 有值，视为 AFTER
+		if typeStr == "" && durationStr != "" {
+			return parseZabbixDelay(durationStr)
+		}
+		// 否则返回默认值
+		return defaultValue
+	}
 }
 
 func (d *DiscoveryEngine) expandMacros(text string, macros map[string]string) string {

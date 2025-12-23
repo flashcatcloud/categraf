@@ -33,7 +33,14 @@ type ScheduledItem struct {
 	LastRun  time.Time
 	NextRun  time.Time
 	Interval time.Duration
-	// 可加上 ID 做调试
+
+	IsLost     bool      // true: 最近一次发现中丢失
+	LostSince  time.Time // 丢失开始的时间
+	IsDisabled bool      // true: 已停止采集 (已移出 intervals 队列)
+
+	// 当前周期的 TTL 配置
+	DeleteTTL  time.Duration // 删除倒计时
+	DisableTTL time.Duration // 禁用倒计时
 }
 
 func NewItemScheduler(collector *SNMPCollector, labelCache *LabelCache) *ItemScheduler {
@@ -125,6 +132,8 @@ func (s *ItemScheduler) Start(ctx context.Context, slist *types.SampleList) {
 	for interval := range s.intervals {
 		s.startRunnerIfNeeded(interval)
 	}
+
+	go s.runMaintainLoop(ctx)
 }
 
 func (s *ItemScheduler) runInterval(ctx context.Context, interval time.Duration, slist *types.SampleList) {
@@ -237,7 +246,7 @@ func (s *ItemScheduler) removeFromIntervalSlice(interval time.Duration, target *
 	s.intervals[interval] = items
 }
 
-func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorItem, immediateOnExistingInterval bool) {
+func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorItem, immediateOnExistingInterval bool, deleteTTL, disableTTL time.Duration) {
 	now := time.Now()
 
 	// 预处理：归一化 delay、标记 IsDiscovered
@@ -266,7 +275,7 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 		intervalOldLen[iv] = len(items)
 	}
 
-	// 1) 删除：只处理属于当前 ruleKey 的旧项
+	// 1) 处理“丢失”的旧项
 	oldItemsForRule := make(map[string]*ScheduledItem)
 	for id, sch := range s.discovered {
 		if sch.Item.DiscoveryRuleKey == ruleKey {
@@ -275,11 +284,30 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 	}
 	for id, sch := range oldItemsForRule {
 		if _, ok := newIdx[id]; !ok {
-			if sch.Item.IsLabelProvider {
-				s.labelCache.DeleteLabel(sch.Item.Agent, sch.Item.DiscoveryRuleKey, sch.Item.DiscoveryIndex, sch.Item.LabelKey)
+			if deleteTTL == DurationImmediately {
+				if sch.Item.IsLabelProvider {
+					s.labelCache.DeleteLabel(sch.Item.Agent, sch.Item.DiscoveryRuleKey, sch.Item.DiscoveryIndex, sch.Item.LabelKey)
+				}
+				if !sch.IsDisabled {
+					s.removeFromIntervalSlice(sch.Interval, sch)
+				}
+				delete(s.discovered, id)
+				continue // 已删除，跳过后续逻辑
 			}
-			s.removeFromIntervalSlice(sch.Interval, sch)
-			delete(s.discovered, id)
+			if !sch.IsLost {
+				sch.IsLost = true
+				sch.LostSince = now
+				log.Printf("I! item marked as lost: %s", id)
+			}
+			// 更新 TTL 配置 (允许动态调整)
+			sch.DeleteTTL = deleteTTL
+			sch.DisableTTL = disableTTL
+			// 检查是否需要立即禁用
+			if !sch.IsDisabled && disableTTL == DurationImmediately {
+				s.removeFromIntervalSlice(sch.Interval, sch)
+				sch.IsDisabled = true
+				log.Printf("I! item disabled immediately due to loss: %s", id)
+			}
 		}
 	}
 
@@ -287,20 +315,36 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 	for id, newItem := range newIdx {
 		if sch, ok := s.discovered[id]; ok {
 			// 更新
+			// 如果之前是 Lost，现在恢复了
+			if sch.IsLost {
+				sch.IsLost = false
+				sch.LostSince = time.Time{}
+				log.Printf("I! item recovered from lost: %s", id)
+			}
+			// 如果之前是 Disabled，现在需要恢复采集
+			wasDisabled := sch.IsDisabled
+			if wasDisabled {
+				sch.IsDisabled = false
+				// 需要重新加入调度队列
+			}
 			oldInterval := sch.Interval
 			newInterval := newItem.Delay
-
-			if newInterval != oldInterval {
-				s.removeFromIntervalSlice(oldInterval, sch)
+			// 只有在非 Disabled 状态下，才需要从旧队列移除
+			// 如果 interval 变了，或者之前是 disabled (不在队列中)，都需要加入新队列
+			if newInterval != oldInterval || wasDisabled {
+				if !wasDisabled {
+					// 还在旧队列里，先移除
+					s.removeFromIntervalSlice(oldInterval, sch)
+				}
+				// 加入新队列
 				s.intervals[newInterval] = append(s.intervals[newInterval], sch)
 				sch.Interval = newInterval
 				intervalTouchedNew[newInterval] = true
 			}
-
+			// 更新属性
 			if newItem.OID != sch.Item.OID || newInterval != oldInterval {
 				sch.NextRun = now.Add(jitter(newInterval))
 			}
-
 			sch.Item = newItem
 		} else {
 			// 新增
@@ -309,6 +353,9 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 				Item:     newItem,
 				Interval: iv,
 				NextRun:  now.Add(jitter(iv)),
+
+				IsLost:     false,
+				IsDisabled: false,
 			}
 			s.intervals[iv] = append(s.intervals[iv], scheduled)
 			s.discovered[id] = scheduled
@@ -349,6 +396,133 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 		}
 	}
 }
+
+func (s *ItemScheduler) runMaintainLoop(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Minute) // 1分钟检查一次，精度更高
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-s.stopCh:
+			return
+		case <-ticker.C:
+			s.maintainItemStates()
+		}
+	}
+}
+
+func (s *ItemScheduler) maintainItemStates() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := time.Now()
+	deletedCount := 0
+	disabledCount := 0
+
+	for id, sch := range s.discovered {
+		if !sch.IsLost {
+			continue
+		}
+
+		elapsed := now.Sub(sch.LostSince)
+
+		// 1. 检查是否需要删除 (Delete)
+		if sch.DeleteTTL != DurationNever && elapsed > sch.DeleteTTL {
+			// 执行删除
+			if sch.Item.IsLabelProvider {
+				s.labelCache.DeleteLabel(sch.Item.Agent, sch.Item.DiscoveryRuleKey, sch.Item.DiscoveryIndex, sch.Item.LabelKey)
+			}
+			if !sch.IsDisabled {
+				s.removeFromIntervalSlice(sch.Interval, sch)
+			}
+			delete(s.discovered, id)
+			deletedCount++
+			continue // 已删除，无需检查禁用
+		}
+
+		// 2. 检查是否需要禁用 (Disable)
+		// 条件：尚未禁用，且 DisableTTL 不是 Never，且超时
+		if !sch.IsDisabled && sch.DisableTTL != DurationNever && elapsed > sch.DisableTTL {
+			// 执行禁用：移出调度队列
+			s.removeFromIntervalSlice(sch.Interval, sch)
+			sch.IsDisabled = true
+			disabledCount++
+		}
+	}
+
+	if deletedCount > 0 || disabledCount > 0 {
+		log.Printf("I! item maintenance: deleted %d items, disabled %d items", deletedCount, disabledCount)
+	}
+}
+
+func (s *ItemScheduler) CollectInternalMetrics(slist *types.SampleList) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	now := time.Now()
+	for _, sch := range s.discovered {
+		tags := map[string]string{
+			"agent":          sch.Item.Agent,
+			"item_key":       sch.Item.Key,
+			"discovery_rule": sch.Item.DiscoveryRuleKey,
+			"oid":            sch.Item.OID,
+		}
+
+		var state int // 0: Normal, 1: LostActive, 2: LostDisabled
+
+		if !sch.IsLost {
+			state = 0
+		} else {
+			if sch.IsDisabled {
+				state = 2
+			} else {
+				state = 1
+			}
+		}
+		// 1. 上报状态指标
+		slist.PushFront(types.NewSample("", "snmp_zabbix_item_discovery_state", state, tags))
+
+		// 2. 上报倒计时指标 (仅当 Lost 时)
+		if sch.IsLost {
+			elapsed := now.Sub(sch.LostSince)
+
+			// 2.1 Disable 倒计时 (仅当 Active 且 DisableTTL != Never)
+			if !sch.IsDisabled && sch.DisableTTL != DurationNever {
+				remaining := sch.DisableTTL - elapsed
+				if remaining < 0 {
+					remaining = 0
+				}
+				// 复制标签以避免并发修改(虽然这里是新建的map)
+				disableTags := copyTags(tags)
+				disableTags["action"] = "disable"
+				slist.PushFront(types.NewSample("", "snmp_zabbix_item_remaining_seconds", remaining.Seconds(), disableTags))
+			}
+
+			// 2.2 Delete 倒计时 (DeleteTTL != Never)
+			if sch.DeleteTTL != DurationNever {
+				remaining := sch.DeleteTTL - elapsed
+				if remaining < 0 {
+					remaining = 0
+				}
+				deleteTags := copyTags(tags)
+				deleteTags["action"] = "delete"
+				slist.PushFront(types.NewSample("", "snmp_zabbix_item_remaining_seconds", remaining.Seconds(), deleteTags))
+			}
+		}
+
+	}
+}
+
+func copyTags(src map[string]string) map[string]string {
+	dst := make(map[string]string, len(src)+1)
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
+}
+
 func jitterMagnitude(d time.Duration) time.Duration {
 	if d <= 0 {
 		return 0
