@@ -688,7 +688,7 @@ func parseZabbixDelay(delayStr string) time.Duration {
 // >0: 延迟执行的时长
 func ParseLLDLifetimes(rule DiscoveryRule) (time.Duration, time.Duration) {
 	// 1. 解析 Delete 策略 (彻底删除)
-	deleteTTL := parseStrategy(rule.LifetimeType, rule.Lifetime, 7*24*time.Hour) // 默认删除时间 30d
+	deleteTTL := parseStrategy(rule.LifetimeType, rule.Lifetime, 7*24*time.Hour) // 默认删除时间 7d
 
 	// 2. 解析 Disable 策略 (停止采集)
 	// 默认禁用策略：如果未配置，通常 Zabbix 行为是立即禁用(0)或者永不禁用。
