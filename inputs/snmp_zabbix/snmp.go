@@ -567,8 +567,8 @@ func (s *Instance) getTemplateStaticItems() []MonitorItem {
 
 		var buildTree func(key string, visited map[string]bool) MonitorItem
 		buildTree = func(key string, visited map[string]bool) MonitorItem {
-			ptr := agentItemsMap[key]
-			if ptr == nil {
+			ptr, ok := agentItemsMap[key]
+			if !ok || ptr == nil {
 				if s.DebugMod {
 					log.Printf("E! check failed: item key '%s' not found in map during tree build", key)
 				}
