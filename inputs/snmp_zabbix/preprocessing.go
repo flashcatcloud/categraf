@@ -174,7 +174,7 @@ func applyPreprocessingStep(value interface{}, step PreprocessStep, context *Pre
 	case "TRIM", "LTRIM", "RTRIM": // 字符串修剪
 		return applyTrim(value, step.Type)
 
-	//case "SNMP_WALK_TO_JSON": // SNMP walk结果转JSON
+	// case "SNMP_WALK_TO_JSON": // SNMP walk结果转JSON
 	//	return applySNMPWalkToJSON(value, step.Parameters)
 
 	case "JSONPATH", "12":
@@ -746,29 +746,9 @@ func applyJavaScript(value interface{}, params []string) (interface{}, error) {
 		vm.Interrupt(errors.New("javascript execution timed out"))
 	})
 	defer timer.Stop() // 确保定时器被清理
-	valueToInject := value
-
-	// 检查 value 是否为 Zabbix LLD JSON 字符串 "{"data": [...]}"
-	if strVal, ok := value.(string); ok {
-		trimmedVal := strings.TrimSpace(strVal)
-		// 必须是对象格式，且看起来像 LLD 格式
-		if strings.HasPrefix(trimmedVal, `{"data":`) && strings.HasSuffix(trimmedVal, "}") {
-			// 尝试解析
-			var lldWrapper map[string]interface{}
-			if err := json.Unmarshal([]byte(trimmedVal), &lldWrapper); err == nil {
-				if data, exists := lldWrapper["data"]; exists {
-					// 解析成功，并且 'data' 键存在
-					// 将要注入的值替换为 'data' 键的内容 (通常是一个 LLD 数组)
-					valueToInject = data
-					log.Printf("D! auto-unwrapped LLD JSON 'data' field for javascript preprocessing")
-				}
-			}
-			// 如果解析失败或 'data' 键不存在, valueToInject 将保持为原始字符串，这是安全的
-		}
-	}
 
 	// 注入输入值
-	err = vm.Set("value", valueToInject)
+	err = vm.Set("value", value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set 'value' in javascript vm: %w", err)
 	}
@@ -786,18 +766,6 @@ func applyJavaScript(value interface{}, params []string) (interface{}, error) {
 		return goja.Undefined()
 	})
 	vm.Set("console", console)
-
-	vm.Set("JSON", map[string]interface{}{
-		"parse": func(s string) (interface{}, error) {
-			var v interface{}
-			err := json.Unmarshal([]byte(s), &v)
-			return v, err
-		},
-		"stringify": func(v interface{}) (string, error) {
-			b, err := json.Marshal(v)
-			return string(b), err
-		},
-	})
 
 	// 执行预编译的程序
 	result, err := vm.RunProgram(program)
