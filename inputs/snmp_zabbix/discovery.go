@@ -699,9 +699,18 @@ func ParseLLDLifetimes(rule DiscoveryRule) (time.Duration, time.Duration) {
 }
 
 // 辅助函数：通用策略解析
-// typeStr: DELETE_NEVER, DISABLE_AFTER 等
-// durationStr: "7d", "1h"
-// defaultValue: 当 typeStr 为空时的默认 duration
+// typeStr:
+//   - "DELETE_NEVER", "DISABLE_NEVER"       -> 返回 DurationNever (-1s)，表示“永不执行”
+//   - "DELETE_IMMEDIATELY", "DISABLE_IMMEDIATELY" -> 返回 DurationImmediately (0s)，表示“立即执行”
+//   - "DELETE_AFTER", "DISABLE_AFTER"       -> 解析 durationStr，得到一个 >0 的延迟时长
+//   - "" (空字符串)                          -> 若 durationStr 非空，则按 *AFTER* 处理；否则返回 defaultValue
+//   - 其他未知值                             -> 返回 defaultValue
+// durationStr: 期望为 Zabbix 风格的延迟字符串，例如 "7d", "1h", "30m" 等；当 typeStr 为 *_AFTER 或为空且 durationStr 非空时生效
+// defaultValue: 当无法从 typeStr 和 durationStr 推导策略时使用的默认时长。
+// 返回值含义：
+//   - DurationNever (-1s): 永不执行
+//   - DurationImmediately (0s): 立即执行
+//   - >0: 表示延迟执行的时长
 func parseStrategy(typeStr, durationStr string, defaultValue time.Duration) time.Duration {
 	// 归一化
 	typeStr = strings.ToUpper(strings.TrimSpace(typeStr))
