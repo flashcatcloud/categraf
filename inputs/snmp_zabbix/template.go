@@ -711,6 +711,8 @@ func (t *ZabbixTemplate) ExpandMacros(text string, context map[string]string) st
 	result := text
 
 	// 展开上下文宏 (discovery macros)
+	// Note: discovery macro keys in `context` are provided without braces (e.g. "MACRO"),
+	// and we intentionally expand both "{#MACRO}" and "{MACRO}" forms in the text.
 	for macro, value := range context {
 		// 兼容多种形式的上下文键，例如：
 		// "SNMPINDEX", "#SNMPINDEX", "{SNMPINDEX}", "{#SNMPINDEX}"
