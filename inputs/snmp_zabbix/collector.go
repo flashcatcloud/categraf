@@ -326,8 +326,6 @@ func (c *SNMPCollector) processSingleDependentItem(agent string, item MonitorIte
 
 	resultChan <- collectionResult
 
-	resultChan <- collectionResult
-
 	if len(item.DependentItems) > 0 && err == nil {
 		c.processDependentItems(agent, item.DependentItems, processedValue, resultChan)
 	}
