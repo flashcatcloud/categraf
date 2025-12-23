@@ -171,7 +171,7 @@ func (c *SNMPCollector) collectFromAgent(ctx context.Context, agent string, item
 func (c *SNMPCollector) collectIndividually(client *gosnmp.GoSNMP, agent string, items []MonitorItem, resultChan chan<- CollectionResult) {
 	for _, item := range items {
 		// Skip dependent items in individual collection, they are handled by their masters
-		if item.Type == "DEPENDENT" {
+		if strings.EqualFold(item.Type, "dependent") {
 			continue
 		}
 
