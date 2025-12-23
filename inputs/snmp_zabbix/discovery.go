@@ -218,7 +218,24 @@ func (d *DiscoveryEngine) performMultiOidWalkDiscovery(ctx context.Context, clie
 		}
 
 		// 这里不需要 acquire 锁，因为上层 performSNMPDiscovery 已经持有锁了
-		pdus, err := client.BulkWalkAll(oid)
+		var pdus []gosnmp.SnmpPDU
+		var err error
+
+		if client.Version == gosnmp.Version1 {
+			pdus, err = client.WalkAll(oid)
+		} else {
+			pdus, err = client.BulkWalkAll(oid)
+			if err != nil {
+				pdusRetry, errRetry := client.WalkAll(oid)
+				if errRetry == nil {
+					pdus = pdusRetry
+					err = nil
+				} else {
+					err = fmt.Errorf("bulk walk failed: %v, fallback walk failed: %w", err, errRetry)
+				}
+			}
+		}
+
 		if err != nil {
 			return nil, fmt.Errorf("SNMP walk failed for OID %s: %w", oid, err)
 		}
@@ -267,7 +284,8 @@ func (d *DiscoveryEngine) performZabbixDependentDiscovery(ctx context.Context, c
 						pdus = pdusRetry
 						err = nil
 					} else {
-						log.Printf("W!: BulkWalkAll failed for OID %s: %v, fallback WalkAll also failed: %v", pair.OID, err, errRetry)
+						err = fmt.Errorf("bulk walk failed: %v, fallback walk failed: %w", err, errRetry)
+						log.Printf("W!: %v", err)
 					}
 				}
 			}
@@ -364,7 +382,24 @@ func (d *DiscoveryEngine) performStandardDiscovery(ctx context.Context, client *
 	resultChan := make(chan walkResult, 1)
 
 	go func() {
-		pdus, err := client.BulkWalkAll(snmpOID)
+		var pdus []gosnmp.SnmpPDU
+		var err error
+
+		if client.Version == gosnmp.Version1 {
+			pdus, err = client.WalkAll(snmpOID)
+		} else {
+			pdus, err = client.BulkWalkAll(snmpOID)
+			if err != nil {
+				pdusRetry, errRetry := client.WalkAll(snmpOID)
+				if errRetry == nil {
+					pdus = pdusRetry
+					err = nil
+				} else {
+					err = fmt.Errorf("bulk walk failed: %v, fallback walk failed: %w", err, errRetry)
+				}
+			}
+		}
+
 		resultChan <- walkResult{pdus: pdus, err: err}
 	}()
 
