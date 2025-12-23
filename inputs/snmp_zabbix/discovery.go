@@ -114,7 +114,7 @@ func (d *DiscoveryEngine) ExecuteDiscovery(ctx context.Context, agent string, ru
 			}
 			// 预处理的正确输入应该是这个 JSON 字符串
 			valueForPreprocessing = string(jsonBytes)
-			//log.Printf("DEBUG: Serialized discovery result for preprocessing: %s", valueForPreprocessing)
+			// log.Printf("DEBUG: Serialized discovery result for preprocessing: %s", valueForPreprocessing)
 		}
 
 		processedValue, err := ApplyDiscoveryPreprocessing(valueForPreprocessing, rule.Preprocessing)
@@ -252,7 +252,25 @@ func (d *DiscoveryEngine) performZabbixDependentDiscovery(ctx context.Context, c
 		resultChan := make(chan walkResult, 1)
 
 		go func() {
-			pdus, err := client.BulkWalkAll(pair.OID)
+			var pdus []gosnmp.SnmpPDU
+			var err error
+
+			// SNMPv1 do not support GETBULK，use WalkAll (GETNEXT)
+			if client.Version == gosnmp.Version1 {
+				pdus, err = client.WalkAll(pair.OID)
+			} else {
+				pdus, err = client.BulkWalkAll(pair.OID)
+				if err != nil {
+					// fallback to walk
+					pdusRetry, errRetry := client.WalkAll(pair.OID)
+					if errRetry == nil {
+						pdus = pdusRetry
+						err = nil
+					} else {
+						log.Printf("W!: BulkWalkAll failed for OID %s: %v, fallback WalkAll also failed: %v", pair.OID, err, errRetry)
+					}
+				}
+			}
 			resultChan <- walkResult{pdus: pdus, err: err}
 		}()
 
