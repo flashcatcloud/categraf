@@ -318,9 +318,11 @@ func (s *Instance) handleDiscoveryComplete(agent string, rule DiscoveryRule, ite
 	log.Printf("Discovery rule '%s' for agent %s produced %d valid items (filtered from %d)",
 		rule.Key, agent, len(filtered), len(items))
 
-	// 使用差量更新到ItemScheduler
+	// 解析生命周期 (DeleteTTL, DisableTTL)
+	deleteTTL, disableTTL := ParseLLDLifetimes(rule)
+	// 使用差量更新到ItemScheduler，传入两个 TTL
 	if s.scheduler != nil && s.scheduler.running {
-		s.scheduler.UpdateDiscoveredDiff(rule.Key, filtered, true)
+		s.scheduler.UpdateDiscoveredDiff(rule.Key, filtered, true, deleteTTL, disableTTL)
 	}
 }
 
@@ -421,6 +423,9 @@ func (s *Instance) Start(_ *types.SampleList) error {
 			select {
 			case <-healthTicker.C:
 				s.up(slist)
+				if s.scheduler != nil {
+					s.scheduler.CollectInternalMetrics(slist)
+				}
 			case <-processTicker.C:
 				sl := s.Process(slist)
 				arr := sl.PopBackAll()
@@ -471,62 +476,119 @@ func (s *Instance) getTemplateStaticItems() []MonitorItem {
 		return nil
 	}
 
-	var items []MonitorItem
+	// Temporary structure to hold expanded template items before assigning to agents
 	templateItems := s.template.GetSNMPItems()
+
+	finalItems := make([]MonitorItem, 0)
+
+	type TemplateMonitorItem struct {
+		MonitorItem
+		MasterKey string
+	}
+
+	var parsedTemplateItems []TemplateMonitorItem
+
+	for _, tmplItem := range templateItems {
+		if tmplItem.Status == "DISABLED" || tmplItem.Status == "1" {
+			continue
+		}
+		key := s.expandMacros(tmplItem.Key)
+		oid := s.expandMacros(tmplItem.SNMPOID)
+		if strings.Contains(key, "{#") || strings.Contains(oid, "{#") {
+			continue
+		}
+
+		tags := make(map[string]string)
+		for _, t := range tmplItem.Tags {
+			tags[t.Tag] = t.Value
+		}
+
+		mi := MonitorItem{
+			Key:           key,
+			OID:           oid,
+			Type:          ConvertZabbixItemType(tmplItem.Type),
+			Name:          s.expandMacros(tmplItem.Name),
+			Units:         tmplItem.Units,
+			Delay:         parseZabbixDelay(tmplItem.Delay),
+			ValueType:     ConvertZabbixValueType(tmplItem.ValueType),
+			Description:   s.expandMacros(tmplItem.Description),
+			Preprocessing: tmplItem.Preprocessing,
+			Tags:          tags,
+		}
+
+		switch tmplItem.ValueType {
+		case "CHAR", "1", "TEXT", "4":
+			mi.IsLabelProvider = true
+			mi.LabelKey = extractLabelKey(key)
+		}
+
+		parsedTemplateItems = append(parsedTemplateItems, TemplateMonitorItem{
+			MonitorItem: mi,
+			MasterKey:   s.expandMacros(tmplItem.MasterItem.Key),
+		})
+	}
 
 	for _, agent := range s.config.Agents {
 		agentAddr := s.config.GetAgentAddress(agent)
 
-		for _, tmplItem := range templateItems {
-			// Check if item is disabled
-			if tmplItem.Status == "DISABLED" || tmplItem.Status == "1" {
-				continue
+		agentItemsMap := make(map[string]*MonitorItem)
+		var agentItemsList []*MonitorItem
+		var dependentItems []*TemplateMonitorItem
+
+		for i := range parsedTemplateItems {
+			// Deep copy needed for each agent
+			newItem := parsedTemplateItems[i].MonitorItem
+			newItem.Agent = agentAddr
+
+			itemPtr := &newItem
+			agentItemsMap[newItem.Key] = itemPtr
+
+			if parsedTemplateItems[i].MasterKey != "" {
+				dependentItems = append(dependentItems, &parsedTemplateItems[i])
+			} else {
+				agentItemsList = append(agentItemsList, itemPtr)
 			}
+		}
 
-			key := s.expandMacros(tmplItem.Key)
-			oid := s.expandMacros(tmplItem.SNMPOID)
-			name := s.expandMacros(tmplItem.Name)
-			desc := s.expandMacros(tmplItem.Description)
-
-			// Static items should not contain discovery macros {#MACRO}
-			if strings.Contains(key, "{#") || strings.Contains(oid, "{#") {
+		// Validate masters exist for dependents
+		for _, depTmpl := range dependentItems {
+			child := agentItemsMap[depTmpl.Key]
+			if _, ok := agentItemsMap[depTmpl.MasterKey]; !ok {
 				if s.DebugMod {
-					log.Printf("W! skipping template item with discovery macros: key=%s, oid=%s", key, oid)
+					log.Printf("W! dependent item %s missing master %s on agent %s", child.Key, depTmpl.MasterKey, agentAddr)
 				}
-				continue
 			}
+		}
 
-			tags := make(map[string]string)
-			for _, t := range tmplItem.Tags {
-				tags[t.Tag] = t.Value
+		dependencyMap := make(map[string][]string)
+		for _, dep := range dependentItems {
+			dependencyMap[dep.MasterKey] = append(dependencyMap[dep.MasterKey], dep.Key)
+		}
+
+		var buildTree func(key string) MonitorItem
+		buildTree = func(key string) MonitorItem {
+			item := *agentItemsMap[key]
+			childrenKeys := dependencyMap[key]
+			for _, childKey := range childrenKeys {
+				childItem := buildTree(childKey)
+				item.DependentItems = append(item.DependentItems, childItem)
 			}
+			return item
+		}
 
-			valueType := ConvertZabbixValueType(tmplItem.ValueType)
-			monitorItem := MonitorItem{
-				Key:             key,
-				OID:             oid,
-				Type:            "snmp",
-				Name:            name,
-				Units:           tmplItem.Units,
-				Delay:           parseZabbixDelay(tmplItem.Delay),
-				Agent:           agentAddr,
-				ValueType:       valueType,
-				Description:     desc,
-				Preprocessing:   tmplItem.Preprocessing,
-				Tags:            tags,
-				IsDiscovered:    false,
-				IsLabelProvider: false,
+		// Rebuild root items with full dependency tree
+		agentItemsList = nil
+		for i := range parsedTemplateItems {
+			if parsedTemplateItems[i].MasterKey == "" {
+				root := buildTree(parsedTemplateItems[i].Key)
+				agentItemsList = append(agentItemsList, &root)
 			}
+		}
 
-			// Set IsLabelProvider for CHAR/TEXT value types
-			switch tmplItem.ValueType {
-			case "CHAR", "1", "TEXT", "4":
-				monitorItem.IsLabelProvider = true
-				monitorItem.LabelKey = extractLabelKey(key)
-			}
-
-			items = append(items, monitorItem)
+		for _, item := range agentItemsList {
+			finalItems = append(finalItems, *item)
 		}
 	}
-	return items
+
+	return finalItems
 }

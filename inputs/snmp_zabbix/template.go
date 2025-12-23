@@ -190,6 +190,10 @@ type DiscoveryRule struct {
 	Preprocessing     []PreprocessStep   `yaml:"preprocessing,omitempty"`
 	LLDMacroPaths     []LLDMacroPath     `yaml:"lld_macro_paths,omitempty"`
 	Overrides         []Override         `yaml:"overrides,omitempty"`
+
+	LifetimeType        string `yaml:"lifetime_type,omitempty"`         // DELETE_NEVER, DELETE_IMMEDIATELY, DELETE_AFTER
+	EnabledLifetime     string `yaml:"enabled_lifetime,omitempty"`      // Disable duration
+	EnabledLifetimeType string `yaml:"enabled_lifetime_type,omitempty"` // DISABLE_NEVER, DISABLE_IMMEDIATELY, DISABLE_AFTER
 }
 
 type ItemPrototype struct {
@@ -707,16 +711,9 @@ func (t *ZabbixTemplate) ExpandMacros(text string, context map[string]string) st
 	result := text
 
 	// 展开上下文宏 (discovery macros)
-	// Note: macro keys may be stored with or without braces (e.g., "{#SNMPINDEX}" or "SNMPINDEX")
 	for macro, value := range context {
-		// Normalize the macro name by removing the {# prefix and } suffix if present
-		normalizedMacro := macro
-		if strings.HasPrefix(normalizedMacro, "{#") && strings.HasSuffix(normalizedMacro, "}") {
-			normalizedMacro = strings.TrimPrefix(normalizedMacro, "{#")
-			normalizedMacro = strings.TrimSuffix(normalizedMacro, "}")
-		}
-		result = strings.ReplaceAll(result, fmt.Sprintf("{#%s}", normalizedMacro), value)
-		result = strings.ReplaceAll(result, fmt.Sprintf("{%s}", normalizedMacro), value)
+		result = strings.ReplaceAll(result, fmt.Sprintf("{#%s}", macro), value)
+		result = strings.ReplaceAll(result, fmt.Sprintf("{%s}", macro), value)
 	}
 
 	// 展开模板宏 {$MACRO}
@@ -935,7 +932,57 @@ func ConvertZabbixItemType(itemType string) string {
 	}
 }
 
-// 获取SNMP相关的items
+// 获取模板统计信息
+func (t *ZabbixTemplate) GetStats() map[string]interface{} {
+	stats := make(map[string]interface{})
+
+	stats["format"] = t.Format
+	stats["version"] = t.ZabbixExport.Version
+	stats["template_count"] = len(t.ZabbixExport.Templates)
+	stats["host_count"] = len(t.ZabbixExport.Hosts)
+	stats["total_items"] = len(t.Items)
+	stats["total_discovery_rules"] = len(t.DiscoveryRules)
+	stats["total_macros"] = len(t.Macros)
+
+	// 按类型统计items
+	itemTypes := make(map[string]int)
+	for _, item := range t.Items {
+		itemType := ConvertZabbixItemType(item.Type)
+		itemTypes[itemType]++
+	}
+	stats["item_types"] = itemTypes
+
+	// 统计discovery rules中的item prototypes
+	totalProtos := 0
+	for _, rule := range t.DiscoveryRules {
+		totalProtos += len(rule.ItemPrototypes)
+	}
+	stats["total_item_prototypes"] = totalProtos
+
+	// 统计triggers
+	totalTriggers := 0
+	for _, tmpl := range t.ZabbixExport.Templates {
+		totalTriggers += len(tmpl.Triggers)
+	}
+	for _, host := range t.ZabbixExport.Hosts {
+		totalTriggers += len(host.Triggers)
+	}
+	stats["total_triggers"] = totalTriggers
+
+	// 统计graphs
+	totalGraphs := 0
+	for _, tmpl := range t.ZabbixExport.Templates {
+		totalGraphs += len(tmpl.Graphs)
+	}
+	for _, host := range t.ZabbixExport.Hosts {
+		totalGraphs += len(host.Graphs)
+	}
+	stats["total_graphs"] = totalGraphs
+
+	return stats
+}
+
+// 获取SNMP相关的items和discovery rules
 func (t *ZabbixTemplate) GetSNMPItems() []TemplateItem {
 	var snmpItems []TemplateItem
 	for _, item := range t.Items {
@@ -944,6 +991,16 @@ func (t *ZabbixTemplate) GetSNMPItems() []TemplateItem {
 		}
 	}
 	return snmpItems
+}
+
+func (t *ZabbixTemplate) GetSNMPDiscoveryRules() []DiscoveryRule {
+	var snmpRules []DiscoveryRule
+	for _, rule := range t.DiscoveryRules {
+		if ConvertZabbixItemType(rule.Type) == "snmp" {
+			snmpRules = append(snmpRules, rule)
+		}
+	}
+	return snmpRules
 }
 
 // 模板验证
