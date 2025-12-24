@@ -21,6 +21,9 @@ import (
 	"flashcat.cloud/categraf/types"
 )
 
+var execCommand = exec.Command
+var execLookPath = exec.LookPath
+
 const inputName = "procstat"
 
 type PID int32
@@ -37,6 +40,9 @@ type Instance struct {
 	GatherTotal            bool     `toml:"gather_total"`
 	GatherPerPid           bool     `toml:"gather_per_pid"`
 	GatherMoreMetrics      []string `toml:"gather_more_metrics"`
+
+	UseSudo   bool   `toml:"use_sudo"`
+	PathJstat string `toml:"path_jstat"`
 
 	SearchExecRegexp string         `toml:"search_exec_regexp"`
 	searchExecRegexp *regexp.Regexp `toml:"-"`
@@ -83,7 +89,9 @@ func (ins *Instance) Init() error {
 	} else {
 		return errors.New("the fields should not be all blank: search_exec_substring, search_cmdline_substring, search_win_service")
 	}
-
+	if ins.PathJstat == "" {
+		ins.PathJstat = "jstat"
+	}
 	if ins.LabelsFromCmdlineRegexp != "" {
 		r := regexp.MustCompile(ins.LabelsFromCmdlineRegexp)
 		extractLabelKey := r.SubexpNames()
@@ -535,7 +543,7 @@ func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, t
 		attachPid = true
 	}
 	for pid := range procs {
-		jvmStat, err := execJstat(pid)
+		jvmStat, err := ins.execJstat(pid)
 		if err != nil {
 			log.Println("E! failed to exec jstat:", err)
 			continue
@@ -551,15 +559,26 @@ func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, t
 	}
 }
 
-func execJstat(pid PID) (map[string]string, error) {
-	bin, err := exec.LookPath("jstat")
-	if err != nil {
-		return nil, err
+func (ins *Instance) execJstat(pid PID) (map[string]string, error) {
+	bin := ins.PathJstat
+	args := []string{}
+	if ins.UseSudo {
+		args = append(args, ins.PathJstat)
+		bin = "sudo"
 	}
 
-	out, err := exec.Command(bin, "-gc", fmt.Sprint(pid)).Output()
+	args = append(args, "-gc", fmt.Sprint(pid))
+	cmd := execCommand(bin, args...)
+	out, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("jstat exec failed with exit code %d: %w, stderr: '%s', cmd: '%s'",
+				exitErr.ExitCode(),
+				err,
+				string(exitErr.Stderr),
+				cmd.String())
+		}
+		return nil, fmt.Errorf("jstat command failed to start: %w, cmd: '%s'", err, cmd.String())
 	}
 
 	jvm := strings.Fields(string(out))
