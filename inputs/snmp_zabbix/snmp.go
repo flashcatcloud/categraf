@@ -565,13 +565,37 @@ func (s *Instance) getTemplateStaticItems() []MonitorItem {
 			dependencyMap[dep.MasterKey] = append(dependencyMap[dep.MasterKey], dep.Key)
 		}
 
-		var buildTree func(key string) MonitorItem
-		buildTree = func(key string) MonitorItem {
-			item := *agentItemsMap[key]
+		var buildTree func(key string, visited map[string]bool) MonitorItem
+		buildTree = func(key string, visited map[string]bool) MonitorItem {
+			ptr, ok := agentItemsMap[key]
+			if !ok || ptr == nil {
+				if s.DebugMod {
+					log.Printf("E! check failed: item key '%s' not found in map during tree build", key)
+				}
+				return MonitorItem{}
+			}
+
+			if visited[key] {
+				if s.DebugMod {
+					log.Printf("E! cycle detected in item dependency: %s", key)
+				}
+				return *ptr
+			}
+			visited[key] = true
+
+			item := *ptr
 			childrenKeys := dependencyMap[key]
 			for _, childKey := range childrenKeys {
-				childItem := buildTree(childKey)
-				item.DependentItems = append(item.DependentItems, childItem)
+				// Copy visited map to allow shared dependencies (DAG) while preventing cycles in the current path.
+				childVisited := make(map[string]bool, len(visited))
+				for k, v := range visited {
+					childVisited[k] = v
+				}
+
+				childItem := buildTree(childKey, childVisited)
+				if childItem.Key != "" {
+					item.DependentItems = append(item.DependentItems, childItem)
+				}
 			}
 			return item
 		}
@@ -580,8 +604,12 @@ func (s *Instance) getTemplateStaticItems() []MonitorItem {
 		agentItemsList = nil
 		for i := range parsedTemplateItems {
 			if parsedTemplateItems[i].MasterKey == "" {
-				root := buildTree(parsedTemplateItems[i].Key)
-				agentItemsList = append(agentItemsList, &root)
+				// New visited map for each root
+				visited := make(map[string]bool)
+				root := buildTree(parsedTemplateItems[i].Key, visited)
+				if root.Key != "" {
+					agentItemsList = append(agentItemsList, &root)
+				}
 			}
 		}
 

@@ -1,9 +1,10 @@
 package snmp_zabbix
 
 import (
+	"container/heap"
 	"context"
+	"hash/fnv"
 	"log"
-	"math/rand"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -12,7 +13,12 @@ import (
 )
 
 type ItemScheduler struct {
-	intervals map[time.Duration][]*ScheduledItem
+	// pq is the Priority Queue (Min-Heap) of tasks, ordered by NextRun time.
+	pq ItemHeap
+	// taskMap allows O(1) lookup of tasks by key "Agent|Interval" for dynamic updates logic.
+	// Key format: "Agent|IntervalNanoseconds"
+	taskMap map[string]*ScheduledTask
+
 	collector *SNMPCollector
 	mu        sync.RWMutex
 	running   bool
@@ -21,99 +27,47 @@ type ItemScheduler struct {
 	ctx   context.Context
 	slist *types.SampleList
 
-	// 发现项索引（只索引 IsDiscovered=true 的项）
-	discovered map[string]*ScheduledItem // id -> scheduled
+	// discovered tracks individual items for LLD maintenance (TTL, etc).
+	// Key: "Agent|ItemKey"
+	discovered map[string]*ScheduledItem
 
-	labelCache       *LabelCache
-	runningIntervals map[time.Duration]bool // 记录已启动 runner 的 interval
+	labelCache *LabelCache
 }
 
+// ScheduledItem holds metadata for a single item within LLD logic.
+// Unlike the old scheduler, this is mostly for tracking state (Lost, Disabled)
+// and is NOT the unit of scheduling. The unit of scheduling is ScheduledTask.
 type ScheduledItem struct {
-	Item     MonitorItem
-	LastRun  time.Time
-	NextRun  time.Time
-	Interval time.Duration
-
-	IsLost     bool      // true: 最近一次发现中丢失
-	LostSince  time.Time // 丢失开始的时间
-	IsDisabled bool      // true: 已停止采集 (已移出 intervals 队列)
-
-	// 当前周期的 TTL 配置
-	DeleteTTL  time.Duration // 删除倒计时
-	DisableTTL time.Duration // 禁用倒计时
+	Item       MonitorItem
+	Interval   time.Duration
+	IsLost     bool
+	LostSince  time.Time
+	IsDisabled bool
+	DeleteTTL  time.Duration
+	DisableTTL time.Duration
 }
 
 func NewItemScheduler(collector *SNMPCollector, labelCache *LabelCache) *ItemScheduler {
-	rand.Seed(time.Now().UnixNano())
 	return &ItemScheduler{
-		intervals:  make(map[time.Duration][]*ScheduledItem),
+		pq:         make(ItemHeap, 0),
+		taskMap:    make(map[string]*ScheduledTask),
 		collector:  collector,
 		stopCh:     make(chan struct{}),
 		discovered: make(map[string]*ScheduledItem),
 		labelCache: labelCache,
-
-		runningIntervals: make(map[time.Duration]bool),
 	}
 }
 
-func (s *ItemScheduler) startRunnerIfNeeded(iv time.Duration) {
-	log.Printf("I! starting runner for interval %v", iv)
-	if s.slist == nil || !s.running || s.ctx == nil {
-		return
-	}
-	if s.runningIntervals[iv] {
-		return
-	}
-	// 标记已启动再放锁，避免竞态下重复启动
-	s.runningIntervals[iv] = true
-	ctx := s.ctx
-	slist := s.slist
-	go s.runInterval(ctx, iv, slist)
-}
-
-func (s *ItemScheduler) itemID(it MonitorItem) string {
-	// 假设 Key 在展开后包含索引，足以唯一；如需更稳妥可拼上 OID
-	if it.Key != "" {
-		return it.Agent + "|" + it.Key
-	}
-	return it.Agent + "|" + it.OID
-}
-
-func (s *ItemScheduler) AddItem(item MonitorItem) {
-	interval := item.Delay
-	if interval == 0 {
-		interval = 60 * time.Second
-	}
-
+func (s *ItemScheduler) Stop() {
 	s.mu.Lock()
-	scheduledItem := &ScheduledItem{
-		Item:     item,
-		Interval: interval,
-		NextRun:  time.Now().Add(jitter(interval)),
+	defer s.mu.Unlock()
+	if !s.running {
+		return
 	}
-	items := s.intervals[interval]
-	prevLen := len(items)
-	items = append(items, scheduledItem)
-	s.intervals[interval] = items
-
-	if item.IsDiscovered {
-		id := s.itemID(item)
-		s.discovered[id] = scheduledItem
-	}
-
-	running := s.running
-	ctx := s.ctx
-	slist := s.slist
-	s.mu.Unlock()
-
-	if running && slist != nil {
-		s.mu.Lock()
-		s.startRunnerIfNeeded(interval)
-		s.mu.Unlock()
-	}
-
-	if running && slist != nil && prevLen == 0 {
-		go s.checkAndExecuteItems(ctx, time.Now(), items, slist)
+	s.running = false
+	if s.stopCh != nil {
+		close(s.stopCh)
+		s.stopCh = nil
 	}
 }
 
@@ -129,127 +83,151 @@ func (s *ItemScheduler) Start(ctx context.Context, slist *types.SampleList) {
 	s.running = true
 	s.ctx = ctx
 	s.slist = slist
-	for interval := range s.intervals {
-		s.startRunnerIfNeeded(interval)
-	}
 
+	go s.runLoop(ctx)
 	go s.runMaintainLoop(ctx)
 }
 
-func (s *ItemScheduler) runInterval(ctx context.Context, interval time.Duration, slist *types.SampleList) {
-	stop := s.stopCh
-
+// runLoop is the main event loop that processes the Heap.
+func (s *ItemScheduler) runLoop(ctx context.Context) {
 	s.mu.RLock()
-	currentItems := s.intervals[interval]
+	stopCh := s.stopCh
 	s.mu.RUnlock()
-	if len(currentItems) > 0 {
-		s.checkAndExecuteItems(ctx, time.Now(), currentItems, slist)
-	}
 
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
+	// Re-check interval
+	const idleWait = 1 * time.Second
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-stop:
+		case <-stopCh:
 			return
-		case now := <-ticker.C:
-			s.mu.RLock()
-			currentItems := s.intervals[interval]
-			s.mu.RUnlock()
-			if len(currentItems) > 0 {
-				s.checkAndExecuteItems(ctx, now, currentItems, slist)
+		default:
+		}
+
+		s.mu.Lock()
+		if s.pq.Len() == 0 {
+			s.mu.Unlock()
+			time.Sleep(idleWait)
+			continue
+		}
+
+		// Peek at the first item
+		task := s.pq[0]
+		now := time.Now()
+
+		if task.NextRun.After(now) {
+			// Not ready yet
+			wait := task.NextRun.Sub(now)
+			// Cap the wait time to avoid long sleeps blocking shutdown (though we check stopCh above)
+			if wait > 5*time.Second {
+				wait = 5 * time.Second
+			}
+			s.mu.Unlock()
+			time.Sleep(wait)
+			continue
+		}
+
+		// Ready to execute
+		// Pop it, update time, push it back (or remove if empty)
+		if len(task.Items) == 0 {
+			heap.Pop(&s.pq)
+			delete(s.taskMap, s.taskKey(task.Agent, task.Interval))
+			s.mu.Unlock()
+			continue
+		}
+
+		// Execute
+		// Because we pop and push, we must ensure concurrency safety.
+		// We make a COPY of items to pass to the collector goroutine.
+		itemsToCollect := make([]MonitorItem, len(task.Items))
+		copy(itemsToCollect, task.Items)
+
+		// Update NextRun and fix heap
+		// Simple logic: NextRun += Interval.
+
+		if task.Interval <= 0 {
+			task.Interval = time.Minute
+		}
+
+		if task.NextRun.Before(now) {
+			diff := now.Sub(task.NextRun)
+			cycles := diff / task.Interval
+			if cycles > 0 {
+				task.NextRun = task.NextRun.Add(cycles * task.Interval)
+			}
+			if task.NextRun.Before(now) {
+				task.NextRun = task.NextRun.Add(task.Interval)
 			}
 		}
+
+		heap.Fix(&s.pq, task.index)
+
+		s.mu.Unlock()
+
+		// Async Execute
+		go s.executeTask(ctx, task.Agent, itemsToCollect)
 	}
 }
 
-func (s *ItemScheduler) checkAndExecuteItems(ctx context.Context, now time.Time, items []*ScheduledItem, slist *types.SampleList) {
-	var readyItems []MonitorItem
-
-	s.mu.Lock()
-	log.Println("group item ready length:", len(items), "time:", now.String())
-	for _, item := range items {
-		if !item.NextRun.After(now.Add(jitterMagnitude(item.Interval))) {
-			readyItems = append(readyItems, item.Item)
-			item.LastRun = now
-			item.NextRun = now.Add(item.Interval).Add(jitter(item.Interval))
-		}
-	}
-	s.mu.Unlock()
-
-	if len(readyItems) > 0 {
-		go s.executeItems(ctx, readyItems, slist)
-	}
-}
-
-func (s *ItemScheduler) executeItems(ctx context.Context, items []MonitorItem, slist *types.SampleList) {
-	agentItems := make(map[string][]MonitorItem)
-	for _, item := range items {
-		agentItems[item.Agent] = append(agentItems[item.Agent], item)
-	}
-
-	var wg sync.WaitGroup
-	for agent, agentItemList := range agentItems {
-		wg.Add(1)
-		go func(agent string, items []MonitorItem) {
-			defer wg.Done()
-			s.collectItemsForAgent(ctx, agent, items, slist)
-		}(agent, agentItemList)
-	}
-	wg.Wait()
-}
-
-func (s *ItemScheduler) collectItemsForAgent(ctx context.Context, agent string, items []MonitorItem, slist *types.SampleList) {
+func (s *ItemScheduler) executeTask(ctx context.Context, agent string, items []MonitorItem) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("E! [CRITICAL] collection goroutine for agent %s panicked: %v\n%s",
-				agent,
-				r,
-				debug.Stack(),
-			)
+			log.Printf("E! [CRITICAL] collection goroutine for agent %s panicked: %v\n%s", agent, r, debug.Stack())
 		}
 	}()
 
-	if err := s.collector.CollectItems(ctx, items, slist); err != nil {
+	if s.slist == nil {
+		return
+	}
+
+	if err := s.collector.CollectItems(ctx, items, s.slist); err != nil {
 		log.Printf("Failed to collect items for agent %s: %v\n", agent, err)
-		return
 	}
 }
 
-func (s *ItemScheduler) Stop() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if !s.running {
-		return
-	}
-	s.running = false
-
-	if s.stopCh != nil {
-		close(s.stopCh)
-		s.stopCh = nil
-	}
-	s.runningIntervals = make(map[time.Duration]bool)
+// taskKey generates a unique key for grouping tasks
+func (s *ItemScheduler) taskKey(agent string, interval time.Duration) string {
+	return agent + "|" + interval.String()
 }
 
-// 从某个 interval 切片中移除指定 ScheduledItem（按指针比较）
-func (s *ItemScheduler) removeFromIntervalSlice(interval time.Duration, target *ScheduledItem) {
-	items := s.intervals[interval]
-	for i := 0; i < len(items); i++ {
-		if items[i] == target {
-			items = append(items[:i], items[i+1:]...)
-			i--
-		}
+func (s *ItemScheduler) itemID(it MonitorItem) string {
+	if it.Key != "" {
+		return it.Agent + "|" + it.Key
 	}
-	s.intervals[interval] = items
+	return it.Agent + "|" + it.OID
 }
 
+// calcScatteredNextRun calculates the initial run time based on consistent hashing
+func (s *ItemScheduler) calcScatteredNextRun(agent string, interval time.Duration) time.Time {
+	if interval <= 0 {
+		interval = time.Minute
+	}
+	h := fnv.New64a()
+	h.Write([]byte(agent))
+	// Hash is deterministic.
+	// Offset is in [0, Interval)
+	// We cast to int64 (Duration) which is safe as interval is usually < 290 years
+	offset := time.Duration(h.Sum64() % uint64(interval))
+
+	now := time.Now()
+	// Align to the start of the current interval, then add the offset.
+	// If that time is already in the past, advance to the next interval.
+	base := now.Truncate(interval)
+	nextRun := base.Add(offset)
+	if nextRun.Before(now) {
+		nextRun = nextRun.Add(interval)
+	}
+	return nextRun
+}
+
+// UpdateDiscoveredDiff handles LLD updates.
+// It groups new items by (Agent, Interval) and syncs them with the Heap.
 func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorItem, immediateOnExistingInterval bool, deleteTTL, disableTTL time.Duration) {
 	now := time.Now()
 
-	// 预处理：归一化 delay、标记 IsDiscovered
+	// 1. Normalize and Index New Items
 	for i := range newItems {
 		if newItems[i].Delay == 0 {
 			newItems[i].Delay = 60 * time.Second
@@ -263,149 +241,155 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 		newIdx[s.itemID(it)] = it
 	}
 
-	var (
-		intervalsToStart   []time.Duration
-		intervalsToCheck   []time.Duration
-		intervalOldLen     = make(map[time.Duration]int)
-		intervalTouchedNew = make(map[time.Duration]bool) // 标记哪些 interval 有新增
-	)
-
 	s.mu.Lock()
-	for iv, items := range s.intervals {
-		intervalOldLen[iv] = len(items)
-	}
+	defer s.mu.Unlock()
 
-	// 1) 处理“丢失”的旧项
-	oldItemsForRule := make(map[string]*ScheduledItem)
+	// 2. Identify Lost Items
+	// Iterate valid existing items for this rule
 	for id, sch := range s.discovered {
 		if sch.Item.DiscoveryRuleKey == ruleKey {
-			oldItemsForRule[id] = sch
-		}
-	}
-	for id, sch := range oldItemsForRule {
-		if _, ok := newIdx[id]; !ok {
-			if deleteTTL == DurationImmediately {
-				if sch.Item.IsLabelProvider {
-					s.labelCache.DeleteLabel(sch.Item.Agent, sch.Item.DiscoveryRuleKey, sch.Item.DiscoveryIndex, sch.Item.LabelKey)
+			if _, ok := newIdx[id]; !ok {
+				// Lost Logic
+				if deleteTTL == 0 { // Immediately delete
+					s.removeItemFromTask(sch)
+					delete(s.discovered, id)
+					if sch.Item.IsLabelProvider {
+						s.labelCache.DeleteLabel(sch.Item.Agent, sch.Item.DiscoveryRuleKey, sch.Item.DiscoveryIndex, sch.Item.LabelKey)
+					}
+					continue
 				}
-				if !sch.IsDisabled {
-					s.removeFromIntervalSlice(sch.Interval, sch)
+
+				if !sch.IsLost {
+					sch.IsLost = true
+					sch.LostSince = now
+					log.Printf("I! item marked as lost: %s", id)
 				}
-				delete(s.discovered, id)
-				continue // 已删除，跳过后续逻辑
-			}
-			if !sch.IsLost {
-				sch.IsLost = true
-				sch.LostSince = now
-				log.Printf("I! item marked as lost: %s", id)
-			}
-			// 更新 TTL 配置 (允许动态调整)
-			sch.DeleteTTL = deleteTTL
-			sch.DisableTTL = disableTTL
-			// 检查是否需要立即禁用
-			if !sch.IsDisabled && disableTTL == DurationImmediately {
-				s.removeFromIntervalSlice(sch.Interval, sch)
-				sch.IsDisabled = true
-				log.Printf("I! item disabled immediately due to loss: %s", id)
+				sch.DeleteTTL = deleteTTL
+				sch.DisableTTL = disableTTL
+
+				if !sch.IsDisabled && disableTTL == 0 {
+					s.removeItemFromTask(sch)
+					sch.IsDisabled = true
+					log.Printf("I! item disabled immediately: %s", id)
+				}
 			}
 		}
 	}
 
-	// 2) 新增或更新
+	// 3. Update / Insert New Items
 	for id, newItem := range newIdx {
-		if sch, ok := s.discovered[id]; ok {
-			// 更新
-			// 如果之前是 Lost，现在恢复了
+		sch, exists := s.discovered[id]
+
+		// Determine target group key
+		targetKey := s.taskKey(newItem.Agent, newItem.Delay)
+
+		if exists {
+			// Recover logic
 			if sch.IsLost {
 				sch.IsLost = false
 				sch.LostSince = time.Time{}
-				log.Printf("I! item recovered from lost: %s", id)
+				log.Printf("I! item recovered: %s", id)
 			}
-			// 如果之前是 Disabled，现在需要恢复采集
+
 			wasDisabled := sch.IsDisabled
 			if wasDisabled {
 				sch.IsDisabled = false
-				// 需要重新加入调度队列
 			}
-			oldInterval := sch.Interval
-			newInterval := newItem.Delay
-			// 只有在非 Disabled 状态下，才需要从旧队列移除
-			// 如果 interval 变了，或者之前是 disabled (不在队列中)，都需要加入新队列
-			if newInterval != oldInterval || wasDisabled {
+
+			oldKey := s.taskKey(sch.Item.Agent, sch.Interval)
+			if oldKey != targetKey || wasDisabled {
 				if !wasDisabled {
-					// 还在旧队列里，先移除
-					s.removeFromIntervalSlice(oldInterval, sch)
+					s.removeItemFromTask(sch)
 				}
-				// 加入新队列
-				s.intervals[newInterval] = append(s.intervals[newInterval], sch)
-				sch.Interval = newInterval
-				intervalTouchedNew[newInterval] = true
-			}
-			// 更新属性
-			if newItem.OID != sch.Item.OID || newInterval != oldInterval {
-				sch.NextRun = now.Add(jitter(newInterval))
+				s.addItemToTask(targetKey, newItem)
+			} else {
+				s.updateItemInTask(sch, newItem)
 			}
 			sch.Item = newItem
+			sch.Interval = newItem.Delay
 		} else {
-			// 新增
-			iv := newItem.Delay
-			scheduled := &ScheduledItem{
+			sch = &ScheduledItem{
 				Item:     newItem,
-				Interval: iv,
-				NextRun:  now.Add(jitter(iv)),
-
-				IsLost:     false,
-				IsDisabled: false,
+				Interval: newItem.Delay,
 			}
-			s.intervals[iv] = append(s.intervals[iv], scheduled)
-			s.discovered[id] = scheduled
-			intervalTouchedNew[iv] = true
+			s.discovered[id] = sch
+
+			s.addItemToTask(targetKey, newItem)
 		}
 	}
+}
 
-	for iv, items := range s.intervals {
-		oldLen := intervalOldLen[iv]
-		newLen := len(items)
-		if oldLen == 0 && newLen > 0 {
-			intervalsToStart = append(intervalsToStart, iv)
-		} else if immediateOnExistingInterval && intervalTouchedNew[iv] {
-			intervalsToCheck = append(intervalsToCheck, iv)
+// addItemToTask adds an item to the TaskGroup. Creates group if needed.
+func (s *ItemScheduler) addItemToTask(key string, item MonitorItem) {
+	task, exists := s.taskMap[key]
+	if !exists {
+		task = &ScheduledTask{
+			Agent:    item.Agent,
+			Interval: item.Delay,
+			Items:    []MonitorItem{item},
+			NextRun:  s.calcScatteredNextRun(item.Agent, item.Delay),
 		}
+		heap.Push(&s.pq, task)
+		s.taskMap[key] = task
+	} else {
+		task.Items = append(task.Items, item)
+		// Heap position doesn't change when adding items
+	}
+}
+
+// removeItemFromTask removes a specific item from its TaskGroup.
+func (s *ItemScheduler) removeItemFromTask(sch *ScheduledItem) {
+	key := s.taskKey(sch.Item.Agent, sch.Interval)
+	task, exists := s.taskMap[key]
+	if !exists {
+		return
 	}
 
-	running := s.running
-	ctx := s.ctx
-	slist := s.slist
-	s.mu.Unlock()
+	// Find and remove
+	for i, it := range task.Items {
+		if s.itemID(it) == s.itemID(sch.Item) {
+			// Copy remove (stable) to preserve order for debugging consistency
+			copy(task.Items[i:], task.Items[i+1:])
+			task.Items = task.Items[:len(task.Items)-1]
 
-	// 启动 interval 协程
-	if running && slist != nil {
-		s.mu.Lock()
-		for _, iv := range intervalsToStart {
-			s.startRunnerIfNeeded(iv)
-		}
-		s.mu.Unlock()
-		// 可选立即检查（仅当 interval 原本已存在）
-		for _, iv := range intervalsToCheck {
-			s.mu.RLock()
-			currentItems := s.intervals[iv]
-			s.mu.RUnlock()
-			if len(currentItems) > 0 {
-				go s.checkAndExecuteItems(ctx, now, currentItems, slist)
+			if len(task.Items) == 0 {
+				heap.Remove(&s.pq, task.index)
+				delete(s.taskMap, key)
 			}
+			break
+		}
+	}
+}
+
+// updateItemInTask updates the item data in the TaskGroup
+func (s *ItemScheduler) updateItemInTask(sch *ScheduledItem, newItem MonitorItem) {
+	key := s.taskKey(sch.Item.Agent, sch.Interval)
+	task, exists := s.taskMap[key]
+	if !exists {
+		return
+	}
+
+	for i, it := range task.Items {
+		if s.itemID(it) == s.itemID(sch.Item) {
+			task.Items[i] = newItem
+			return
 		}
 	}
 }
 
 func (s *ItemScheduler) runMaintainLoop(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Minute) // 1分钟检查一次，精度更高
+	s.mu.RLock()
+	stopCh := s.stopCh
+	s.mu.RUnlock()
+
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-s.stopCh:
+		case <-stopCh:
 			return
 		case <-ticker.C:
 			s.maintainItemStates()
@@ -418,43 +402,39 @@ func (s *ItemScheduler) maintainItemStates() {
 	defer s.mu.Unlock()
 
 	now := time.Now()
-	deletedCount := 0
-	disabledCount := 0
-
 	for id, sch := range s.discovered {
 		if !sch.IsLost {
 			continue
 		}
-
 		elapsed := now.Sub(sch.LostSince)
 
-		// 1. 检查是否需要删除 (Delete)
-		if sch.DeleteTTL != DurationNever && elapsed > sch.DeleteTTL {
-			// 执行删除
+		// Delete
+		if sch.DeleteTTL != 0 && elapsed > sch.DeleteTTL {
+			s.removeItemFromTask(sch)
+			delete(s.discovered, id)
 			if sch.Item.IsLabelProvider {
 				s.labelCache.DeleteLabel(sch.Item.Agent, sch.Item.DiscoveryRuleKey, sch.Item.DiscoveryIndex, sch.Item.LabelKey)
 			}
-			if !sch.IsDisabled {
-				s.removeFromIntervalSlice(sch.Interval, sch)
-			}
-			delete(s.discovered, id)
-			deletedCount++
-			continue // 已删除，无需检查禁用
+			continue
 		}
 
-		// 2. 检查是否需要禁用 (Disable)
-		// 条件：尚未禁用，且 DisableTTL 不是 Never，且超时
-		if !sch.IsDisabled && sch.DisableTTL != DurationNever && elapsed > sch.DisableTTL {
-			// 执行禁用：移出调度队列
-			s.removeFromIntervalSlice(sch.Interval, sch)
+		// Disable
+		if !sch.IsDisabled && sch.DisableTTL != 0 && elapsed > sch.DisableTTL {
+			s.removeItemFromTask(sch)
 			sch.IsDisabled = true
-			disabledCount++
 		}
 	}
+}
 
-	if deletedCount > 0 || disabledCount > 0 {
-		log.Printf("I! item maintenance: deleted %d items, disabled %d items", deletedCount, disabledCount)
+func (s *ItemScheduler) AddItem(item MonitorItem) {
+	if item.Delay == 0 {
+		item.Delay = time.Minute
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	k := s.taskKey(item.Agent, item.Delay)
+	s.addItemToTask(k, item)
 }
 
 func (s *ItemScheduler) CollectInternalMetrics(slist *types.SampleList) {
@@ -470,86 +450,46 @@ func (s *ItemScheduler) CollectInternalMetrics(slist *types.SampleList) {
 			"oid":            sch.Item.OID,
 		}
 
-		var state int // 0: Normal, 1: LostActive, 2: LostDisabled
-
-		if !sch.IsLost {
-			state = 0
-		} else {
+		state := 0
+		if sch.IsLost {
 			if sch.IsDisabled {
 				state = 2
 			} else {
 				state = 1
 			}
 		}
-		// 1. 上报状态指标
 		slist.PushFront(types.NewSample("", "snmp_zabbix_item_discovery_state", state, tags))
 
-		// 2. 上报倒计时指标 (仅当 Lost 时)
 		if sch.IsLost {
 			elapsed := now.Sub(sch.LostSince)
-
-			// 2.1 Disable 倒计时 (仅当 Active 且 DisableTTL != Never)
-			if !sch.IsDisabled && sch.DisableTTL != DurationNever {
-				remaining := sch.DisableTTL - elapsed
-				if remaining < 0 {
-					remaining = 0
+			if !sch.IsDisabled && sch.DisableTTL != 0 {
+				rem := sch.DisableTTL - elapsed
+				if rem < 0 {
+					rem = 0
 				}
-				// 复制标签以避免并发修改(虽然这里是新建的map)
-				disableTags := copyTags(tags)
-				disableTags["action"] = "disable"
-				slist.PushFront(types.NewSample("", "snmp_zabbix_item_remaining_seconds", remaining.Seconds(), disableTags))
+				dtags := copyTags(tags)
+				dtags["action"] = "disable"
+				slist.PushFront(types.NewSample("", "snmp_zabbix_item_remaining_seconds", rem.Seconds(), dtags))
 			}
-
-			// 2.2 Delete 倒计时 (DeleteTTL != Never)
-			if sch.DeleteTTL != DurationNever {
-				remaining := sch.DeleteTTL - elapsed
-				if remaining < 0 {
-					remaining = 0
+			if sch.DeleteTTL != 0 {
+				rem := sch.DeleteTTL - elapsed
+				if rem < 0 {
+					rem = 0
 				}
-				deleteTags := copyTags(tags)
-				deleteTags["action"] = "delete"
-				slist.PushFront(types.NewSample("", "snmp_zabbix_item_remaining_seconds", remaining.Seconds(), deleteTags))
+				dtags := copyTags(tags)
+				dtags["action"] = "delete"
+				slist.PushFront(types.NewSample("", "snmp_zabbix_item_remaining_seconds", rem.Seconds(), dtags))
 			}
 		}
-
 	}
 }
 
+// Util function defined again to avoid dependency cycle if moved?
+// Actually it was local in this file.
 func copyTags(src map[string]string) map[string]string {
 	dst := make(map[string]string, len(src)+1)
 	for k, v := range src {
 		dst[k] = v
 	}
 	return dst
-}
-
-func jitterMagnitude(d time.Duration) time.Duration {
-	if d <= 0 {
-		return 0
-	}
-
-	// 1. 计算抖动的最大幅度（例如，原始时长的 1%）
-	jm := d / 100
-	if jm <= 0 {
-		return 0
-	}
-	if jm > 30*time.Second {
-		jm = 30 * time.Second
-	}
-	return jm
-}
-
-// jitter 返回一个在 [-d/100, +d/100] 范围内的随机持续时间。
-// 这用于给计划任务增加少量随机性，以防止多个任务在完全相同的时间点执行。
-// 使用正负抖动可以避免调度周期稳定地错过下一个 Ticker 的问题。
-func jitter(d time.Duration) time.Duration {
-	jm := jitterMagnitude(d)
-
-	// 2. 生成一个 [0, 2 * magnitude) 范围内的随机数
-	n := rand.Int63n(2 * int64(jm))
-
-	// 3. 将其平移，得到一个 [-magnitude, +magnitude) 范围内的值
-	offset := n - int64(jm)
-
-	return time.Duration(offset)
 }
