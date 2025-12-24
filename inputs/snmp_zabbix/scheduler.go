@@ -5,7 +5,6 @@ import (
 	"context"
 	"hash/fnv"
 	"log"
-	"math/rand"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -49,7 +48,6 @@ type ScheduledItem struct {
 }
 
 func NewItemScheduler(collector *SNMPCollector, labelCache *LabelCache) *ItemScheduler {
-	rand.Seed(time.Now().UnixNano())
 	return &ItemScheduler{
 		pq:         make(ItemHeap, 0),
 		taskMap:    make(map[string]*ScheduledTask),
@@ -141,30 +139,27 @@ func (s *ItemScheduler) runLoop(ctx context.Context) {
 		// We make a COPY of items to pass to the collector goroutine.
 		itemsToCollect := make([]MonitorItem, len(task.Items))
 		copy(itemsToCollect, task.Items)
-		
+
 		// Update NextRun and fix heap
 		// Simple logic: NextRun += Interval.
-		task.NextRun = task.NextRun.Add(task.Interval)
-		
-		// Catchup logic: if mostly lagging, don't run immediately multiple times, just skip intervals?
-		// For SNMP, skipping intervals is better than burst.
-		// If NextRun is still in past after adding interval, add more until it is in future or close to now.
+
+		if task.Interval <= 0 {
+			task.Interval = time.Minute
+		}
+
 		if task.NextRun.Before(now) {
-			// Calculate how many intervals we missed
-			// (Now - NextRun) / Interval
 			diff := now.Sub(task.NextRun)
 			cycles := diff / task.Interval
 			if cycles > 0 {
 				task.NextRun = task.NextRun.Add(cycles * task.Interval)
 			}
-			// One more check
 			if task.NextRun.Before(now) {
 				task.NextRun = task.NextRun.Add(task.Interval)
 			}
 		}
 
 		heap.Fix(&s.pq, task.index)
-		
+
 		s.mu.Unlock()
 
 		// Async Execute
@@ -178,11 +173,11 @@ func (s *ItemScheduler) executeTask(ctx context.Context, agent string, items []M
 			log.Printf("E! [CRITICAL] collection goroutine for agent %s panicked: %v\n%s", agent, r, debug.Stack())
 		}
 	}()
-	
+
 	if s.slist == nil {
 		return
 	}
-	
+
 	if err := s.collector.CollectItems(ctx, items, s.slist); err != nil {
 		log.Printf("Failed to collect items for agent %s: %v\n", agent, err)
 	}
@@ -211,10 +206,16 @@ func (s *ItemScheduler) calcScatteredNextRun(agent string, interval time.Duratio
 	// Offset is in [0, Interval)
 	// We cast to int64 (Duration) which is safe as interval is usually < 290 years
 	offset := time.Duration(h.Sum64() % uint64(interval))
-	
+
 	now := time.Now()
-	// ...
-	return now.Add(offset)
+	// Align to the start of the current interval, then add the offset.
+	// If that time is already in the past, advance to the next interval.
+	base := now.Truncate(interval)
+	nextRun := base.Add(offset)
+	if nextRun.Before(now) {
+		nextRun = nextRun.Add(interval)
+	}
+	return nextRun
 }
 
 // UpdateDiscoveredDiff handles LLD updates.
@@ -253,7 +254,7 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 					}
 					continue
 				}
-				
+
 				if !sch.IsLost {
 					sch.IsLost = true
 					sch.LostSince = now
@@ -274,7 +275,7 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 	// 3. Update / Insert New Items
 	for id, newItem := range newIdx {
 		sch, exists := s.discovered[id]
-		
+
 		// Determine target group key
 		targetKey := s.taskKey(newItem.Agent, newItem.Delay)
 
@@ -285,38 +286,31 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 				sch.LostSince = time.Time{}
 				log.Printf("I! item recovered: %s", id)
 			}
-			
+
 			wasDisabled := sch.IsDisabled
 			if wasDisabled {
 				sch.IsDisabled = false
 			}
 
-			// Check if moved groups (Agent/Interval changed) or re-enabled
 			oldKey := s.taskKey(sch.Item.Agent, sch.Interval)
 			if oldKey != targetKey || wasDisabled {
 				if !wasDisabled {
 					s.removeItemFromTask(sch)
 				}
-				// Will be added to new group below
-				k := s.taskKey(newItem.Agent, newItem.Delay)
-				s.addItemToTask(k, newItem)
+				s.addItemToTask(targetKey, newItem)
 			} else {
-				// Same group, just update basic info. 
 				s.updateItemInTask(sch, newItem)
 			}
 			sch.Item = newItem
 			sch.Interval = newItem.Delay
 		} else {
-			// New Item
 			sch = &ScheduledItem{
-				Item: newItem,
+				Item:     newItem,
 				Interval: newItem.Delay,
 			}
 			s.discovered[id] = sch
-			
-			// Add to Task
-			k := s.taskKey(newItem.Agent, newItem.Delay)
-			s.addItemToTask(k, newItem)
+
+			s.addItemToTask(targetKey, newItem)
 		}
 	}
 }
@@ -354,7 +348,7 @@ func (s *ItemScheduler) removeItemFromTask(sch *ScheduledItem) {
 			lastIdx := len(task.Items) - 1
 			task.Items[i] = task.Items[lastIdx]
 			task.Items = task.Items[:lastIdx]
-			
+
 			if len(task.Items) == 0 {
 				heap.Remove(&s.pq, task.index)
 				delete(s.taskMap, key)
@@ -371,7 +365,7 @@ func (s *ItemScheduler) updateItemInTask(sch *ScheduledItem, newItem MonitorItem
 	if !exists {
 		return
 	}
-	
+
 	for i, it := range task.Items {
 		if s.itemID(it) == s.itemID(sch.Item) {
 			task.Items[i] = newItem
@@ -431,7 +425,7 @@ func (s *ItemScheduler) AddItem(item MonitorItem) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	k := s.taskKey(item.Agent, item.Delay)
 	s.addItemToTask(k, item)
 }
@@ -463,14 +457,18 @@ func (s *ItemScheduler) CollectInternalMetrics(slist *types.SampleList) {
 			elapsed := now.Sub(sch.LostSince)
 			if !sch.IsDisabled && sch.DisableTTL != 0 {
 				rem := sch.DisableTTL - elapsed
-				if rem < 0 { rem = 0 }
+				if rem < 0 {
+					rem = 0
+				}
 				dtags := copyTags(tags)
 				dtags["action"] = "disable"
 				slist.PushFront(types.NewSample("", "snmp_zabbix_item_remaining_seconds", rem.Seconds(), dtags))
 			}
 			if sch.DeleteTTL != 0 {
 				rem := sch.DeleteTTL - elapsed
-				if rem < 0 { rem = 0 }
+				if rem < 0 {
+					rem = 0
+				}
 				dtags := copyTags(tags)
 				dtags["action"] = "delete"
 				slist.PushFront(types.NewSample("", "snmp_zabbix_item_remaining_seconds", rem.Seconds(), dtags))
@@ -479,10 +477,10 @@ func (s *ItemScheduler) CollectInternalMetrics(slist *types.SampleList) {
 	}
 }
 
-// Util function defined again to avoid dependency cycle if moved? 
+// Util function defined again to avoid dependency cycle if moved?
 // Actually it was local in this file.
 func copyTags(src map[string]string) map[string]string {
-	dst := make(map[string]string, len(src))
+	dst := make(map[string]string, len(src)+1)
 	for k, v := range src {
 		dst[k] = v
 	}

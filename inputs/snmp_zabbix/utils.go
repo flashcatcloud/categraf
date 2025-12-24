@@ -1,7 +1,8 @@
 package snmp_zabbix
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"time"
 )
 
@@ -29,10 +30,16 @@ func jitter(d time.Duration) time.Duration {
 	}
 
 	// 2. Generate random in [0, 2 * magnitude)
-	n := rand.Int63n(2 * int64(jm))
+	// Use crypto/rand for thread safety and to avoid global lock contention
+	max := big.NewInt(2 * int64(jm))
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		// Fallback or return 0 on error
+		return 0
+	}
 
 	// 3. Offset to [-magnitude, +magnitude)
-	offset := n - int64(jm)
+	offset := n.Int64() - int64(jm)
 
 	return time.Duration(offset)
 }
