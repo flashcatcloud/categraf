@@ -155,31 +155,47 @@ func (c *ServerConfig) TLSConfig() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-func makeCertPool(certFiles []string) (*x509.CertPool, error) {
+func makeCertPool(certInputs []string) (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
-	for _, certFile := range certFiles {
-		pem, err := os.ReadFile(certFile)
+	for _, input := range certInputs {
+		pem, err := readPEM(input)
 		if err != nil {
 			return nil, fmt.Errorf(
-				"could not read certificate %q: %v", certFile, err)
+				"could not read certificate %q: %v", input, err)
 		}
 		if !pool.AppendCertsFromPEM(pem) {
+			preview := input
+			if len(preview) > 20 {
+				preview = preview[:20] + "..."
+			}
 			return nil, fmt.Errorf(
-				"could not parse any PEM certificates %q: %v", certFile, err)
+				"could not parse any PEM certificates from %q: %v", preview, err)
 		}
 	}
 	return pool, nil
 }
 
-func loadCertificate(config *tls.Config, certFile, keyFile string) error {
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+func loadCertificate(config *tls.Config, certInput, keyInput string) error {
+	certBytes, err := readPEM(certInput)
 	if err != nil {
-		return fmt.Errorf(
-			"could not load keypair %s:%s: %v", certFile, keyFile, err)
+		return fmt.Errorf("could not read cert: %v", err)
+	}
+
+	keyBytes, err := readPEM(keyInput)
+	if err != nil {
+		return fmt.Errorf("could not read key: %v", err)
+	}
+
+	cert, err := tls.X509KeyPair(certBytes, keyBytes)
+	if err != nil {
+		return fmt.Errorf("could not load keypair: %v", err)
 	}
 
 	config.Certificates = []tls.Certificate{cert}
-	config.BuildNameToCertificate()
+	// Deprecated: BuildNameToCertificate is deprecated in standard library since Go 1.14
+	// but kept here for compatibility with your existing code structure if needed.
+	// Current TLS implementation ignores this field.
+	// config.BuildNameToCertificate()
 	return nil
 }
 
@@ -198,4 +214,12 @@ func (c *ServerConfig) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [
 	}
 
 	return fmt.Errorf("peer certificate not in allowed DNS Name list: %v", cert.DNSNames)
+}
+
+func readPEM(input string) ([]byte, error) {
+	if strings.Contains(input, "-----BEGIN") {
+		return []byte(input), nil
+	}
+
+	return os.ReadFile(input)
 }
