@@ -90,6 +90,10 @@ func (s *ItemScheduler) Start(ctx context.Context, slist *types.SampleList) {
 
 // runLoop is the main event loop that processes the Heap.
 func (s *ItemScheduler) runLoop(ctx context.Context) {
+	s.mu.RLock()
+	stopCh := s.stopCh
+	s.mu.RUnlock()
+
 	// Re-check interval
 	const idleWait = 1 * time.Second
 
@@ -97,7 +101,7 @@ func (s *ItemScheduler) runLoop(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-s.stopCh:
+		case <-stopCh:
 			return
 		default:
 		}
@@ -374,6 +378,10 @@ func (s *ItemScheduler) updateItemInTask(sch *ScheduledItem, newItem MonitorItem
 }
 
 func (s *ItemScheduler) runMaintainLoop(ctx context.Context) {
+	s.mu.RLock()
+	stopCh := s.stopCh
+	s.mu.RUnlock()
+
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
@@ -381,7 +389,7 @@ func (s *ItemScheduler) runMaintainLoop(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-s.stopCh:
+		case <-stopCh:
 			return
 		case <-ticker.C:
 			s.maintainItemStates()
