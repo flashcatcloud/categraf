@@ -344,10 +344,9 @@ func (s *ItemScheduler) removeItemFromTask(sch *ScheduledItem) {
 	// Find and remove
 	for i, it := range task.Items {
 		if s.itemID(it) == s.itemID(sch.Item) {
-			// Swap remove
-			lastIdx := len(task.Items) - 1
-			task.Items[i] = task.Items[lastIdx]
-			task.Items = task.Items[:lastIdx]
+			// Copy remove (stable) to preserve order for debugging consistency
+			copy(task.Items[i:], task.Items[i+1:])
+			task.Items = task.Items[:len(task.Items)-1]
 
 			if len(task.Items) == 0 {
 				heap.Remove(&s.pq, task.index)
