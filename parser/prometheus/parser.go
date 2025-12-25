@@ -87,30 +87,62 @@ func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
 	totalLen := len(buf)
 
 	for offset < totalLen {
-		// Find next delimiter position relative to current offset
-		relIdxHelp := bytes.Index(buf[offset:], helpHeader)
-		relIdxType := bytes.Index(buf[offset:], typeHeader)
+		// Find next delimiter starting strictly AFTER 'offset'
+		// We use IndexByte ('#') for performance (O(N) total scan instead of O(N^2))
+		// and then verify if it's actually a header.
 
-		var relIdx int
+		rest := buf[offset:]
 
-		if relIdxHelp == -1 && relIdxType == -1 {
-			// No more delimiters, take the rest
-			relIdx = totalLen - offset
-		} else if relIdxHelp != -1 && (relIdxType == -1 || relIdxHelp < relIdxType) {
-			relIdx = relIdxHelp
-		} else {
-			relIdx = relIdxType
+		// If we are at the very beginning of a block (or file), we might be standing ON a delimiter.
+		// If so, we need to skip it to find the NEXT one.
+		searchStart := 0
+		if bytes.HasPrefix(rest, helpHeader) {
+			searchStart = len(helpHeader)
+		} else if bytes.HasPrefix(rest, typeHeader) {
+			searchStart = len(typeHeader)
+		}
+
+		idx := -1
+		scanOffset := searchStart
+
+		for {
+			// Fast scan for '#'
+			p := bytes.IndexByte(rest[scanOffset:], '#')
+			if p == -1 {
+				idx = -1
+				break
+			}
+
+			// Potential delimiter found at relative index (scanOffset + p)
+			candidate := rest[scanOffset+p:]
+
+			// Verify if it is indeed a header
+			if bytes.HasPrefix(candidate, helpHeader) || bytes.HasPrefix(candidate, typeHeader) {
+				idx = scanOffset + p
+				break
+			}
+
+			// False alarm (e.g. '#' inside a label or comment), continue scanning
+			scanOffset += p + 1
 		}
 
 		// Calculate absolute end of current chunk
+		var relIdx int
+		if idx == -1 {
+			relIdx = len(rest)
+		} else {
+			relIdx = idx
+		}
+
 		chunkEnd := offset + relIdx
 
+		// Process current chunk if not empty
 		if chunkEnd > offset {
 			chunk := buf[offset:chunkEnd]
 			// Trim only leading/trailing whitespace to check for empty content
 			if len(bytes.TrimSpace(chunk)) > 0 {
 				// Handle "info" type check and replacement for each chunk
-				// "info->gauge" replacement feature
+				// This ensures we support the legacy "info->gauge" replacement feature
 				// We do Contains check first to avoid allocation if replacement isn't needed (Zero-Copy path)
 				if bytes.Contains(chunk, infoBytes) {
 					chunk = bytes.ReplaceAll(chunk, infoBytes, gaugeBytes)
