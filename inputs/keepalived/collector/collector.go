@@ -129,29 +129,33 @@ func (k *KeepalivedCollector) Collect(ch chan<- prometheus.Metric) {
 	defer k.Unlock()
 
 	keepalivedUp := float64(1)
-
-	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = 10 * time.Millisecond
-	b.MaxElapsedTime = 2 * time.Second
-	b.Reset()
-
 	var keepalivedStats *KeepalivedStats
 
-	if err := backoff.Retry(func() error {
-		var err error
-		keepalivedStats, err = k.getKeepalivedStats()
-		if err != nil {
-			slog.Debug("Failed to get keepalived stats",
-				"error", err,
-				"retryAfter", b.NextBackOff().String(),
-			)
-		}
-
-		return err
-	}, b); err != nil {
-		slog.Error("No data found to be exported", "error", err)
-
+	if err := k.collector.Refresh(); err != nil {
+		slog.Error("Failed to send refresh signals to keepalived", "error", err)
 		keepalivedUp = 0
+	}
+
+	if keepalivedUp == 1 {
+		b := backoff.NewExponentialBackOff()
+		b.InitialInterval = 50 * time.Millisecond
+		b.MaxElapsedTime = 2 * time.Second
+		b.Reset()
+
+		if err := backoff.Retry(func() error {
+			var err error
+			keepalivedStats, err = k.getKeepalivedStats()
+			if err != nil {
+				slog.Debug("Failed to get keepalived stats",
+					"error", err,
+				)
+			}
+			return err
+		}, b); err != nil {
+			slog.Error("No data found to be exported", "error", err)
+
+			keepalivedUp = 0
+		}
 	}
 
 	k.newConstMetric(ch, "keepalived_up", prometheus.GaugeValue, keepalivedUp)
@@ -397,10 +401,6 @@ func (k *KeepalivedCollector) getKeepalivedStats() (*KeepalivedStats, error) {
 	}
 
 	var err error
-
-	if err := k.collector.Refresh(); err != nil {
-		return nil, err
-	}
 
 	if k.useJSON {
 		stats.VRRPs, err = k.collector.JSONVrrps()
