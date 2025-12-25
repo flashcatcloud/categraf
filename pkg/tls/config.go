@@ -12,15 +12,16 @@ import (
 
 // ClientConfig represents the standard client TLS config.
 type ClientConfig struct {
-	UseTLS             bool   `toml:"use_tls"`
-	TLSCA              string `toml:"tls_ca"`
-	TLSCert            string `toml:"tls_cert"`
-	TLSKey             string `toml:"tls_key"`
-	TLSKeyPwd          string `toml:"tls_key_pwd"`
-	InsecureSkipVerify bool   `toml:"insecure_skip_verify"`
-	ServerName         string `toml:"tls_server_name"`
-	TLSMinVersion      string `toml:"tls_min_version"`
-	TLSMaxVersion      string `toml:"tls_max_version"`
+	UseTLS             bool     `toml:"use_tls"`
+	TLSCA              string   `toml:"tls_ca"`
+	TLSCert            string   `toml:"tls_cert"`
+	TLSKey             string   `toml:"tls_key"`
+	TLSKeyPwd          string   `toml:"tls_key_pwd"`
+	InsecureSkipVerify bool     `toml:"insecure_skip_verify" json:"insecure_skip_verify"`
+	ServerName         string   `toml:"tls_server_name" json:"tls_server_name"`
+	TLSMinVersion      string   `toml:"tls_min_version"`
+	TLSMaxVersion      string   `toml:"tls_max_version"`
+	TLSCipherSuites    []string `toml:"tls_cipher_suites"`
 }
 
 // ServerConfig represents the standard server TLS config.
@@ -60,6 +61,15 @@ func (c *ClientConfig) TLSConfig() (*tls.Config, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if len(c.TLSCipherSuites) != 0 {
+		cipherSuites, err := ParseCiphers(c.TLSCipherSuites)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"could not parse client cipher suites %s: %v", strings.Join(c.TLSCipherSuites, ","), err)
+		}
+		tlsConfig.CipherSuites = cipherSuites
 	}
 
 	if c.ServerName != "" {
