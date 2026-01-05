@@ -9,8 +9,11 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -154,7 +157,7 @@ func (ins *Instance) Init() error {
 
 func (ins *Instance) Gather(slist *types.SampleList) {
 	// version metric
-	if err := inputs.Collect(version.NewCollector(inputName), slist); err != nil {
+	if err := inputs.Collect(NewCollector(inputName), slist); err != nil {
 		log.Println("E! failed to collect version metric:", err)
 	}
 	if ins.ClusterStats || len(ins.IndicesInclude) > 0 {
@@ -406,4 +409,27 @@ func (t *transportWithAPIKey) RoundTrip(req *http.Request) (*http.Response, erro
 
 func (i serverInfo) isMaster() bool {
 	return i.nodeID == i.masterID
+}
+
+func NewCollector(program string) prometheus.Collector {
+	return prometheus.NewGaugeFunc(
+		prometheus.GaugeOpts{
+			Namespace: program,
+			Name:      "build_info",
+			Help: fmt.Sprintf(
+				"A metric with a constant '1' value labeled by version, revision, branch, goversion from which %s was built, and the goos and goarch for the build.",
+				program,
+			),
+			ConstLabels: prometheus.Labels{
+				"version":   version.Version,
+				"revision":  version.Revision,
+				"branch":    version.Branch,
+				"goversion": runtime.Version(),
+				"goos":      runtime.GOOS,
+				"goarch":    runtime.GOARCH,
+				"tags":      version.GetTags(),
+			},
+		},
+		func() float64 { return 1 },
+	)
 }

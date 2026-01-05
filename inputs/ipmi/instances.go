@@ -1,6 +1,7 @@
 package ipmi
 
 import (
+	"flashcat.cloud/categraf/inputs"
 	"log"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -47,24 +48,30 @@ func (m *Instance) Gather(slist *types.SampleList) {
 			continue
 		}
 
-		desc := metric.Desc()
-		if desc.Err() != nil {
-			log.Println("E! got invalid metric:", desc.Name(), desc.Err())
+		desc := metric.Desc().String()
+		descName, err := inputs.DescName(desc)
+		if err != nil {
+			log.Println("E! failed to parse desc name:", desc)
+			continue
+		}
+		icLabels, err := inputs.DescConstLabels(desc)
+		if err != nil {
+			log.Println("E! failed to read labels:", desc)
 			continue
 		}
 
 		dtoMetric := &dto.Metric{}
-		err := metric.Write(dtoMetric)
+		err = metric.Write(dtoMetric)
 		if err != nil {
-			log.Println("E! failed to write metric:", desc.String())
+			log.Println("E! failed to write metric:", desc)
 			continue
 		}
 
 		labels := map[string]string{
 			"target": m.Target,
 		}
-		for _, kv := range desc.ConstLabels() {
-			labels[*kv.Name] = *kv.Value
+		for k, v := range icLabels {
+			labels[k] = v
 		}
 
 		for _, kv := range dtoMetric.Label {
@@ -77,15 +84,15 @@ func (m *Instance) Gather(slist *types.SampleList) {
 
 		switch {
 		case dtoMetric.Counter != nil:
-			slist.PushSample("", desc.Name(), *dtoMetric.Counter.Value, labels)
+			slist.PushSample("", descName, *dtoMetric.Counter.Value, labels)
 		case dtoMetric.Gauge != nil:
-			slist.PushSample("", desc.Name(), *dtoMetric.Gauge.Value, labels)
+			slist.PushSample("", descName, *dtoMetric.Gauge.Value, labels)
 		case dtoMetric.Summary != nil:
-			util.HandleSummary("", dtoMetric, nil, desc.Name(), nil, slist)
+			util.HandleSummary("", dtoMetric, nil, descName, nil, slist)
 		case dtoMetric.Histogram != nil:
-			util.HandleHistogram("", dtoMetric, nil, desc.Name(), nil, slist)
+			util.HandleHistogram("", dtoMetric, nil, descName, nil, slist)
 		default:
-			slist.PushSample("", desc.Name(), *dtoMetric.Untyped.Value, labels)
+			slist.PushSample("", descName, *dtoMetric.Untyped.Value, labels)
 		}
 	}
 }

@@ -18,12 +18,13 @@ package dcgmexporter
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/exporter-toolkit/web"
 	"github.com/sirupsen/logrus"
 )
@@ -72,8 +73,8 @@ func NewMetricsServer(c *Config, metrics chan string, registry *Registry) (*Metr
 
 func (s *MetricsServer) Run(stop chan interface{}, wg *sync.WaitGroup) {
 	defer wg.Done()
-	promlogConfig := &promlog.Config{}
-	logger := promlog.New(promlogConfig)
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	var httpwg sync.WaitGroup
 	httpwg.Add(1)

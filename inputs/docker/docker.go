@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/docker/docker/api/types/container"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/choice"
@@ -176,7 +178,7 @@ func (ins *Instance) Gather(slist *itypes.SampleList) {
 	}
 
 	// List containers
-	opts := types.ContainerListOptions{
+	opts := container.ListOptions{
 		Filters: filterArgs,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
