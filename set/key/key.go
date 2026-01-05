@@ -1,13 +1,7 @@
 package key
 
 const (
-	LogsAgentV1  = "logs-agent"
-	LogsAgentV2  = "logs"
-	LogsUDPAgent = "udp-logs"
-
+	LogsAgent       = "logs-agent"
 	PrometheusAgent = "prometheus"
 	HeartbeatAgent  = "heartbeat"
-
-	DebugAgent    = "debug"
-	DebugProvider = "debug-provider"
 )
