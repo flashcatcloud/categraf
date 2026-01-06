@@ -8,7 +8,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b
 	github.com/chai2010/winsvc v0.0.0-20200705094454-db7ec320025c
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/docker/docker v27.4.1+incompatible
+	github.com/docker/docker v28.0.0+incompatible
 	github.com/emirpasic/gods v1.18.1
 	github.com/gaochao1/sw v1.0.0
 	github.com/gin-gonic/gin v1.9.1
