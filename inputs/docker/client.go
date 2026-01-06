@@ -19,7 +19,7 @@ var (
 type Client interface {
 	Info(ctx context.Context) (system.Info, error)
 	ContainerList(ctx context.Context, options container.ListOptions) ([]types.Container, error)
-	ContainerStats(ctx context.Context, containerID string, stream bool) (types.ContainerStats, error)
+	ContainerStats(ctx context.Context, containerID string, stream bool) (container.StatsResponseReader, error)
 	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
 	Ping(ctx context.Context) (types.Ping, error)
 	ServiceList(ctx context.Context, options types.ServiceListOptions) ([]swarm.Service, error)
@@ -70,10 +70,10 @@ func (c *SocketClient) Info(ctx context.Context) (system.Info, error) {
 func (c *SocketClient) Ping(ctx context.Context) (types.Ping, error) {
 	return c.client.Ping(ctx)
 }
-func (c *SocketClient) ContainerList(ctx context.Context, options container.ListOptions) ([]types.Container, error) {
+func (c *SocketClient) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
 	return c.client.ContainerList(ctx, options)
 }
-func (c *SocketClient) ContainerStats(ctx context.Context, containerID string, stream bool) (types.ContainerStats, error) {
+func (c *SocketClient) ContainerStats(ctx context.Context, containerID string, stream bool) (container.StatsResponseReader, error) {
 	return c.client.ContainerStats(ctx, containerID, stream)
 }
 func (c *SocketClient) ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error) {

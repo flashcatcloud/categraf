@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
 )
 
@@ -91,7 +91,7 @@ func (d *DockerUtil) dispatchEvents(sub *eventSubscriber) {
 
 CONNECT: // Outer loop handles re-connecting in case the docker daemon closes the connection
 	for {
-		eventOptions := types.EventsOptions{
+		eventOptions := events.ListOptions{
 			Since:   strconv.FormatInt(latestTimestamp, 10),
 			Filters: fltrs,
 		}

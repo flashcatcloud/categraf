@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/docker/docker/api/types/container"
 	"log"
 	"sort"
 	"strings"
@@ -20,6 +19,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 
@@ -215,7 +215,7 @@ func (d *DockerUtil) ResolveImageNameFromContainer(ctx context.Context, co types
 // It tries to locate the container in the inspect cache before making the docker inspect call
 func (d *DockerUtil) Inspect(ctx context.Context, id string, withSize bool) (types.ContainerJSON, error) {
 	cacheKey := GetInspectCacheKey(id, withSize)
-	var container types.ContainerJSON
+	var containerJson types.ContainerJSON
 
 	cached, hit := cache.Cache.Get(cacheKey)
 	// Try to get sized hit if we got a miss and withSize=false
@@ -232,15 +232,15 @@ func (d *DockerUtil) Inspect(ctx context.Context, id string, withSize bool) (typ
 		}
 	}
 
-	container, err := d.InspectNoCache(ctx, id, withSize)
+	containerJson, err := d.InspectNoCache(ctx, id, withSize)
 	if err != nil {
-		return container, err
+		return containerJson, err
 	}
 
 	// cache the inspect for 10 seconds to reduce pressure on the daemon
-	cache.Cache.Set(cacheKey, container, 10*time.Second)
+	cache.Cache.Set(cacheKey, containerJson, 10*time.Second)
 
-	return container, nil
+	return containerJson, nil
 }
 
 // InspectNoCache returns a docker inspect object for a given container ID. It
@@ -298,14 +298,14 @@ func (d *DockerUtil) AllContainerLabels(ctx context.Context) (map[string]map[str
 	return labelMap, nil
 }
 
-func (d *DockerUtil) GetContainerStats(ctx context.Context, containerID string) (*types.StatsJSON, error) {
+func (d *DockerUtil) GetContainerStats(ctx context.Context, containerID string) (*container.StatsResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
 	stats, err := d.cli.ContainerStats(ctx, containerID, false)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get Docker stats: %s", err)
 	}
-	containerStats := &types.StatsJSON{}
+	containerStats := &container.StatsResponse{}
 	err = json.NewDecoder(stats.Body).Decode(&containerStats)
 	if err != nil {
 		return nil, fmt.Errorf("error listing containers: %s", err)

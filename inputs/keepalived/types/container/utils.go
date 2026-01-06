@@ -6,11 +6,11 @@ import (
 	"io"
 	"log/slog"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 )
 
 func (k *KeepalivedContainerCollectorHost) dockerExecCmd(cmd []string) (*bytes.Buffer, error) {
-	rst, err := k.dockerCli.ContainerExecCreate(context.Background(), k.containerName, types.ExecConfig{
+	rst, err := k.dockerCli.ContainerExecCreate(context.Background(), k.containerName, container.ExecOptions{
 		AttachStdout: true,
 		AttachStderr: true,
 		Cmd:          cmd,
@@ -21,7 +21,7 @@ func (k *KeepalivedContainerCollectorHost) dockerExecCmd(cmd []string) (*bytes.B
 		return nil, err
 	}
 
-	response, err := k.dockerCli.ContainerExecAttach(context.Background(), rst.ID, types.ExecStartCheck{})
+	response, err := k.dockerCli.ContainerExecAttach(context.Background(), rst.ID, container.ExecStartOptions{})
 	if err != nil {
 		slog.Debug("Error attaching a connection to an exec process", "CMD", cmd, "error", err)
 
