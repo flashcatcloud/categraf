@@ -3,9 +3,10 @@ package container
 import (
 	"bytes"
 	"context"
-	"github.com/docker/docker/api/types/container"
 	"io"
 	"log/slog"
+
+	"github.com/docker/docker/api/types/container"
 )
 
 func (k *KeepalivedContainerCollectorHost) dockerExecCmd(cmd []string) (*bytes.Buffer, error) {

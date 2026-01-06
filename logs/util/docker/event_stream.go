@@ -9,12 +9,12 @@ package docker
 
 import (
 	"context"
-	"github.com/docker/docker/api/types/events"
 	"io"
 	"log"
 	"strconv"
 	"time"
 
+	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
 )
 
