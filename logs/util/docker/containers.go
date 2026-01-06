@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/docker/docker/api/types/container"
 	"io"
 	"log"
 	"net"
@@ -127,7 +128,7 @@ func (d *DockerUtil) getContainerDetails(ctn *containers.Container) {
 	}
 }
 
-func (d *DockerUtil) ContainerLogs(ctx context.Context, container string, options types.ContainerLogsOptions) (io.ReadCloser, error) {
+func (d *DockerUtil) ContainerLogs(ctx context.Context, container string, options container.LogsOptions) (io.ReadCloser, error) {
 	return d.cli.ContainerLogs(ctx, container, options)
 }
 
@@ -138,7 +139,7 @@ func (d *DockerUtil) dockerContainers(ctx context.Context, cfg *ContainerListCon
 	}
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
-	cList, err := d.cli.ContainerList(ctx, types.ContainerListOptions{All: cfg.IncludeExited})
+	cList, err := d.cli.ContainerList(ctx, container.ListOptions{All: cfg.IncludeExited})
 	if err != nil {
 		return nil, fmt.Errorf("error listing containers: %s", err)
 	}

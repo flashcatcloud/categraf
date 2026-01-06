@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	keyset "flashcat.cloud/categraf/set/key"
 	"io"
 	"log"
 	"net"
@@ -110,7 +111,7 @@ func version() string {
 }
 
 func debug() bool {
-	return config.Config.DebugMode && strings.Contains(config.Config.InputFilters, "heartbeat")
+	return config.Config.DebugMode && strings.Contains(config.Config.InputFilters, keyset.HeartbeatAgent)
 }
 
 func work(ps *system.SystemPS, client *http.Client) {

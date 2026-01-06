@@ -2,9 +2,11 @@ package apache
 
 import (
 	"fmt"
-	"log"
+	"os"
+	"strings"
 
-	"github.com/prometheus/common/promlog"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -25,6 +27,8 @@ type Instance struct {
 	exporter.Config
 
 	e *exporter.Exporter
+
+	logger log.Logger
 }
 
 var _ inputs.Input = new(Apache)
@@ -66,6 +70,22 @@ func (a *Apache) Drop() {
 	}
 }
 
+// 根据字符串配置获取对应的日志级别过滤器
+func getLevelFilter(logLevel string) level.Option {
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		return level.AllowDebug()
+	case "info":
+		return level.AllowInfo()
+	case "warn":
+		return level.AllowWarn()
+	case "error":
+		return level.AllowError()
+	default:
+		return level.AllowInfo() // 默认Info级别
+	}
+}
+
 func (ins *Instance) Init() error {
 	if len(ins.ScrapeURI) == 0 {
 		return types.ErrInstancesEmpty
@@ -74,15 +94,19 @@ func (ins *Instance) Init() error {
 	if len(ins.LogLevel) == 0 {
 		ins.LogLevel = "info"
 	}
-	promlogConfig := &promlog.Config{
-		Level: &promlog.AllowedLevel{},
-	}
-	promlogConfig.Level.Set(ins.LogLevel)
-	logger := promlog.New(promlogConfig)
-	e, err := exporter.New(logger, &ins.Config)
+	logger := log.NewLogfmtLogger(os.Stdout)
+	logger = log.With(logger,
+		"ts", log.DefaultTimestampUTC,
+		"caller", log.DefaultCaller,
+	)
 
+	// 使用配置的日志级别
+	logger = level.NewFilter(logger, getLevelFilter(ins.LogLevel))
+	ins.logger = logger
+
+	e, err := exporter.New(logger, &ins.Config)
 	if err != nil {
-		return fmt.Errorf("could not instantiate mongodb lag exporter: %v", err)
+		return fmt.Errorf("could not instantiate apache exporter: %v", err)
 	}
 
 	ins.e = e
@@ -95,6 +119,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	//  collect
 	err := inputs.Collect(ins.e, slist)
 	if err != nil {
-		log.Println("E! failed to collect metrics:", err)
+		ins.logger.Log("E! failed to collect metrics:", err)
 	}
 }

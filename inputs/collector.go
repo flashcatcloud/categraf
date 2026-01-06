@@ -2,7 +2,10 @@ package inputs
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"regexp"
+	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
@@ -29,22 +32,28 @@ func Collect(e prometheus.Collector, slist *types.SampleList, constLabels ...map
 			continue
 		}
 
-		desc := metric.Desc()
-		if desc.Err() != nil {
-			log.Println("E! got invalid metric:", desc.Name(), desc.Err())
+		desc := metric.Desc().String()
+		descName, err := DescName(desc)
+		if err != nil {
+			log.Printf("error getting metric name: %s", err)
+			continue
+		}
+		ls, err := DescConstLabels(desc)
+		if err != nil {
+			log.Println("E! failed to read labels:", desc)
 			continue
 		}
 
 		dtoMetric := &dto.Metric{}
-		err := metric.Write(dtoMetric)
+		err = metric.Write(dtoMetric)
 		if err != nil {
-			log.Println("E! failed to write metric:", desc.String())
+			log.Println("E! failed to write metric:", desc)
 			continue
 		}
 
 		labels := map[string]string{}
-		for _, kv := range desc.ConstLabels() {
-			labels[*kv.Name] = *kv.Value
+		for k, v := range ls {
+			labels[k] = v
 		}
 
 		for _, kv := range dtoMetric.Label {
@@ -59,17 +68,56 @@ func Collect(e prometheus.Collector, slist *types.SampleList, constLabels ...map
 
 		switch {
 		case dtoMetric.Counter != nil:
-			slist.PushSample("", desc.Name(), *dtoMetric.Counter.Value, labels)
+			slist.PushSample("", descName, *dtoMetric.Counter.Value, labels)
 		case dtoMetric.Gauge != nil:
-			slist.PushSample("", desc.Name(), *dtoMetric.Gauge.Value, labels)
+			slist.PushSample("", descName, *dtoMetric.Gauge.Value, labels)
 		case dtoMetric.Summary != nil:
-			util.HandleSummary("", dtoMetric, nil, desc.Name(), nil, slist)
+			util.HandleSummary("", dtoMetric, nil, descName, nil, slist)
 		case dtoMetric.Histogram != nil:
-			util.HandleHistogram("", dtoMetric, nil, desc.Name(), nil, slist)
+			util.HandleHistogram("", dtoMetric, nil, descName, nil, slist)
 		default:
-			slist.PushSample("", desc.Name(), *dtoMetric.Untyped.Value, labels)
+			slist.PushSample("", descName, *dtoMetric.Untyped.Value, labels)
 		}
 	}
 
 	return nil
+}
+
+func DescName(descStr string) (string, error) {
+	// 使用正则表达式匹配fqName部分
+	re := regexp.MustCompile(`fqName: "([^"]*)"`)
+	matches := re.FindStringSubmatch(descStr)
+	if len(matches) < 2 {
+		return "", fmt.Errorf("failed to extract fqName from desc string")
+	}
+	return matches[1], nil
+}
+
+func DescConstLabels(descStr string) (map[string]string, error) {
+	// 使用正则表达式匹配constLabels部分
+	re := regexp.MustCompile(`constLabels: {([^}]*)}`)
+	matches := re.FindStringSubmatch(descStr)
+	if len(matches) < 2 {
+		return nil, fmt.Errorf("failed to extract constLabels from desc string")
+	}
+
+	labels := make(map[string]string)
+	// 如果constLabels为空，直接返回空map
+	if matches[1] == "" {
+		return labels, nil
+	}
+
+	// 分割多个label对
+	pairs := strings.Split(matches[1], ",")
+	for _, pair := range pairs {
+		// 使用正则表达式匹配每个label对中的name和value
+		pairRe := regexp.MustCompile(`(\w+)="([^"]*)"`)
+		pairMatches := pairRe.FindStringSubmatch(pair)
+		if len(pairMatches) < 3 {
+			return nil, fmt.Errorf("invalid label pair format: %s", pair)
+		}
+		labels[pairMatches[1]] = pairMatches[2]
+	}
+
+	return labels, nil
 }

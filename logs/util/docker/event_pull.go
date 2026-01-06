@@ -82,7 +82,7 @@ func (d *DockerUtil) processContainerEvent(ctx context.Context, msg events.Messa
 		ns = ns - msg.Time*1e9
 	}
 
-	action := msg.Action
+	action := string(msg.Action)
 
 	// Fix the "exec_start: /bin/sh -c true" case
 	if strings.Contains(action, ":") {

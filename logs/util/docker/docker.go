@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/docker/docker/api/types/container"
 	"log"
 	"sort"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 
 	"flashcat.cloud/categraf/logs/util/containers/providers"
@@ -95,10 +97,10 @@ func ConnectToDocker(ctx context.Context) (*client.Client, error) {
 }
 
 // Images returns a slice of all images.
-func (d *DockerUtil) Images(ctx context.Context, includeIntermediate bool) ([]types.ImageSummary, error) {
+func (d *DockerUtil) Images(ctx context.Context, includeIntermediate bool) ([]image.Summary, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
-	images, err := d.cli.ImageList(ctx, types.ImageListOptions{All: includeIntermediate})
+	images, err := d.cli.ImageList(ctx, image.ListOptions{All: includeIntermediate})
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to list docker images: %s", err)
@@ -127,7 +129,7 @@ func (d *DockerUtil) CountVolumes(ctx context.Context) (int, int, error) {
 
 // RawContainerList wraps around the docker client's ContainerList method.
 // Value validation and error handling are the caller's responsibility.
-func (d *DockerUtil) RawContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error) {
+func (d *DockerUtil) RawContainerList(ctx context.Context, options container.ListOptions) ([]types.Container, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
 	return d.cli.ContainerList(ctx, options)
@@ -279,7 +281,7 @@ func (d *DockerUtil) InspectSelf(ctx context.Context) (types.ContainerJSON, erro
 func (d *DockerUtil) AllContainerLabels(ctx context.Context) (map[string]map[string]string, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
-	containers, err := d.cli.ContainerList(ctx, types.ContainerListOptions{})
+	containers, err := d.cli.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error listing containers: %s", err)
 	}
