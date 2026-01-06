@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
 )
@@ -29,7 +28,7 @@ func (d *DockerUtil) openEventChannel(ctx context.Context, since, until time.Tim
 	for k, v := range filter {
 		queryFilter.Add(k, v)
 	}
-	options := types.EventsOptions{
+	options := events.ListOptions{
 		Since:   fmt.Sprintf("%d.%09d", since.Unix(), int64(since.Nanosecond())),
 		Until:   fmt.Sprintf("%d.%09d", until.Unix(), int64(until.Nanosecond())),
 		Filters: queryFilter,

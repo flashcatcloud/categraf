@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
+	containerType "github.com/docker/docker/api/types/container"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -58,7 +58,7 @@ func (d *Docker) Clone() inputs.Input {
 	return &Docker{}
 }
 
-func (c Docker) Name() string {
+func (d *Docker) Name() string {
 	return inputName
 }
 
@@ -178,7 +178,7 @@ func (ins *Instance) Gather(slist *itypes.SampleList) {
 	}
 
 	// List containers
-	opts := container.ListOptions{
+	opts := containerType.ListOptions{
 		Filters: filterArgs,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
@@ -259,7 +259,8 @@ func (ins *Instance) gatherContainer(container types.Container, slist *itypes.Sa
 
 	dec := json.NewDecoder(r.Body)
 
-	var v *types.StatsJSON
+	var v *containerType.StatsResponse
+
 	if err = dec.Decode(&v); err != nil {
 		if err != io.EOF {
 			log.Println("E! failed to decode output of container stats:", err)
@@ -280,7 +281,7 @@ func (ins *Instance) gatherContainer(container types.Container, slist *itypes.Sa
 	}
 }
 
-func (ins *Instance) gatherContainerInspect(container types.Container, slist *itypes.SampleList, tags map[string]string, daemonOSType string, v *types.StatsJSON) error {
+func (ins *Instance) gatherContainerInspect(container types.Container, slist *itypes.SampleList, tags map[string]string, daemonOSType string, v *containerType.StatsResponse) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
 	defer cancel()
 
@@ -318,7 +319,7 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *it
 			"status_pid":           info.State.Pid,
 			"status_exitcode":      info.State.ExitCode,
 			"status_restart_count": info.RestartCount,
-			//"container_id":  container.ID,
+			// "container_id":  container.ID,
 		}
 		finished, err := time.Parse(time.RFC3339, info.State.FinishedAt)
 		if err == nil && !finished.IsZero() {
@@ -361,7 +362,7 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *it
 	return nil
 }
 
-func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *itypes.SampleList, tags map[string]string, ostype string) {
+func (ins *Instance) parseContainerStats(stat *containerType.StatsResponse, slist *itypes.SampleList, tags map[string]string, ostype string) {
 	// memory
 
 	basicMemstats := []string{
@@ -523,7 +524,7 @@ func (ins *Instance) parseContainerStats(stat *types.StatsJSON, slist *itypes.Sa
 	ins.gatherBlockIOMetrics(slist, stat, tags)
 }
 
-func (ins *Instance) gatherBlockIOMetrics(slist *itypes.SampleList, stat *types.StatsJSON, tags map[string]string) {
+func (ins *Instance) gatherBlockIOMetrics(slist *itypes.SampleList, stat *containerType.StatsResponse, tags map[string]string) {
 	perDeviceBlkio := choice.Contains("blkio", ins.PerDeviceInclude)
 	totalBlkio := choice.Contains("blkio", ins.TotalInclude)
 
@@ -562,7 +563,7 @@ func (ins *Instance) gatherBlockIOMetrics(slist *itypes.SampleList, stat *types.
 	}
 }
 
-func getDeviceStatMap(blkioStats types.BlkioStats) map[string]map[string]interface{} {
+func getDeviceStatMap(blkioStats containerType.BlkioStats) map[string]map[string]interface{} {
 	deviceStatMap := make(map[string]map[string]interface{})
 
 	for _, metric := range blkioStats.IoServiceBytesRecursive {
