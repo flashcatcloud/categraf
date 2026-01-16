@@ -362,7 +362,8 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string]map[string]*cfg.Conf
 			cache.put(inputKey, *inputConfig)
 		}
 	}
-	// inputKey is configmap checksum , compute by n9e server
+	// cache map[string]map[string]cfg.ConfigWithFormat
+	// the second string is config's checksum , compute by n9e server
 	// trust server compute result and agent only executes changes
 	for inputKey, configMap := range cache.iter() {
 		if oldConfigMap, has := hrp.cache.get(inputKey); has {
