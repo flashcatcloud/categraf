@@ -234,8 +234,8 @@ func (hrp *HTTPProvider) LoadConfig() (bool, error) {
 		return false, err
 	}
 
-	// if config version is identical, means config is not changed
-	if confResp.Version == hrp.version {
+	// if config version is identical or empty , means config is not changed
+	if confResp.Version == hrp.version || confResp.Version == "" {
 		return false, nil
 	}
 	log.Printf("I! remote version:%s, current version:%s", confResp.Version, hrp.version)
