@@ -15,7 +15,6 @@ package collector
 
 import (
 	"encoding/json"
-	"flashcat.cloud/categraf/pkg/filter"
 	"fmt"
 	"io"
 	"log"
@@ -26,6 +25,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"flashcat.cloud/categraf/pkg/filter"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -80,7 +81,7 @@ type Indices struct {
 }
 
 // NewIndices defines Indices Prometheus metrics
-func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases bool, indicesIncluded []string, numMostRecentIndices int, indexMatchers map[string]filter.Filter) *Indices {
+func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases bool, indicesIncluded []string) *Indices {
 
 	indexLabels := labels{
 		keys: func(...string) []string {
@@ -125,14 +126,12 @@ func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases b
 	}
 
 	indices := &Indices{
-		client:               client,
-		url:                  url,
-		shards:               shards,
-		aliases:              includeAliases,
-		indicesIncluded:      indicesIncluded,
-		numMostRecentIndices: numMostRecentIndices,
-		indexMatchers:        indexMatchers,
-		clusterInfoCh:        make(chan *clusterinfo.Response),
+		client:          client,
+		url:             url,
+		shards:          shards,
+		aliases:         includeAliases,
+		indicesIncluded: indicesIncluded,
+		clusterInfoCh:   make(chan *clusterinfo.Response),
 		lastClusterInfo: &clusterinfo.Response{
 			ClusterName: "unknown_cluster",
 		},
@@ -2410,30 +2409,76 @@ func (i *Indices) Describe(ch chan<- *prometheus.Desc) {
 func (i *Indices) fetchAndDecodeIndexStats() (indexStatsResponse, error) {
 	var isr indexStatsResponse
 
-	u := *i.url
 	if len(i.indicesIncluded) == 0 {
+		u := *i.url
 		u.Path = path.Join(u.Path, "/_all/_stats")
-	} else {
+		if i.shards {
+			u.RawQuery = "ignore_unavailable=true&level=shards"
+		} else {
+			u.RawQuery = "ignore_unavailable=true"
+		}
+
+		bts, err := i.queryURL(&u)
+		if err != nil {
+			return isr, err
+		}
+
+		if err := json.Unmarshal(bts, &isr); err != nil {
+			i.jsonParseFailures.Inc()
+			return isr, err
+		}
+	} else if len(i.indicesIncluded) <= 80 {
+		u := *i.url
 		u.Path = path.Join(u.Path, "/"+strings.Join(i.indicesIncluded, ",")+"/_stats")
-	}
-	if i.shards {
-		u.RawQuery = "ignore_unavailable=true&level=shards"
+		if i.shards {
+			u.RawQuery = "ignore_unavailable=true&level=shards"
+		} else {
+			u.RawQuery = "ignore_unavailable=true"
+		}
+
+		bts, err := i.queryURL(&u)
+		if err != nil {
+			return isr, err
+		}
+
+		if err := json.Unmarshal(bts, &isr); err != nil {
+			i.jsonParseFailures.Inc()
+			return isr, err
+		}
 	} else {
-		u.RawQuery = "ignore_unavailable=true"
-	}
+		//Prevent GET requests from failing to fully query words when there are too many indicesIncluded
+		batchSize := 80
 
-	bts, err := i.queryURL(&u)
-	if err != nil {
-		return isr, err
-	}
+		for k := 0; k < len(i.indicesIncluded); k += batchSize {
+			uu := *i.url
+			end := k + batchSize
+			if end > len(i.indicesIncluded) {
+				end = len(i.indicesIncluded) // Ensure not to cross the line
+			}
+			// Use slicing to directly obtain data for the current batch
+			batch := i.indicesIncluded[k:end]
+			// Process the data of the current batch
+			uu.Path = path.Join(uu.Path, "/"+strings.Join(batch, ",")+"/_stats")
+			if i.shards {
+				uu.RawQuery = "ignore_unavailable=true&level=shards"
+			} else {
+				uu.RawQuery = "ignore_unavailable=true"
+			}
 
-	if err := json.Unmarshal(bts, &isr); err != nil {
-		i.jsonParseFailures.Inc()
-		return isr, err
-	}
+			bts, err := i.queryURL(&uu)
+			if err != nil {
+				return isr, err
+			}
+			var newIsr indexStatsResponse
+			if err := json.Unmarshal(bts, &newIsr); err != nil {
+				i.jsonParseFailures.Inc()
+				return isr, err
+			}
+			//Assign newIsr to Isr
+			i.mergeIndexStatsResponse(&isr, &newIsr)
+		}
 
-	//add config i.numMostRecentIndices process code
-	isr.Indices = i.gatherIndividualIndicesStats(isr.Indices)
+	}
 
 	if i.aliases {
 		isr.Aliases = map[string][]string{}
@@ -2507,66 +2552,6 @@ func (i *Indices) queryURL(u *url.URL) ([]byte, error) {
 	return bts, nil
 }
 
-// gatherSortedIndicesStats gathers stats for all indices in no particular order.
-func (i *Indices) gatherIndividualIndicesStats(indices map[string]IndexStatsIndexResponse) map[string]IndexStatsIndexResponse {
-
-	newIndices := make(map[string]IndexStatsIndexResponse)
-	// Sort indices into buckets based on their configured prefix, if any matches.
-	categorizedIndexNames := i.categorizeIndices(indices)
-	for _, matchingIndices := range categorizedIndexNames {
-		// Establish the number of each category of indices to use. User can configure to use only the latest 'X' amount.
-		indicesCount := len(matchingIndices)
-		indicesToTrackCount := indicesCount
-
-		// Sort the indices if configured to do so.
-		if i.numMostRecentIndices > 0 {
-			if i.numMostRecentIndices < indicesToTrackCount {
-				indicesToTrackCount = i.numMostRecentIndices
-			}
-			sort.Strings(matchingIndices)
-		}
-
-		// Gather only the number of indexes that have been configured, in descending order (most recent, if date-stamped).
-		for i := indicesCount - 1; i >= indicesCount-indicesToTrackCount; i-- {
-			indexName := matchingIndices[i]
-
-			newIndices[indexName] = indices[indexName]
-		}
-	}
-
-	return newIndices
-}
-
-func (i *Indices) categorizeIndices(indices map[string]IndexStatsIndexResponse) map[string][]string {
-	categorizedIndexNames := make(map[string][]string, len(indices))
-
-	// If all indices are configured to be gathered, bucket them all together.
-	if len(i.indicesIncluded) == 0 || i.indicesIncluded[0] == "_all" {
-		for indexName := range indices {
-			categorizedIndexNames["_all"] = append(categorizedIndexNames["_all"], indexName)
-		}
-
-		return categorizedIndexNames
-	}
-
-	// Bucket each returned index with its associated configured index (if any match).
-	for indexName := range indices {
-		match := indexName
-		for name, matcher := range i.indexMatchers {
-			// If a configured index matches one of the returned indexes, mark it as a match.
-			if matcher.Match(match) {
-				match = name
-				break
-			}
-		}
-
-		// Bucket all matching indices together for sorting.
-		categorizedIndexNames[match] = append(categorizedIndexNames[match], indexName)
-	}
-
-	return categorizedIndexNames
-}
-
 // Collect gets Indices metric values
 func (i *Indices) Collect(ch chan<- prometheus.Metric) {
 	i.totalScrapes.Inc()
@@ -2630,4 +2615,21 @@ func (i *Indices) Collect(ch chan<- prometheus.Metric) {
 			}
 		}
 	}
+}
+
+// Merge split query results
+func (i *Indices) mergeIndexStatsResponse(dst, src *indexStatsResponse) {
+	// 1. Merge Shards and All fields and do not process them as the field was not used afterwards
+	//dst.Shards = src.Shards
+	//dst.All = src.All
+
+	// 2. MergeIndices map
+	if dst.Indices == nil {
+		dst.Indices = make(map[string]IndexStatsIndexResponse)
+	}
+	for key, srcVal := range src.Indices {
+		// If the key already exists, overwrite it (it can also be designed as a deep merge)
+		dst.Indices[key] = srcVal
+	}
+
 }

@@ -15,16 +15,17 @@ package collector
 
 import (
 	"encoding/json"
-	"flashcat.cloud/categraf/pkg/filter"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"path"
-	"sort"
 	"strconv"
 	"strings"
+
+	"flashcat.cloud/categraf/pkg/filter"
+	"golang.org/x/exp/slices"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -57,13 +58,11 @@ type indicesSettingsMetric struct {
 }
 
 // NewIndicesSettings defines Indices Settings Prometheus metrics
-func NewIndicesSettings(client *http.Client, url *url.URL, indicesIncluded []string, numMostRecentIndices int, indexMatchers map[string]filter.Filter) *IndicesSettings {
+func NewIndicesSettings(client *http.Client, url *url.URL, indicesIncluded []string) *IndicesSettings {
 	return &IndicesSettings{
-		client:               client,
-		url:                  url,
-		indicesIncluded:      indicesIncluded,
-		numMostRecentIndices: numMostRecentIndices,
-		indexMatchers:        indexMatchers,
+		client:          client,
+		url:             url,
+		indicesIncluded: indicesIncluded,
 
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName(namespace, "indices_settings_stats", "up"),
@@ -170,24 +169,6 @@ func (cs *IndicesSettings) getAndParseURL(u *url.URL, data interface{}) error {
 	return nil
 }
 
-func (cs *IndicesSettings) fetchAndDecodeIndicesSettings() (IndicesSettingsResponse, error) {
-
-	u := *cs.url
-	//add indices filter
-	if len(cs.indicesIncluded) == 0 {
-		u.Path = path.Join(u.Path, "/_all/_settings")
-	} else {
-		u.Path = path.Join(u.Path, "/"+strings.Join(cs.indicesIncluded, ",")+"/_settings")
-	}
-	var asr IndicesSettingsResponse
-	err := cs.getAndParseURL(&u, &asr)
-	if err != nil {
-		return asr, err
-	}
-
-	return asr, err
-}
-
 // Collect gets all indices settings metric values
 func (cs *IndicesSettings) Collect(ch chan<- prometheus.Metric) {
 
@@ -206,9 +187,6 @@ func (cs *IndicesSettings) Collect(ch chan<- prometheus.Metric) {
 		log.Println("failed to fetch and decode cluster settings stats, err :", err)
 		return
 	}
-
-	//add config i.numMostRecentIndices process code
-	asr = cs.gatherIndividualIndicesStats(asr)
 
 	cs.up.Set(1)
 
@@ -229,63 +207,37 @@ func (cs *IndicesSettings) Collect(ch chan<- prometheus.Metric) {
 	cs.readOnlyIndices.Set(float64(c))
 }
 
-// gatherSortedIndicesStats gathers stats for all indices in no particular order.
-func (cs *IndicesSettings) gatherIndividualIndicesStats(asr IndicesSettingsResponse) IndicesSettingsResponse {
-	newIndicesSettings := make(map[string]Index)
+func (cs *IndicesSettings) fetchAndDecodeIndicesSettings() (IndicesSettingsResponse, error) {
 
-	// Sort indices into buckets based on their configured prefix, if any matches.
-	categorizedIndexNames := cs.categorizeIndices(asr)
-	for _, matchingIndices := range categorizedIndexNames {
-		// Establish the number of each category of indices to use. User can configure to use only the latest 'X' amount.
-		indicesCount := len(matchingIndices)
-		indicesToTrackCount := indicesCount
-
-		// Sort the indices if configured to do so.
-		if cs.numMostRecentIndices > 0 {
-			if cs.numMostRecentIndices < indicesToTrackCount {
-				indicesToTrackCount = cs.numMostRecentIndices
-			}
-			sort.Strings(matchingIndices)
-		}
-
-		// Gather only the number of indexes that have been configured, in descending order (most recent, if date-stamped).
-		for i := indicesCount - 1; i >= indicesCount-indicesToTrackCount; i-- {
-			indexName := matchingIndices[i]
-			newIndicesSettings[indexName] = asr[indexName]
-		}
+	u := *cs.url
+	//add indices filter
+	if len(cs.indicesIncluded) == 0 || len(cs.indicesIncluded) > 80 {
+		u.Path = path.Join(u.Path, "/_all/_settings")
+	} else if len(cs.indicesIncluded) <= 80 {
+		u.Path = path.Join(u.Path, "/"+strings.Join(cs.indicesIncluded, ",")+"/_settings")
 	}
-	//return new IndicesSettingsResponse
-	var isr IndicesSettingsResponse
-	isr = newIndicesSettings
-	return isr
+
+	var asr IndicesSettingsResponse
+	err := cs.getAndParseURL(&u, &asr)
+	if err != nil {
+		return asr, err
+	}
+
+	if len(cs.indicesIncluded) > 80 {
+		asr = cs.filterMapByKeys(asr, cs.indicesIncluded)
+	}
+
+	return asr, err
 }
 
-func (cs *IndicesSettings) categorizeIndices(asr IndicesSettingsResponse) map[string][]string {
-	categorizedIndexNames := make(map[string][]string, len(asr))
-
-	// If all indices are configured to be gathered, bucket them all together.
-	if len(cs.indicesIncluded) == 0 || cs.indicesIncluded[0] == "_all" {
-		for indexName := range asr {
-			categorizedIndexNames["_all"] = append(categorizedIndexNames["_all"], indexName)
+func (cs *IndicesSettings) filterMapByKeys(response IndicesSettingsResponse, included []string) IndicesSettingsResponse {
+	resultMap := make(map[string]Index)
+	for key, value := range response {
+		if slices.Contains(included, key) {
+			resultMap[key] = value
 		}
-
-		return categorizedIndexNames
 	}
-
-	// Bucket each returned index with its associated configured index (if any match).
-	for indexName := range asr {
-		match := indexName
-		for name, matcher := range cs.indexMatchers {
-			// If a configured index matches one of the returned indexes, mark it as a match.
-			if matcher.Match(match) {
-				match = name
-				break
-			}
-		}
-
-		// Bucket all matching indices together for sorting.
-		categorizedIndexNames[match] = append(categorizedIndexNames[match], indexName)
-	}
-
-	return categorizedIndexNames
+	var isr IndicesSettingsResponse
+	isr = resultMap
+	return isr
 }

@@ -14,7 +14,6 @@
 package collector
 
 import (
-	"flashcat.cloud/categraf/pkg/filter"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -114,9 +113,7 @@ elasticsearch_indices_mappings_stats_fields{index="test-data-2023.01.20"} 40
 			}
 
 			indicesIncluded := make([]string, 0)
-			var numMostRecentIndices int = 0
-			indexMatchers := make(map[string]filter.Filter)
-			c := NewIndicesMappings(http.DefaultClient, u, indicesIncluded, numMostRecentIndices, indexMatchers)
+			c := NewIndicesMappings(http.DefaultClient, u, indicesIncluded)
 			if err != nil {
 				t.Fatal(err)
 			}
