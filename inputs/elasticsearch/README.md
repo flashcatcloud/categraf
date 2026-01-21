@@ -483,3 +483,20 @@ ES 7.x 支持基于角色的访问控制（RBACs）。`elasticsearch` 插件需�
 | elasticsearch_slm_stats_snapshots_deleted_total          | counter | 按策略删除的快照数            |
 | elasticsearch_slm_stats_snapshot_deletion_failures_total | counter | 按策略快照删除失败次数          |
 | elasticsearch_slm_stats_operation_mode                   | gauge   | SLM操作模式（运行中，停止中，已停止） |
+
+
+#### `num_most_recent_indices = 0`
+
+
+| 设置日期类动态索引可取前"num_most_recent_indices"个最新index的指标数据
+| 可极大减少历史动态索引导致的大指标量级
+| 可与“indices_include”配置一起使用
+
+#### `dynamic_index_matcher_regexp` = ["(?P<date>(?:\\d{4}|\\d{2})[.-]?(?:\\d{2})[.-]?(?:\\d{2})?[.-]?(?:\\d{2})?)$","[\\.-._]\\d+(\\.\\d+){0,2}$"]
+| 与num_most_recent_indices 配合使用，用于指定动态索引的匹配逻辑，默认值：
+| ["(?P<date>(?:\\d{4}|\\d{2})[.-]?(?:\\d{2})[.-]?(?:\\d{2})?[.-]?(?:\\d{2})?)$","[\\.-._]\\d+(\\.\\d+){0,2}$"]
+| 支持匹配 //YYYY.MM.DD 或 YYYY-MM-DD 或 YYYYMMDD 或 YYYY-MM-DD-HH
+|       //YYYY.MM 或 YYYY-MM 或 YYYYMM 或YYYYMMDDHH
+|      //YY.MM.DD 或 YY-MM-DD 或 YYMMDD 或YYYY.MM.DD.HH
+|     //v1_001 v1_002 -->v1* v0.1 v0.2 -->v0* v5.2.3 v5.2.4 -->v5*
+| 也可自行扩展

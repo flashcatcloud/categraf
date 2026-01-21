@@ -477,3 +477,19 @@ ES 7.x supports RBACs. The following security privileges are required for the `e
 | elasticsearch_slm_stats_snapshots_deleted_total                      | counter | Snapshots deleted by policy                                                                         |
 | elasticsearch_slm_stats_snapshot_deletion_failures_total             | counter | Snapshot deletion failures by policy                                                                |
 | elasticsearch_slm_stats_operation_mode                               | gauge   | SLM operation mode (Running, stopping, stopped)                                                     |
+
+
+#### `num_most_recent_indices = 0`
+|Set the indicator data for the latest index of the first "num_mast_decent_indice" in the date class dynamic index
+|It can greatly reduce the large scale of indicators caused by historical dynamic indexing
+|Can be used together with the 'indices_inclub' configuration
+
+
+#### `dynamic_index_matcher_regexp` = ["(?P<date>(?:\\d{4}|\\d{2})[.-]?(?:\\d{2})[.-]?(?:\\d{2})?[.-]?(?:\\d{2})?)$","[\\.-._]\\d+(\\.\\d+){0,2}$"]
+|Used in conjunction with num_mast_decent_indice to specify the matching logic for dynamic indexes, default value:
+| ["(?P<date>(?:\\d{4}|\\d{2})[.-]?(?:\\d{2})[.-]?(?:\\d{2})?[.-]?(?:\\d{2})?)$","[\\.-._]\\d+(\\.\\d+){0,2}$"]
+|Support matching with//YYYY.MM.DD or YYYY-MM-DD or YYYY-MMDD or YYYY-MM-DD-HH
+|//YYYY.MM or YYYY-MM or YYYYMM or YYYYMMDDHH
+|//YY.MM.DD or YY-MM-DD or YYMMDD or YYY.MM.DD.HH
+|     //v1_001 v1_002 -->v1* v0.1 v0.2 -->v0* v5.2.3 v5.2.4 -->v5*
+|It can also be expanded on its own

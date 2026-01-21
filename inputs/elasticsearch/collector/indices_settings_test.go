@@ -69,7 +69,8 @@ func TestIndicesSettings(t *testing.T) {
 				t.Fatalf("Failed to parse URL: %s", err)
 			}
 			indicesIncluded := make([]string, 0)
-			c := NewIndicesSettings(http.DefaultClient, u, indicesIncluded)
+			maxIndicesIncludeCount := 80
+			c := NewIndicesSettings(http.DefaultClient, u, indicesIncluded, maxIndicesIncludeCount)
 			nsr, err := c.fetchAndDecodeIndicesSettings()
 			if err != nil {
 				t.Fatalf("Failed to fetch or decode indices settings: %s", err)

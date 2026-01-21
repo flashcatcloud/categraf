@@ -21,25 +21,25 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 
 	"flashcat.cloud/categraf/pkg/filter"
-	"golang.org/x/exp/slices"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 // IndicesSettings information struct
 type IndicesSettings struct {
-	client               *http.Client
-	url                  *url.URL
-	indicesIncluded      []string
-	numMostRecentIndices int
-	indexMatchers        map[string]filter.Filter
-
-	up              prometheus.Gauge
-	readOnlyIndices prometheus.Gauge
+	client                 *http.Client
+	url                    *url.URL
+	indicesIncluded        []string
+	numMostRecentIndices   int
+	indexMatchers          map[string]filter.Filter
+	maxIndicesIncludeCount int
+	up                     prometheus.Gauge
+	readOnlyIndices        prometheus.Gauge
 
 	totalScrapes, jsonParseFailures prometheus.Counter
 	metrics                         []*indicesSettingsMetric
@@ -58,12 +58,12 @@ type indicesSettingsMetric struct {
 }
 
 // NewIndicesSettings defines Indices Settings Prometheus metrics
-func NewIndicesSettings(client *http.Client, url *url.URL, indicesIncluded []string) *IndicesSettings {
+func NewIndicesSettings(client *http.Client, url *url.URL, indicesIncluded []string, maxIndicesIncludeCount int) *IndicesSettings {
 	return &IndicesSettings{
-		client:          client,
-		url:             url,
-		indicesIncluded: indicesIncluded,
-
+		client:                 client,
+		url:                    url,
+		indicesIncluded:        indicesIncluded,
+		maxIndicesIncludeCount: maxIndicesIncludeCount,
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName(namespace, "indices_settings_stats", "up"),
 			Help: "Was the last scrape of the Elasticsearch Indices Settings endpoint successful.",
@@ -211,9 +211,9 @@ func (cs *IndicesSettings) fetchAndDecodeIndicesSettings() (IndicesSettingsRespo
 
 	u := *cs.url
 	//add indices filter
-	if len(cs.indicesIncluded) == 0 || len(cs.indicesIncluded) > 80 {
+	if len(cs.indicesIncluded) == 0 || len(cs.indicesIncluded) > cs.maxIndicesIncludeCount {
 		u.Path = path.Join(u.Path, "/_all/_settings")
-	} else if len(cs.indicesIncluded) <= 80 {
+	} else if len(cs.indicesIncluded) <= cs.maxIndicesIncludeCount {
 		u.Path = path.Join(u.Path, "/"+strings.Join(cs.indicesIncluded, ",")+"/_settings")
 	}
 
@@ -223,7 +223,7 @@ func (cs *IndicesSettings) fetchAndDecodeIndicesSettings() (IndicesSettingsRespo
 		return asr, err
 	}
 
-	if len(cs.indicesIncluded) > 80 {
+	if len(cs.indicesIncluded) > cs.maxIndicesIncludeCount {
 		asr = cs.filterMapByKeys(asr, cs.indicesIncluded)
 	}
 

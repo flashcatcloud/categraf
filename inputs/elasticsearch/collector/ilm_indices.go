@@ -15,15 +15,16 @@ package collector
 
 import (
 	"encoding/json"
-	"flashcat.cloud/categraf/pkg/filter"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
+
+	"flashcat.cloud/categraf/pkg/filter"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -37,12 +38,13 @@ type ilmMetric struct {
 
 // Index Lifecycle Management information object
 type IlmIndiciesCollector struct {
-	client               *http.Client
-	url                  *url.URL
-	indicesIncluded      []string
-	numMostRecentIndices int
-	indexMatchers        map[string]filter.Filter
-	ilmMetric            ilmMetric
+	client                 *http.Client
+	url                    *url.URL
+	indicesIncluded        []string
+	numMostRecentIndices   int
+	maxIndicesIncludeCount int
+	indexMatchers          map[string]filter.Filter
+	ilmMetric              ilmMetric
 }
 
 type IlmResponse struct {
@@ -63,14 +65,14 @@ var (
 )
 
 // NewIlmIndicies defines Index Lifecycle Management Prometheus metrics
-func NewIlmIndicies(client *http.Client, url *url.URL, indicesIncluded []string) *IlmIndiciesCollector {
+func NewIlmIndicies(client *http.Client, url *url.URL, indicesIncluded []string, maxIndicesIncludeCount int) *IlmIndiciesCollector {
 	subsystem := "ilm_index"
 
 	return &IlmIndiciesCollector{
-		client:          client,
-		url:             url,
-		indicesIncluded: indicesIncluded,
-
+		client:                 client,
+		url:                    url,
+		indicesIncluded:        indicesIncluded,
+		maxIndicesIncludeCount: maxIndicesIncludeCount,
 		ilmMetric: ilmMetric{
 			Type: prometheus.GaugeValue,
 			Desc: prometheus.NewDesc(
@@ -95,9 +97,9 @@ func (i *IlmIndiciesCollector) fetchAndDecodeIlm() (IlmResponse, error) {
 	u := *i.url
 
 	//add indices filter
-	if len(i.indicesIncluded) == 0 || len(i.indicesIncluded) > 80 {
+	if len(i.indicesIncluded) == 0 || len(i.indicesIncluded) > i.maxIndicesIncludeCount {
 		u.Path = path.Join(u.Path, "/_all/_ilm/explain")
-	} else if len(i.indicesIncluded) <= 80 {
+	} else if len(i.indicesIncluded) <= i.maxIndicesIncludeCount {
 		u.Path = path.Join(u.Path, "/"+strings.Join(i.indicesIncluded, ",")+"/_ilm/explain")
 	}
 
@@ -128,7 +130,7 @@ func (i *IlmIndiciesCollector) fetchAndDecodeIlm() (IlmResponse, error) {
 	}
 
 	//filter
-	if len(i.indicesIncluded) > 80 {
+	if len(i.indicesIncluded) > i.maxIndicesIncludeCount {
 		ir.Indices = i.filterMapByKeys(ir.Indices, i.indicesIncluded)
 	}
 

@@ -15,15 +15,16 @@ package collector
 
 import (
 	"encoding/json"
-	"flashcat.cloud/categraf/pkg/filter"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
+
+	"flashcat.cloud/categraf/pkg/filter"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -40,23 +41,24 @@ type indicesMappingsMetric struct {
 
 // IndicesMappings information struct
 type IndicesMappings struct {
-	client               *http.Client
-	url                  *url.URL
-	indicesIncluded      []string
-	numMostRecentIndices int
-	indexMatchers        map[string]filter.Filter
-	metrics              []*indicesMappingsMetric
+	client                 *http.Client
+	url                    *url.URL
+	indicesIncluded        []string
+	numMostRecentIndices   int
+	maxIndicesIncludeCount int
+	indexMatchers          map[string]filter.Filter
+	metrics                []*indicesMappingsMetric
 }
 
 // NewIndicesMappings defines Indices IndexMappings Prometheus metrics
-func NewIndicesMappings(client *http.Client, url *url.URL, indicesIncluded []string) *IndicesMappings {
+func NewIndicesMappings(client *http.Client, url *url.URL, indicesIncluded []string, maxIndicesIncludeCount int) *IndicesMappings {
 	subsystem := "indices_mappings_stats"
 
 	return &IndicesMappings{
-		client:          client,
-		url:             url,
-		indicesIncluded: indicesIncluded,
-
+		client:                 client,
+		url:                    url,
+		indicesIncluded:        indicesIncluded,
+		maxIndicesIncludeCount: maxIndicesIncludeCount,
 		metrics: []*indicesMappingsMetric{
 			{
 				Type: prometheus.GaugeValue,
@@ -147,7 +149,7 @@ func (im *IndicesMappings) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	//过滤 include
-	if len(im.indicesIncluded) > 80 {
+	if len(im.indicesIncluded) > im.maxIndicesIncludeCount {
 		indicesMappingsResponse = im.filterMapByKeys(*indicesMappingsResponse, im.indicesIncluded)
 	}
 
@@ -166,9 +168,9 @@ func (im *IndicesMappings) Collect(ch chan<- prometheus.Metric) {
 func (im *IndicesMappings) fetchAndDecodeIndicesMappings() (*IndicesMappingsResponse, error) {
 	u := *im.url
 	//add indices filter
-	if len(im.indicesIncluded) == 0 || len(im.indicesIncluded) > 80 {
+	if len(im.indicesIncluded) == 0 || len(im.indicesIncluded) > im.maxIndicesIncludeCount {
 		u.Path = path.Join(u.Path, "/_all/_mappings")
-	} else if len(im.indicesIncluded) <= 80 {
+	} else if len(im.indicesIncluded) <= im.maxIndicesIncludeCount {
 		u.Path = path.Join(u.Path, "/"+strings.Join(im.indicesIncluded, ",")+"/_mappings")
 	}
 

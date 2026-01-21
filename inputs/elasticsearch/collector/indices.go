@@ -61,15 +61,16 @@ type aliasMetric struct {
 
 // Indices information struct
 type Indices struct {
-	client               *http.Client
-	url                  *url.URL
-	shards               bool
-	aliases              bool
-	indicesIncluded      []string
-	numMostRecentIndices int
-	indexMatchers        map[string]filter.Filter
-	clusterInfoCh        chan *clusterinfo.Response
-	lastClusterInfo      *clusterinfo.Response
+	client                 *http.Client
+	url                    *url.URL
+	shards                 bool
+	aliases                bool
+	indicesIncluded        []string
+	numMostRecentIndices   int
+	maxIndicesIncludeCount int
+	indexMatchers          map[string]filter.Filter
+	clusterInfoCh          chan *clusterinfo.Response
+	lastClusterInfo        *clusterinfo.Response
 
 	up                prometheus.Gauge
 	totalScrapes      prometheus.Counter
@@ -81,7 +82,7 @@ type Indices struct {
 }
 
 // NewIndices defines Indices Prometheus metrics
-func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases bool, indicesIncluded []string) *Indices {
+func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases bool, indicesIncluded []string, maxIndicesIncludeCount int) *Indices {
 
 	indexLabels := labels{
 		keys: func(...string) []string {
@@ -126,12 +127,13 @@ func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases b
 	}
 
 	indices := &Indices{
-		client:          client,
-		url:             url,
-		shards:          shards,
-		aliases:         includeAliases,
-		indicesIncluded: indicesIncluded,
-		clusterInfoCh:   make(chan *clusterinfo.Response),
+		client:                 client,
+		url:                    url,
+		shards:                 shards,
+		aliases:                includeAliases,
+		indicesIncluded:        indicesIncluded,
+		maxIndicesIncludeCount: maxIndicesIncludeCount,
+		clusterInfoCh:          make(chan *clusterinfo.Response),
 		lastClusterInfo: &clusterinfo.Response{
 			ClusterName: "unknown_cluster",
 		},
@@ -2427,7 +2429,7 @@ func (i *Indices) fetchAndDecodeIndexStats() (indexStatsResponse, error) {
 			i.jsonParseFailures.Inc()
 			return isr, err
 		}
-	} else if len(i.indicesIncluded) <= 80 {
+	} else if len(i.indicesIncluded) <= i.maxIndicesIncludeCount {
 		u := *i.url
 		u.Path = path.Join(u.Path, "/"+strings.Join(i.indicesIncluded, ",")+"/_stats")
 		if i.shards {
@@ -2447,7 +2449,7 @@ func (i *Indices) fetchAndDecodeIndexStats() (indexStatsResponse, error) {
 		}
 	} else {
 		//Prevent GET requests from failing to fully query words when there are too many indicesIncluded
-		batchSize := 80
+		batchSize := i.maxIndicesIncludeCount
 
 		for k := 0; k < len(i.indicesIncluded); k += batchSize {
 			uu := *i.url

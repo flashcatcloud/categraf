@@ -98,7 +98,8 @@ elasticsearch_ilm_index_status{action="complete",index="facebook",phase="new",st
 			}
 
 			indicesIncluded := make([]string, 0)
-			c := NewIlmIndicies(http.DefaultClient, u, indicesIncluded)
+			maxIndicesIncludeCount := 80
+			c := NewIlmIndicies(http.DefaultClient, u, indicesIncluded, maxIndicesIncludeCount)
 			if err != nil {
 				t.Fatal(err)
 			}

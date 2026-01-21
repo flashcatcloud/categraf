@@ -36,7 +36,8 @@ func TestIndices(t *testing.T) {
 		}
 		//indices := make([]string, 0)
 		indicesIncluded := make([]string, 0)
-		i := NewIndices(http.DefaultClient, u, false, true, indicesIncluded)
+		maxIndicesIncludeCount := 80
+		i := NewIndices(http.DefaultClient, u, false, true, indicesIncluded, maxIndicesIncludeCount)
 		stats, err := i.fetchAndDecodeIndexStats()
 		if err != nil {
 			t.Fatalf("Failed to fetch or decode indices stats: %s", err)
@@ -112,7 +113,8 @@ func TestAliases(t *testing.T) {
 		}
 		//indices := make([]string, 0)
 		indicesIncluded := make([]string, 0)
-		i := NewIndices(http.DefaultClient, u, false, true, indicesIncluded)
+		maxIndicesIncludeCount := 80
+		i := NewIndices(http.DefaultClient, u, false, true, indicesIncluded, maxIndicesIncludeCount)
 		stats, err := i.fetchAndDecodeIndexStats()
 		if err != nil {
 			t.Fatalf("Failed to fetch or decode indices stats: %s", err)

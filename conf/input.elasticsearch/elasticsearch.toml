@@ -111,9 +111,9 @@ num_most_recent_indices = 0
 
 ## must num_most_recent_indices Coordinated use
 ## default ["(?P<date>(?:\\d{4}|\\d{2})[.-]?(?:\\d{2})[.-]?(?:\\d{2})?[.-]?(?:\\d{2})?)$","[\\.-._]\\d+(\\.\\d+){0,2}$"]
-## match //YYYY.MM.DD 或 YYYY-MM-DD 或 YYYYMMDD 或 YYYY-MM-DD-HH
-##       //YYYY.MM 或 YYYY-MM 或 YYYYMM 或YYYYMMDDHH
-##      //YY.MM.DD 或 YY-MM-DD 或 YYMMDD 或YYYY.MM.DD.HH
+## match //YYYY.MM.DD or YYYY-MM-DD or YYYYMMDD or YYYY-MM-DD-HH
+##       //YYYY.MM or YYYY-MM or YYYYMM or YYYYMMDDHH
+##      //YY.MM.DD or YY-MM-DD or YYMMDD or YYYY.MM.DD.HH
 ##     //v1_001 v1_002 -->v1* v0.1 v0.2 -->v0* v5.2.3 v5.2.4 -->v5*
 ## or self expansion
 dynamic_index_matcher_regexp = ["(?P<date>(?:\\d{4}|\\d{2})[.-]?(?:\\d{2})[.-]?(?:\\d{2})?[.-]?(?:\\d{2})?)$","[\\.-._]\\d+(\\.\\d+){0,2}$"]
