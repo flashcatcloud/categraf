@@ -234,8 +234,8 @@ func (hrp *HTTPProvider) LoadConfig() (bool, error) {
 		return false, err
 	}
 
-	// if config version is identical, means config is not changed
-	if confResp.Version == hrp.version {
+	// if config version is identical or empty , means config is not changed
+	if confResp.Version == hrp.version || confResp.Version == "" {
 		return false, nil
 	}
 	log.Printf("I! remote version:%s, current version:%s", confResp.Version, hrp.version)
@@ -362,12 +362,14 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string]map[string]*cfg.Conf
 			cache.put(inputKey, *inputConfig)
 		}
 	}
-
+	// cache map[string]map[string]cfg.ConfigWithFormat
+	// the second string is config's checksum , compute by n9e server
+	// trust server compute result and agent only executes changes
 	for inputKey, configMap := range cache.iter() {
 		if oldConfigMap, has := hrp.cache.get(inputKey); has {
-			new := set.NewWithLoad[string, cfg.ConfigWithFormat](configMap)
-			old := set.NewWithLoad[string, cfg.ConfigWithFormat](oldConfigMap)
-			add, _, del := new.Diff(old)
+			newConfig := set.NewWithLoad[string, cfg.ConfigWithFormat](configMap)
+			oldConfig := set.NewWithLoad[string, cfg.ConfigWithFormat](oldConfigMap)
+			add, _, del := newConfig.Diff(oldConfig)
 			for sum := range add {
 				if config.Config.DebugMode {
 					log.Println("D!: add config:", inputKey, "config sum:", sum)
