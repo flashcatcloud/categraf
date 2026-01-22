@@ -14,7 +14,6 @@
 package collector
 
 import (
-	"flashcat.cloud/categraf/pkg/filter"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -99,9 +98,8 @@ elasticsearch_ilm_index_status{action="complete",index="facebook",phase="new",st
 			}
 
 			indicesIncluded := make([]string, 0)
-			var numMostRecentIndices int = 0
-			indexMatchers := make(map[string]filter.Filter)
-			c := NewIlmIndicies(http.DefaultClient, u, indicesIncluded, numMostRecentIndices, indexMatchers)
+			maxIndicesIncludeCount := 80
+			c := NewIlmIndicies(http.DefaultClient, u, indicesIncluded, maxIndicesIncludeCount)
 			if err != nil {
 				t.Fatal(err)
 			}

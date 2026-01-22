@@ -100,3 +100,20 @@ cluster_info_interval = "5m"
 # tls_key = "/etc/categraf/key.pem"
 ## Use TLS but skip chain & host verification
 # insecure_skip_verify = true
+
+## Sets the number of most recent indices to return for indices that are configured with a date-stamped suffix.
+## Each 'indices_include' entry ending with a wildcard (*) or glob matching pattern will group together all indices that match it, and
+## sort them by the date or number after the wildcard. Metrics then are gathered for only the 'num_most_recent_indices' amount of most
+## recent indices.
+num_most_recent_indices = 0
+
+
+
+## must num_most_recent_indices Coordinated use
+## default ["(?P<date>(?:\\d{4}|\\d{2})[.-]?(?:\\d{2})[.-]?(?:\\d{2})?[.-]?(?:\\d{2})?)$","[\\.-._]\\d+(\\.\\d+){0,2}$"]
+## match //YYYY.MM.DD or YYYY-MM-DD or YYYYMMDD or YYYY-MM-DD-HH
+##       //YYYY.MM or YYYY-MM or YYYYMM or YYYYMMDDHH
+##      //YY.MM.DD or YY-MM-DD or YYMMDD or YY.MM.DD.HH
+##     //v1_001 v1_002 -->v1* v0.1 v0.2 -->v0* v5.2.3 v5.2.4 -->v5*
+## or self expansion
+dynamic_index_matcher_regexp = ["(?P<date>(?:\\d{4}|\\d{2})[.-]?(?:\\d{2})[.-]?(?:\\d{2})?[.-]?(?:\\d{2})?)$","[\\.-._]\\d+(\\.\\d+){0,2}$"]

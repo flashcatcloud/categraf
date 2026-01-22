@@ -14,7 +14,6 @@
 package collector
 
 import (
-	"flashcat.cloud/categraf/pkg/filter"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -70,9 +69,8 @@ func TestIndicesSettings(t *testing.T) {
 				t.Fatalf("Failed to parse URL: %s", err)
 			}
 			indicesIncluded := make([]string, 0)
-			var numMostRecentIndices int = 0
-			indexMatchers := make(map[string]filter.Filter)
-			c := NewIndicesSettings(http.DefaultClient, u, indicesIncluded, numMostRecentIndices, indexMatchers)
+			maxIndicesIncludeCount := 80
+			c := NewIndicesSettings(http.DefaultClient, u, indicesIncluded, maxIndicesIncludeCount)
 			nsr, err := c.fetchAndDecodeIndicesSettings()
 			if err != nil {
 				t.Fatalf("Failed to fetch or decode indices settings: %s", err)
