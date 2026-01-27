@@ -68,10 +68,7 @@ func (r *InputReader) startInput() {
 				log.Println("D!", r.inputName, ": after gather once,", "duration:", time.Since(start))
 			}
 
-			next := interval - time.Since(start)
-			if next < 0 {
-				next = 0
-			}
+			next := max(interval - time.Since(start), 0)
 			timer.Reset(next)
 		}
 	}
