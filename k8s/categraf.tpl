@@ -50,7 +50,7 @@ spec:
           value: /hostfs/sys
         - name: HOST_MOUNT_PREFIX
           value: /hostfs
-        image: flashcatcloud/categraf:v0.1.3
+        image: flashcatcloud/categraf:v0.4.36
         imagePullPolicy: IfNotPresent
         name: categraf
         resources: {}
