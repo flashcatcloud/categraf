@@ -322,11 +322,12 @@ func (ins *Instance) getJobDetail(jr jobRequest, slist *types.SampleList) error 
 	cutoff := time.Now().Add(-1 * time.Duration(ins.MaxBuildAge))
 
 	// Here we just test
-	if build.GetTimestamp().Before(cutoff) {
+	timeStamp := build.GetTimestamp()
+	if timeStamp.Before(cutoff) {
 		return nil
 	}
 
-	ins.gatherJobBuild(jr, build, slist)
+	ins.gatherJobBuild(jr, build, slist, timeStamp)
 	return nil
 }
 
@@ -437,13 +438,15 @@ func (jr jobRequest) parentsString() string {
 	return strings.Join(jr.parents, "/")
 }
 
-func (ins *Instance) gatherJobBuild(jr jobRequest, b *buildResponse, slist *types.SampleList) {
+func (ins *Instance) gatherJobBuild(jr jobRequest, b *buildResponse, slist *types.SampleList, timeStamp time.Time) {
 	tags := map[string]string{"name": jr.name, "parents": jr.parentsString(), "result": b.Result, "source": ins.Source, "port": ins.Port}
 	fields := make(map[string]interface{})
 	fields[measurementJob+"duration"] = b.Duration
 	fields[measurementJob+"result_code"] = mapResultCode(b.Result)
 	fields[measurementJob+"number"] = b.Number
-	slist.PushSamples(inputName, fields, tags)
+	for metric, value := range fields {
+		slist.PushFront(types.NewSample(inputName, metric, value, tags).SetTime(timeStamp))
+	}
 }
 
 // perform status mapping
