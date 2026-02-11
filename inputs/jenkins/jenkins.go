@@ -444,7 +444,9 @@ func (ins *Instance) gatherJobBuild(jr jobRequest, b *buildResponse, slist *type
 	fields[measurementJob+"duration"] = b.Duration
 	fields[measurementJob+"result_code"] = mapResultCode(b.Result)
 	fields[measurementJob+"number"] = b.Number
-	slist.PushSamplesWithTime(inputName, fields, timeStamp, tags)
+	for metric, value := range fields {
+		slist.PushFront(types.NewSample(inputName, metric, types.ConvertPtrToValue(value), tags).SetTime(timeStamp))
+	}
 }
 
 // perform status mapping
