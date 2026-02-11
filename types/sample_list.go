@@ -3,6 +3,7 @@ package types
 import (
 	"container/list"
 	"reflect"
+	"time"
 )
 
 type SampleList struct {
@@ -23,6 +24,16 @@ func (l *SampleList) PushSamples(prefix string, fields map[string]interface{}, l
 	vs := make([]*Sample, 0, len(fields))
 	for metric, value := range fields {
 		v := NewSample(prefix, metric, convertPtrToValue(value), labels...)
+		vs = append(vs, v)
+	}
+	l.PushFrontN(vs)
+}
+
+func (l *SampleList) PushSamplesWithTime(prefix string, fields map[string]interface{}, timeStamp time.Time, labels ...map[string]string) {
+	vs := make([]*Sample, 0, len(fields))
+	for metric, value := range fields {
+		v := NewSample(prefix, metric, convertPtrToValue(value), labels...)
+		v.Timestamp = timeStamp
 		vs = append(vs, v)
 	}
 	l.PushFrontN(vs)
