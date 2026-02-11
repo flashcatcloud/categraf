@@ -445,7 +445,7 @@ func (ins *Instance) gatherJobBuild(jr jobRequest, b *buildResponse, slist *type
 	fields[measurementJob+"result_code"] = mapResultCode(b.Result)
 	fields[measurementJob+"number"] = b.Number
 	for metric, value := range fields {
-		slist.PushFront(types.NewSample(inputName, metric, types.ConvertPtrToValue(value), tags).SetTime(timeStamp))
+		slist.PushFront(types.NewSample(inputName, metric, value, tags).SetTime(timeStamp))
 	}
 }
 

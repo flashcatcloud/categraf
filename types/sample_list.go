@@ -22,13 +22,13 @@ func (l *SampleList) PushSample(prefix, metric string, value interface{}, labels
 func (l *SampleList) PushSamples(prefix string, fields map[string]interface{}, labels ...map[string]string) {
 	vs := make([]*Sample, 0, len(fields))
 	for metric, value := range fields {
-		v := NewSample(prefix, metric, ConvertPtrToValue(value), labels...)
+		v := NewSample(prefix, metric, convertPtrToValue(value), labels...)
 		vs = append(vs, v)
 	}
 	l.PushFrontN(vs)
 }
 
-func ConvertPtrToValue(value interface{}) interface{} {
+func convertPtrToValue(value interface{}) interface{} {
 	if value == nil {
 		return value
 	}
