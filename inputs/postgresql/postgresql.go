@@ -72,14 +72,17 @@ type MetricConfig struct {
 type Instance struct {
 	config.InstanceConfig
 
-	Address            string          `toml:"address"`
-	MaxLifetime        config.Duration `toml:"max_lifetime"`
-	IsPgBouncer        bool            `toml:"-"`
-	OutputAddress      string          `toml:"outputaddress"`
-	Databases          []string        `toml:"databases"`
-	IgnoredDatabases   []string        `toml:"ignored_databases"`
-	PreparedStatements bool            `toml:"prepared_statements"`
-	Metrics            []MetricConfig  `toml:"metrics"`
+	Address                string          `toml:"address"`
+	MaxLifetime            config.Duration `toml:"max_lifetime"`
+	IsPgBouncer            bool            `toml:"-"`
+	OutputAddress          string          `toml:"outputaddress"`
+	Databases              []string        `toml:"databases"`
+	IgnoredDatabases       []string        `toml:"ignored_databases"`
+	PreparedStatements     bool            `toml:"prepared_statements"`
+	EnableStatementMetrics bool            `toml:"enable_statement_metrics"`
+	StatementMetricsLimit  int             `toml:"statement_metrics_limit"`
+	Metrics                []MetricConfig  `toml:"metrics"`
+	TrimServerTagSpace     bool            `toml:"trim_server_tag_space"`
 
 	MaxIdle int
 	MaxOpen int
@@ -196,35 +199,111 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	for rows.Next() {
-		err = ins.accRow(rows, slist, columns)
+		err = ins.accRow(rows, slist, "", columns, columns, nil)
 		if err != nil {
 			log.Println("E! failed to get row data:", err)
 			return
 		}
 	}
 
-	query = `SELECT * FROM pg_stat_bgwriter`
-
-	bgWriterRow, err := ins.db.Query(query)
+	// Check Postgres Version
+	var version int
+	err = ins.db.QueryRow("SELECT current_setting('server_version_num')::int").Scan(&version)
 	if err != nil {
 		log.Println("E! failed to execute Query:", err)
 		return
 	}
 
-	defer bgWriterRow.Close()
+	if version < 170000 {
+		query = `SELECT * FROM pg_stat_bgwriter`
+		bgWriterRow, err := ins.db.Query(query)
+		if err != nil {
+			log.Println("E! failed to execute Query:", err)
+			return
+		}
 
-	// grab the column information from the result
-	if columns, err = bgWriterRow.Columns(); err != nil {
-		log.Println("E! failed to grab column info:", err)
-		return
-	}
+		defer bgWriterRow.Close()
 
-	for bgWriterRow.Next() {
-		err = ins.accRow(bgWriterRow, slist, columns)
+		// grab the column information from the result
+		if columns, err = bgWriterRow.Columns(); err != nil {
+			log.Println("E! failed to grab column info:", err)
+			return
+		}
+
+		for bgWriterRow.Next() {
+			err = ins.accRow(bgWriterRow, slist, "", columns, columns, nil)
+			if err != nil {
+				log.Println("E! failed to get row data:", err)
+				return
+			}
+		}
+	} else {
+		// PG 17+ split pg_stat_bgwriter into pg_stat_bgwriter and pg_stat_checkpointer
+
+		// 1. Query pg_stat_bgwriter (remaining columns)
+		query = `SELECT * FROM pg_stat_bgwriter`
+		bgWriterRow, err := ins.db.Query(query)
+		if err != nil {
+			log.Println("E! failed to execute Query pg_stat_bgwriter:", err)
+			return
+		}
+		defer bgWriterRow.Close()
+
+		if columns, err = bgWriterRow.Columns(); err != nil {
+			log.Println("E! failed to grab column info for pg_stat_bgwriter:", err)
+			return
+		}
+
+		for bgWriterRow.Next() {
+			err = ins.accRow(bgWriterRow, slist, "", columns, columns, nil)
+			if err != nil {
+				log.Println("E! failed to get row data from pg_stat_bgwriter:", err)
+				return
+			}
+		}
+
+		// 2. Query pg_stat_checkpointer (moved columns, aliased to old names for compatibility)
+		// num_timed -> checkpoints_timed
+		// num_requested -> checkpoints_req
+		// write_time -> checkpoint_write_time
+		// sync_time -> checkpoint_sync_time
+		// buffers_written -> buffers_checkpoint
+		query = `SELECT 
+			num_timed AS checkpoints_timed,
+			num_requested AS checkpoints_req,
+			write_time AS checkpoint_write_time,
+			sync_time AS checkpoint_sync_time,
+			buffers_written AS buffers_checkpoint,
+			restartpoints_timed,
+			restartpoints_req,
+			restartpoints_done,
+			write_time,
+			sync_time
+			FROM pg_stat_checkpointer`
+
+		checkpointerRow, err := ins.db.Query(query)
 		if err != nil {
 			log.Println("E! failed to get row data:", err)
 			return
 		}
+		defer checkpointerRow.Close()
+
+		if columns, err = checkpointerRow.Columns(); err != nil {
+			log.Println("E! failed to grab column info for pg_stat_checkpointer:", err)
+			return
+		}
+
+		for checkpointerRow.Next() {
+			err = ins.accRow(checkpointerRow, slist, "", columns, columns, nil)
+			if err != nil {
+				log.Println("E! failed to get row data from pg_stat_checkpointer:", err)
+				return
+			}
+		}
+	}
+
+	if ins.EnableStatementMetrics {
+		ins.getStatementMetrics(slist, version)
 	}
 
 	waitMetrics := new(sync.WaitGroup)
@@ -237,6 +316,84 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	waitMetrics.Wait()
+}
+
+func (ins *Instance) getStatementMetrics(slist *types.SampleList, version int) {
+	var query string
+
+	limit := func() string {
+		if ins.StatementMetricsLimit > 0 {
+			return fmt.Sprintf(" LIMIT %d", ins.StatementMetricsLimit)
+		}
+		return ""
+	}()
+
+	query = `SELECT
+		pg_get_userbyid(userid) as user,
+		pg_database.datname,
+		regexp_replace(pg_stat_statements.query, E'[\\r\\n\\t]+', ' ', 'g') AS query,
+		pg_stat_statements.calls as calls_total,
+		pg_stat_statements.total_time as exec_milliseconds_total,
+		pg_stat_statements.rows as rows_total,
+		pg_stat_statements.blk_read_time as block_read_milliseconds_total,
+		pg_stat_statements.blk_write_time as block_write_milliseconds_total
+		FROM pg_stat_statements
+	JOIN pg_database
+		ON pg_database.oid = pg_stat_statements.dbid
+	ORDER BY exec_milliseconds_total DESC`
+
+	if version >= 170000 {
+		query = `SELECT
+		pg_get_userbyid(userid) as user,
+		pg_database.datname,
+		regexp_replace(pg_stat_statements.query, E'[\\r\\n\\t]+', ' ', 'g') AS query,
+		pg_stat_statements.calls as calls_total,
+		pg_stat_statements.total_exec_time as exec_milliseconds_total,
+		pg_stat_statements.rows as rows_total,
+		pg_stat_statements.shared_blk_read_time as block_read_milliseconds_total,
+		pg_stat_statements.shared_blk_write_time as block_write_milliseconds_total
+		FROM pg_stat_statements
+	JOIN pg_database
+		ON pg_database.oid = pg_stat_statements.dbid
+	ORDER BY exec_milliseconds_total DESC`
+	} else if version >= 130000 {
+		query = `SELECT
+		pg_get_userbyid(userid) as user,
+		pg_database.datname,
+		regexp_replace(pg_stat_statements.query, E'[\\r\\n\\t]+', ' ', 'g') AS query,
+		pg_stat_statements.calls as calls_total,
+		pg_stat_statements.total_exec_time as exec_milliseconds_total,
+		pg_stat_statements.rows as rows_total,
+		pg_stat_statements.blk_read_time as block_read_milliseconds_total,
+		pg_stat_statements.blk_write_time as block_write_milliseconds_total
+		FROM pg_stat_statements
+	JOIN pg_database
+		ON pg_database.oid = pg_stat_statements.dbid
+	ORDER BY exec_milliseconds_total DESC`
+	}
+
+	statements, err := ins.db.Query(query + limit)
+	if err != nil {
+		log.Println("E! failed to query stat statements:", err.Error())
+		return
+	}
+	defer statements.Close()
+
+	columns, err := statements.Columns()
+	if err != nil {
+		log.Println("E! failed to grab column info:", err.Error())
+		return
+	}
+
+	labelColumns := []string{"user", "datname", "query"}
+	valueColumns := []string{"calls_total", "exec_milliseconds_total", "rows_total", "block_read_milliseconds_total", "block_write_milliseconds_total"}
+	for statements.Next() {
+		err := ins.accRow(statements, slist, "statements", columns, valueColumns, labelColumns)
+		if err != nil {
+			log.Println("E! failed to get row data:", err.Error())
+			return
+		}
+	}
 }
 
 func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.SampleList, metricConf MetricConfig, tags map[string]string) {
@@ -346,7 +503,7 @@ type scanner interface {
 	Scan(dest ...interface{}) error
 }
 
-func (ins *Instance) accRow(row scanner, slist *types.SampleList, columns []string) error {
+func (ins *Instance) accRow(row scanner, slist *types.SampleList, prefix string, columns, valueColumns, labelColumns []string) error {
 	var columnVars []interface{}
 	var dbname bytes.Buffer
 
@@ -398,11 +555,25 @@ func (ins *Instance) accRow(row scanner, slist *types.SampleList, columns []stri
 
 	tags := map[string]string{"server": tagAddress, "db": dbname.String()}
 
+	for _, labelKey := range labelColumns {
+		if columnMap[labelKey] != nil && !ignoredColumns[labelKey] {
+			tags[labelKey] = fmt.Sprint(*columnMap[labelKey])
+		}
+	}
+
 	fields := make(map[string]interface{})
-	for col, val := range columnMap {
-		_, ignore := ignoredColumns[col]
-		if !ignore {
-			fields[col] = *val
+
+	for _, valueKey := range valueColumns {
+		if columnMap[valueKey] != nil && !ignoredColumns[valueKey] {
+			metricsName := valueKey
+			if prefix != "" {
+				if strings.HasPrefix(valueKey, "_") {
+					metricsName = prefix + valueKey
+				} else {
+					metricsName = prefix + "_" + valueKey
+				}
+			}
+			fields[metricsName] = *columnMap[valueKey]
 		}
 	}
 	// acc.AddFields("postgresql", fields, tags)
@@ -480,6 +651,9 @@ func (ins *Instance) SanitizedAddress() (sanitizedAddress string, err error) {
 	}
 
 	sanitizedAddress = kvMatcher.ReplaceAllString(canonicalizedAddress, "")
+	if ins.TrimServerTagSpace {
+		sanitizedAddress = strings.TrimSpace(sanitizedAddress)
+	}
 
 	return sanitizedAddress, err
 }
