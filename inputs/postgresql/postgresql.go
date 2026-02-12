@@ -89,6 +89,7 @@ type Instance struct {
 	db      *sql.DB
 
 	connConfig string
+	Version    int
 }
 
 var ignoredColumns = map[string]bool{"stats_reset": true}
@@ -207,14 +208,17 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	// Check Postgres Version
-	var version int
-	err = ins.db.QueryRow("SELECT current_setting('server_version_num')::int").Scan(&version)
-	if err != nil {
-		log.Println("E! failed to execute Query:", err)
-		return
+	if ins.Version == 0 {
+		var version int
+		err = ins.db.QueryRow("SELECT current_setting('server_version_num')::int").Scan(&version)
+		if err != nil {
+			log.Println("E! failed to query current version:", err)
+			return
+		}
+		ins.Version = version
 	}
 
-	if version < 170000 {
+	if ins.Version < 170000 {
 		query = `SELECT * FROM pg_stat_bgwriter`
 		bgWriterRow, err := ins.db.Query(query)
 		if err != nil {
@@ -276,9 +280,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			buffers_written AS buffers_checkpoint,
 			restartpoints_timed,
 			restartpoints_req,
-			restartpoints_done,
-			write_time,
-			sync_time
+			restartpoints_done
 			FROM pg_stat_checkpointer`
 
 		checkpointerRow, err := ins.db.Query(query)
@@ -303,7 +305,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	if ins.EnableStatementMetrics {
-		ins.getStatementMetrics(slist, version)
+		ins.getStatementMetrics(slist, ins.Version)
 	}
 
 	waitMetrics := new(sync.WaitGroup)
@@ -385,7 +387,7 @@ func (ins *Instance) getStatementMetrics(slist *types.SampleList, version int) {
 		return
 	}
 
-	labelColumns := []string{"user", "datname", "query"}
+	labelColumns := []string{"user", "query"}
 	valueColumns := []string{"calls_total", "exec_milliseconds_total", "rows_total", "block_read_milliseconds_total", "block_write_milliseconds_total"}
 	for statements.Next() {
 		err := ins.accRow(statements, slist, "statements", columns, valueColumns, labelColumns)
