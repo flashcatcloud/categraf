@@ -6,6 +6,8 @@ import (
 	"flashcat.cloud/categraf/heartbeat/memory"
 	"flashcat.cloud/categraf/heartbeat/network"
 	"flashcat.cloud/categraf/heartbeat/platform"
+
+	"github.com/elastic/go-sysinfo"
 )
 
 type (
@@ -44,6 +46,17 @@ func collect() (*SystemInfo, error) {
 	pl, err := new(platform.Platform).Collect()
 	if err == nil {
 		si.Platform = pl
+
+		// 为了不修改 platform 的结构体，这里直接修改 platform 的 map, platform 是复制的外部的 pkg
+		if platformMap, ok := pl.(map[string]interface{}); ok {
+			if host, hostErr := sysinfo.Host(); hostErr == nil {
+				info := host.Info()
+				if info.OS != nil {
+					platformMap["os_name"] = info.OS.Name
+					platformMap["os_version"] = info.OS.Version
+				}
+			}
+		}
 	}
 
 	return si, nil
