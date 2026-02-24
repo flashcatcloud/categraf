@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pion/dtls/v2"
+	"github.com/pion/dtls/v3"
 
 	"golang.org/x/crypto/ocsp"
 
@@ -315,7 +315,11 @@ func (ins *Instance) getCert(u *url.URL, timeout time.Duration) ([]*x509.Certifi
 	protocol := u.Scheme
 	switch u.Scheme {
 	case "udp", "udp4", "udp6":
-		ipConn, err := net.DialTimeout(u.Scheme, u.Host, timeout)
+		raddr, err := net.ResolveUDPAddr(u.Scheme, u.Host)
+		if err != nil {
+			return nil, nil, err
+		}
+		ipConn, err := net.DialUDP(u.Scheme, nil, raddr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -327,13 +331,14 @@ func (ins *Instance) getCert(u *url.URL, timeout time.Duration) ([]*x509.Certifi
 			RootCAs:            ins.tlsCfg.RootCAs,
 			ServerName:         ins.serverName(u),
 		}
-		conn, err := dtls.Client(ipConn, dtlsCfg)
+		conn, err := dtls.Client(ipConn, raddr, dtlsCfg)
 		if err != nil {
 			return nil, nil, err
 		}
 		defer conn.Close()
 
-		rawCerts := conn.ConnectionState().PeerCertificates
+		state, _ := conn.ConnectionState()
+		rawCerts := state.PeerCertificates
 		var certs []*x509.Certificate
 		for _, rawCert := range rawCerts {
 			parsed, err := x509.ParseCertificate(rawCert)
