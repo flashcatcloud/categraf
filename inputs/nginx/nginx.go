@@ -293,11 +293,11 @@ func parseResponseBody(body io.ReadCloser, fields map[string]interface{}) error 
 	}
 
 	if len(data) > 3 {
-		request_time, err := strconv.ParseUint(data[3], 10, 64)
+		requestTime, err := strconv.ParseUint(data[3], 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to parse the response, error: %s", err)
 		}
-		fields["request_time"] = request_time
+		fields["request_time"] = requestTime
 	}
 
 	// Reading/Writing/Waiting
