@@ -66,7 +66,8 @@ jobs:
               }
             }')
 
-          HTTP_STATUS=$(curl -s -o /tmp/agent_response.json -w "%{http_code}" \
+          CURL_EXIT=0
+          HTTP_STATUS=$(curl -sS -o /tmp/agent_response.json -w "%{http_code}" \
             --connect-timeout 10 \
             --max-time 120 \
             --retry 2 \
@@ -74,7 +75,12 @@ jobs:
             -X POST "$AGENT_URL" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $PROXY_TOKEN" \
-            -d "$PAYLOAD")
+            -d "$PAYLOAD") || CURL_EXIT=$?
+
+          if [ "$CURL_EXIT" -ne 0 ]; then
+            echo "::error::curl failed with exit code ${CURL_EXIT} (network/DNS/TLS error)"
+            exit 1
+          fi
 
           RESPONSE=$(cat /tmp/agent_response.json)
           echo "Agent response (status=${HTTP_STATUS}): ${RESPONSE}"
