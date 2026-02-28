@@ -11,23 +11,40 @@ jobs:
       issues: write
     steps:
       - name: Send Issue to AI Agent
+        timeout-minutes: 5
         env:
           AGENT_URL: ${{ secrets.AGENT_WEBHOOK_URL }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROXY_TOKEN: ${{ secrets.PROXY_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+
+          if [ -z "${AGENT_URL:-}" ]; then
+            echo "::error::AGENT_WEBHOOK_URL secret is not set"
+            exit 1
+          fi
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::GITHUB_TOKEN is not available"
+            exit 1
+          fi
+
           # Truncate body to prevent token overflow (max 3000 chars)
           ISSUE_BODY=$(cat <<'HEREDOC'
           ${{ github.event.issue.body }}
           HEREDOC
           )
-          ISSUE_BODY=$(printf '%s' "$ISSUE_BODY" | head -c 3000)
+          ISSUE_BODY=$(echo "$ISSUE_BODY" | head -c 3000)
 
           # Build JSON payload with jq to handle special characters safely
+          ISSUE_CONTENT=$(printf '[Issue #%s] %s\n\n%s' \
+            "${{ github.event.issue.number }}" \
+            "${{ github.event.issue.title }}" \
+            "$ISSUE_BODY")
+
           PAYLOAD=$(jq -n \
             --arg sender "${{ github.event.issue.user.login }}" \
             --arg room "${{ github.repository }}#${{ github.event.issue.number }}" \
-            --arg content "[Issue #${{ github.event.issue.number }}] ${{ github.event.issue.title }}\n\n${ISSUE_BODY}" \
+            --arg content "$ISSUE_CONTENT" \
             --arg owner "${{ github.repository_owner }}" \
             --arg repo "${{ github.event.repository.name }}" \
             --arg issue_number "${{ github.event.issue.number }}" \
@@ -46,6 +63,10 @@ jobs:
             }')
 
           HTTP_STATUS=$(curl -s -o /tmp/agent_response.json -w "%{http_code}" \
+            --connect-timeout 10 \
+            --max-time 120 \
+            --retry 2 \
+            --retry-delay 3 \
             -X POST "$AGENT_URL" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $PROXY_TOKEN" \
@@ -58,3 +79,4 @@ jobs:
             echo "::error::Agent returned HTTP ${HTTP_STATUS}: ${RESPONSE}"
             exit 1
           fi
+
