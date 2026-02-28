@@ -27,6 +27,10 @@ jobs:
             echo "::error::GITHUB_TOKEN is not available"
             exit 1
           fi
+          if [ -z "${PROXY_TOKEN:-}" ]; then
+            echo "::error::PROXY_TOKEN secret is not set"
+            exit 1
+          fi
 
           # Truncate body to prevent token overflow (max 3000 chars)
           ISSUE_BODY=$(cat <<'HEREDOC'
@@ -79,4 +83,3 @@ jobs:
             echo "::error::Agent returned HTTP ${HTTP_STATUS}: ${RESPONSE}"
             exit 1
           fi
-
