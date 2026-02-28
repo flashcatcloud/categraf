@@ -83,9 +83,11 @@ jobs:
           fi
 
           RESPONSE=$(cat /tmp/agent_response.json)
-          echo "Agent response (status=${HTTP_STATUS}): ${RESPONSE}"
+          # Truncate the response to avoid leaking large or sensitive data in logs
+          REDACTED_RESPONSE=$(echo "$RESPONSE" | head -c 500)
+          echo "Agent response status=${HTTP_STATUS}"
 
           if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
-            echo "::error::Agent returned HTTP ${HTTP_STATUS}: ${RESPONSE}"
+            echo "::error::Agent returned HTTP ${HTTP_STATUS}: ${REDACTED_RESPONSE}"
             exit 1
           fi
