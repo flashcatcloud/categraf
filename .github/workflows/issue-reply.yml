@@ -7,6 +7,8 @@ on:
 jobs:
   auto-reply:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - name: Send Issue to AI Agent
         env:
@@ -43,8 +45,16 @@ jobs:
               }
             }')
 
-          curl -s -X POST "$AGENT_URL" \
+          HTTP_STATUS=$(curl -s -o /tmp/agent_response.json -w "%{http_code}" \
+            -X POST "$AGENT_URL" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $PROXY_TOKEN" \
-            -d "$PAYLOAD"
+            -d "$PAYLOAD")
 
+          RESPONSE=$(cat /tmp/agent_response.json)
+          echo "Agent response (status=${HTTP_STATUS}): ${RESPONSE}"
+
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "::error::Agent returned HTTP ${HTTP_STATUS}: ${RESPONSE}"
+            exit 1
+          fi
