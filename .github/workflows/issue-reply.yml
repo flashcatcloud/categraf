@@ -21,7 +21,7 @@ jobs:
           ${{ github.event.issue.body }}
           HEREDOC
           )
-          ISSUE_BODY=$(echo "$ISSUE_BODY" | head -c 3000)
+          ISSUE_BODY=$(printf '%s' "$ISSUE_BODY" | head -c 3000)
 
           # Build JSON payload with jq to handle special characters safely
           PAYLOAD=$(jq -n \
