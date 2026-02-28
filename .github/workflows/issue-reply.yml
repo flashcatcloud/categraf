@@ -1,0 +1,93 @@
+name: Issue Auto-Reply
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  auto-reply:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Send Issue to AI Agent
+        timeout-minutes: 5
+        env:
+          AGENT_URL: ${{ secrets.AGENT_WEBHOOK_URL }}
+          PROXY_TOKEN: ${{ secrets.PROXY_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${AGENT_URL:-}" ]; then
+            echo "::error::AGENT_WEBHOOK_URL secret is not set"
+            exit 1
+          fi
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::GITHUB_TOKEN is not available"
+            exit 1
+          fi
+          if [ -z "${PROXY_TOKEN:-}" ]; then
+            echo "::error::PROXY_TOKEN secret is not set"
+            exit 1
+          fi
+
+          # Truncate body to prevent token overflow (max 3000 chars)
+          ISSUE_BODY=$(cat <<'HEREDOC'
+          ${{ github.event.issue.body }}
+          HEREDOC
+          )
+          ISSUE_BODY=$(echo "$ISSUE_BODY" | head -c 3000)
+
+          # Build JSON payload with jq to handle special characters safely
+          ISSUE_CONTENT=$(printf '[Issue #%s] %s\n\n%s' \
+            "${{ github.event.issue.number }}" \
+            "${{ github.event.issue.title }}" \
+            "$ISSUE_BODY")
+
+          PAYLOAD=$(jq -n \
+            --arg sender "${{ github.event.issue.user.login }}" \
+            --arg room "${{ github.repository }}#${{ github.event.issue.number }}" \
+            --arg content "$ISSUE_CONTENT" \
+            --arg owner "${{ github.repository_owner }}" \
+            --arg repo "${{ github.event.repository.name }}" \
+            --arg issue_number "${{ github.event.issue.number }}" \
+            --arg token "${GH_TOKEN}" \
+            '{
+              sender: $sender,
+              room: $room,
+              content: $content,
+              reply_type: "github",
+              reply_meta: {
+                owner: $owner,
+                repo: $repo,
+                issue_number: $issue_number,
+                token: $token
+              }
+            }')
+
+          CURL_EXIT=0
+          HTTP_STATUS=$(curl -sS -o /tmp/agent_response.json -w "%{http_code}" \
+            --connect-timeout 10 \
+            --max-time 120 \
+            --retry 2 \
+            --retry-delay 3 \
+            -X POST "$AGENT_URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $PROXY_TOKEN" \
+            -d "$PAYLOAD") || CURL_EXIT=$?
+
+          if [ "$CURL_EXIT" -ne 0 ]; then
+            echo "::error::curl failed with exit code ${CURL_EXIT} (network/DNS/TLS error)"
+            exit 1
+          fi
+
+          RESPONSE=$(cat /tmp/agent_response.json)
+          # Truncate the response to avoid leaking large or sensitive data in logs
+          REDACTED_RESPONSE=$(echo "$RESPONSE" | head -c 500)
+          echo "Agent response status=${HTTP_STATUS}"
+
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "::error::Agent returned HTTP ${HTTP_STATUS}: ${REDACTED_RESPONSE}"
+            exit 1
+          fi
