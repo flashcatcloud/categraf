@@ -157,6 +157,18 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *types.SampleList, 
 
 	ins.gatherRuokResult(ruokConn, slist, tags)
 
+	srvrConn, err := ins.ZkConnect(zkHost)
+	if err != nil {
+		slist.PushFront(types.NewSample("", "zk_zxid", 0, tags))
+		log.Println("E! failed to connect zookeeper:", zkHost, "error:", err)
+		return
+	}
+
+	defer srvrConn.Close()
+
+	srvrConn.SetDeadline(time.Now().Add(time.Duration(ins.Timeout) * time.Second))
+	ins.gatherSrvrResult(srvrConn, slist, tags)
+
 }
 
 func (ins *Instance) gatherMntrResult(conn net.Conn, slist *types.SampleList, globalTags map[string]string) {
@@ -236,6 +248,25 @@ func (ins *Instance) gatherRuokResult(conn net.Conn, slist *types.SampleList, gl
 			log.Printf(commandNotAllowedTmpl, "ruok", conn.RemoteAddr().String())
 		}
 		slist.PushFront(types.NewSample("", "zk_ruok", 0, globalTags))
+	}
+}
+
+func (ins *Instance) gatherSrvrResult(conn net.Conn, slist *types.SampleList, globalTags map[string]string) {
+	res := sendZookeeperCmd(conn, "srvr")
+	lines := strings.Split(res, "\n")
+
+	for _, l := range lines {
+		if !strings.HasPrefix(l, "Zxid:") {
+			continue
+		}
+		zxidStr := strings.TrimSpace(strings.Split(l, ":")[1])
+		zxid, err := strconv.ParseInt(zxidStr, 16, 64)
+		if err != nil {
+			log.Printf("E! failed to parse zxid: %s", err)
+			return
+		}
+		low4Bytes := zxid & 0xFFFFFFFF
+		slist.PushFront(types.NewSample("", "zk_zxid_used", low4Bytes, globalTags))
 	}
 }
 
