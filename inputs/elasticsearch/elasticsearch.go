@@ -280,13 +280,8 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				ins.NewIndicesInclude = ins.IndicesInclude
 			}
 
-			var clusterName string
-			if clusterName, err = collector.GetClusterName(ins.Client, ins.UserName, ins.Password, s); err != nil {
-				log.Println("E! failed to get cluster name:", err)
-			}
-
 			// Always gather node stats
-			if err := inputs.Collect(collector.NewNodes(ins.Client, EsUrl, ins.AllNodes, ins.Node, ins.Local, ins.NodeStats, clusterName), slist); err != nil {
+			if err := inputs.Collect(collector.NewNodes(ins.Client, EsUrl, ins.AllNodes, ins.Node, ins.Local, ins.NodeStats, ins.serverInfo[ins.Node].clusterName), slist); err != nil {
 				log.Println("E! failed to collect nodes metrics:", err)
 			}
 
