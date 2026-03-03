@@ -253,6 +253,10 @@ func (ins *Instance) gatherRuokResult(conn net.Conn, slist *types.SampleList, gl
 
 func (ins *Instance) gatherSrvrResult(conn net.Conn, slist *types.SampleList, globalTags map[string]string) {
 	res := sendZookeeperCmd(conn, "srvr")
+	if strings.Contains(res, cmdNotExecutedSffx) {
+		log.Printf(commandNotAllowedTmpl, "srvr", conn.RemoteAddr().String())
+		return
+	}
 	lines := strings.Split(res, "\n")
 
 	for _, l := range lines {
