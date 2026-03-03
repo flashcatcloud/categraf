@@ -197,7 +197,7 @@ type Nodes struct {
 }
 
 // NewNodes defines Nodes Prometheus metrics
-func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bool, nodeStats []string) *Nodes {
+func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bool, nodeStats []string, clusterName string) *Nodes {
 	return &Nodes{
 		client:    client,
 		url:       url,
@@ -209,14 +209,26 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: prometheus.BuildFQName(namespace, "node_stats", "up"),
 			Help: "Was the last scrape of the Elasticsearch nodes endpoint successful.",
+			ConstLabels: prometheus.Labels{
+				"cluster": clusterName,
+				"address": url.String(),
+			},
 		}),
 		totalScrapes: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: prometheus.BuildFQName(namespace, "node_stats", "total_scrapes"),
 			Help: "Current total Elasticsearch node scrapes.",
+			ConstLabels: prometheus.Labels{
+				"cluster": clusterName,
+				"address": url.String(),
+			},
 		}),
 		jsonParseFailures: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: prometheus.BuildFQName(namespace, "node_stats", "json_parse_failures"),
 			Help: "Number of errors while parsing JSON.",
+			ConstLabels: prometheus.Labels{
+				"cluster": clusterName,
+				"address": url.String(),
+			},
 		}),
 
 		transportMetrics: []*nodeMetric{
@@ -2273,6 +2285,39 @@ func GetNodeID(client *http.Client, user, password, s string) (string, error) {
 		return id, nil
 	}
 	return "", nil
+}
+
+func GetClusterName(client *http.Client, user, password, s string) (string, error) {
+	u, err := url.Parse(s)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse URL %s: %s", s, err)
+	}
+	if user != "" && password != "" {
+		u.User = url.UserPassword(user, password)
+	}
+
+	var cir ClusterInfoResponse
+	res, err := client.Get(u.String())
+	if err != nil {
+		return "", fmt.Errorf("failed to get cluster info from %s: %s", u.String(), err)
+	}
+	defer func() {
+		err = res.Body.Close()
+		if err != nil {
+			log.Println("failed to close response body, err: ", err)
+		}
+	}()
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("HTTP Request failed with code %d", res.StatusCode)
+	}
+	bts, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+	if err := json.Unmarshal(bts, &cir); err != nil {
+		return "", err
+	}
+	return cir.ClusterName, nil
 }
 
 func GetCatMaster(client *http.Client, user, password, s string) (string, error) {
