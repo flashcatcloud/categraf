@@ -260,7 +260,7 @@ func (ins *Instance) gatherSrvrResult(conn net.Conn, slist *types.SampleList, gl
 			continue
 		}
 		zxidStr := strings.TrimSpace(strings.Split(l, ":")[1])
-		zxid, err := strconv.ParseInt(zxidStr, 16, 64)
+		zxid, err := strconv.ParseUint(zxidStr, 0, 64)
 		if err != nil {
 			log.Printf("E! failed to parse zxid: %s", err)
 			return
