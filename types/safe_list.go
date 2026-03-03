@@ -100,6 +100,31 @@ func (sl *SafeList[T]) Len() int {
 	return size
 }
 
+func (sl *SafeList[T]) PushFrontIfNotFull(v T, maxSize int) bool {
+	sl.Lock()
+	defer sl.Unlock()
+	if sl.L.Len() >= maxSize {
+		return false
+	}
+	sl.L.PushFront(v)
+	return true
+}
+
+func (sl *SafeList[T]) PushFrontNIfNotFull(vs []T, maxSize int) bool {
+	if len(vs) == 0 {
+		return true
+	}
+	sl.Lock()
+	defer sl.Unlock()
+	if sl.L.Len()+len(vs) > maxSize {
+		return false
+	}
+	for _, item := range vs {
+		sl.L.PushFront(item)
+	}
+	return true
+}
+
 // SafeListLimited is SafeList with Limited Size
 type SafeListLimited[T any] struct {
 	maxSize int
@@ -111,21 +136,11 @@ func NewSafeListLimited[T any](maxSize int) *SafeListLimited[T] {
 }
 
 func (sll *SafeListLimited[T]) PushFront(v T) bool {
-	if sll.SL.Len() >= sll.maxSize {
-		return false
-	}
-
-	sll.SL.PushFront(v)
-	return true
+	return sll.SL.PushFrontIfNotFull(v, sll.maxSize)
 }
 
 func (sll *SafeListLimited[T]) PushFrontN(vs []T) bool {
-	if sll.SL.Len() >= sll.maxSize {
-		return false
-	}
-
-	sll.SL.PushFrontN(vs)
-	return true
+	return sll.SL.PushFrontNIfNotFull(vs, sll.maxSize)
 }
 
 func (sll *SafeListLimited[T]) PopBack() *T {
