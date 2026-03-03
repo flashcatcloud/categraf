@@ -208,6 +208,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				if info.clusterName, err = collector.GetClusterName(ins.Client, ins.UserName, ins.Password, s); err != nil {
 					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
 					log.Println("E! failed to get cluster name:", err)
+					return
 				}
 
 				slist.PushSample("elasticsearch", "up", 1, map[string]string{
