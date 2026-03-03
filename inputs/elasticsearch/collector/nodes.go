@@ -2295,7 +2295,7 @@ func GetClusterName(client *http.Client, user, password, s string) (string, erro
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
+			log.Println("failed to close response body, err: ", err)
 		}
 	}()
 	if res.StatusCode != http.StatusOK {
