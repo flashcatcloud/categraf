@@ -96,8 +96,9 @@ type (
 	}
 
 	serverInfo struct {
-		nodeID   string
-		masterID string
+		nodeID      string
+		masterID    string
+		clusterName string
 	}
 
 	IndicesInfo struct {
@@ -204,7 +205,15 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					return
 				}
 
-				slist.PushSample("elasticsearch", "up", 1, map[string]string{"address": s})
+				if info.clusterName, err = collector.GetClusterName(ins.Client, ins.UserName, ins.Password, s); err != nil {
+					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
+					log.Println("E! failed to get cluster name:", err)
+				}
+
+				slist.PushSample("elasticsearch", "up", 1, map[string]string{
+					"address": s,
+					"cluster": info.clusterName,
+				})
 				ins.serverInfoMutex.Lock()
 				ins.serverInfo[s] = info
 				ins.serverInfoMutex.Unlock()
