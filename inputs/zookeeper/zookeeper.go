@@ -255,6 +255,7 @@ func (ins *Instance) gatherSrvrResult(conn net.Conn, slist *types.SampleList, gl
 	res := sendZookeeperCmd(conn, "srvr")
 	if strings.Contains(res, cmdNotExecutedSffx) {
 		log.Printf(commandNotAllowedTmpl, "srvr", conn.RemoteAddr().String())
+		slist.PushFront(types.NewSample("", "zk_zxid", 0, globalTags))
 		return
 	}
 	lines := strings.Split(res, "\n")
