@@ -111,9 +111,12 @@ func (sl *SafeList[T]) PushFrontIfNotFull(v T, maxSize int) bool {
 }
 
 func (sl *SafeList[T]) PushFrontNIfNotFull(vs []T, maxSize int) bool {
+	if len(vs) == 0 {
+		return true
+	}
 	sl.Lock()
 	defer sl.Unlock()
-	if sl.L.Len() >= maxSize {
+	if sl.L.Len()+len(vs) > maxSize {
 		return false
 	}
 	for _, item := range vs {
