@@ -197,7 +197,7 @@ type Nodes struct {
 }
 
 // NewNodes defines Nodes Prometheus metrics
-func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bool, nodeStats []string) *Nodes {
+func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bool, nodeStats []string, clusterName string) *Nodes {
 	return &Nodes{
 		client:    client,
 		url:       url,
@@ -207,16 +207,19 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 		nodeStats: nodeStats,
 
 		up: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: prometheus.BuildFQName(namespace, "node_stats", "up"),
-			Help: "Was the last scrape of the Elasticsearch nodes endpoint successful.",
+			Name:        prometheus.BuildFQName(namespace, "node_stats", "up"),
+			Help:        "Was the last scrape of the Elasticsearch nodes endpoint successful.",
+			ConstLabels: prometheus.Labels{"cluster": clusterName},
 		}),
 		totalScrapes: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prometheus.BuildFQName(namespace, "node_stats", "total_scrapes"),
-			Help: "Current total Elasticsearch node scrapes.",
+			Name:        prometheus.BuildFQName(namespace, "node_stats", "total_scrapes"),
+			Help:        "Current total Elasticsearch node scrapes.",
+			ConstLabels: prometheus.Labels{"cluster": clusterName},
 		}),
 		jsonParseFailures: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prometheus.BuildFQName(namespace, "node_stats", "json_parse_failures"),
-			Help: "Number of errors while parsing JSON.",
+			Name:        prometheus.BuildFQName(namespace, "node_stats", "json_parse_failures"),
+			Help:        "Number of errors while parsing JSON.",
+			ConstLabels: prometheus.Labels{"cluster": clusterName},
 		}),
 
 		transportMetrics: []*nodeMetric{

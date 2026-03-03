@@ -58,7 +58,7 @@ func TestNodesStats(t *testing.T) {
 				}
 				u.User = url.UserPassword("elastic", "changeme")
 				nodeStats := make([]string, 0)
-				c := NewNodes(http.DefaultClient, u, true, "_local", false, nodeStats)
+				c := NewNodes(http.DefaultClient, u, true, "_local", false, nodeStats, "test")
 				nsr, err := c.fetchAndDecodeNodeStats()
 				if err != nil {
 					t.Fatalf("Failed to fetch or decode node stats: %s", err)
