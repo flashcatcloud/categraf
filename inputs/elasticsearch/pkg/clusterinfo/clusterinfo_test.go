@@ -1,4 +1,4 @@
-// Copyright 2021 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -15,17 +15,18 @@ package clusterinfo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/blang/semver/v4"
+	"github.com/prometheus/common/promslog"
 )
 
 const (
@@ -43,7 +44,6 @@ const (
 type mockES struct{}
 
 func (mockES) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
-
 	fmt.Fprintf(w, `{
   "name" : "%s",
   "cluster_name" : "%s",
@@ -118,7 +118,7 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Skipf("internal test error: %s", err)
 	}
-	r := New(http.DefaultClient, u, 0)
+	r := New(promslog.NewNopLogger(), http.DefaultClient, u, 0)
 	if r.url != u {
 		t.Errorf("new Retriever mal-constructed")
 	}
@@ -130,7 +130,7 @@ func TestRetriever_RegisterConsumer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("internal test error: %s", err)
 	}
-	retriever := New(mockES.Client(), u, 0)
+	retriever := New(promslog.NewNopLogger(), mockES.Client(), u, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	consumerNames := []string{"consumer-1", "consumer-2"}
@@ -150,7 +150,7 @@ func TestRetriever_fetchAndDecodeClusterInfo(t *testing.T) {
 	versionNumber, _ := semver.Make(versionNumber)
 	luceneVersion, _ := semver.Make(luceneVersion)
 
-	var expected = &Response{
+	expected := &Response{
 		Name:        nodeName,
 		ClusterName: clusterName,
 		ClusterUUID: clusterUUID,
@@ -169,7 +169,7 @@ func TestRetriever_fetchAndDecodeClusterInfo(t *testing.T) {
 	if err != nil {
 		t.Skipf("internal test error: %s", err)
 	}
-	retriever := New(mockES.Client(), u, 0)
+	retriever := New(promslog.NewNopLogger(), mockES.Client(), u, 0)
 	ci, err := retriever.fetchAndDecodeClusterInfo()
 	if err != nil {
 		t.Fatalf("failed to retrieve cluster info: %s", err)
@@ -189,7 +189,7 @@ func TestRetriever_Run(t *testing.T) {
 	}
 
 	// setup cluster info retriever
-	retriever := New(mockES.Client(), u, 0)
+	retriever := New(promslog.New(&promslog.Config{Writer: os.Stdout}), mockES.Client(), u, 0)
 
 	// setup mock consumer
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -211,7 +211,7 @@ func TestRetriever_Run(t *testing.T) {
 	// check for deadlocks
 	select {
 	case <-ctx.Done():
-		if err := ctx.Err(); errors.Is(err, context.DeadlineExceeded) {
+		if err := ctx.Err(); err == context.DeadlineExceeded {
 			t.Fatal("context timeout exceeded, caught deadlock")
 		}
 	default:
