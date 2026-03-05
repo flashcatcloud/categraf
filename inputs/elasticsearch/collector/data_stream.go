@@ -16,7 +16,6 @@ package collector
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -95,7 +94,6 @@ func (ds *DataStream) Update(ctx context.Context, ch chan<- prometheus.Metric) e
 	}
 
 	for _, dataStream := range dsr.DataStreamStats {
-		fmt.Printf("Metric: %+v", dataStream)
 
 		ch <- prometheus.MustNewConstMetric(
 			dataStreamBackingIndicesTotal,
