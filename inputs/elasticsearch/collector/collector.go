@@ -1,4 +1,4 @@
-// Copyright 2022 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -18,13 +18,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/alecthomas/kingpin/v2"
 	"log"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
 
+	"github.com/alecthomas/kingpin/v2"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -212,4 +212,52 @@ var ErrNoData = errors.New("collector returned no data")
 
 func IsNoDataError(err error) bool {
 	return err == ErrNoData
+}
+
+// categraf configurations
+
+func EnableExportSLM(flag bool) Option {
+	return func(e *ElasticsearchCollector) error {
+		if flag {
+			*collectorState["slm"] = true
+			return nil
+		}
+		return nil
+	}
+}
+
+func EnableExportDataStream(flag bool) Option {
+	return func(e *ElasticsearchCollector) error {
+		if flag {
+			*collectorState["data-stream"] = true
+		}
+		return nil
+	}
+}
+
+func EnableExportSnapshots(flag bool) Option {
+	return func(e *ElasticsearchCollector) error {
+		if flag {
+			*collectorState["snapshots"] = true
+		}
+		return nil
+	}
+}
+
+func EnableExportILM(flag bool) Option {
+	return func(e *ElasticsearchCollector) error {
+		if flag {
+			*collectorState["ilm"] = true
+		}
+		return nil
+	}
+}
+
+func EnableExportClusterSettings(flag bool) Option {
+	return func(e *ElasticsearchCollector) error {
+		if flag {
+			*collectorState["clustersettings"] = true
+		}
+		return nil
+	}
 }

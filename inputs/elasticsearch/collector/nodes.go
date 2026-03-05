@@ -1,4 +1,4 @@
-// Copyright 2021 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -70,32 +70,18 @@ func getRoles(node NodeStatsNodeResponse) map[string]bool {
 	return roles
 }
 
-func createRoleMetric(role string) *nodeMetric {
-	return &nodeMetric{
-		Type: prometheus.GaugeValue,
-		Desc: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "nodes", "roles"),
-			"Node roles",
-			defaultRoleLabels, prometheus.Labels{"role": role},
-		),
-		Value: func(node NodeStatsNodeResponse) float64 {
-			return 1.0
-		},
-		Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-			return []string{
-				cluster,
-				node.Host,
-				node.Name,
-			}
-		},
-	}
-}
+var nodesRolesMetric = prometheus.NewDesc(
+	prometheus.BuildFQName(namespace, "nodes", "roles"),
+	"Node roles",
+	append(defaultRoleLabels, "role"), nil,
+)
 
 var (
 	defaultNodeLabels               = []string{"cluster", "host", "name", "es_master_node", "es_data_node", "es_ingest_node", "es_client_node"}
-	defaultRoleLabels               = []string{"cluster", "host", "name"}
+	defaultRoleLabels               = []string{"cluster", "host", "name", "node"}
 	defaultThreadPoolLabels         = append(defaultNodeLabels, "type")
 	defaultBreakerLabels            = append(defaultNodeLabels, "breaker")
+	defaultIndexingPressureLabels   = []string{"cluster", "host", "name", "indexing_pressure"}
 	defaultFilesystemDataLabels     = append(defaultNodeLabels, "mount", "path")
 	defaultFilesystemIODeviceLabels = append(defaultNodeLabels, "device")
 	defaultCacheLabels              = append(defaultNodeLabels, "cache")
@@ -150,6 +136,13 @@ type breakerMetric struct {
 	Labels func(cluster string, node NodeStatsNodeResponse, breaker string) []string
 }
 
+type indexingPressureMetric struct {
+	Type   prometheus.ValueType
+	Desc   *prometheus.Desc
+	Value  func(indexingPressureStats NodeStatsIndexingPressureResponse) float64
+	Labels func(cluster string, node NodeStatsNodeResponse, indexingPressure string) []string
+}
+
 type threadPoolMetric struct {
 	Type   prometheus.ValueType
 	Desc   *prometheus.Desc
@@ -173,31 +166,26 @@ type filesystemIODeviceMetric struct {
 
 // Nodes information struct
 type Nodes struct {
-	client    *http.Client
-	url       *url.URL
-	all       bool
-	node      string
-	local     bool
-	nodeStats []string
+	client *http.Client
+	url    *url.URL
+	all    bool
+	node   string
 
-	up                              prometheus.Gauge
-	totalScrapes, jsonParseFailures prometheus.Counter
-
-	jvmMetrics                []*nodeMetric
+	nodeMetrics               []*nodeMetric
 	gcCollectionMetrics       []*gcCollectionMetric
-	osMetrics                 []*nodeMetric
-	processMetrics            []*nodeMetric
 	breakerMetrics            []*breakerMetric
-	indicesMetrics            []*nodeMetric
-	transportMetrics          []*nodeMetric
-	httpMetrics               []*nodeMetric
+	indexingPressureMetrics   []*indexingPressureMetric
 	threadPoolMetrics         []*threadPoolMetric
 	filesystemDataMetrics     []*filesystemDataMetric
 	filesystemIODeviceMetrics []*filesystemIODeviceMetric
+
+	// categraf configuration
+	local     bool
+	nodeStats []string
 }
 
 // NewNodes defines Nodes Prometheus metrics
-func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bool, nodeStats []string, clusterName string) *Nodes {
+func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bool, nodeStats []string) *Nodes {
 	return &Nodes{
 		client:    client,
 		url:       url,
@@ -206,540 +194,11 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 		local:     local,
 		nodeStats: nodeStats,
 
-		up: prometheus.NewGauge(prometheus.GaugeOpts{
-			Name: prometheus.BuildFQName(namespace, "node_stats", "up"),
-			Help: "Was the last scrape of the Elasticsearch nodes endpoint successful.",
-			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
-				"address": url.String(),
-			},
-		}),
-		totalScrapes: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prometheus.BuildFQName(namespace, "node_stats", "total_scrapes"),
-			Help: "Current total Elasticsearch node scrapes.",
-			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
-				"address": url.String(),
-			},
-		}),
-		jsonParseFailures: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prometheus.BuildFQName(namespace, "node_stats", "json_parse_failures"),
-			Help: "Number of errors while parsing JSON.",
-			ConstLabels: prometheus.Labels{
-				"cluster": clusterName,
-				"address": url.String(),
-			},
-		}),
-
-		transportMetrics: []*nodeMetric{
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "transport", "rx_packets_total"),
-					"Count of packets received",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Transport.RxCount)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "transport", "rx_size_in_bytes_total"),
-					"Total number of bytes received",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Transport.RxSize)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "transport", "tx_packets_total"),
-					"Count of packets sent",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Transport.TxCount)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "transport", "tx_size_in_bytes_total"),
-					"Total number of bytes sent",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Transport.TxSize)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-		},
-		jvmMetrics: []*nodeMetric{
+		nodeMetrics: []*nodeMetric{
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm", "threads_count"),
-					"Count of threads",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Threads.Count)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm", "threads_peak_count"),
-					"Peak count of threads",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Threads.PeakCount)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm", "timestamp"),
-					"JVM timestamp",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Timestamp)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_mem_heap", "used_in_bytes"),
-					"JVM memory currently used by area",
-					append(defaultNodeLabels, "area"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.HeapUsed)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "heap")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_mem_non_heap", "used_in_bytes"),
-					"JVM memory currently used by area",
-					append(defaultNodeLabels, "area"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.NonHeapUsed)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "non-heap")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_mem_heap", "max_in_bytes"),
-					"JVM memory max",
-					append(defaultNodeLabels, "area"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.HeapMax)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "heap")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_mem_heap", "used_percent"),
-					"JVM memory used percent",
-					append(defaultNodeLabels, "area"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.HeapUsedPercent)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "heap")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_mem_heap", "committed_in_bytes"),
-					"JVM memory currently committed by area",
-					append(defaultNodeLabels, "area"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.HeapCommitted)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "heap")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_mem_non_heap", "committed_in_bytes"),
-					"JVM memory currently committed by area",
-					append(defaultNodeLabels, "area"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.NonHeapCommitted)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "non-heap")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_young", "used_in_bytes"),
-					"JVM memory currently used by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["young"].Used)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "young")
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_young", "max_in_bytes"),
-					"JVM memory max by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["young"].Max)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "young")
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_young", "peak_used_in_bytes"),
-					"JVM memory peak used by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["young"].PeakUsed)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "young")
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_young", "peak_max_in_bytes"),
-					"JVM memory peak max by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["young"].PeakMax)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "young")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_survivor", "used_in_bytes"),
-					"JVM memory currently used by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["survivor"].Used)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "survivor")
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_survivor", "max_in_bytes"),
-					"JVM memory max by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["survivor"].Max)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "survivor")
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_survivor", "peak_used_in_bytes"),
-					"JVM memory peak used by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["survivor"].PeakUsed)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "survivor")
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_survivor", "peak_max_in_bytes"),
-					"JVM memory peak max by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["survivor"].PeakMax)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "survivor")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_old", "used_in_bytes"),
-					"JVM memory currently used by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["old"].Used)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "old")
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_old", "max_in_bytes"),
-					"JVM memory max by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["old"].Max)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "old")
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_old", "peak_used_in_bytes"),
-					"JVM memory peak used by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["old"].PeakUsed)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "old")
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_memory_pools_old", "peak_max_in_bytes"),
-					"JVM memory peak max by pool",
-					append(defaultNodeLabels, "pool"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Mem.Pools["old"].PeakMax)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "old")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_buffer_pool_direct", "count"),
-					"JVM buffer count",
-					append(defaultNodeLabels, "type"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.BufferPools["direct"].Count)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "direct")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_buffer_pool_direct", "total_capacity_in_bytes"),
-					"JVM buffer total capacity",
-					append(defaultNodeLabels, "type"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.BufferPools["direct"].TotalCapacity)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "direct")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_buffer_pool_direct", "used_in_bytes"),
-					"JVM buffer currently used",
-					append(defaultNodeLabels, "type"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.BufferPools["direct"].Used)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "direct")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_buffer_pool_mapped", "count"),
-					"JVM buffer count",
-					append(defaultNodeLabels, "type"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.BufferPools["mapped"].Count)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "mapped")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_buffer_pool_mapped", "total_capacity_in_bytes"),
-					"JVM buffer total capacity",
-					append(defaultNodeLabels, "type"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.BufferPools["mapped"].TotalCapacity)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "mapped")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_buffer_pool_mapped", "used_in_bytes"),
-					"JVM buffer currently used",
-					append(defaultNodeLabels, "type"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.BufferPools["mapped"].Used)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "mapped")
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_classes", "current_loaded_count"),
-					"JVM classes currently loaded",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Classes.CurrentLoadedCount)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_classes", "total_loaded_count"),
-					"JVM classes total loaded",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Classes.TotalLoadedCount)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_classes", "total_unloaded_count"),
-					"JVM classes total unloaded",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Classes.TotalUnloadedCount)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm", "uptime_seconds"),
-					"JVM process uptime in seconds",
-					append(defaultNodeLabels, "type"), nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.JVM.Uptime) / 1000
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return append(defaultNodeLabelValues(cluster, node), "mapped")
-				},
-			},
-		},
-		gcCollectionMetrics: []*gcCollectionMetric{
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_gc", "collection_seconds_count"),
-					"Count of JVM GC runs",
-					append(defaultNodeLabels, "gc"), nil,
-				),
-				Value: func(gcStats NodeStatsJVMGCCollectorResponse) float64 {
-					return float64(gcStats.CollectionCount)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse, collector string) []string {
-					return append(defaultNodeLabelValues(cluster, node), collector)
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "jvm_gc", "collection_seconds_sum"),
-					"GC run time in seconds",
-					append(defaultNodeLabels, "gc"), nil,
-				),
-				Value: func(gcStats NodeStatsJVMGCCollectorResponse) float64 {
-					return float64(gcStats.CollectionTime) / 1000
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse, collector string) []string {
-					return append(defaultNodeLabelValues(cluster, node), collector)
-				},
-			},
-		},
-		osMetrics: []*nodeMetric{
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "cpu_load_average_1m"),
+					prometheus.BuildFQName(namespace, "os", "load1"),
 					"Shortterm load average",
 					defaultNodeLabels, nil,
 				),
@@ -751,7 +210,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "cpu_load_average_5m"),
+					prometheus.BuildFQName(namespace, "os", "load5"),
 					"Midterm load average",
 					defaultNodeLabels, nil,
 				),
@@ -763,7 +222,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "cpu_load_average_15m"),
+					prometheus.BuildFQName(namespace, "os", "load15"),
 					"Longterm load average",
 					defaultNodeLabels, nil,
 				),
@@ -787,7 +246,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "mem_free_in_bytes"),
+					prometheus.BuildFQName(namespace, "os", "mem_free_bytes"),
 					"Amount of free physical memory in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -799,7 +258,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "mem_used_in_bytes"),
+					prometheus.BuildFQName(namespace, "os", "mem_used_bytes"),
 					"Amount of used physical memory in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -811,7 +270,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "mem_actual_free_in_bytes"),
+					prometheus.BuildFQName(namespace, "os", "mem_actual_free_bytes"),
 					"Amount of free physical memory in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -823,7 +282,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "mem_actual_used_in_bytes"),
+					prometheus.BuildFQName(namespace, "os", "mem_actual_used_bytes"),
 					"Amount of used physical memory in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -835,311 +294,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "mem_used_percent"),
-					"Percent of used physical memory",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return node.OS.Mem.UsedPercent
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "mem_total_in_bytes"),
-					"Amount of used physical memory in bytes",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.OS.Mem.Total)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "mem_free_percent"),
-					"Percent of free physical memory",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return node.OS.Mem.FreePercent
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "cgroup_cpu_cfs_period_micros"),
-					"CPU CFS period in microseconds",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.OS.CGroup.CPU.CFSPeriod)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "cgroup_cpu_cfs_quota_micros"),
-					"CPU CFS quota in microseconds",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.OS.CGroup.CPU.CFSQuota)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "cgroup_cpu_stat_number_of_elapsed_periods"),
-					"CPU CFS quota in microseconds",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.OS.CGroup.CPU.Stat.NumberElapsed)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "cgroup_cpu_stat_number_of_times_throttled"),
-					"CPU CFS quota in microseconds",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.OS.CGroup.CPU.Stat.NumberThrottled)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "cgroup_cpu_stat_time_throttled_nanos"),
-					"CPU CFS quota in microseconds",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.OS.CGroup.CPU.Stat.TimeThrottled)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "cgroup_cpuacct_usage_nanos"),
-					"Cpuacct usage in nanos",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.OS.CGroup.CPUAcct.Usage)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "swap_used_in_bytes"),
-					"Amount of used swap memory in bytes",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.OS.Swap.Used)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "swap_total_in_bytes"),
-					"Amount of total swap memory in bytes",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.OS.Swap.Total)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "os", "swap_free_in_bytes"),
-					"Amount of free swap memory in bytes",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.OS.Swap.Free)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-		},
-		processMetrics: []*nodeMetric{
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "process", "cpu_percent"),
-					"Percent CPU used by process",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Process.CPU.Percent)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "process", "mem_resident_size_in_bytes"),
-					"Resident memory in use by process in bytes",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Process.Memory.Resident)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "process", "mem_share_size_in_bytes"),
-					"Shared memory in use by process in bytes",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Process.Memory.Share)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "process", "mem_total_virtual_in_bytes"),
-					"Total virtual memory used in bytes",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Process.Memory.TotalVirtual)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "process", "timestamp"),
-					"Timestamp",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Process.Timestamp)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "process", "open_files_descriptors"),
-					"Open file descriptors",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Process.OpenFD)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "process", "max_files_descriptors"),
-					"Max file descriptors",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Process.MaxFD)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "process", "cpu_seconds_total"),
-					"Process CPU time in seconds",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Process.CPU.Total) / 1000
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
-					return defaultNodeLabelValues(cluster, node)
-				},
-			},
-		},
-		breakerMetrics: []*breakerMetric{
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "breakers", "estimated_size_in_bytes"),
-					"Estimated size in bytes of breaker",
-					defaultBreakerLabels, nil,
-				),
-				Value: func(breakerStats NodeStatsBreakersResponse) float64 {
-					return float64(breakerStats.EstimatedSize)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse, breaker string) []string {
-					return append(defaultNodeLabelValues(cluster, node), breaker)
-				},
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "breakers", "limit_size_in_bytes"),
-					"Limit size in bytes for breaker",
-					defaultBreakerLabels, nil,
-				),
-				Value: func(breakerStats NodeStatsBreakersResponse) float64 {
-					return float64(breakerStats.LimitSize)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse, breaker string) []string {
-					return append(defaultNodeLabelValues(cluster, node), breaker)
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "breakers", "tripped"),
-					"tripped for breaker",
-					defaultBreakerLabels, nil,
-				),
-				Value: func(breakerStats NodeStatsBreakersResponse) float64 {
-					return float64(breakerStats.Tripped)
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse, breaker string) []string {
-					return append(defaultNodeLabelValues(cluster, node), breaker)
-				},
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "breakers", "overhead"),
-					"Overhead of circuit breakers",
-					defaultBreakerLabels, nil,
-				),
-				Value: func(breakerStats NodeStatsBreakersResponse) float64 {
-					return breakerStats.Overhead
-				},
-				Labels: func(cluster string, node NodeStatsNodeResponse, breaker string) []string {
-					return append(defaultNodeLabelValues(cluster, node), breaker)
-				},
-			},
-		},
-		indicesMetrics: []*nodeMetric{
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "fielddata_memory_size_in_bytes"),
+					prometheus.BuildFQName(namespace, "indices", "fielddata_memory_size_bytes"),
 					"Field data cache memory usage in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -1175,7 +330,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "filter_cache_memory_size_in_bytes"),
+					prometheus.BuildFQName(namespace, "indices", "filter_cache_memory_size_bytes"),
 					"Filter cache memory usage in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -1199,7 +354,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "query_cache_memory_size_in_bytes"),
+					prometheus.BuildFQName(namespace, "indices", "query_cache_memory_size_bytes"),
 					"Query cache memory usage in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -1223,7 +378,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.CounterValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "query_cache_total_count"),
+					prometheus.BuildFQName(namespace, "indices", "query_cache_total"),
 					"Query cache total count",
 					defaultNodeLabels, nil,
 				),
@@ -1247,7 +402,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.CounterValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "query_cache_cache_count"),
+					prometheus.BuildFQName(namespace, "indices", "query_cache_cache_total"),
 					"Query cache cache count",
 					defaultNodeLabels, nil,
 				),
@@ -1259,7 +414,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.CounterValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "query_cache_hit_count"),
+					prometheus.BuildFQName(namespace, "indices", "query_cache_count"),
 					"Query cache count",
 					defaultCacheLabels, nil,
 				),
@@ -1271,7 +426,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.CounterValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "query_cache_miss_count"),
+					prometheus.BuildFQName(namespace, "indices", "query_miss_count"),
 					"Query miss count",
 					defaultCacheLabels, nil,
 				),
@@ -1283,7 +438,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "request_cache_memory_size_in_bytes"),
+					prometheus.BuildFQName(namespace, "indices", "request_cache_memory_size_bytes"),
 					"Request cache memory usage in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -1451,6 +606,30 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.CounterValue,
 				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "indices_refresh", "external_total"),
+					"Total external refreshes",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Indices.Refresh.ExternalTotal)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "indices_refresh", "external_time_seconds_total"),
+					"Total time spent external refreshing in seconds",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Indices.Refresh.ExternalTotalTimeInMillis) / 1000
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
 					prometheus.BuildFQName(namespace, "indices", "search_query_time_seconds"),
 					"Total search query time in seconds",
 					defaultNodeLabels, nil,
@@ -1547,7 +726,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "docs_count"),
+					prometheus.BuildFQName(namespace, "indices", "docs"),
 					"Count of documents on this node",
 					defaultNodeLabels, nil,
 				),
@@ -1571,7 +750,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "store_size_in_bytes"),
+					prometheus.BuildFQName(namespace, "indices", "store_size_bytes"),
 					"Current size of stored index data in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -1595,7 +774,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "segments_memory_in_bytes"),
+					prometheus.BuildFQName(namespace, "indices", "segments_memory_bytes"),
 					"Current memory size of segments in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -1637,18 +816,6 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 				),
 				Value: func(node NodeStatsNodeResponse) float64 {
 					return float64(node.Indices.Segments.IndexWriterMemory)
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices", "segments_max_unsafe_auto_id_timestamp"),
-					"Count of memory for index writer on this node",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					return float64(node.Indices.Segments.MaxUnsafeAutoIDTimestamp)
 				},
 				Labels: defaultNodeLabelValues,
 			},
@@ -1910,7 +1077,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.CounterValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices_merges", "total_size_in_bytes"),
+					prometheus.BuildFQName(namespace, "indices_merges", "total_size_bytes_total"),
 					"Total merge size in bytes",
 					defaultNodeLabels, nil,
 				),
@@ -1934,7 +1101,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.CounterValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "indices_merges", "total_throttled_time_seconds"),
+					prometheus.BuildFQName(namespace, "indices_merges", "total_throttled_time_seconds_total"),
 					"Total throttled time of merges in seconds",
 					defaultNodeLabels, nil,
 				),
@@ -1942,6 +1109,548 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 					return float64(node.Indices.Merges.TotalThrottledTime) / 1000
 				},
 				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory", "used_bytes"),
+					"JVM memory currently used by area",
+					append(defaultNodeLabels, "area"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.HeapUsed)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "heap")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory", "used_bytes"),
+					"JVM memory currently used by area",
+					append(defaultNodeLabels, "area"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.NonHeapUsed)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "non-heap")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory", "max_bytes"),
+					"JVM memory max",
+					append(defaultNodeLabels, "area"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.HeapMax)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "heap")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory", "committed_bytes"),
+					"JVM memory currently committed by area",
+					append(defaultNodeLabels, "area"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.HeapCommitted)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "heap")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory", "committed_bytes"),
+					"JVM memory currently committed by area",
+					append(defaultNodeLabels, "area"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.NonHeapCommitted)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "non-heap")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "used_bytes"),
+					"JVM memory currently used by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["young"].Used)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "young")
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "max_bytes"),
+					"JVM memory max by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["young"].Max)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "young")
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "peak_used_bytes"),
+					"JVM memory peak used by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["young"].PeakUsed)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "young")
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "peak_max_bytes"),
+					"JVM memory peak max by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["young"].PeakMax)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "young")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "used_bytes"),
+					"JVM memory currently used by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["survivor"].Used)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "survivor")
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "max_bytes"),
+					"JVM memory max by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["survivor"].Max)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "survivor")
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "peak_used_bytes"),
+					"JVM memory peak used by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["survivor"].PeakUsed)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "survivor")
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "peak_max_bytes"),
+					"JVM memory peak max by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["survivor"].PeakMax)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "survivor")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "used_bytes"),
+					"JVM memory currently used by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["old"].Used)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "old")
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "max_bytes"),
+					"JVM memory max by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["old"].Max)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "old")
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "peak_used_bytes"),
+					"JVM memory peak used by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["old"].PeakUsed)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "old")
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_memory_pool", "peak_max_bytes"),
+					"JVM memory peak max by pool",
+					append(defaultNodeLabels, "pool"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Mem.Pools["old"].PeakMax)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "old")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_buffer_pool", "used_bytes"),
+					"JVM buffer currently used",
+					append(defaultNodeLabels, "type"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.BufferPools["direct"].Used)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "direct")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_buffer_pool", "used_bytes"),
+					"JVM buffer currently used",
+					append(defaultNodeLabels, "type"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.BufferPools["mapped"].Used)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "mapped")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm", "uptime_seconds"),
+					"JVM process uptime in seconds",
+					append(defaultNodeLabels, "type"), nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.JVM.Uptime) / 1000
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return append(defaultNodeLabelValues(cluster, node), "mapped")
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "process", "cpu_percent"),
+					"Percent CPU used by process",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Process.CPU.Percent)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "process", "mem_resident_size_bytes"),
+					"Resident memory in use by process in bytes",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Process.Memory.Resident)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "process", "mem_share_size_bytes"),
+					"Shared memory in use by process in bytes",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Process.Memory.Share)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "process", "mem_virtual_size_bytes"),
+					"Total virtual memory used in bytes",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Process.Memory.TotalVirtual)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "process", "open_files_count"),
+					"Open file descriptors",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Process.OpenFD)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "process", "max_files_descriptors"),
+					"Max file descriptors",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Process.MaxFD)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "process", "cpu_seconds_total"),
+					"Process CPU time in seconds",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Process.CPU.Total) / 1000
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse) []string {
+					return defaultNodeLabelValues(cluster, node)
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "transport", "rx_packets_total"),
+					"Count of packets received",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Transport.RxCount)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "transport", "rx_size_bytes_total"),
+					"Total number of bytes received",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Transport.RxSize)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "transport", "tx_packets_total"),
+					"Count of packets sent",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Transport.TxCount)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "transport", "tx_size_bytes_total"),
+					"Total number of bytes sent",
+					defaultNodeLabels, nil,
+				),
+				Value: func(node NodeStatsNodeResponse) float64 {
+					return float64(node.Transport.TxSize)
+				},
+				Labels: defaultNodeLabelValues,
+			},
+		},
+		gcCollectionMetrics: []*gcCollectionMetric{
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_gc", "collection_seconds_count"),
+					"Count of JVM GC runs",
+					append(defaultNodeLabels, "gc"), nil,
+				),
+				Value: func(gcStats NodeStatsJVMGCCollectorResponse) float64 {
+					return float64(gcStats.CollectionCount)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse, collector string) []string {
+					return append(defaultNodeLabelValues(cluster, node), collector)
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "jvm_gc", "collection_seconds_sum"),
+					"GC run time in seconds",
+					append(defaultNodeLabels, "gc"), nil,
+				),
+				Value: func(gcStats NodeStatsJVMGCCollectorResponse) float64 {
+					return float64(gcStats.CollectionTime) / 1000
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse, collector string) []string {
+					return append(defaultNodeLabelValues(cluster, node), collector)
+				},
+			},
+		},
+		breakerMetrics: []*breakerMetric{
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "breakers", "estimated_size_bytes"),
+					"Estimated size in bytes of breaker",
+					defaultBreakerLabels, nil,
+				),
+				Value: func(breakerStats NodeStatsBreakersResponse) float64 {
+					return float64(breakerStats.EstimatedSize)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse, breaker string) []string {
+					return append(defaultNodeLabelValues(cluster, node), breaker)
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "breakers", "limit_size_bytes"),
+					"Limit size in bytes for breaker",
+					defaultBreakerLabels, nil,
+				),
+				Value: func(breakerStats NodeStatsBreakersResponse) float64 {
+					return float64(breakerStats.LimitSize)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse, breaker string) []string {
+					return append(defaultNodeLabelValues(cluster, node), breaker)
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "breakers", "tripped"),
+					"tripped for breaker",
+					defaultBreakerLabels, nil,
+				),
+				Value: func(breakerStats NodeStatsBreakersResponse) float64 {
+					return float64(breakerStats.Tripped)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse, breaker string) []string {
+					return append(defaultNodeLabelValues(cluster, node), breaker)
+				},
+			},
+			{
+				Type: prometheus.CounterValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "breakers", "overhead"),
+					"Overhead of circuit breakers",
+					defaultBreakerLabels, nil,
+				),
+				Value: func(breakerStats NodeStatsBreakersResponse) float64 {
+					return breakerStats.Overhead
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse, breaker string) []string {
+					return append(defaultNodeLabelValues(cluster, node), breaker)
+				},
+			},
+		},
+		indexingPressureMetrics: []*indexingPressureMetric{
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "indexing_pressure", "current_all_in_bytes"),
+					"Memory consumed, in bytes, by indexing requests in the coordinating, primary, or replica stage.",
+					defaultIndexingPressureLabels, nil,
+				),
+				Value: func(indexingPressureMem NodeStatsIndexingPressureResponse) float64 {
+					return float64(indexingPressureMem.Current.AllInBytes)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse, indexingPressure string) []string {
+					return []string{
+						cluster,
+						node.Host,
+						node.Name,
+						indexingPressure,
+					}
+				},
+			},
+			{
+				Type: prometheus.GaugeValue,
+				Desc: prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "indexing_pressure", "limit_in_bytes"),
+					"Configured memory limit, in bytes, for the indexing requests",
+					defaultIndexingPressureLabels, nil,
+				),
+				Value: func(indexingPressureStats NodeStatsIndexingPressureResponse) float64 {
+					return float64(indexingPressureStats.LimitInBytes)
+				},
+				Labels: func(cluster string, node NodeStatsNodeResponse, indexingPressure string) []string {
+					return []string{
+						cluster,
+						node.Host,
+						node.Name,
+						indexingPressure,
+					}
+				},
 			},
 		},
 		threadPoolMetrics: []*threadPoolMetric{
@@ -2046,7 +1755,7 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 			{
 				Type: prometheus.GaugeValue,
 				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "filesystem_data", "size_in_bytes"),
+					prometheus.BuildFQName(namespace, "filesystem_data", "size_bytes"),
 					"Size of block device in bytes",
 					defaultFilesystemDataLabels, nil,
 				),
@@ -2118,46 +1827,14 @@ func NewNodes(client *http.Client, url *url.URL, all bool, node string, local bo
 				Labels: defaultFilesystemIODeviceLabelValues,
 			},
 		},
-		httpMetrics: []*nodeMetric{
-			{
-				Type: prometheus.GaugeValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "http", "current_open"),
-					"http current open",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					if v, ok := node.HTTP["current_open"]; ok {
-						return v.(float64)
-					}
-
-					return 0
-				},
-				Labels: defaultNodeLabelValues,
-			},
-			{
-				Type: prometheus.CounterValue,
-				Desc: prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "http", "total_opened"),
-					"http total opened",
-					defaultNodeLabels, nil,
-				),
-				Value: func(node NodeStatsNodeResponse) float64 {
-					if v, ok := node.HTTP["total_opened"]; ok {
-						return v.(float64)
-					}
-
-					return 0
-				},
-				Labels: defaultNodeLabelValues,
-			},
-		},
 	}
 }
 
 // Describe add metrics descriptions
 func (c *Nodes) Describe(ch chan<- *prometheus.Desc) {
-	for _, metric := range c.jvmMetrics {
+	ch <- nodesRolesMetric
+
+	for _, metric := range c.nodeMetrics {
 		ch <- metric.Desc
 	}
 	for _, metric := range c.gcCollectionMetrics {
@@ -2166,16 +1843,7 @@ func (c *Nodes) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.breakerMetrics {
 		ch <- metric.Desc
 	}
-	for _, metric := range c.osMetrics {
-		ch <- metric.Desc
-	}
-	for _, metric := range c.processMetrics {
-		ch <- metric.Desc
-	}
-	for _, metric := range c.indicesMetrics {
-		ch <- metric.Desc
-	}
-	for _, metric := range c.transportMetrics {
+	for _, metric := range c.indexingPressureMetrics {
 		ch <- metric.Desc
 	}
 	for _, metric := range c.threadPoolMetrics {
@@ -2187,12 +1855,6 @@ func (c *Nodes) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.filesystemIODeviceMetrics {
 		ch <- metric.Desc
 	}
-	for _, metric := range c.httpMetrics {
-		ch <- metric.Desc
-	}
-	ch <- c.up.Desc()
-	ch <- c.totalScrapes.Desc()
-	ch <- c.jsonParseFailures.Desc()
 }
 
 func (c *Nodes) fetchAndDecodeNodeStats() (nodeStatsResponse, error) {
@@ -2236,304 +1898,128 @@ func (c *Nodes) fetchAndDecodeNodeStats() (nodeStatsResponse, error) {
 
 	bts, err := io.ReadAll(res.Body)
 	if err != nil {
-		c.jsonParseFailures.Inc()
 		return nsr, err
 	}
 
 	if err := json.Unmarshal(bts, &nsr); err != nil {
-		c.jsonParseFailures.Inc()
 		return nsr, err
 	}
 	return nsr, nil
 }
 
-func GetNodeID(client *http.Client, user, password, s string) (string, error) {
-	u, err := url.Parse(s)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse URL %s: %s", s, err)
-	}
-	if user != "" && password != "" {
-		u.User = url.UserPassword(user, password)
-	}
-	var nsr nodeStatsResponse
-	u.Path = path.Join(u.Path, "/_nodes/_local/name")
-	res, err := client.Get(u.String())
-	if err != nil {
-		return "", fmt.Errorf("failed to get node ID from %s: %s", u.String(), err)
-	}
-	defer func() {
-		err = res.Body.Close()
-		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
-		}
-	}()
-
-	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("HTTP Request failed with code %d", res.StatusCode)
-	}
-
-	bts, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-	if err := json.Unmarshal(bts, &nsr); err != nil {
-		return "", err
-	}
-
-	// Only 1 should be returned
-	for id := range nsr.Nodes {
-		return id, nil
-	}
-	return "", nil
-}
-
-func GetClusterName(client *http.Client, user, password, s string) (string, error) {
-	u, err := url.Parse(s)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse URL %s: %s", s, err)
-	}
-	if user != "" && password != "" {
-		u.User = url.UserPassword(user, password)
-	}
-
-	var cir ClusterInfoResponse
-	res, err := client.Get(u.String())
-	if err != nil {
-		return "", fmt.Errorf("failed to get cluster info from %s: %s", u.String(), err)
-	}
-	defer func() {
-		err = res.Body.Close()
-		if err != nil {
-			log.Println("failed to close response body, err: ", err)
-		}
-	}()
-	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("HTTP Request failed with code %d", res.StatusCode)
-	}
-	bts, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-	if err := json.Unmarshal(bts, &cir); err != nil {
-		return "", err
-	}
-	return cir.ClusterName, nil
-}
-
-func GetCatMaster(client *http.Client, user, password, s string) (string, error) {
-	u, err := url.Parse(s)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse URL %s: %s", s, err)
-	}
-	if user != "" && password != "" {
-		u.User = url.UserPassword(user, password)
-	}
-	u.Path = path.Join(u.Path, "/_cat/master")
-	res, err := client.Get(u.String())
-	if err != nil {
-		return "", fmt.Errorf("failed to get node ID from %s: %s", u.String(), err)
-	}
-	defer func() {
-		err = res.Body.Close()
-		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
-		}
-	}()
-
-	if res.StatusCode != http.StatusOK {
-		// NOTE: we are not going to read/discard r.Body under the assumption we'd prefer
-		// to let the underlying transport close the connection and re-establish a new one for
-		// future calls.
-		return "", fmt.Errorf("elasticsearch: Unable to retrieve master node information. API responded with status-code %d, expected %d", res.StatusCode, http.StatusOK)
-	}
-	response, err := io.ReadAll(res.Body)
-
-	if err != nil {
-		return "", err
-	}
-
-	masterID := strings.Split(string(response), " ")[0]
-
-	return masterID, nil
-}
-
 // Collect gets nodes metric values
 func (c *Nodes) Collect(ch chan<- prometheus.Metric) {
-	c.totalScrapes.Inc()
-	defer func() {
-		ch <- c.up
-		ch <- c.totalScrapes
-		ch <- c.jsonParseFailures
-	}()
-
 	nodeStatsResp, err := c.fetchAndDecodeNodeStats()
 	if err != nil {
-		c.up.Set(0)
 		log.Println("failed to fetch and decode node stats, err: ", err)
 		return
 	}
-	c.up.Set(1)
 
-	for _, node := range nodeStatsResp.Nodes {
+	for nodeID, node := range nodeStatsResp.Nodes {
 		// Handle the node labels metric
 		roles := getRoles(node)
 
 		for role, roleEnabled := range roles {
+			val := 0.0
 			if roleEnabled {
-				metric := createRoleMetric(role)
+				val = 1.0
+			}
+
+			labels := []string{
+				nodeStatsResp.ClusterName,
+				node.Host,
+				node.Name,
+				nodeID,
+				role,
+			}
+
+			ch <- prometheus.MustNewConstMetric(
+				nodesRolesMetric,
+				prometheus.GaugeValue,
+				val,
+				labels...,
+			)
+		}
+
+		for _, metric := range c.nodeMetrics {
+			ch <- prometheus.MustNewConstMetric(
+				metric.Desc,
+				metric.Type,
+				metric.Value(node),
+				metric.Labels(nodeStatsResp.ClusterName, node)...,
+			)
+		}
+
+		// GC Stats
+		for collector, gcStats := range node.JVM.GC.Collectors {
+			for _, metric := range c.gcCollectionMetrics {
 				ch <- prometheus.MustNewConstMetric(
 					metric.Desc,
 					metric.Type,
-					metric.Value(node),
-					metric.Labels(nodeStatsResp.ClusterName, node)...,
+					metric.Value(gcStats),
+					metric.Labels(nodeStatsResp.ClusterName, node, collector)...,
 				)
 			}
 		}
 
-		if isEnable("jvm", c.nodeStats) {
-			for _, metric := range c.jvmMetrics {
+		// Breaker stats
+		for breaker, bstats := range node.Breakers {
+			for _, metric := range c.breakerMetrics {
 				ch <- prometheus.MustNewConstMetric(
 					metric.Desc,
 					metric.Type,
-					metric.Value(node),
-					metric.Labels(nodeStatsResp.ClusterName, node)...,
-				)
-			}
-
-			// GC Stats
-			for collector, gcStats := range node.JVM.GC.Collectors {
-				for _, metric := range c.gcCollectionMetrics {
-					ch <- prometheus.MustNewConstMetric(
-						metric.Desc,
-						metric.Type,
-						metric.Value(gcStats),
-						metric.Labels(nodeStatsResp.ClusterName, node, collector)...,
-					)
-				}
-			}
-		}
-
-		if isEnable("breaker", c.nodeStats) {
-			// Breaker stats
-			for breaker, bstats := range node.Breakers {
-				for _, metric := range c.breakerMetrics {
-					ch <- prometheus.MustNewConstMetric(
-						metric.Desc,
-						metric.Type,
-						metric.Value(bstats),
-						metric.Labels(nodeStatsResp.ClusterName, node, breaker)...,
-					)
-				}
-			}
-		}
-
-		if isEnable("process", c.nodeStats) {
-			// Process Stats
-			for _, metric := range c.processMetrics {
-				ch <- prometheus.MustNewConstMetric(
-					metric.Desc,
-					metric.Type,
-					metric.Value(node),
-					metric.Labels(nodeStatsResp.ClusterName, node)...,
+					metric.Value(bstats),
+					metric.Labels(nodeStatsResp.ClusterName, node, breaker)...,
 				)
 			}
 		}
 
-		if isEnable("os", c.nodeStats) {
-			// OS Stats
-			for _, metric := range c.osMetrics {
+		// Indexing Pressure stats
+		for indexingPressure, ipstats := range node.IndexingPressure {
+			for _, metric := range c.indexingPressureMetrics {
 				ch <- prometheus.MustNewConstMetric(
 					metric.Desc,
 					metric.Type,
-					metric.Value(node),
-					metric.Labels(nodeStatsResp.ClusterName, node)...,
+					metric.Value(ipstats),
+					metric.Labels(nodeStatsResp.ClusterName, node, indexingPressure)...,
 				)
 			}
 		}
 
-		if isEnable("fs", c.nodeStats) {
-			// File System Data Stats
-			for _, fsDataStats := range node.FS.Data {
-				for _, metric := range c.filesystemDataMetrics {
-					ch <- prometheus.MustNewConstMetric(
-						metric.Desc,
-						metric.Type,
-						metric.Value(fsDataStats),
-						metric.Labels(nodeStatsResp.ClusterName, node, fsDataStats.Mount, fsDataStats.Path)...,
-					)
-				}
-			}
-
-			// File System IO Device Stats
-			for _, fsIODeviceStats := range node.FS.IOStats.Devices {
-				for _, metric := range c.filesystemIODeviceMetrics {
-					ch <- prometheus.MustNewConstMetric(
-						metric.Desc,
-						metric.Type,
-						metric.Value(fsIODeviceStats),
-						metric.Labels(nodeStatsResp.ClusterName, node, fsIODeviceStats.DeviceName)...,
-					)
-				}
-			}
-		}
-
-		if isEnable("indices", c.nodeStats) {
-			// Indices Stats
-			for _, metric := range c.indicesMetrics {
+		// Thread Pool stats
+		for pool, pstats := range node.ThreadPool {
+			for _, metric := range c.threadPoolMetrics {
 				ch <- prometheus.MustNewConstMetric(
 					metric.Desc,
 					metric.Type,
-					metric.Value(node),
-					metric.Labels(nodeStatsResp.ClusterName, node)...,
+					metric.Value(pstats),
+					metric.Labels(nodeStatsResp.ClusterName, node, pool)...,
 				)
 			}
 		}
 
-		if isEnable("thread_pool", c.nodeStats) {
-			// Thread Pool stats
-			for pool, pstats := range node.ThreadPool {
-				for _, metric := range c.threadPoolMetrics {
-					ch <- prometheus.MustNewConstMetric(
-						metric.Desc,
-						metric.Type,
-						metric.Value(pstats),
-						metric.Labels(nodeStatsResp.ClusterName, node, pool)...,
-					)
-				}
-			}
-		}
-
-		if isEnable("transport", c.nodeStats) {
-			// Transport Stats
-			for _, metric := range c.transportMetrics {
+		// File System Data Stats
+		for _, fsDataStats := range node.FS.Data {
+			for _, metric := range c.filesystemDataMetrics {
 				ch <- prometheus.MustNewConstMetric(
 					metric.Desc,
 					metric.Type,
-					metric.Value(node),
-					metric.Labels(nodeStatsResp.ClusterName, node)...,
+					metric.Value(fsDataStats),
+					metric.Labels(nodeStatsResp.ClusterName, node, fsDataStats.Mount, fsDataStats.Path)...,
 				)
 			}
 		}
 
-		if isEnable("http", c.nodeStats) {
-			// HTTP Stats
-			for _, metric := range c.httpMetrics {
+		// File System IO Device Stats
+		for _, fsIODeviceStats := range node.FS.IOStats.Devices {
+			for _, metric := range c.filesystemIODeviceMetrics {
 				ch <- prometheus.MustNewConstMetric(
 					metric.Desc,
 					metric.Type,
-					metric.Value(node),
-					metric.Labels(nodeStatsResp.ClusterName, node)...,
+					metric.Value(fsIODeviceStats),
+					metric.Labels(nodeStatsResp.ClusterName, node, fsIODeviceStats.DeviceName)...,
 				)
 			}
 		}
 	}
-}
-
-func isEnable(stat string, stats []string) bool {
-	for _, s := range stats {
-		if s == stat {
-			return true
-		}
-	}
-	return false
 }

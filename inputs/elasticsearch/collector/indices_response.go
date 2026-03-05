@@ -1,4 +1,4 @@
-// Copyright 2021 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -47,7 +47,6 @@ type IndexStatsIndexResponse struct {
 type IndexStatsIndexDetailResponse struct {
 	Docs         IndexStatsIndexDocsResponse         `json:"docs"`
 	Store        IndexStatsIndexStoreResponse        `json:"store"`
-	Seq          IndexStataIndexSeqResponse          `json:"seq_no"`
 	Indexing     IndexStatsIndexIndexingResponse     `json:"indexing"`
 	Get          IndexStatsIndexGetResponse          `json:"get"`
 	Search       IndexStatsIndexSearchResponse       `json:"search"`
@@ -70,13 +69,6 @@ type IndexStatsIndexShardsDetailResponse struct {
 	Routing IndexStatsIndexRoutingResponse `json:"routing"`
 }
 
-// IndexStataIndexSeqResponse defines index stats index seq_no information structure
-type IndexStataIndexSeqResponse struct {
-	GlobalCheckpoint int64 `json:"global_checkpoint"`
-	LocalCheckpoint  int64 `json:"local_checkpoint"`
-	MaxSeqNo         int64 `json:"max_seq_no"`
-}
-
 // IndexStatsIndexRoutingResponse defines index stats index routing information structure
 type IndexStatsIndexRoutingResponse struct {
 	Node    string `json:"node"`
@@ -97,16 +89,17 @@ type IndexStatsIndexStoreResponse struct {
 
 // IndexStatsIndexIndexingResponse defines index stats index indexing information structure
 type IndexStatsIndexIndexingResponse struct {
-	IndexTotal           int64 `json:"index_total"`
-	IndexTimeInMillis    int64 `json:"index_time_in_millis"`
-	IndexCurrent         int64 `json:"index_current"`
-	IndexFailed          int64 `json:"index_failed"`
-	DeleteTotal          int64 `json:"delete_total"`
-	DeleteTimeInMillis   int64 `json:"delete_time_in_millis"`
-	DeleteCurrent        int64 `json:"delete_current"`
-	NoopUpdateTotal      int64 `json:"noop_update_total"`
-	IsThrottled          bool  `json:"is_throttled"`
-	ThrottleTimeInMillis int64 `json:"throttle_time_in_millis"`
+	IndexTotal           int64    `json:"index_total"`
+	IndexTimeInMillis    int64    `json:"index_time_in_millis"`
+	IndexCurrent         int64    `json:"index_current"`
+	IndexFailed          *int64   `json:"index_failed,omitempty"`
+	DeleteTotal          int64    `json:"delete_total"`
+	DeleteTimeInMillis   int64    `json:"delete_time_in_millis"`
+	DeleteCurrent        int64    `json:"delete_current"`
+	NoopUpdateTotal      int64    `json:"noop_update_total"`
+	IsThrottled          bool     `json:"is_throttled"`
+	ThrottleTimeInMillis int64    `json:"throttle_time_in_millis"`
+	WriteLoad            *float64 `json:"write_load,omitempty"`
 }
 
 // IndexStatsIndexGetResponse defines index stats index get information structure
@@ -153,16 +146,15 @@ type IndexStatsIndexMergesResponse struct {
 
 // IndexStatsIndexRefreshResponse defines index stats index refresh information structure
 type IndexStatsIndexRefreshResponse struct {
-	ExternalTotal     int64 `json:"external_total"`
-	ExternalTotalTime int64 `json:"external_total_time_in_millis"`
-	Total             int64 `json:"total"`
-	TotalTimeInMillis int64 `json:"total_time_in_millis"`
-	Listeners         int64 `json:"listeners"`
+	Total                     int64 `json:"total"`
+	TotalTimeInMillis         int64 `json:"total_time_in_millis"`
+	ExternalTotal             int64 `json:"external_total"`
+	ExternalTotalTimeInMillis int64 `json:"external_total_time_in_millis"`
+	Listeners                 int64 `json:"listeners"`
 }
 
 // IndexStatsIndexFlushResponse defines index stats index flush information structure
 type IndexStatsIndexFlushResponse struct {
-	Periodic          int64 `json:"periodic"`
 	Total             int64 `json:"total"`
 	TotalTimeInMillis int64 `json:"total_time_in_millis"`
 }
@@ -214,11 +206,8 @@ type IndexStatsIndexSegmentsResponse struct {
 
 // IndexStatsIndexTranslogResponse defines index stats index translog information structure
 type IndexStatsIndexTranslogResponse struct {
-	EarliestLastModifiedAge int64 `json:"earliest_last_modified_age"`
-	Operations              int64 `json:"operations"`
-	SizeInBytes             int64 `json:"size_in_bytes"`
-	UncommittedOperations   int64 `json:"uncommitted_operations"`
-	UncommittedSizeInBytes  int64 `json:"uncommitted_size_in_bytes"`
+	Operations  int64 `json:"operations"`
+	SizeInBytes int64 `json:"size_in_bytes"`
 }
 
 // IndexStatsIndexRequestCacheResponse defines index stats index request cache information structure

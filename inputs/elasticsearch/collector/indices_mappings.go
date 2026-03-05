@@ -1,4 +1,4 @@
-// Copyright 2021 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -25,13 +25,10 @@ import (
 	"strings"
 
 	"flashcat.cloud/categraf/pkg/filter"
-
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var (
-	defaultIndicesMappingsLabels = []string{"index"}
-)
+var defaultIndicesMappingsLabels = []string{"index"}
 
 type indicesMappingsMetric struct {
 	Type  prometheus.ValueType
@@ -41,13 +38,16 @@ type indicesMappingsMetric struct {
 
 // IndicesMappings information struct
 type IndicesMappings struct {
-	client                 *http.Client
-	url                    *url.URL
+	client *http.Client
+	url    *url.URL
+
+	metrics []*indicesMappingsMetric
+
+	// categraf configuration
 	indicesIncluded        []string
 	numMostRecentIndices   int
 	maxIndicesIncludeCount int
 	indexMatchers          map[string]filter.Filter
-	metrics                []*indicesMappingsMetric
 }
 
 // NewIndicesMappings defines Indices IndexMappings Prometheus metrics
@@ -78,7 +78,6 @@ func NewIndicesMappings(client *http.Client, url *url.URL, indicesIncluded []str
 func countFieldsRecursive(properties IndexMappingProperties, fieldCounter float64) float64 {
 	// iterate over all properties
 	for _, property := range properties {
-
 		if property.Type != nil && *property.Type != "object" {
 			// property has a type set - counts as a field unless the value is object
 			// as the recursion below will handle counting that
@@ -140,17 +139,24 @@ func (im *IndicesMappings) getAndParseURL(u *url.URL) (*IndicesMappingsResponse,
 	return &imr, nil
 }
 
+func (im *IndicesMappings) fetchAndDecodeIndicesMappings() (*IndicesMappingsResponse, error) {
+	u := *im.url
+	//add indices filter
+	if len(im.indicesIncluded) == 0 || len(im.indicesIncluded) > im.maxIndicesIncludeCount {
+		u.Path = path.Join(u.Path, "/_all/_mappings")
+	} else if len(im.indicesIncluded) <= im.maxIndicesIncludeCount {
+		u.Path = path.Join(u.Path, "/"+strings.Join(im.indicesIncluded, ",")+"/_mappings")
+	}
+
+	return im.getAndParseURL(&u)
+}
+
 // Collect gets all indices mappings metric values
 func (im *IndicesMappings) Collect(ch chan<- prometheus.Metric) {
 	indicesMappingsResponse, err := im.fetchAndDecodeIndicesMappings()
 	if err != nil {
 		log.Println("failed to fetch and decode cluster mappings stats, err: ", err)
 		return
-	}
-
-	//过滤 include
-	if len(im.indicesIncluded) > im.maxIndicesIncludeCount {
-		indicesMappingsResponse = im.filterMapByKeys(*indicesMappingsResponse, im.indicesIncluded)
 	}
 
 	for _, metric := range im.metrics {
@@ -163,18 +169,6 @@ func (im *IndicesMappings) Collect(ch chan<- prometheus.Metric) {
 			)
 		}
 	}
-}
-
-func (im *IndicesMappings) fetchAndDecodeIndicesMappings() (*IndicesMappingsResponse, error) {
-	u := *im.url
-	//add indices filter
-	if len(im.indicesIncluded) == 0 || len(im.indicesIncluded) > im.maxIndicesIncludeCount {
-		u.Path = path.Join(u.Path, "/_all/_mappings")
-	} else if len(im.indicesIncluded) <= im.maxIndicesIncludeCount {
-		u.Path = path.Join(u.Path, "/"+strings.Join(im.indicesIncluded, ",")+"/_mappings")
-	}
-
-	return im.getAndParseURL(&u)
 }
 
 func (im *IndicesMappings) filterMapByKeys(response IndicesMappingsResponse, included []string) *IndicesMappingsResponse {

@@ -1,4 +1,4 @@
-// Copyright 2021 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -13,9 +13,7 @@
 
 package collector
 
-import (
-	"encoding/json"
-)
+import "encoding/json"
 
 // nodeStatsResponse is a representation of an Elasticsearch Node Stats
 type nodeStatsResponse struct {
@@ -25,23 +23,24 @@ type nodeStatsResponse struct {
 
 // NodeStatsNodeResponse defines node stats information structure for nodes
 type NodeStatsNodeResponse struct {
-	Name             string                                     `json:"name"`
-	Host             string                                     `json:"host"`
-	Timestamp        int64                                      `json:"timestamp"`
-	TransportAddress string                                     `json:"transport_address"`
-	Hostname         string                                     `json:"hostname"`
-	Roles            []string                                   `json:"roles"`
-	Attributes       map[string]string                          `json:"attributes"`
-	Indices          NodeStatsIndicesResponse                   `json:"indices"`
-	OS               NodeStatsOSResponse                        `json:"os"`
-	Network          NodeStatsNetworkResponse                   `json:"network"`
-	FS               NodeStatsFSResponse                        `json:"fs"`
-	ThreadPool       map[string]NodeStatsThreadPoolPoolResponse `json:"thread_pool"`
-	JVM              NodeStatsJVMResponse                       `json:"jvm"`
-	Breakers         map[string]NodeStatsBreakersResponse       `json:"breakers"`
-	HTTP             map[string]interface{}                     `json:"http"`
-	Transport        NodeStatsTransportResponse                 `json:"transport"`
-	Process          NodeStatsProcessResponse                   `json:"process"`
+	Name             string                                       `json:"name"`
+	Host             string                                       `json:"host"`
+	Timestamp        int64                                        `json:"timestamp"`
+	TransportAddress string                                       `json:"transport_address"`
+	Hostname         string                                       `json:"hostname"`
+	Roles            []string                                     `json:"roles"`
+	Attributes       map[string]string                            `json:"attributes"`
+	Indices          NodeStatsIndicesResponse                     `json:"indices"`
+	OS               NodeStatsOSResponse                          `json:"os"`
+	Network          NodeStatsNetworkResponse                     `json:"network"`
+	FS               NodeStatsFSResponse                          `json:"fs"`
+	ThreadPool       map[string]NodeStatsThreadPoolPoolResponse   `json:"thread_pool"`
+	JVM              NodeStatsJVMResponse                         `json:"jvm"`
+	Breakers         map[string]NodeStatsBreakersResponse         `json:"breakers"`
+	HTTP             map[string]interface{}                       `json:"http"`
+	Transport        NodeStatsTransportResponse                   `json:"transport"`
+	Process          NodeStatsProcessResponse                     `json:"process"`
+	IndexingPressure map[string]NodeStatsIndexingPressureResponse `json:"indexing_pressure"`
 }
 
 // NodeStatsBreakersResponse is a representation of a statistics about the field data circuit breaker
@@ -52,28 +51,23 @@ type NodeStatsBreakersResponse struct {
 	Tripped       int64   `json:"tripped"`
 }
 
+// NodeStatsIndexingPressureResponse is a representation of a elasticsearch indexing pressure
+type NodeStatsIndexingPressureResponse struct {
+	Current      NodeStatsIndexingPressureCurrentResponse `json:"current"`
+	LimitInBytes int64                                    `json:"limit_in_bytes"`
+}
+
+// NodeStatsIndexingPressureMemoryCurrentResponse is a representation of a elasticsearch indexing pressure current memory usage
+type NodeStatsIndexingPressureCurrentResponse struct {
+	AllInBytes int64 `json:"all_in_bytes"`
+}
+
 // NodeStatsJVMResponse is a representation of a JVM stats, memory pool information, garbage collection, buffer pools, number of loaded/unloaded classes
 type NodeStatsJVMResponse struct {
 	BufferPools map[string]NodeStatsJVMBufferPoolResponse `json:"buffer_pools"`
 	GC          NodeStatsJVMGCResponse                    `json:"gc"`
 	Mem         NodeStatsJVMMemResponse                   `json:"mem"`
 	Uptime      int64                                     `json:"uptime_in_millis"`
-	Classes     NodeStatsJVMClassesResponse               `json:"classes"`
-	Threads     NodeStatsJVMTreadsResponse                `json:"threads"`
-	Timestamp   int64                                     `json:"timestamp"`
-}
-
-// NodeStatsJVMTreadsResponse defines node stats JVM threads information structure
-type NodeStatsJVMTreadsResponse struct {
-	Count     int64 `json:"count"`
-	PeakCount int64 `json:"peak_count"`
-}
-
-// NodeStatsJVMClassesResponse defines node stats JVM classes information structure
-type NodeStatsJVMClassesResponse struct {
-	CurrentLoadedCount int64 `json:"current_loaded_count"`
-	TotalLoadedCount   int64 `json:"total_loaded_count"`
-	TotalUnloadedCount int64 `json:"total_unloaded_count"`
 }
 
 // NodeStatsJVMGCResponse defines node stats JVM garbage collector information structure
@@ -99,7 +93,6 @@ type NodeStatsJVMMemResponse struct {
 	HeapCommitted    int64                                  `json:"heap_committed_in_bytes"`
 	HeapUsed         int64                                  `json:"heap_used_in_bytes"`
 	HeapMax          int64                                  `json:"heap_max_in_bytes"`
-	HeapUsedPercent  int64                                  `json:"heap_used_percent"`
 	NonHeapCommitted int64                                  `json:"non_heap_committed_in_bytes"`
 	NonHeapUsed      int64                                  `json:"non_heap_used_in_bytes"`
 	Pools            map[string]NodeStatsJVMMemPoolResponse `json:"pools"`
@@ -179,8 +172,10 @@ type NodeStatsIndicesDocsResponse struct {
 
 // NodeStatsIndicesRefreshResponse defines node stats refresh information structure for indices
 type NodeStatsIndicesRefreshResponse struct {
-	Total     int64 `json:"total"`
-	TotalTime int64 `json:"total_time_in_millis"`
+	Total                     int64 `json:"total"`
+	TotalTime                 int64 `json:"total_time_in_millis"`
+	ExternalTotal             int64 `json:"external_total"`
+	ExternalTotalTimeInMillis int64 `json:"external_total_time_in_millis"`
 }
 
 // NodeStatsIndicesTranslogResponse defines node stats translog information structure for indices
@@ -196,18 +191,17 @@ type NodeStatsIndicesCompletionResponse struct {
 
 // NodeStatsIndicesSegmentsResponse defines node stats segments information structure for indices
 type NodeStatsIndicesSegmentsResponse struct {
-	Count                    int64 `json:"count"`
-	Memory                   int64 `json:"memory_in_bytes"`
-	TermsMemory              int64 `json:"terms_memory_in_bytes"`
-	IndexWriterMemory        int64 `json:"index_writer_memory_in_bytes"`
-	NormsMemory              int64 `json:"norms_memory_in_bytes"`
-	StoredFieldsMemory       int64 `json:"stored_fields_memory_in_bytes"`
-	FixedBitSet              int64 `json:"fixed_bit_set_memory_in_bytes"`
-	DocValuesMemory          int64 `json:"doc_values_memory_in_bytes"`
-	TermVectorsMemory        int64 `json:"term_vectors_memory_in_bytes"`
-	PointsMemory             int64 `json:"points_memory_in_bytes"`
-	VersionMapMemory         int64 `json:"version_map_memory_in_bytes"`
-	MaxUnsafeAutoIDTimestamp int64 `json:"max_unsafe_auto_id_timestamp"`
+	Count              int64 `json:"count"`
+	Memory             int64 `json:"memory_in_bytes"`
+	TermsMemory        int64 `json:"terms_memory_in_bytes"`
+	IndexWriterMemory  int64 `json:"index_writer_memory_in_bytes"`
+	NormsMemory        int64 `json:"norms_memory_in_bytes"`
+	StoredFieldsMemory int64 `json:"stored_fields_memory_in_bytes"`
+	FixedBitSet        int64 `json:"fixed_bit_set_memory_in_bytes"`
+	DocValuesMemory    int64 `json:"doc_values_memory_in_bytes"`
+	TermVectorsMemory  int64 `json:"term_vectors_memory_in_bytes"`
+	PointsMemory       int64 `json:"points_memory_in_bytes"`
+	VersionMapMemory   int64 `json:"version_map_memory_in_bytes"`
 }
 
 // NodeStatsIndicesStoreResponse defines node stats store information structure for indices
@@ -295,64 +289,24 @@ type NodeStatsOSResponse struct {
 	Uptime    int64 `json:"uptime_in_millis"`
 	// LoadAvg was an array of per-cpu values pre-2.0, and is a string in 2.0
 	// Leaving this here in case we want to implement parsing logic later
-	LoadAvg json.RawMessage           `json:"load_average"`
-	CPU     NodeStatsOSCPUResponse    `json:"cpu"`
-	Mem     NodeStatsOSMemResponse    `json:"mem"`
-	Swap    NodeStatsOSSwapResponse   `json:"swap"`
-	CGroup  NodeStatsOSCGroupResponse `json:"cgroup"`
-}
-
-// NodeStatsOSCGroupResponse defines node stats operating system cgroup structure
-type NodeStatsOSCGroupResponse struct {
-	CPU     NodeStatsOSCGroupCPUResponse     `json:"cpu"`
-	CPUAcct NodeStatsOSCGroupCPUAcctResponse `json:"cpuacct"`
-	Memory  NodeStatsOSCGroupMemoryResponse  `json:"memory"`
-}
-
-// NodeStatsOSCGroupCPUResponse defines node stats operating system cgroup CPU structure
-type NodeStatsOSCGroupCPUResponse struct {
-	CFSPeriod    int64                            `json:"cfs_period_micros"`
-	CFSQuota     int64                            `json:"cfs_quota_micros"`
-	ControlGroup string                           `json:"control_group"`
-	Stat         NodeStatsOSCGroupCPUStatResponse `json:"stat"`
-}
-
-// NodeStatsOSCGroupCPUStatResponse defines node stats operating system cgroup CPU stat structure
-type NodeStatsOSCGroupCPUStatResponse struct {
-	NumberThrottled int64 `json:"number_of_times_throttled"`
-	TimeThrottled   int64 `json:"time_throttled_nanos"`
-	NumberElapsed   int64 `json:"number_of_elapsed_periods"`
-}
-
-// NodeStatsOSCGroupCPUAcctResponse defines node stats operating system cgroup CPU accounting structure
-type NodeStatsOSCGroupCPUAcctResponse struct {
-	Usage        int64  `json:"usage_nanos"`
-	ControlGroup string `json:"control_group"`
-}
-
-// NodeStatsOSCGroupMemoryResponse defines node stats operating system cgroup memory structure
-type NodeStatsOSCGroupMemoryResponse struct {
-	Limit        string `json:"limit_in_bytes"`
-	Usage        string `json:"usage_in_bytes"`
-	ControlGroup string `json:"control_group"`
+	LoadAvg json.RawMessage         `json:"load_average"`
+	CPU     NodeStatsOSCPUResponse  `json:"cpu"`
+	Mem     NodeStatsOSMemResponse  `json:"mem"`
+	Swap    NodeStatsOSSwapResponse `json:"swap"`
 }
 
 // NodeStatsOSMemResponse defines node stats operating system memory usage structure
 type NodeStatsOSMemResponse struct {
-	Free        int64   `json:"free_in_bytes"`
-	Used        int64   `json:"used_in_bytes"`
-	ActualFree  int64   `json:"actual_free_in_bytes"`
-	ActualUsed  int64   `json:"actual_used_in_bytes"`
-	UsedPercent float64 `json:"used_percent"`
-	Total       int64   `json:"total_in_bytes"`
-	FreePercent float64 `json:"free_percent"`
+	Free       int64 `json:"free_in_bytes"`
+	Used       int64 `json:"used_in_bytes"`
+	ActualFree int64 `json:"actual_free_in_bytes"`
+	ActualUsed int64 `json:"actual_used_in_bytes"`
 }
 
 // NodeStatsOSSwapResponse defines node stats operating system swap usage structure
 type NodeStatsOSSwapResponse struct {
-	Used  int64 `json:"used_in_bytes"`
-	Free  int64 `json:"free_in_bytes"`
-	Total int64 `json:"total_in_bytes"`
+	Used int64 `json:"used_in_bytes"`
+	Free int64 `json:"free_in_bytes"`
 }
 
 // NodeStatsOSCPUResponse defines node stats operating system CPU usage structure

@@ -112,18 +112,18 @@ func init() {
 	})
 }
 
-func (r *Elasticsearch) Clone() inputs.Input {
+func (e *Elasticsearch) Clone() inputs.Input {
 	return &Elasticsearch{}
 }
 
-func (c *Elasticsearch) Name() string {
+func (e *Elasticsearch) Name() string {
 	return inputName
 }
 
-func (r *Elasticsearch) GetInstances() []inputs.Instance {
-	ret := make([]inputs.Instance, len(r.Instances))
-	for i := 0; i < len(r.Instances); i++ {
-		ret[i] = r.Instances[i]
+func (e *Elasticsearch) GetInstances() []inputs.Instance {
+	ret := make([]inputs.Instance, len(e.Instances))
+	for i := 0; i < len(e.Instances); i++ {
+		ret[i] = e.Instances[i]
 	}
 	return ret
 }
@@ -242,6 +242,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				[]string{},
 				collector.WithElasticsearchURL(EsUrl),
 				collector.WithHTTPClient(ins.Client),
+				collector.EnableExportDataStream(ins.ExportDataStream),
+				collector.EnableExportILM(ins.ExportILM),
+				collector.EnableExportSLM(ins.ExportSLM),
+				collector.EnableExportSnapshots(ins.ExportSnapshots),
+				collector.EnableExportClusterSettings(ins.ExportClusterSettings),
 			)
 			if err != nil {
 				log.Println("E! failed to create Elasticsearch collector, err: ", err)
@@ -282,7 +287,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			}
 
 			// Always gather node stats
-			if err := inputs.Collect(collector.NewNodes(ins.Client, EsUrl, ins.AllNodes, ins.Node, ins.Local, ins.NodeStats, ins.serverInfo[ins.Node].clusterName), slist); err != nil {
+			if err := inputs.Collect(collector.NewNodes(ins.Client, EsUrl, ins.AllNodes, ins.Node, ins.Local, ins.NodeStats), slist); err != nil {
 				log.Println("E! failed to collect nodes metrics:", err)
 			}
 
@@ -323,18 +328,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				}
 			}
 
-			if ins.ExportSLM {
-				if err := inputs.Collect(collector.NewSLM(ins.Client, EsUrl), slist); err != nil {
-					log.Println("E! failed to collect SLM metrics:", err)
-				}
-			}
-
-			if ins.ExportDataStream {
-				if err := inputs.Collect(collector.NewDataStream(ins.Client, EsUrl), slist); err != nil {
-					log.Println("E! failed to collect data stream metrics:", err)
-				}
-			}
-
 			if ins.ExportIndicesSettings {
 				if err := inputs.Collect(collector.NewIndicesSettings(ins.Client, EsUrl, ins.NewIndicesInclude, ins.MaxIndicesIncludeCount), slist); err != nil {
 					log.Println("E! failed to collect indices settings metrics:", err)
@@ -344,27 +337,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			if ins.ExportIndicesMappings {
 				if err := inputs.Collect(collector.NewIndicesMappings(ins.Client, EsUrl, ins.NewIndicesInclude, ins.MaxIndicesIncludeCount), slist); err != nil {
 					log.Println("E! failed to collect indices mappings metrics:", err)
-				}
-			}
-
-			if ins.ExportSnapshots {
-				if err := inputs.Collect(collector.NewSnapshots(ins.Client, EsUrl), slist); err != nil {
-					log.Println("E! failed to collect snapshot metrics:", err)
-				}
-			}
-
-			if ins.ExportILM {
-				if err := inputs.Collect(collector.NewIlmStatus(ins.Client, EsUrl), slist); err != nil {
-					log.Println("E! failed to collect ilm status metrics:", err)
-				}
-				if err := inputs.Collect(collector.NewIlmIndicies(ins.Client, EsUrl, ins.NewIndicesInclude, ins.MaxIndicesIncludeCount), slist); err != nil {
-					log.Println("E! failed to collect ilm indices metrics:", err)
-				}
-			}
-
-			if ins.ExportClusterSettings {
-				if err := inputs.Collect(collector.NewClusterSettings(ins.Client, EsUrl), slist); err != nil {
-					log.Println("E! failed to collect cluster settings metrics:", err)
 				}
 			}
 

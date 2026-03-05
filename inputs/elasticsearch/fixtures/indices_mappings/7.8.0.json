@@ -1,43 +1,43 @@
 {
-    "facebook": {
-        "mappings": {
-            "properties": {
-                "contact": {
-                    "properties": {
-                        "email": {
-                            "fields": {
-                                "raw": {
-                                    "type": "keyword"
-                                }
-                            },
-                            "type": "text"
-                        },
-                        "phone": {
-                            "type": "text"
-                        }
-                    }
-                },
-                "name": {
-                    "fields": {
-                        "raw": {
-                            "type": "keyword"
-                        }
-                    },
-                    "type": "text"
+  "facebook": {
+    "mappings": {
+      "properties": {
+        "contact": {
+          "properties": {
+            "email": {
+              "type": "text",
+              "fields": {
+                "raw": {
+                  "type": "keyword"
                 }
+              }
+            },
+            "phone": {
+              "type": "text"
             }
-        }
-    },
-    "twitter": {
-        "mappings": {
-            "properties": {
-                "email": {
-                    "type": "keyword"
-                },
-                "phone": {
-                    "type": "keyword"
-                }
+          }
+        },
+        "name": {
+          "type": "text",
+          "fields": {
+            "raw": {
+              "type": "keyword"
             }
+          }
         }
+      }
     }
+  },
+  "twitter": {
+    "mappings": {
+      "properties": {
+        "email": {
+          "type": "keyword"
+        },
+        "phone": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
 }

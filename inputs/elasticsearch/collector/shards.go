@@ -1,4 +1,4 @@
-// Copyright 2022 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -22,8 +22,9 @@ import (
 	"path"
 	"time"
 
-	"flashcat.cloud/categraf/inputs/elasticsearch/pkg/clusterinfo"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"flashcat.cloud/categraf/inputs/elasticsearch/pkg/clusterinfo"
 )
 
 // ShardResponse has shard's node and index info
@@ -63,24 +64,49 @@ type nodeShardMetric struct {
 	Labels labels
 }
 
+// fetchClusterNameOnce performs a single request to the root endpoint to obtain the cluster name.
+func fetchClusterNameOnce(s *Shards) string {
+	if s.lastClusterInfo != nil && s.lastClusterInfo.ClusterName != "unknown_cluster" {
+		return s.lastClusterInfo.ClusterName
+	}
+	u := *s.url
+	u.Path = path.Join(u.Path, "/")
+	resp, err := s.client.Get(u.String())
+	if err == nil {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			var root struct {
+				ClusterName string `json:"cluster_name"`
+			}
+			if err := json.NewDecoder(resp.Body).Decode(&root); err == nil && root.ClusterName != "" {
+				s.lastClusterInfo = &clusterinfo.Response{ClusterName: root.ClusterName}
+				return root.ClusterName
+			}
+		}
+	}
+	return "unknown_cluster"
+}
+
 // NewShards defines Shards Prometheus metrics
 func NewShards(client *http.Client, url *url.URL) *Shards {
-
+	var shardPtr *Shards
 	nodeLabels := labels{
 		keys: func(...string) []string {
 			return []string{"node", "cluster"}
 		},
-		values: func(lastClusterinfo *clusterinfo.Response, s ...string) []string {
+		values: func(lastClusterinfo *clusterinfo.Response, base ...string) []string {
 			if lastClusterinfo != nil {
-				return append(s, lastClusterinfo.ClusterName)
+				return append(base, lastClusterinfo.ClusterName)
 			}
-			// this shouldn't happen, as the clusterinfo Retriever has a blocking
-			// Run method. It blocks until the first clusterinfo call has succeeded
-			return append(s, "unknown_cluster")
+			if shardPtr != nil {
+				return append(base, fetchClusterNameOnce(shardPtr))
+			}
+			return append(base, "unknown_cluster")
 		},
 	}
 
 	shards := &Shards{
+		// will assign later
 		client: client,
 		url:    url,
 
@@ -101,7 +127,8 @@ func NewShards(client *http.Client, url *url.URL) *Shards {
 					return shards
 				},
 				Labels: nodeLabels,
-			}},
+			},
+		},
 
 		jsonParseFailures: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: prometheus.BuildFQName(namespace, "node_shards", "json_parse_failures"),
@@ -128,6 +155,7 @@ func NewShards(client *http.Client, url *url.URL) *Shards {
 		}
 	}()
 
+	shardPtr = shards
 	return shards
 }
 
@@ -166,7 +194,6 @@ func (s *Shards) getAndParseURL(u *url.URL) ([]ShardResponse, error) {
 }
 
 func (s *Shards) fetchAndDecodeShards() ([]ShardResponse, error) {
-
 	u := *s.url
 	u.Path = path.Join(u.Path, "/_cat/shards")
 	q := u.Query()
@@ -181,7 +208,6 @@ func (s *Shards) fetchAndDecodeShards() ([]ShardResponse, error) {
 
 // Collect number of shards on each node
 func (s *Shards) Collect(ch chan<- prometheus.Metric) {
-
 	defer func() {
 		ch <- s.jsonParseFailures
 	}()
