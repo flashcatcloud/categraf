@@ -213,3 +213,51 @@ var ErrNoData = errors.New("collector returned no data")
 func IsNoDataError(err error) bool {
 	return err == ErrNoData
 }
+
+// categraf configurations
+
+func EnableExportSLM(flag bool) Option {
+	return func(e *ElasticsearchCollector) error {
+		if flag {
+			*collectorState["slm"] = true
+			return nil
+		}
+		return nil
+	}
+}
+
+func EnableExportDataStream(flag bool) Option {
+	return func(e *ElasticsearchCollector) error {
+		if flag {
+			*collectorState["data-stream"] = true
+		}
+		return nil
+	}
+}
+
+func EnableExportSnapshots(flag bool) Option {
+	return func(e *ElasticsearchCollector) error {
+		if flag {
+			*collectorState["snapshots"] = true
+		}
+		return nil
+	}
+}
+
+func EnableExportILM(flag bool) Option {
+	return func(e *ElasticsearchCollector) error {
+		if flag {
+			*collectorState["ilm"] = true
+		}
+		return nil
+	}
+}
+
+func EnableExportClusterSettings(flag bool) Option {
+	return func(e *ElasticsearchCollector) error {
+		if flag {
+			*collectorState["clustersettings"] = true
+		}
+		return nil
+	}
+}

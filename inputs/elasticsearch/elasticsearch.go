@@ -226,28 +226,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	var wg sync.WaitGroup
 	wg.Add(len(ins.Servers))
 
-	var enableFilters []string
-
-	if ins.ExportSLM {
-		enableFilters = append(enableFilters, "slm")
-	}
-
-	if ins.ExportDataStream {
-		enableFilters = append(enableFilters, "data-stream")
-	}
-
-	if ins.ExportSnapshots {
-		enableFilters = append(enableFilters, "snapshots")
-	}
-
-	if ins.ExportILM {
-		enableFilters = append(enableFilters, "ilm")
-	}
-
-	if ins.ExportClusterSettings {
-		enableFilters = append(enableFilters, "clustersettings")
-	}
-
 	// create the exporter
 	for _, serv := range ins.Servers {
 		go func(s string, slist *types.SampleList) {
@@ -261,9 +239,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				EsUrl.User = url.UserPassword(ins.UserName, ins.Password)
 			}
 			exporter, err := collector.NewElasticsearchCollector(
-				enableFilters,
+				[]string{},
 				collector.WithElasticsearchURL(EsUrl),
 				collector.WithHTTPClient(ins.Client),
+				collector.EnableExportDataStream(ins.ExportDataStream),
+				collector.EnableExportILM(ins.ExportILM),
+				collector.EnableExportSLM(ins.ExportSLM),
+				collector.EnableExportSnapshots(ins.ExportSnapshots),
+				collector.EnableExportClusterSettings(ins.ExportClusterSettings),
 			)
 			if err != nil {
 				log.Println("E! failed to create Elasticsearch collector, err: ", err)
