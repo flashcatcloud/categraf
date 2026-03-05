@@ -135,7 +135,7 @@ var (
 		[]string{"cluster", "color"}, nil,
 	)
 	healthReportShardsAvailabiltystatus = prometheus.NewDesc(
-		prometheus.BuildFQName(namespace, "health_report", "shards_availabilty_status"),
+		prometheus.BuildFQName(namespace, "health_report", "shards_availability_status"),
 		"Shards availabilty status",
 		[]string{"cluster", "color"}, nil,
 	)
