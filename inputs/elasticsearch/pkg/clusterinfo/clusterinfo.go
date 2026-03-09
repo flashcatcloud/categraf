@@ -183,7 +183,23 @@ func (r *Retriever) Run(ctx context.Context) error {
 				r.updateMetrics(res)
 				for name, consumerCh := range r.consumerChannels {
 					log.Println("sending update, consumer: ", name, "res: ", fmt.Sprintf("%+v", res))
-					*consumerCh <- res
+					// 使用 recover 防止向已关闭 channel 发送导致 panic
+					func() {
+						defer func() {
+							if err := recover(); err != nil {
+								log.Printf("panic caught while sending to consumer %s: %v, removing consumer", name, err)
+								// 可选：在这里从 r.consumerChannels 中移除该消费者，避免后续继续尝试发送
+								// delete(r.consumerChannels, name)
+							}
+						}()
+						select {
+						case *consumerCh <- res:
+							// successfully sent
+						default:
+							// channel is full, skip this iteration
+							log.Println("consumer channel full, skipping: ", name)
+						}
+					}()
 				}
 				// close startupComplete if not already closed
 				select {
