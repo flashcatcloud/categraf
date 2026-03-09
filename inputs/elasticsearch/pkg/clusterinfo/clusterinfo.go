@@ -1,4 +1,4 @@
-// Copyright 2021 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -183,7 +183,23 @@ func (r *Retriever) Run(ctx context.Context) error {
 				r.updateMetrics(res)
 				for name, consumerCh := range r.consumerChannels {
 					log.Println("sending update, consumer: ", name, "res: ", fmt.Sprintf("%+v", res))
-					*consumerCh <- res
+					// 使用 recover 防止向已关闭 channel 发送导致 panic
+					func() {
+						defer func() {
+							if err := recover(); err != nil {
+								log.Printf("panic caught while sending to consumer %s: %v, removing consumer", name, err)
+								// 可选：在这里从 r.consumerChannels 中移除该消费者，避免后续继续尝试发送
+								// delete(r.consumerChannels, name)
+							}
+						}()
+						select {
+						case *consumerCh <- res:
+							// successfully sent
+						default:
+							// channel is full, skip this iteration
+							log.Println("consumer channel full, skipping: ", name)
+						}
+					}()
 				}
 				// close startupComplete if not already closed
 				select {
@@ -205,6 +221,7 @@ func (r *Retriever) Run(ctx context.Context) error {
 			return
 		}
 		ticker := time.NewTicker(r.interval)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ctx.Done():

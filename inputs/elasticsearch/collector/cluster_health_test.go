@@ -1,4 +1,4 @@
-// Copyright 2021 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -92,10 +92,7 @@ func TestClusterHealth(t *testing.T) {
 				elasticsearch_cluster_health_active_primary_shards{cluster="elasticsearch"} 5
 				# HELP elasticsearch_cluster_health_active_shards Aggregate total of all shards across all indices, which includes replica shards.
 				# TYPE elasticsearch_cluster_health_active_shards gauge
- 				elasticsearch_cluster_health_active_shards{cluster="elasticsearch"} 5
-        		# HELP elasticsearch_cluster_health_active_shards_percent Percentage of active shards in the cluster.
-        		# TYPE elasticsearch_cluster_health_active_shards_percent gauge
-        		elasticsearch_cluster_health_active_shards_percent{cluster="elasticsearch"} 50
+				elasticsearch_cluster_health_active_shards{cluster="elasticsearch"} 5
 				# HELP elasticsearch_cluster_health_delayed_unassigned_shards Shards delayed to reduce reallocation overhead
 				# TYPE elasticsearch_cluster_health_delayed_unassigned_shards gauge
 				elasticsearch_cluster_health_delayed_unassigned_shards{cluster="elasticsearch"} 0
@@ -139,10 +136,7 @@ func TestClusterHealth(t *testing.T) {
 				elasticsearch_cluster_health_active_primary_shards{cluster="elasticsearch"} 5
 				# HELP elasticsearch_cluster_health_active_shards Aggregate total of all shards across all indices, which includes replica shards.
 				# TYPE elasticsearch_cluster_health_active_shards gauge
- 				elasticsearch_cluster_health_active_shards{cluster="elasticsearch"} 5
-        		# HELP elasticsearch_cluster_health_active_shards_percent Percentage of active shards in the cluster.
-        		# TYPE elasticsearch_cluster_health_active_shards_percent gauge
-        		elasticsearch_cluster_health_active_shards_percent{cluster="elasticsearch"} 50
+				elasticsearch_cluster_health_active_shards{cluster="elasticsearch"} 5
 				# HELP elasticsearch_cluster_health_delayed_unassigned_shards Shards delayed to reduce reallocation overhead
 				# TYPE elasticsearch_cluster_health_delayed_unassigned_shards gauge
 				elasticsearch_cluster_health_delayed_unassigned_shards{cluster="elasticsearch"} 0

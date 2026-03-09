@@ -1,4 +1,4 @@
-// Copyright 2023 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -120,14 +120,14 @@ type taskResponse struct {
 	Action string `json:"action"`
 }
 
-type AggregatedTaskStats struct {
+type aggregatedTaskStats struct {
 	CountByAction map[string]int64
 }
 
-func AggregateTasks(t tasksResponse) AggregatedTaskStats {
+func AggregateTasks(t tasksResponse) aggregatedTaskStats {
 	actions := map[string]int64{}
 	for _, task := range t.Tasks {
 		actions[task.Action]++
 	}
-	return AggregatedTaskStats{CountByAction: actions}
+	return aggregatedTaskStats{CountByAction: actions}
 }

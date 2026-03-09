@@ -1,4 +1,4 @@
-// Copyright 2022 The Prometheus Authors
+// Copyright The Prometheus Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -41,9 +41,14 @@ type AWSSigningTransport struct {
 }
 
 func NewAWSSigningTransport(transport http.RoundTripper, region string, roleArn string) (*AWSSigningTransport, error) {
-	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region))
+	// Only set region explicitly when provided; otherwise allow env/IMDS resolution
+	var opts []func(*config.LoadOptions) error
+	if region != "" {
+		opts = append(opts, config.WithRegion(region))
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), opts...)
 	if err != nil {
-		log.Println("failed to load aws default config, err: ", err)
+		log.Println("failed to load aws default config , err: ", err)
 		return nil, err
 	}
 
