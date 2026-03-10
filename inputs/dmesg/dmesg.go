@@ -22,18 +22,18 @@ const (
 )
 
 const (
-	OOM_Error                           = "Out of memory"
-	NF_CONNTRACK_TABLE_FULL             = "nf_conntrack: table full"
-	Drop_Packet                         = "dropping packet"
-	Will_Reset_Adapter                  = "will reset adapter"
-	Memory_Error                        = "memory error"
-	Reset_Successful_For_SCSI           = "Reset successful for scsi"
-	Call_Trace                          = "Call Trace"
-	Segfault                            = "segfault"
-	NIC_Link_Down                       = "NIC Link is Down"
-	EXT4_Fs_Error                       = "EXT4-fs error"
-	Medium_Error                        = "Medium Error"
-	Package_Temperature_Above_Threshold = "Package temperature above threshold"
+	OomError                         = "Out of memory"
+	NfConntrackTableFull             = "nf_conntrack: table full"
+	DropPacket                       = "dropping packet"
+	WillResetAdapter                 = "will reset adapter"
+	MemoryError                      = "memory error"
+	ResetSuccessfulForScsi           = "Reset successful for scsi"
+	CallTrace                        = "Call Trace"
+	Segfault                         = "segfault"
+	NicLinkDown                      = "NIC Link is Down"
+	Ext4FsError                      = "EXT4-fs error"
+	MediumError                      = "Medium Error"
+	PackageTemperatureAboveThreshold = "Package temperature above threshold"
 )
 
 type Msg struct {
@@ -50,18 +50,18 @@ type Msg struct {
 // 创建一个包含所有错误信息的切片，用于遍历
 // 这里手动将常量和对应的码绑定，确保顺序一致
 var errorList = map[string]int{
-	OOM_Error:                           0,
-	NF_CONNTRACK_TABLE_FULL:             0,
-	Drop_Packet:                         0,
-	Will_Reset_Adapter:                  0,
-	Memory_Error:                        0,
-	Reset_Successful_For_SCSI:           0,
-	Call_Trace:                          0,
-	Segfault:                            0,
-	NIC_Link_Down:                       0,
-	EXT4_Fs_Error:                       0,
-	Medium_Error:                        0,
-	Package_Temperature_Above_Threshold: 0,
+	OomError:                         0,
+	NfConntrackTableFull:             0,
+	DropPacket:                       0,
+	WillResetAdapter:                 0,
+	MemoryError:                      0,
+	ResetSuccessfulForScsi:           0,
+	CallTrace:                        0,
+	Segfault:                         0,
+	NicLinkDown:                      0,
+	Ext4FsError:                      0,
+	MediumError:                      0,
+	PackageTemperatureAboveThreshold: 0,
 }
 
 type Instance struct {
