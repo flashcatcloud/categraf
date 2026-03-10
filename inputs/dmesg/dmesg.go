@@ -47,29 +47,15 @@ type Msg struct {
 	DeviceInfo map[string]string // Device info
 }
 
-// 创建一个包含所有错误信息的切片，用于遍历
-// 这里手动将常量和对应的码绑定，确保顺序一致
-var errorList = map[string]int{
-	OomError:                         0,
-	NfConntrackTableFull:             0,
-	DropPacket:                       0,
-	WillResetAdapter:                 0,
-	MemoryError:                      0,
-	ResetSuccessfulForScsi:           0,
-	CallTrace:                        0,
-	Segfault:                         0,
-	NicLinkDown:                      0,
-	Ext4FsError:                      0,
-	MediumError:                      0,
-	PackageTemperatureAboveThreshold: 0,
-}
-
 type Instance struct {
 	config.InstanceConfig
 
 	ExternalKeywords []string `toml:"external_keywords"`
 
 	conn syscall.RawConn
+	file *os.File
+
+	errorList map[string]int
 }
 
 func (ins *Instance) Init() error {
@@ -84,13 +70,31 @@ func (ins *Instance) Init() error {
 
 	ins.conn, err = f.SyscallConn()
 	if err != nil {
+		f.Close()
 		log.Println("Error getting raw connection:", err)
 		return err
 	}
 
-	for _, keyword := range ins.ExternalKeywords {
-		errorList[keyword] = 0
+	ins.errorList = map[string]int{
+		OomError:                         0,
+		NfConntrackTableFull:             0,
+		DropPacket:                       0,
+		WillResetAdapter:                 0,
+		MemoryError:                      0,
+		ResetSuccessfulForScsi:           0,
+		CallTrace:                        0,
+		Segfault:                         0,
+		NicLinkDown:                      0,
+		Ext4FsError:                      0,
+		MediumError:                      0,
+		PackageTemperatureAboveThreshold: 0,
 	}
+
+	for _, keyword := range ins.ExternalKeywords {
+		ins.errorList[keyword] = 0
+	}
+
+	ins.file = f
 
 	return nil
 }
@@ -154,23 +158,30 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	if err != nil {
 		log.Println("Error reading from /dev/kmsg:", err)
-		slist.PushFront(types.NewSample(inputName, "up", 1, nil))
+		slist.PushFront(types.NewSample(inputName, "up", 0, nil))
 		return
 	}
 
+	slist.PushFront(types.NewSample(inputName, "up", 1, nil))
 	for _, d := range msgs {
-		for keyword := range errorList {
+		for keyword := range ins.errorList {
 			if strings.Contains(d.Text, keyword) {
-				errorList[keyword] += 1
+				ins.errorList[keyword]++
 			}
 		}
 	}
-	for keyword, count := range errorList {
+	for keyword, count := range ins.errorList {
 		slist.PushFront(types.NewSample(inputName, "hit_keyword", count, map[string]string{
 			"keyword": keyword,
 		}))
 	}
 
+}
+
+func (ins *Instance) Cleanup() {
+	if ins.file != nil {
+		ins.file.Close()
+	}
 }
 
 func parseData(data []byte) *Msg {
