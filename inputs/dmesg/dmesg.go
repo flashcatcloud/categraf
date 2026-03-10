@@ -110,6 +110,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	for _, d := range dmesgs {
+		slist.PushFront(types.NewSample(inputName, "up", 1, nil))
 		for _, e := range errorList {
 			if strings.Contains(d.Text, e.Message) {
 				slist.PushFront(types.NewSample(inputName, "dmesg_error", 1, map[string]string{
