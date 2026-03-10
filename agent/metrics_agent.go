@@ -27,6 +27,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/dcgm"
 	_ "flashcat.cloud/categraf/inputs/disk"
 	_ "flashcat.cloud/categraf/inputs/diskio"
+	_ "flashcat.cloud/categraf/inputs/dmesg"
 	_ "flashcat.cloud/categraf/inputs/dns_query"
 	_ "flashcat.cloud/categraf/inputs/docker"
 	_ "flashcat.cloud/categraf/inputs/elasticsearch"
