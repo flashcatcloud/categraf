@@ -376,7 +376,16 @@ func fastPingRtt(ip string, timeout int) (float64, error) {
 	var rt float64
 	rt = -1
 	p := fastping.NewPinger()
-	ra, err := net.ResolveIPAddr("ip4:icmp", ip)
+
+	// Strip brackets from IPv6 addresses (e.g. "[::1]" -> "::1")
+	host := strings.TrimRight(strings.TrimLeft(ip, "["), "]")
+
+	network := "ip4:icmp"
+	if parsed := net.ParseIP(host); parsed != nil && parsed.To4() == nil {
+		network = "ip6:ipv6-icmp"
+	}
+
+	ra, err := net.ResolveIPAddr(network, host)
 	if err != nil {
 		return -1, err
 	}
