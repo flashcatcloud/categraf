@@ -8,7 +8,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b
 	github.com/chai2010/winsvc v0.0.0-20200705094454-db7ec320025c
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf
-	github.com/docker/docker v28.0.0+incompatible
+	github.com/docker/docker v28.5.2+incompatible
 	github.com/emirpasic/gods v1.18.1
 	github.com/gaochao1/sw v1.0.0
 	github.com/gin-gonic/gin v1.9.1
@@ -94,6 +94,8 @@ require (
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
 	github.com/clbanning/mxj/v2 v2.5.5 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
+	github.com/containerd/errdefs v1.0.0 // indirect
+	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.6.0 // indirect
 	github.com/dennwc/ioctl v1.0.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
@@ -132,6 +134,7 @@ require (
 	github.com/mdlayher/vsock v1.2.1 // indirect
 	github.com/minio/highwayhash v1.0.4-0.20251030100505-070ab1a87a76 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
+	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/montanaflynn/stats v0.7.0 // indirect
 	github.com/nats-io/jwt/v2 v2.8.1 // indirect
 	github.com/nats-io/nkeys v0.4.15 // indirect
@@ -396,6 +399,6 @@ require (
 )
 
 replace (
+	github.com/docker/docker => github.com/docker/docker v27.1.1
 	github.com/googleapis/google-cloud-go/storage => cloud.google.com/go/storage v1.30.1
-	github.com/kardianos/service => github.com/kongfei605/service v1.2.2
 )
