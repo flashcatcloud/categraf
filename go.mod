@@ -399,6 +399,6 @@ require (
 )
 
 replace (
-	github.com/docker/docker => github.com/docker/docker v27.1.1
 	github.com/googleapis/google-cloud-go/storage => cloud.google.com/go/storage v1.30.1
+	github.com/kardianos/service => github.com/kongfei605/service v1.2.2
 )
