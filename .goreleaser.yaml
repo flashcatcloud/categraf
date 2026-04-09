@@ -1,10 +1,13 @@
+version: 2
+
 before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
 
 snapshot:
-  name_template: '{{ .Tag }}'
+  version_template: '{{ .Tag }}'
+
 checksum:
   name_template: 'checksums.txt'
 changelog:
@@ -14,29 +17,25 @@ builds:
   - id: linux-arm64
     main: ./
     binary: categraf
-    env:
+    env: &env_nocgo
       - CGO_ENABLED=0
       - GODEBUG=x509negativeserial=1
     goos:
       - linux
     goarch:
       - arm64
-    ldflags:
+    ldflags: &ldflags_default
       - -s -w
       - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
   - id: linux-amd64
     main: ./
     binary: categraf
-    env:
-      - CGO_ENABLED=0
-      - GODEBUG=x509negativeserial=1
+    env: *env_nocgo
     goos:
       - linux
     goarch:
       - amd64
-    ldflags:
-      - -s -w
-      - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
+    ldflags: *ldflags_default
   - id: linux-amd64-cgo
     main: ./
     binary: categraf
@@ -55,9 +54,7 @@ builds:
   - id: linux-slim
     main: ./
     binary: categraf
-    env:
-      - CGO_ENABLED=0
-      - GODEBUG=x509negativeserial=1
+    env: *env_nocgo
     goos:
       - linux
     goarch:
@@ -68,16 +65,14 @@ builds:
       - no_traces
       - no_logs
       - no_prometheus
-    ldflags:
+    ldflags: &ldflags_slim
       - -s -w
       - -X flashcat.cloud/categraf/config.Version=slim-{{ .Tag }}-{{.Commit}}
 
   - id: linux-metrics-agent
     main: ./
     binary: categraf
-    env:
-      - CGO_ENABLED=0
-      - GODEBUG=x509negativeserial=1
+    env: *env_nocgo
     goos:
       - linux
     goarch:
@@ -87,9 +82,7 @@ builds:
       - no_ibex
       - no_traces
       - no_logs
-    ldflags:
-      - -s -w
-      - -X flashcat.cloud/categraf/config.Version=slim-{{ .Tag }}-{{.Commit}}
+    ldflags: *ldflags_slim
 
   - id: windows
     main: ./
@@ -101,27 +94,28 @@ builds:
     goarch:
       - amd64
       - arm64
-    ldflags:
-      - -s -w
-      - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
+    ldflags: *ldflags_default
 
 archives:
   - id: categraf
-    builds:
+    ids:
       - linux-amd64-cgo
-    format: tar.gz
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}-with-cgo-plugin"
     wrap_in_directory: true
     files:
       - conf/*
 
   - id: categraf-linux-amd64
-    builds:
+    ids:
       - linux-amd64
-    format: tar.gz
+    formats:
+      - tar.gz
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
     files:
@@ -130,9 +124,10 @@ archives:
         dst: embedded/huatuo.tar.gz
 
   - id: categraf-linux-arm64
-    builds:
+    ids:
       - linux-arm64
-    format: tar.gz
+    formats:
+      - tar.gz
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
     files:
@@ -141,9 +136,10 @@ archives:
         dst: embedded/huatuo.tar.gz
 
   - id: categraf-common-win
-    builds:
+    ids:
       - windows
-    format: zip
+    formats:
+      - zip
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
     files:
@@ -151,12 +147,14 @@ archives:
       - scripts/win_run.bat
 
   - id: categraf-slim
-    builds:
+    ids:
       - linux-slim
-    format: tar.gz
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     name_template: "{{ .ProjectName }}-slim-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
     files:
@@ -169,13 +167,15 @@ release:
   name_template: "v{{ .Version }}"
 
 dockers:
-  - image_templates:
-      - flashcatcloud/categraf:{{ .Tag }}-amd64
+  - &base_docker_config
+    use: buildx
     goos: linux
+    dockerfile: docker/Dockerfile.goreleaser
+    image_templates:
+      - flashcatcloud/categraf:{{ .Tag }}-amd64
     goarch: amd64
     ids:
       - linux-amd64
-    dockerfile: docker/Dockerfile.goreleaser
     extra_files:
       - docker/entrypoint.sh
       - docker/nsswitch.conf
@@ -192,90 +192,39 @@ dockers:
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
       - conf/input.processes/processes.toml
-    use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
+      - "--provenance=false"
 
-  - image_templates:
+  - <<: *base_docker_config
+    image_templates:
       - flashcatcloud/categraf:slim-{{ .Tag }}-amd64
-    goos: linux
     goarch: amd64
     ids:
       - linux-slim
-    dockerfile: docker/Dockerfile.goreleaser
-    extra_files:
-      - docker/entrypoint.sh
-      - docker/nsswitch.conf
-      - conf/config.toml
-      - conf/logs.toml
-      - conf/input.cpu/cpu.toml
-      - conf/input.mem/mem.toml
-      - conf/input.disk/disk.toml
-      - conf/input.diskio/diskio.toml
-      - conf/input.kernel/kernel.toml
-      - conf/input.linux_sysctl_fs/linux_sysctl_fs.toml
-      - conf/input.system/system.toml
-      - conf/input.kernel_vmstat/kernel_vmstat.toml
-      - conf/input.netstat/netstat.toml
-      - conf/input.net/net.toml
-      - conf/input.processes/processes.toml
-    use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
+      - "--provenance=false"
 
-  - image_templates:
+  - <<: *base_docker_config
+    image_templates:
       - flashcatcloud/categraf:{{ .Tag }}-arm64v8
-    goos: linux
     goarch: arm64
     ids:
       - linux-arm64
-    dockerfile: docker/Dockerfile.goreleaser.arm64
-    extra_files:
-      - docker/entrypoint.sh
-      - docker/nsswitch.conf
-      - conf/config.toml
-      - conf/logs.toml
-      - conf/input.cpu/cpu.toml
-      - conf/input.mem/mem.toml
-      - conf/input.disk/disk.toml
-      - conf/input.diskio/diskio.toml
-      - conf/input.kernel/kernel.toml
-      - conf/input.linux_sysctl_fs/linux_sysctl_fs.toml
-      - conf/input.system/system.toml
-      - conf/input.kernel_vmstat/kernel_vmstat.toml
-      - conf/input.netstat/netstat.toml
-      - conf/input.net/net.toml
-      - conf/input.processes/processes.toml
-    use: buildx
     build_flag_templates:
       - "--platform=linux/arm64/v8"
+      - "--provenance=false"
 
-  - image_templates:
+  - <<: *base_docker_config
+    image_templates:
       - flashcatcloud/categraf:slim-{{ .Tag }}-arm64v8
-    goos: linux
     goarch: arm64
     ids:
       - linux-metrics-agent
-    dockerfile: docker/Dockerfile.goreleaser.arm64
-    extra_files:
-      - docker/entrypoint.sh
-      - docker/nsswitch.conf
-      - conf/config.toml
-      - conf/logs.toml
-      - conf/input.cpu/cpu.toml
-      - conf/input.mem/mem.toml
-      - conf/input.disk/disk.toml
-      - conf/input.diskio/diskio.toml
-      - conf/input.kernel/kernel.toml
-      - conf/input.linux_sysctl_fs/linux_sysctl_fs.toml
-      - conf/input.system/system.toml
-      - conf/input.kernel_vmstat/kernel_vmstat.toml
-      - conf/input.netstat/netstat.toml
-      - conf/input.net/net.toml
-      - conf/input.processes/processes.toml
-    use: buildx
     build_flag_templates:
       - "--platform=linux/arm64/v8"
+      - "--provenance=false"
 
 docker_manifests:
   - name_template: flashcatcloud/categraf:{{ .Tag }}
