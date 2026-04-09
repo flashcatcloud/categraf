@@ -51,24 +51,6 @@ builds:
       - -s -w
       - -X flashcat.cloud/categraf/config.Version={{ .Tag }}-{{.Commit}}
       - -extldflags "-Wl,-z,lazy"
-  - id: linux-slim
-    main: ./
-    binary: categraf
-    env: *env_nocgo
-    goos:
-      - linux
-    goarch:
-      - amd64
-      - arm64
-    tags:
-      - no_ibex
-      - no_traces
-      - no_logs
-      - no_prometheus
-    ldflags: &ldflags_slim
-      - -s -w
-      - -X flashcat.cloud/categraf/config.Version=slim-{{ .Tag }}-{{.Commit}}
-
   - id: linux-metrics-agent
     main: ./
     binary: categraf
@@ -82,7 +64,9 @@ builds:
       - no_ibex
       - no_traces
       - no_logs
-    ldflags: *ldflags_slim
+    ldflags: &ldflags_slim
+      - -s -w
+      - -X flashcat.cloud/categraf/config.Version=slim-{{ .Tag }}-{{.Commit}}
 
   - id: windows
     main: ./
@@ -148,13 +132,9 @@ archives:
 
   - id: categraf-slim
     ids:
-      - linux-slim
+      - linux-metrics-agent
     formats:
       - tar.gz
-    format_overrides:
-      - goos: windows
-        formats:
-          - zip
     name_template: "{{ .ProjectName }}-slim-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     wrap_in_directory: true
     files:
@@ -166,17 +146,21 @@ release:
     name: categraf
   name_template: "v{{ .Version }}"
 
-dockers:
-  - &base_docker_config
-    use: buildx
-    goos: linux
+dockers_v2:
+  - &base_docker_v2
     dockerfile: docker/Dockerfile.goreleaser
-    image_templates:
-      - flashcatcloud/categraf:{{ .Tag }}-amd64
-    goarch: amd64
     ids:
       - linux-amd64
-    extra_files:
+      - linux-arm64
+    images:
+      - flashcatcloud/categraf
+    tags:
+      - "{{ .Tag }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    extra_files: &docker_extra_files
       - docker/entrypoint.sh
       - docker/nsswitch.conf
       - conf/config.toml
@@ -192,55 +176,19 @@ dockers:
       - conf/input.netstat/netstat.toml
       - conf/input.net/net.toml
       - conf/input.processes/processes.toml
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--provenance=false"
 
-  - <<: *base_docker_config
-    image_templates:
-      - flashcatcloud/categraf:slim-{{ .Tag }}-amd64
-    goarch: amd64
-    ids:
-      - linux-slim
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--provenance=false"
-
-  - <<: *base_docker_config
-    image_templates:
-      - flashcatcloud/categraf:{{ .Tag }}-arm64v8
-    goarch: arm64
-    ids:
-      - linux-arm64
-    build_flag_templates:
-      - "--platform=linux/arm64/v8"
-      - "--provenance=false"
-
-  - <<: *base_docker_config
-    image_templates:
-      - flashcatcloud/categraf:slim-{{ .Tag }}-arm64v8
-    goarch: arm64
+  - id: categraf-slim
+    dockerfile: docker/Dockerfile.goreleaser
     ids:
       - linux-metrics-agent
-    build_flag_templates:
-      - "--platform=linux/arm64/v8"
-      - "--provenance=false"
-
-docker_manifests:
-  - name_template: flashcatcloud/categraf:{{ .Tag }}
-    image_templates:
-      - flashcatcloud/categraf:{{ .Tag }}-amd64
-      - flashcatcloud/categraf:{{ .Tag }}-arm64v8
-
-  - name_template: flashcatcloud/categraf:slim-{{ .Tag }}
-    image_templates:
-      - flashcatcloud/categraf:slim-{{ .Tag }}-amd64
-      - flashcatcloud/categraf:slim-{{ .Tag }}-arm64v8
-
-  - name_template: flashcatcloud/categraf:latest
-    image_templates:
-      - flashcatcloud/categraf:{{ .Tag }}-amd64
-      - flashcatcloud/categraf:{{ .Tag }}-arm64v8
+    images:
+      - flashcatcloud/categraf
+    tags:
+      - "slim-{{ .Tag }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    extra_files: *docker_extra_files
 
 announce:
   webhook:

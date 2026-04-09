@@ -1,8 +1,10 @@
 FROM --platform=$TARGETPLATFORM flashcatcloud/ubuntu:24.04
 
+ARG TARGETPLATFORM
+
 COPY docker/nsswitch.conf /etc/nsswitch.conf
 
-COPY --chmod=755 categraf  /usr/bin/categraf
+COPY --chmod=755 ${TARGETPLATFORM}/categraf /usr/bin/categraf
 
 COPY --chmod=755 docker/entrypoint.sh /entrypoint.sh
 
