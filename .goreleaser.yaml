@@ -146,7 +146,7 @@ release:
     name: categraf
   name_template: "v{{ .Version }}"
 
-dockers_v2:
+dockers:
   - &base_docker_v2
     dockerfile: docker/Dockerfile.goreleaser
     ids:
