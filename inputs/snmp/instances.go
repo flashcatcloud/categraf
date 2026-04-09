@@ -376,7 +376,9 @@ func fastPingRtt(ip string, timeout int) (float64, error) {
 	var rt float64
 	rt = -1
 	p := fastping.NewPinger()
-	ra, err := net.ResolveIPAddr("ip4:icmp", ip)
+
+	host := strings.TrimRight(strings.TrimLeft(ip, "["), "]")
+	ra, err := net.ResolveIPAddr("ip", host)
 	if err != nil {
 		return -1, err
 	}
