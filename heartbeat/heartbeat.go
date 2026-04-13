@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	keyset "flashcat.cloud/categraf/set/key"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/system"
@@ -52,7 +52,7 @@ func Work() {
 
 	client, err := newHTTPClient()
 	if err != nil {
-		log.Println("E! failed to create heartbeat client:", err)
+		klog.ErrorS(err, "failed to create heartbeat client")
 		return
 	}
 
@@ -84,7 +84,7 @@ func newHTTPClient() (*http.Client, error) {
 	if strings.HasPrefix(config.Config.Heartbeat.Url, "https:") {
 		tlsCfg, err := config.Config.Heartbeat.TLSConfig()
 		if err != nil {
-			log.Println("E! failed to init tls:", err)
+			klog.ErrorS(err, "failed to init tls")
 			return nil, err
 		}
 
@@ -110,8 +110,8 @@ func version() string {
 	return config.Version
 }
 
-func debug() bool {
-	return config.Config.DebugMode && strings.Contains(config.Config.InputFilters, keyset.HeartbeatAgent)
+func debugEnabled() bool {
+	return klog.V(1).Enabled() && strings.Contains(config.Config.InputFilters, keyset.HeartbeatAgent)
 }
 
 func work(ps *system.SystemPS, client *http.Client) {
@@ -142,33 +142,33 @@ func work(ps *system.SystemPS, client *http.Client) {
 			}
 		}
 	} else {
-		log.Println("E! failed to collect system info:", err)
+		klog.ErrorS(err, "failed to collect system info")
 	}
 
 	data["unixtime"] = time.Now().UnixMilli()
 	bs, err := json.Marshal(data)
 	if err != nil {
-		log.Println("E! failed to marshal heartbeat request:", err)
+		klog.ErrorS(err, "failed to marshal heartbeat request")
 		return
 	}
 
 	var buf bytes.Buffer
 	g := gzip.NewWriter(&buf)
 	if _, err = g.Write(bs); err != nil {
-		log.Println("E! failed to write gzip buffer:", err)
+		klog.ErrorS(err, "failed to write gzip buffer")
 	}
 
 	if err = g.Close(); err != nil {
-		log.Println("E! failed to close gzip buffer:", err)
+		klog.ErrorS(err, "failed to close gzip buffer")
 		return
 	}
-	if debug() {
-		log.Printf("D! heartbeat request: %s", string(bs))
+	if debugEnabled() {
+		klog.V(1).InfoS("heartbeat request", "body", string(bs))
 	}
 
 	req, err := http.NewRequest("POST", config.Config.Heartbeat.Url, &buf)
 	if err != nil {
-		log.Println("E! failed to new heartbeat request:", err)
+		klog.ErrorS(err, "failed to create heartbeat request")
 		return
 	}
 
@@ -189,30 +189,30 @@ func work(ps *system.SystemPS, client *http.Client) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		log.Println("E! failed to do heartbeat:", err)
+		klog.ErrorS(err, "failed to do heartbeat")
 		return
 	}
 
 	defer res.Body.Close()
 	bs, err = io.ReadAll(res.Body)
 	if err != nil {
-		log.Println("E! failed to read heartbeat response body:", err, " status code:", res.StatusCode)
+		klog.ErrorS(err, "failed to read heartbeat response body", "status_code", res.StatusCode)
 		return
 	}
 
 	if res.StatusCode/100 != 2 {
-		log.Println("E! heartbeat status code:", res.StatusCode, " response:", string(bs))
+		klog.Warningf("heartbeat status code: %d response: %s", res.StatusCode, string(bs))
 		return
 	}
 
-	if debug() {
-		log.Println("D! heartbeat response:", string(bs), "status code:", res.StatusCode)
+	if debugEnabled() {
+		klog.V(1).InfoS("heartbeat response", "body", string(bs), "status_code", res.StatusCode)
 	}
 
 	hr := HeartbeatResponse{}
 	err = json.Unmarshal(bs, &hr)
 	if err != nil {
-		log.Println("W! failed to unmarshal heartbeat response:", err)
+		klog.Warningf("failed to unmarshal heartbeat response: %v", err)
 		return
 	}
 	if len(hr.Data.NewVersion) != 0 && len(hr.Data.UpdateURL) != 0 && hr.Data.NewVersion != shortVersion && hr.Data.NewVersion != config.Version {
@@ -222,7 +222,7 @@ func work(ps *system.SystemPS, client *http.Client) {
 		)
 		exe, err := os.Executable()
 		if err != nil {
-			log.Println("E! failed to get current executable:", err)
+			klog.ErrorS(err, "failed to get current executable")
 			return
 		}
 		cmd := osExec.Command(exe, "-update", "-update_url", hr.Data.UpdateURL)
@@ -230,22 +230,21 @@ func work(ps *system.SystemPS, client *http.Client) {
 		cmd.Stderr = &stderr
 		err, timeout := cmdx.RunTimeout(cmd, time.Second*300)
 		if timeout {
-			log.Printf("E! exec %s timeout", cmd.String())
+			klog.Warningf("exec %s timeout", cmd.String())
 			return
 		}
 		if err != nil {
-			log.Println("E! failed to update categraf:", err, "stderr:", stderr.String(), "stdout:",
-				out.String(), "command:", cmd.String())
+			klog.ErrorS(err, "failed to update categraf", "stderr", stderr.String(), "stdout", out.String(), "command", cmd.String())
 			return
 		}
-		log.Printf("update categraf(%s) from %s success, new version: %s", version(), hr.Data.UpdateURL, hr.Data.NewVersion)
+		klog.Infof("update categraf(%s) from %s success, new version: %s", version(), hr.Data.UpdateURL, hr.Data.NewVersion)
 	}
 }
 
 func memUsage(ps *system.SystemPS) float64 {
 	vm, err := ps.VMStat()
 	if err != nil {
-		log.Println("E! failed to get vmstat:", err)
+		klog.ErrorS(err, "failed to get vmstat")
 		return 0
 	}
 
@@ -263,7 +262,7 @@ func cpuUsage(ps *system.SystemPS) float64 {
 	// first
 	times, err := ps.CPUTimes(false, true)
 	if err != nil {
-		log.Println("E! failed to collect cpu_util:", err)
+		klog.ErrorS(err, "failed to collect cpu_util")
 		return 0
 	}
 
@@ -279,7 +278,7 @@ func cpuUsage(ps *system.SystemPS) float64 {
 	// sencond
 	times, err = ps.CPUTimes(false, true)
 	if err != nil {
-		log.Println("E! failed to collect cpu_util:", err)
+		klog.ErrorS(err, "failed to collect cpu_util")
 		return 0
 	}
 
@@ -292,7 +291,7 @@ func cpuUsage(ps *system.SystemPS) float64 {
 	// compute
 	totalDelta := total - lastTotal
 	if totalDelta < 0 {
-		log.Println("W! current total CPU time is less than previous total CPU time")
+		klog.Warningf("current total CPU time is less than previous total CPU time")
 		return 0
 	}
 

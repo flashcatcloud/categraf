@@ -2,13 +2,13 @@ package writer
 
 import (
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/prometheus/prometheus/prompb"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/types"
@@ -81,7 +81,7 @@ func WriteSamples(samples []*types.Sample) {
 		printTestMetrics(samples)
 		return
 	}
-	if config.Config.DebugMode {
+	if klog.V(1).Enabled() {
 		printTestMetrics(samples)
 	}
 
@@ -96,7 +96,7 @@ func WriteSamples(samples []*types.Sample) {
 	success := writers.queue.PushFrontN(items)
 	l := writers.queue.Len()
 	if !success {
-		log.Printf("E! write %d samples failed, please increase queue size(%d)", len(items), l)
+		klog.Errorf("write %d samples failed, please increase queue size(%d)", len(items), l)
 	}
 	go snapshot(uint64(len(items)), uint64(l), success)
 }
@@ -135,10 +135,7 @@ func WriteTimeSeries(timeSeries []prompb.TimeSeries) {
 		}(key)
 	}
 	wg.Wait()
-	if config.Config.DebugMode {
-		log.Println("D!, write", len(timeSeries), "time series to all writers, cost:",
-			time.Since(now).Milliseconds(), "ms")
-	}
+	klog.V(1).InfoS("write time series to all writers", "count", len(timeSeries), "cost_ms", time.Since(now).Milliseconds())
 }
 
 func printTestMetrics(samples []*types.Sample) {

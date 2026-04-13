@@ -35,6 +35,7 @@ func configureWithWriter(writer io.Writer, fs *flag.FlagSet, debug bool, debugLe
 		{name: "logtostderr", value: "false"},
 		{name: "alsologtostderr", value: "false"},
 		{name: "stderrthreshold", value: "FATAL"},
+		{name: "one_output", value: "true"},
 		{name: "v", value: strconv.Itoa(verbosity)},
 	}
 	for _, set := range sets {
