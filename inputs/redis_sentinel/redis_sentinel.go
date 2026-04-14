@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	"github.com/go-redis/redis/v8"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "redis_sentinel"
@@ -131,20 +131,20 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 			masters, err := client.gatherMasterStats(slist)
 			if err != nil {
-				log.Println("E! failed to gather master stats:", err)
+				klog.ErrorS(err, "failed to gather redis sentinel master stats", "tags", client.tags)
 			}
 
 			for _, master := range masters {
 				if err := client.gatherReplicaStats(slist, master); err != nil {
-					log.Println("E! failed to gather replica stats:", err)
+					klog.ErrorS(err, "failed to gather redis sentinel replica stats", "master", master, "tags", client.tags)
 				}
 				if err := client.gatherSentinelStats(slist, master); err != nil {
-					log.Println("E! failed to gather sentinel stats:", err)
+					klog.ErrorS(err, "failed to gather redis sentinel sentinel stats", "master", master, "tags", client.tags)
 				}
 			}
 
 			if err := client.gatherInfoStats(slist); err != nil {
-				log.Println("E! failed to gather info stats:", err)
+				klog.ErrorS(err, "failed to gather redis sentinel info stats", "tags", client.tags)
 			}
 		}(slist, client)
 	}

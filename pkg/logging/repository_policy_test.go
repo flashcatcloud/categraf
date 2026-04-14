@@ -46,6 +46,7 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"inputs/ethtool/ethtool_linux.go",
 		"inputs/provider_manager.go",
 		"inputs/redis/redis.go",
+		"inputs/redis_sentinel/redis_sentinel.go",
 		"inputs/snmp/table.go",
 		"inputs/jolokia_agent/jolokia_agent.go",
 		"inputs/clickhouse/clickhouse.go",
