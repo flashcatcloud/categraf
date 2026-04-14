@@ -1,14 +1,13 @@
 package cpu
 
 import (
-	"log"
-
 	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "cpu"
@@ -42,7 +41,7 @@ func (c *CPUStats) Name() string {
 func (c *CPUStats) Gather(slist *types.SampleList) {
 	times, err := c.ps.CPUTimes(c.CollectPerCPU, true)
 	if err != nil {
-		log.Println("E! failed to get cpu metrics:", err)
+		klog.ErrorS(err, "failed to get cpu metrics")
 		return
 	}
 
@@ -70,7 +69,7 @@ func (c *CPUStats) Gather(slist *types.SampleList) {
 		totalDelta := total - lastTotal
 
 		if totalDelta < 0 {
-			log.Println("W! current total CPU time is less than previous total CPU time")
+			klog.Warning("current total CPU time is less than previous total CPU time")
 			break
 		}
 

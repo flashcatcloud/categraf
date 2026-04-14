@@ -6,7 +6,6 @@ package kernel
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "kernel"
@@ -56,20 +56,20 @@ func (s *KernelStats) Name() string {
 func (s *KernelStats) Gather(slist *types.SampleList) {
 	data, err := s.getProcStat()
 	if err != nil {
-		log.Println("E! failed to read:", s.statFile, "error:", err)
+		klog.ErrorS(err, "failed to read kernel stat file", "path", s.statFile)
 		return
 	}
 
 	entropyData, err := os.ReadFile(s.entropyStatFile)
 	if err != nil {
-		log.Println("E! failed to read:", s.entropyStatFile, "error:", err)
+		klog.ErrorS(err, "failed to read entropy stat file", "path", s.entropyStatFile)
 		return
 	}
 
 	entropyString := string(entropyData)
 	entropyValue, err := strconv.ParseInt(strings.TrimSpace(entropyString), 10, 64)
 	if err != nil {
-		log.Println("E! failed to parse:", s.entropyStatFile, "error:", err)
+		klog.ErrorS(err, "failed to parse entropy stat file", "path", s.entropyStatFile)
 		return
 	}
 

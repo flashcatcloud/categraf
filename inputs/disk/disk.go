@@ -1,7 +1,6 @@
 package disk
 
 import (
-	"log"
 	"strings"
 
 	"flashcat.cloud/categraf/config"
@@ -9,6 +8,7 @@ import (
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/choice"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "disk"
@@ -43,7 +43,7 @@ func (s *DiskStats) Name() string {
 func (s *DiskStats) Gather(slist *types.SampleList) {
 	disks, partitions, err := s.ps.DiskUsage(s.MountPoints, s.IgnoreFS)
 	if err != nil {
-		log.Println("E! failed to get disk usage:", err)
+		klog.ErrorS(err, "failed to get disk usage")
 		return
 	}
 

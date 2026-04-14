@@ -1,7 +1,6 @@
 package system
 
 import (
-	"log"
 	"os"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "system"
@@ -37,13 +37,13 @@ func (s *SystemStats) Name() string {
 func (s *SystemStats) Gather(slist *types.SampleList) {
 	loadavg, err := load.Avg()
 	if err != nil && !strings.Contains(err.Error(), "not implemented") {
-		log.Println("E! failed to gather system load:", err)
+		klog.ErrorS(err, "failed to gather system load")
 		return
 	}
 
 	numCPUs, err := cpu.Counts(true)
 	if err != nil {
-		log.Println("E! failed to gather cpu number:", err)
+		klog.ErrorS(err, "failed to gather cpu number")
 		return
 	}
 
@@ -59,7 +59,7 @@ func (s *SystemStats) Gather(slist *types.SampleList) {
 
 	uptime, err := host.Uptime()
 	if err != nil {
-		log.Println("E! failed to get host uptime:", err)
+		klog.ErrorS(err, "failed to get host uptime")
 	} else {
 		fields["uptime"] = uptime
 	}
@@ -69,15 +69,15 @@ func (s *SystemStats) Gather(slist *types.SampleList) {
 		if err == nil {
 			fields["n_users"] = len(users)
 		} else if os.IsNotExist(err) {
-			log.Println("W! reading os users:", err)
+			klog.Warningf("reading os users: %v", err)
 		} else if os.IsPermission(err) {
-			log.Println("W! reading os users:", err)
+			klog.Warningf("reading os users: %v", err)
 		}
 	}
 
 	hostInfo, err := host.Info()
 	if err != nil {
-		log.Println("E! failed to gather host info:", err)
+		klog.ErrorS(err, "failed to gather host info")
 	} else {
 		slist.PushSample(inputName, "info", 1, map[string]string{
 			"kernel_version": hostInfo.KernelVersion,

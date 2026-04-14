@@ -2,7 +2,6 @@ package sockstat
 
 import (
 	"errors"
-	"log"
 	"os"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "sockstat"
@@ -59,7 +59,7 @@ type NetSockstatProtocol struct {
 func (ss *SockStat) Gather(slist *types.SampleList) {
 	ns, err := ParseNetSockstat()
 	if err != nil {
-		log.Println("E! failed to get net sockstat: ", err)
+		klog.ErrorS(err, "failed to get net sockstat")
 		return
 	}
 	ss.parse(ns, slist)
@@ -67,11 +67,11 @@ func (ss *SockStat) Gather(slist *types.SampleList) {
 	ns6, err := ParseNetSockstat6()
 	if err != nil {
 		if ss.DebugMod {
-			log.Println("D! failed to get net sockstat6: ", err)
+			klog.V(1).InfoS("failed to get net sockstat6", "error", err)
 			return
 		}
 		if !errors.Is(err, os.ErrNotExist) {
-			log.Println("E! failed to get net sockstat6: ", err)
+			klog.ErrorS(err, "failed to get net sockstat6")
 			return
 		}
 	}
