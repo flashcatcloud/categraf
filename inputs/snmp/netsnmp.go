@@ -5,10 +5,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"os/exec"
 	"strings"
 	"sync"
+
+	"k8s.io/klog/v2"
 )
 
 // struct that implements the translator interface. This calls existing
@@ -44,7 +45,7 @@ func (n *netsnmpTranslator) execCmd(arg0 string, args ...string) ([]byte, error)
 		for _, arg := range args {
 			quoted = append(quoted, fmt.Sprintf("%q", arg))
 		}
-		log.Printf("D! [inputs.snmp] executing %q %s", arg0, strings.Join(quoted, " "))
+		klog.V(1).InfoS("inputs.snmp executing command", "command", arg0, "args", strings.Join(quoted, " "))
 	}
 
 	out, err := execCommand(arg0, args...).Output()

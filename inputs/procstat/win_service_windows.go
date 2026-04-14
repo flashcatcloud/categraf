@@ -5,11 +5,11 @@ package procstat
 
 import (
 	"fmt"
-	"log"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/svc/mgr"
+	"k8s.io/klog/v2"
 )
 
 func getService(name string) (*mgr.Service, error) {
@@ -35,7 +35,7 @@ func queryPidWithWinServiceName(winServiceName string) (uint32, error) {
 	defer func(srv *mgr.Service) {
 		err := srv.Close()
 		if err != nil {
-			log.Printf("E! Close srv error: %s", err)
+			klog.ErrorS(err, "failed to close windows service handle", "service", winServiceName)
 		}
 	}(srv)
 

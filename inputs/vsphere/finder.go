@@ -3,7 +3,6 @@ package vsphere
 import (
 	"context"
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/vmware/govmomi/view"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/types"
+	"k8s.io/klog/v2"
 )
 
 var childTypes map[string][]string
@@ -75,7 +75,7 @@ func (f *Finder) findResources(ctx context.Context, resType, path string, objs m
 	if err != nil {
 		return err
 	}
-	log.Printf("I! Find(%s, %s) returned %d objects\r\n", resType, path, len(objs))
+	klog.InfoS("vsphere find returned objects", "resource_type", resType, "path", path, "count", len(objs))
 	return nil
 }
 
