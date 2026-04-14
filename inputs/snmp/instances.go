@@ -2,7 +2,6 @@ package snmp
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"strings"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/freedomkk-qfeng/go-fastping"
 	"github.com/gosnmp/gosnmp"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/types"
@@ -229,16 +229,16 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 			gs, err := ins.getConnection(i)
 			if err != nil {
-				log.Printf("agent %s ins: %s", agent, err)
+				klog.ErrorS(err, "failed to get snmp connection", "agent", agent)
 				return
 			}
 
 			if !ins.isAgentHealthy(agent) {
-				log.Printf("Skipping unhealthy agent %s during collection", agent)
+				klog.Warningf("skipping unhealthy agent %s during collection", agent)
 				return
 			}
 			if err := ins.gatherTable(slist, gs, t, topTags, extraTags, false); err != nil {
-				log.Printf("agent %s ins: %s", agent, err)
+				klog.ErrorS(err, "failed to gather snmp root table", "agent", agent)
 				ins.markAgentUnhealthy(agent)
 			}
 
@@ -246,7 +246,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			// Now is the real tables.
 			for _, t := range ins.Tables {
 				if err := ins.gatherTable(slist, gs, t, topTags, extraTags, true); err != nil {
-					log.Printf("agent %s ins: gathering table %s error: %s", agent, t.Name, err)
+					klog.ErrorS(err, "failed to gather snmp table", "agent", agent, "table", t.Name)
 					markCnt++
 				}
 			}
@@ -351,7 +351,7 @@ func Ping(ip string, timeout int) (up, rttAvg, loss float64) {
 		rtt, err := fastPingRtt(ip, timeout)
 		if err != nil {
 			lost++
-			log.Printf("W! snmp ping %s error:%s", ip, err)
+			klog.Warningf("snmp ping %s error: %s", ip, err)
 			continue
 		}
 		if rtt == -1 {
