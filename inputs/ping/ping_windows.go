@@ -5,12 +5,12 @@ package ping
 import (
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 type roundTripTimeStats struct {
@@ -28,7 +28,7 @@ type statistics struct {
 
 func (ins *Instance) execGather(slist *types.SampleList, target string) {
 	if ins.DebugMod {
-		log.Println("D! ping...", target)
+		klog.V(1).InfoS("ping target", "target", target)
 	}
 
 	fields := map[string]interface{}{"result_code": 0}
@@ -53,9 +53,9 @@ func (ins *Instance) execGather(slist *types.SampleList, target string) {
 	if err != nil {
 		// fatal error
 		if pendingError != nil {
-			log.Println(target, fmt.Errorf("%s: %w", target, pendingError))
+			klog.ErrorS(fmt.Errorf("%s: %w", target, pendingError), "failed to process ping output", "target", target)
 		} else {
-			log.Println(target, fmt.Errorf("%s: %w", target, err))
+			klog.ErrorS(fmt.Errorf("%s: %w", target, err), "failed to process ping output", "target", target)
 		}
 
 		fields["result_code"] = 2
