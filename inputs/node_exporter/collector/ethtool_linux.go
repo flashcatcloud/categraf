@@ -23,7 +23,6 @@ package collector
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"sort"
@@ -35,6 +34,7 @@ import (
 	"github.com/prometheus/procfs/sysfs"
 	"github.com/safchain/ethtool"
 	"golang.org/x/sys/unix"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -404,10 +404,10 @@ func (c *ethtoolCollector) Update(ch chan<- prometheus.Metric) error {
 				if err == unix.EOPNOTSUPP {
 					// level.Debug(c.logger).Log("msg", "ethtool link info error", "err", err, "device", device, "errno", uint(errno))
 				} else if errno != 0 {
-					log.Println("E! ethtool link info error, err:", err, "device:", device, "errno:", uint(errno))
+					klog.ErrorS(err, "ethtool link info error", "device", device, "errno", uint(errno))
 				}
 			} else {
-				log.Println("E! ethtool link info error, err:", err, "device:", device)
+				klog.ErrorS(err, "ethtool link info error", "device", device)
 			}
 		}
 
@@ -421,10 +421,10 @@ func (c *ethtoolCollector) Update(ch chan<- prometheus.Metric) error {
 				if err == unix.EOPNOTSUPP {
 					// level.Debug(c.logger).Log("msg", "ethtool driver info error", "err", err, "device", device, "errno", uint(errno))
 				} else if errno != 0 {
-					log.Println("E! ethtool driver info error, err:", err, "device:", device, "errno:", uint(errno))
+					klog.ErrorS(err, "ethtool driver info error", "device", device, "errno", uint(errno))
 				}
 			} else {
-				log.Println("E! ethool driver info error, err:", err, "device:", device)
+				klog.ErrorS(err, "ethtool driver info error", "device", device)
 			}
 		}
 
@@ -437,10 +437,10 @@ func (c *ethtoolCollector) Update(ch chan<- prometheus.Metric) error {
 				if err == unix.EOPNOTSUPP {
 					// level.Debug(c.logger).Log("msg", "ethtool stats error", "err", err, "device", device, "errno", uint(errno))
 				} else if errno != 0 {
-					log.Println("E! ethool stats error, err:", err, "device:", device, "errno:", uint(errno))
+					klog.ErrorS(err, "ethtool stats error", "device", device, "errno", uint(errno))
 				}
 			} else {
-				log.Println("E! ethool stats error, err:", err, "device:", device)
+				klog.ErrorS(err, "ethtool stats error", "device", device)
 			}
 		}
 
