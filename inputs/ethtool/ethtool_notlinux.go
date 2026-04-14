@@ -3,11 +3,10 @@
 package ethtool
 
 import (
-	"log"
-
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "ethtool"
@@ -62,7 +61,7 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
-	log.Println("E! Current platform is not supported")
+	klog.Error("current platform is not supported")
 	return nil
 }
 

@@ -3,11 +3,11 @@
 package ethtool
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/vishvananda/netns"
+	"k8s.io/klog/v2"
 )
 
 type Command interface {
@@ -37,7 +37,7 @@ func (c *CommandEthtool) Init() error {
 		handle: initialNamespace,
 	}
 	if err := namespaceGoroutine.Start(); err != nil {
-		log.Println("E! Failed to start goroutine for the initial namespace: ", err)
+		klog.ErrorS(err, "failed to start goroutine for initial namespace")
 		return err
 	}
 	c.namespaceGoroutines = map[string]*NamespaceGoroutine{
@@ -63,7 +63,7 @@ func (c *CommandEthtool) Interfaces(includeNamespaces bool) ([]NamespacedInterfa
 
 	initialNamespace, err := netns.Get()
 	if err != nil {
-		log.Println("E! Could not get initial namespace: ", err)
+		klog.ErrorS(err, "could not get initial namespace")
 		return nil, err
 	}
 	defer initialNamespace.Close()
@@ -79,7 +79,7 @@ func (c *CommandEthtool) Interfaces(includeNamespaces bool) ([]NamespacedInterfa
 	if includeNamespaces {
 		namespaces, err := os.ReadDir(namespaceDirectory)
 		if err != nil {
-			log.Println("W! Could not find namespace directory: ", err)
+			klog.Warningf("could not find namespace directory: path=%s err=%v", namespaceDirectory, err)
 		}
 
 		// We'll always have at least the initial namespace, so add one to ensure
@@ -91,7 +91,7 @@ func (c *CommandEthtool) Interfaces(includeNamespaces bool) ([]NamespacedInterfa
 
 			handle, err := netns.GetFromPath(filepath.Join(namespaceDirectory, name))
 			if err != nil {
-				log.Printf("W! Could not get handle for namespace [%q]: [%s]", name, err.Error())
+				klog.Warningf("could not get handle for namespace: namespace=%q err=%v", name, err)
 				continue
 			}
 			handles[name] = handle
@@ -116,7 +116,7 @@ func (c *CommandEthtool) Interfaces(includeNamespaces bool) ([]NamespacedInterfa
 				handle: handles[namespace],
 			}
 			if err := c.namespaceGoroutines[namespace].Start(); err != nil {
-				log.Printf("E! Failed to start goroutine for namespace [%q]: [%s]", namespace, err.Error())
+				klog.ErrorS(err, "failed to start goroutine for namespace", "namespace", namespace)
 				delete(c.namespaceGoroutines, namespace)
 				continue
 			}
@@ -124,7 +124,7 @@ func (c *CommandEthtool) Interfaces(includeNamespaces bool) ([]NamespacedInterfa
 
 		interfaces, err := c.namespaceGoroutines[namespace].Interfaces()
 		if err != nil {
-			log.Printf("W! Could not get interfaces from namespace [%q]: [%s]", namespace, err.Error())
+			klog.Warningf("could not get interfaces from namespace: namespace=%q err=%v", namespace, err)
 			continue
 		}
 		allInterfaces = append(allInterfaces, interfaces...)

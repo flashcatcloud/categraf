@@ -6,7 +6,6 @@ package linux_sysctl_fs
 import (
 	"bytes"
 	"errors"
-	"log"
 	"os"
 	"path"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "linux_sysctl_fs"
@@ -48,23 +48,23 @@ func (s *SysctlFS) Gather(slist *types.SampleList) {
 
 	for _, n := range []string{"aio-nr", "aio-max-nr", "dquot-nr", "dquot-max", "super-nr", "super-max"} {
 		if err := s.gatherOne(n, fields); err != nil {
-			log.Println("E! failed to gather sysctl fs:", err)
+			klog.ErrorS(err, "failed to gather sysctl fs metric", "name", n)
 		}
 	}
 
 	err := s.gatherList("inode-state", fields, "inode-nr", "inode-free-nr", "inode-preshrink-nr")
 	if err != nil {
-		log.Println("E! failed to gather inode-state:", err)
+		klog.ErrorS(err, "failed to gather sysctl inode-state")
 	}
 
 	err = s.gatherList("dentry-state", fields, "dentry-nr", "dentry-unused-nr", "dentry-age-limit", "dentry-want-pages")
 	if err != nil {
-		log.Println("E! failed to gather dentry-state:", err)
+		klog.ErrorS(err, "failed to gather sysctl dentry-state")
 	}
 
 	err = s.gatherList("file-nr", fields, "file-nr", "", "file-max")
 	if err != nil {
-		log.Println("E! failed to gather file-nr:", err)
+		klog.ErrorS(err, "failed to gather sysctl file-nr")
 	}
 
 	slist.PushSamples(inputName, fields)
