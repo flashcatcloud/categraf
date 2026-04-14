@@ -148,6 +148,8 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"inputs/vsphere/finder.go",
 		"inputs/vsphere/tscache.go",
 		"inputs/whois/whois.go",
+		"inputs/x509_cert/x509_cert.go",
+		"inputs/zookeeper/zookeeper.go",
 		"inputs/logstash/logstash.go",
 		"parser/influx/parser.go",
 		"parser/prometheus/parser.go",
