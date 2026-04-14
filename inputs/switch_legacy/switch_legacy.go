@@ -3,7 +3,6 @@ package switch_legacy
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/toolkits/pkg/concurrent/semaphore"
 	go_snmp "github.com/ulricqin/gosnmp"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "switch_legacy"
@@ -149,10 +149,10 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	start := time.Now()
 	defer func() {
-		log.Println("I! switch gather use:", time.Since(start))
+		klog.InfoS("switch gather completed", "duration", time.Since(start))
 	}()
 
-	log.Println("I! switch total ip count:", len(ips))
+	klog.InfoS("switch total ip count", "count", len(ips))
 
 	if ins.PingEnable {
 		ips = ins.gatherPing(ips, slist)
@@ -194,7 +194,7 @@ func (ins *Instance) custstat(wg *sync.WaitGroup, ip string, slist *types.Sample
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("E! recovered in custstat, ip:", ip, "oid:", cust.OID, "error:", r, "stack:", runtimex.Stack(3))
+			klog.ErrorS(fmt.Errorf("panic: %v", r), "recovered in custstat", "ip", ip, "oid", cust.OID, "stack", runtimex.Stack(3))
 		}
 	}()
 
@@ -208,7 +208,7 @@ func (ins *Instance) custstat(wg *sync.WaitGroup, ip string, slist *types.Sample
 			if err == nil {
 				slist.PushFront(types.NewSample(inputName, cust.Metric, value, cust.Tags, map[string]string{ins.parent.SwitchIdLabel: ins.parent.MappingIP(ip)}))
 			} else {
-				log.Println("E! failed to convert to float64, ip:", ip, "oid:", cust.OID, "value:", snmpPDUs[0].Value)
+				klog.ErrorS(err, "failed to convert to float64", "ip", ip, "oid", cust.OID, "value", snmpPDUs[0].Value)
 			}
 			break
 		}
@@ -253,7 +253,7 @@ func (ins *Instance) memstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip s
 
 	utilPercent, err := sw.MemUtilization(ip, ins.Community, int(ins.SnmpTimeoutMs), ins.SnmpRetries)
 	if err != nil {
-		log.Println("E! failed to gather mem, ip:", ip, "error:", err)
+		klog.ErrorS(err, "failed to gather mem", "ip", ip)
 		return
 	}
 
@@ -298,7 +298,7 @@ func (ins *Instance) cpustat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip s
 
 	utilPercent, err := sw.CpuUtilization(ip, ins.Community, int(ins.SnmpTimeoutMs), ins.SnmpRetries)
 	if err != nil {
-		log.Println("E! failed to gather cpu, ip:", ip, "error:", err)
+		klog.ErrorS(err, "failed to gather cpu", "ip", ip)
 		return
 	}
 
@@ -389,7 +389,7 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 								slist.PushFront(types.NewSample(inputName, "if_in_speed_percent", 100*IfHCInOctets/float64(ifStat.IfSpeed), tags))
 							}
 						} else {
-							log.Println("W! if_in out of range, current:", ifStat.IfHCInOctets, "lasttime:", lastifStat.IfHCInOctets, "tags:", tags)
+							klog.Warningf("if_in out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfHCInOctets, lastifStat.IfHCInOctets, tags)
 						}
 
 						if limitCheck(IfHCOutOctets, speedlimit) {
@@ -398,7 +398,7 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 								slist.PushFront(types.NewSample(inputName, "if_out_speed_percent", 100*IfHCOutOctets/float64(ifStat.IfSpeed), tags))
 							}
 						} else {
-							log.Println("W! if_out out of range, current:", ifStat.IfHCOutOctets, "lasttime:", lastifStat.IfHCOutOctets, "tags:", tags)
+							klog.Warningf("if_out out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfHCOutOctets, lastifStat.IfHCOutOctets, tags)
 						}
 					}
 				}
@@ -416,13 +416,13 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 							if limitCheck(IfHCInBroadcastPkts, ins.BroadcastPktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_in_broadcast_pkt", IfHCInBroadcastPkts, tags))
 							} else {
-								log.Println("W! if_in_broadcast_pkt out of range, current:", ifStat.IfHCInBroadcastPkts, "lasttime:", lastifStat.IfHCInBroadcastPkts, "tags:", tags)
+								klog.Warningf("if_in_broadcast_pkt out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfHCInBroadcastPkts, lastifStat.IfHCInBroadcastPkts, tags)
 							}
 
 							if limitCheck(IfHCOutBroadcastPkts, ins.BroadcastPktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_out_broadcast_pkt", IfHCOutBroadcastPkts, tags))
 							} else {
-								log.Println("W! if_out_broadcast_pkt out of range, current:", ifStat.IfHCOutBroadcastPkts, "lasttime:", lastifStat.IfHCOutBroadcastPkts, "tags:", tags)
+								klog.Warningf("if_out_broadcast_pkt out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfHCOutBroadcastPkts, lastifStat.IfHCOutBroadcastPkts, tags)
 							}
 						}
 					}
@@ -441,13 +441,13 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 							if limitCheck(IfHCInMulticastPkts, ins.MulticastPktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_in_multicast_pkt", IfHCInMulticastPkts, tags))
 							} else {
-								log.Println("W! if_in_multicast_pkt out of range, current:", ifStat.IfHCInMulticastPkts, "lasttime:", lastifStat.IfHCInMulticastPkts, "tags:", tags)
+								klog.Warningf("if_in_multicast_pkt out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfHCInMulticastPkts, lastifStat.IfHCInMulticastPkts, tags)
 							}
 
 							if limitCheck(IfHCOutMulticastPkts, ins.MulticastPktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_out_multicast_pkt", IfHCOutMulticastPkts, tags))
 							} else {
-								log.Println("W! if_out_multicast_pkt out of range, current:", ifStat.IfHCOutMulticastPkts, "lasttime:", lastifStat.IfHCOutMulticastPkts, "tags:", tags)
+								klog.Warningf("if_out_multicast_pkt out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfHCOutMulticastPkts, lastifStat.IfHCOutMulticastPkts, tags)
 							}
 						}
 					}
@@ -466,13 +466,13 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 							if limitCheck(IfInDiscards, ins.DiscardsPktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_in_discards", IfInDiscards, tags))
 							} else {
-								log.Println("W! if_in_discards out of range, current:", ifStat.IfInDiscards, "lasttime:", lastifStat.IfInDiscards, "tags:", tags)
+								klog.Warningf("if_in_discards out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfInDiscards, lastifStat.IfInDiscards, tags)
 							}
 
 							if limitCheck(IfOutDiscards, ins.DiscardsPktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_out_discards", IfOutDiscards, tags))
 							} else {
-								log.Println("W! if_out_discards out of range, current:", ifStat.IfOutDiscards, "lasttime:", lastifStat.IfOutDiscards, "tags:", tags)
+								klog.Warningf("if_out_discards out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfOutDiscards, lastifStat.IfOutDiscards, tags)
 							}
 						}
 					}
@@ -491,13 +491,13 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 							if limitCheck(IfInErrors, ins.ErrorsPktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_in_errors", IfInErrors, tags))
 							} else {
-								log.Println("W! if_in_errors out of range, current:", ifStat.IfInErrors, "lasttime:", lastifStat.IfInErrors, "tags:", tags)
+								klog.Warningf("if_in_errors out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfInErrors, lastifStat.IfInErrors, tags)
 							}
 
 							if limitCheck(IfOutErrors, ins.ErrorsPktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_out_errors", IfOutErrors, tags))
 							} else {
-								log.Println("W! if_out_errors out of range, current:", ifStat.IfOutErrors, "lasttime:", lastifStat.IfOutErrors, "tags:", tags)
+								klog.Warningf("if_out_errors out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfOutErrors, lastifStat.IfOutErrors, tags)
 							}
 						}
 					}
@@ -513,7 +513,7 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 							if limitCheck(IfInUnknownProtos, ins.UnknownProtosPktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_in_unknown_protos", IfInUnknownProtos, tags))
 							} else {
-								log.Println("W! if_in_unknown_protos out of range, current:", ifStat.IfInUnknownProtos, "lasttime:", lastifStat.IfInUnknownProtos, "tags:", tags)
+								klog.Warningf("if_in_unknown_protos out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfInUnknownProtos, lastifStat.IfInUnknownProtos, tags)
 							}
 						}
 					}
@@ -529,7 +529,7 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 							if limitCheck(IfOutQLen, ins.OutQlenPktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_out_qlen", IfOutQLen, tags))
 							} else {
-								log.Println("W! if_out_qlen out of range, current:", ifStat.IfOutQLen, "lasttime:", lastifStat.IfOutQLen, "tags:", tags)
+								klog.Warningf("if_out_qlen out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfOutQLen, lastifStat.IfOutQLen, tags)
 							}
 						}
 					}
@@ -548,13 +548,13 @@ func (ins *Instance) gatherFlowMetrics(ips []string, slist *types.SampleList) {
 							if limitCheck(IfHCInUcastPkts, ins.PktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_in_pkts", IfHCInUcastPkts, tags))
 							} else {
-								log.Println("W! if_in_pkts out of range, current:", ifStat.IfHCInUcastPkts, "lasttime:", lastifStat.IfHCInUcastPkts, "tags:", tags)
+								klog.Warningf("if_in_pkts out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfHCInUcastPkts, lastifStat.IfHCInUcastPkts, tags)
 							}
 
 							if limitCheck(IfHCOutUcastPkts, ins.PktLimit) {
 								slist.PushFront(types.NewSample(inputName, "if_out_pkts", IfHCOutUcastPkts, tags))
 							} else {
-								log.Println("W! if_out_pkts out of range, current:", ifStat.IfHCOutUcastPkts, "lasttime:", lastifStat.IfHCOutUcastPkts, "tags:", tags)
+								klog.Warningf("if_out_pkts out of range, current: %v, lasttime: %v, tags: %v", ifStat.IfHCOutUcastPkts, lastifStat.IfHCOutUcastPkts, tags)
 							}
 						}
 					}
@@ -584,11 +584,11 @@ func (ins *Instance) ifstat(wg *sync.WaitGroup, sema *semaphore.Semaphore, ip st
 	}
 
 	if ins.DebugMod {
-		log.Println("D! switch gather ifstat, ip:", ip, "use:", time.Since(start))
+		klog.V(1).InfoS("switch gather ifstat", "ip", ip, "duration", time.Since(start))
 	}
 
 	if err != nil {
-		log.Println("E! failed to gather ifstat, ip:", ip, "error:", err)
+		klog.ErrorS(err, "failed to gather ifstat", "ip", ip)
 		return
 	}
 
@@ -632,7 +632,7 @@ func (ins *Instance) gatherPing(ips []string, slist *types.SampleList) []string 
 		}
 	}
 
-	log.Println("I! switch alive ip count:", len(ips))
+	klog.InfoS("switch alive ip count", "count", len(ips))
 	return ips
 }
 

@@ -168,6 +168,7 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"inputs/snmp/netsnmp.go",
 		"inputs/smart/instances.go",
 		"inputs/sqlserver/sqlserver.go",
+		"inputs/switch_legacy/switch_legacy.go",
 		"inputs/systemd/systemd_linux.go",
 		"inputs/snmp_trap/snmp_trap.go",
 		"inputs/traffic_server/traffic_server.go",
