@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os/exec"
 	"os/user"
 	"path"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/toolkits/pkg/file"
 	"github.com/toolkits/pkg/sys"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/ibex/client"
@@ -84,7 +84,7 @@ func (t *Task) GetStdout() string {
 		b := buf.Bytes()
 		decoded, err := ansiToUtf8(b)
 		if err != nil {
-			log.Printf("E! convert out to windows-ansi fail: %v", err)
+			klog.ErrorS(err, "convert stdout from windows ansi failed", "task_id", t.Id)
 			out = string(b)
 		}
 		out = decoded
@@ -107,7 +107,7 @@ func (t *Task) GetStderr() string {
 		b := buf.Bytes()
 		decoded, err := ansiToUtf8(b)
 		if err != nil {
-			log.Printf("E! convert out to windows-ansi fail: %v", err)
+			klog.ErrorS(err, "convert stderr from windows ansi failed", "task_id", t.Id)
 			out = string(b)
 		}
 		out = decoded
@@ -141,15 +141,15 @@ func (t *Task) loadResult() {
 
 	t.Status, err = file.ReadStringTrim(doneFlag)
 	if err != nil {
-		log.Printf("E! read file %s fail %v", doneFlag, err)
+		klog.ErrorS(err, "read task status file failed", "task_id", t.Id, "path", doneFlag)
 	}
 	stdout, err := file.ReadString(stdoutFile)
 	if err != nil {
-		log.Printf("E! read file %s fail %v", stdoutFile, err)
+		klog.ErrorS(err, "read task stdout file failed", "task_id", t.Id, "path", stdoutFile)
 	}
 	stderr, err := file.ReadString(stderrFile)
 	if err != nil {
-		log.Printf("E! read file %s fail %v", stderrFile, err)
+		klog.ErrorS(err, "read task stderr file failed", "task_id", t.Id, "path", stderrFile)
 	}
 
 	t.Stdout = *bytes.NewBufferString(stdout)
@@ -166,7 +166,7 @@ func (t *Task) prepare() error {
 	IdDir := filepath.Join(config.Config.Ibex.MetaDir, fmt.Sprint(t.Id))
 	err := file.EnsureDir(IdDir)
 	if err != nil {
-		log.Printf("E! mkdir -p %s fail: %v", IdDir, err)
+		klog.ErrorS(err, "ensure task dir failed", "task_id", t.Id, "path", IdDir)
 		return err
 	}
 
@@ -176,21 +176,21 @@ func (t *Task) prepare() error {
 		argsFile := filepath.Join(IdDir, "args")
 		args, err := file.ReadStringTrim(argsFile)
 		if err != nil {
-			log.Printf("E! read %s fail %v", argsFile, err)
+			klog.ErrorS(err, "read task args file failed", "task_id", t.Id, "path", argsFile)
 			return err
 		}
 
 		accountFile := filepath.Join(IdDir, "account")
 		account, err := file.ReadStringTrim(accountFile)
 		if err != nil {
-			log.Printf("E! read %s fail %v", accountFile, err)
+			klog.ErrorS(err, "read task account file failed", "task_id", t.Id, "path", accountFile)
 			return err
 		}
 
 		stdinFile := path.Join(IdDir, "stdin")
 		stdin, err := file.ReadStringTrim(stdinFile)
 		if err != nil {
-			log.Printf("E: read %s fail %v", stdinFile, err)
+			klog.ErrorS(err, "read task stdin file failed", "task_id", t.Id, "path", stdinFile)
 			return err
 		}
 
@@ -202,7 +202,7 @@ func (t *Task) prepare() error {
 		// 从远端读取，再写入磁盘
 		script, args, account, stdin, err := client.Meta(t.Id)
 		if err != nil {
-			log.Println("E! query task meta fail:", err)
+			klog.ErrorS(err, "query task meta failed", "task_id", t.Id)
 			return err
 		}
 
@@ -212,14 +212,14 @@ func (t *Task) prepare() error {
 			// if change to powershell , not convert script and stdin to ANSI and CRLF
 			encodedStdin, err := utf8ToAnsi(stdin)
 			if err != nil {
-				log.Printf("E! convert stdin[%s] to windows-ansi fail: %v", stdin, err)
+				klog.ErrorS(err, "convert stdin to windows ansi failed", "task_id", t.Id)
 				return err
 			}
 			stdin = encodedStdin
 
 			encodedArgs, err := utf8ToAnsi(args)
 			if err != nil {
-				log.Printf("E! convert args[%s] to windows-ansi fail: %v", args, err)
+				klog.ErrorS(err, "convert args to windows ansi failed", "task_id", t.Id)
 				return err
 			}
 			args = encodedArgs
@@ -228,26 +228,26 @@ func (t *Task) prepare() error {
 			script = strings.ReplaceAll(script, "\n", "\r\n")
 			encodedScript, err := utf8ToAnsi(script)
 			if err != nil {
-				log.Printf("E! convert script to windows-ansi fail: %v", err)
+				klog.ErrorS(err, "convert script to windows ansi failed", "task_id", t.Id)
 				return err
 			}
 
 			scriptFile := filepath.Join(IdDir, "script.bat")
 			_, err = file.WriteString(scriptFile, fmt.Sprintf("@echo off\r\n%s", encodedScript))
 			if err != nil {
-				log.Printf("E! write script to %s fail: %v", scriptFile, err)
+				klog.ErrorS(err, "write windows task script failed", "task_id", t.Id, "path", scriptFile)
 				return err
 			}
 		default:
 			scriptFile := filepath.Join(IdDir, "script")
 			_, err = file.WriteString(scriptFile, script)
 			if err != nil {
-				log.Printf("E! write script to %s fail: %v", scriptFile, err)
+				klog.ErrorS(err, "write task script failed", "task_id", t.Id, "path", scriptFile)
 				return err
 			}
 			out, err := sys.CmdOutTrim("chmod", "+x", scriptFile)
 			if err != nil {
-				log.Printf("E! chmod +x %s fail %v. output: %s", scriptFile, err, out)
+				klog.ErrorS(err, "chmod task script failed", "task_id", t.Id, "path", scriptFile, "output", out)
 				return err
 			}
 		}
@@ -255,27 +255,27 @@ func (t *Task) prepare() error {
 		argsFile := filepath.Join(IdDir, "args")
 		_, err = file.WriteString(argsFile, args)
 		if err != nil {
-			log.Printf("E! write args to %s fail: %v", argsFile, err)
+			klog.ErrorS(err, "write task args failed", "task_id", t.Id, "path", argsFile)
 			return err
 		}
 
 		accountFile := filepath.Join(IdDir, "account")
 		_, err = file.WriteString(accountFile, account)
 		if err != nil {
-			log.Printf("E! write account to %s fail: %v", accountFile, err)
+			klog.ErrorS(err, "write task account failed", "task_id", t.Id, "path", accountFile)
 			return err
 		}
 
 		stdinFile := path.Join(IdDir, "stdin")
 		_, err = file.WriteString(stdinFile, stdin)
 		if err != nil {
-			log.Printf("E: write tags to %s fail: %v", stdinFile, err)
+			klog.ErrorS(err, "write task stdin failed", "task_id", t.Id, "path", stdinFile)
 			return err
 		}
 
 		_, err = file.WriteString(writeFlag, "")
 		if err != nil {
-			log.Printf("E! create %s flag file fail: %v", writeFlag, err)
+			klog.ErrorS(err, "create task write flag failed", "task_id", t.Id, "path", writeFlag)
 			return err
 		}
 
@@ -311,7 +311,7 @@ func (t *Task) start() {
 
 	scriptFile, err := filepath.Abs(filepath.Join(config.Config.Ibex.MetaDir, fmt.Sprint(t.Id), scriptFileType))
 	if err != nil {
-		log.Println("E! cannot get current absolute path:", err)
+		klog.ErrorS(err, "cannot get current absolute path", "task_id", t.Id)
 		return
 	}
 
@@ -320,7 +320,7 @@ func (t *Task) start() {
 
 	loginUser, err := user.Current()
 	if err != nil {
-		log.Println("E! cannot get current login user:", err)
+		klog.ErrorS(err, "cannot get current login user", "task_id", t.Id)
 		return
 	}
 
@@ -348,19 +348,19 @@ func (t *Task) start() {
 
 	stdout, err := t.Cmd.StdoutPipe()
 	if err != nil {
-		log.Printf("E! cannot read ouput of task[%d]: %v", t.Id, err)
+		klog.ErrorS(err, "cannot read stdout pipe", "task_id", t.Id)
 	}
 
 	stderr, err := t.Cmd.StderrPipe()
 
 	if err != nil {
-		log.Printf("E! cannot read err of task[%d]: %v", t.Id, err)
+		klog.ErrorS(err, "cannot read stderr pipe", "task_id", t.Id)
 	}
 
 	err = CmdStart(cmd)
 
 	if err != nil {
-		log.Printf("E! cannot start cmd of task[%d]: %v", t.Id, err)
+		klog.ErrorS(err, "cannot start task command", "task_id", t.Id)
 		return
 	}
 
@@ -410,7 +410,7 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 			}
 			if err2 != nil {
 				if err2 != io.EOF {
-					log.Println("W! read stdout fail:", err2)
+					klog.Warningf("read stdout fail for task %d: %v", t.Id, err2)
 				}
 				break
 			}
@@ -428,7 +428,7 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 			}
 			if err2 != nil {
 				if err2 != io.EOF {
-					log.Println("W! read stdout fail:", err2)
+					klog.Warningf("read stderr fail for task %d: %v", t.Id, err2)
 				}
 				break
 			}
@@ -439,18 +439,18 @@ func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
 	if err != nil {
 		if strings.Contains(err.Error(), "signal: killed") {
 			t.SetStatus("killed")
-			log.Printf("D! process of task[%d] killed", t.Id)
+			klog.V(1).InfoS("process killed", "task_id", t.Id)
 		} else if strings.Contains(err.Error(), "signal: terminated") {
 			// kill children process manually
 			t.SetStatus("killed")
-			log.Printf("D! process of task[%d] terminated", t.Id)
+			klog.V(1).InfoS("process terminated", "task_id", t.Id)
 		} else {
 			t.SetStatus("failed")
-			log.Printf("D! process of task[%d] return error: %v", t.Id, err)
+			klog.V(1).InfoS("process returned error", "task_id", t.Id, "error", err)
 		}
 	} else {
 		t.SetStatus("success")
-		log.Printf("D! process of task[%d] done", t.Id)
+		klog.V(1).InfoS("process done", "task_id", t.Id)
 	}
 
 	persistResult(t)
@@ -466,15 +466,15 @@ func killProcess(t *Task) {
 	t.SetAlive(true)
 	defer t.SetAlive(false)
 
-	log.Printf("D! begin kill process of task[%d]", t.Id)
+	klog.V(1).InfoS("begin kill process", "task_id", t.Id)
 
 	err := CmdKill(t.Cmd)
 	if err != nil {
 		t.SetStatus("killfailed")
-		log.Printf("D! kill process of task[%d] fail: %v", t.Id, err)
+		klog.V(1).InfoS("kill process failed", "task_id", t.Id, "error", err)
 	} else {
 		t.SetStatus("killed")
-		log.Printf("D! process of task[%d] killed", t.Id)
+		klog.V(1).InfoS("process killed", "task_id", t.Id)
 	}
 
 	persistResult(t)

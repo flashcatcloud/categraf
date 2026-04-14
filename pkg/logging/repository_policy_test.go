@@ -28,6 +28,7 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"config/hostname.go",
 		"config/urllabel.go",
 		"ibex/heartbeat.go",
+		"ibex/task.go",
 		"ibex/tasks.go",
 		"ibex/client/cli.go",
 		"inputs/http_provider.go",
