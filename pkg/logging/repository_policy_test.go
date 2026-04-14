@@ -98,6 +98,7 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"inputs/appdynamics/instances.go",
 		"inputs/arp_packet/arp_packet.go",
 		"inputs/cadvisor/instances.go",
+		"inputs/dcgm/exporter.go",
 		"inputs/emc_unity/emc_unity.go",
 		"inputs/exec/exec.go",
 		"inputs/hadoop/hadoop.go",
