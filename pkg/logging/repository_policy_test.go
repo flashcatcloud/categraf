@@ -41,6 +41,8 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"inputs/mem/mem.go",
 		"inputs/kernel_vmstat/kernel_vmstat.go",
 		"inputs/nats/nats.go",
+		"inputs/system/ps.go",
+		"inputs/ethtool/ethtool_linux.go",
 		"inputs/provider_manager.go",
 		"inputs/redis/redis.go",
 		"inputs/snmp/table.go",
