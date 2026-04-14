@@ -19,11 +19,11 @@ package collector
 import (
 	coreconfig "flashcat.cloud/categraf/config"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/procfs"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -62,7 +62,7 @@ func (c *buddyinfoCollector) Update(ch chan<- prometheus.Metric) error {
 	}
 
 	if coreconfig.Config.DebugMode && coreconfig.Config.DebugLevel > 2 {
-		log.Println("D! set node_buddy buddyInfo", buddyInfo)
+		klog.V(1).InfoS("set node_buddy buddyInfo", "buddy_info", buddyInfo)
 	}
 	for _, entry := range buddyInfo {
 		for size, value := range entry.Sizes {

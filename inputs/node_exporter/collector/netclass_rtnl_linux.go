@@ -20,13 +20,13 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"path/filepath"
 
 	"github.com/jsimonetti/rtnetlink"
 	"github.com/mdlayher/ethtool"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/procfs/sysfs"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -44,7 +44,7 @@ func (c *netClassCollector) netClassRTNLUpdate(ch chan<- prometheus.Metric) erro
 		if !errors.Is(errors.Unwrap(err), fs.ErrNotExist) {
 			return fmt.Errorf("could not get link modes: %w", err)
 		}
-		log.Println("I! ETHTOOL netlink interface unavailable, duplex and linkspeed are not scraped.")
+		klog.Info("ETHTOOL netlink interface unavailable, duplex and linkspeed are not scraped")
 	} else {
 		for _, lm := range lms {
 			if c.ignoredDevicesPattern.MatchString(lm.Interface.Name) {

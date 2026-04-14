@@ -17,10 +17,9 @@
 package collector
 
 import (
-	"log"
-
 	"github.com/prometheus-community/go-runit/runit"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 var runitServiceDir = new(string) // kingpin.Flag("collector.runit.servicedir", "Path to runit service directory.").Default("/etc/service").String()
@@ -44,7 +43,7 @@ func NewRunitCollector() (Collector, error) {
 		labelNames  = []string{"service"}
 	)
 
-	log.Println("W! This collector is deprecated and will be removed in the next major version release.")
+	klog.Warning("this node_exporter runit collector is deprecated and will be removed in the next major version release")
 
 	return &runitCollector{
 		state: typedDesc{prometheus.NewDesc(

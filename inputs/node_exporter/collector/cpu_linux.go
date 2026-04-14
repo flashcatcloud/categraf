@@ -18,7 +18,6 @@ package collector
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -30,6 +29,7 @@ import (
 	"github.com/prometheus/procfs/sysfs"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+	"k8s.io/klog/v2"
 )
 
 type cpuCollector struct {
@@ -142,7 +142,7 @@ func NewCPUCollector() (Collector, error) {
 func (c *cpuCollector) compileIncludeFlags(flagsIncludeFlag, bugsIncludeFlag *string) error {
 	if (*flagsIncludeFlag != "" || *bugsIncludeFlag != "") && !*enableCPUInfo {
 		*enableCPUInfo = true
-		log.Println("I! --collector.cpu.info has been set to `true` because you set the following flags, like --collector.cpu.info.flags-include and --collector.cpu.info.bugs-include")
+		klog.Info("--collector.cpu.info has been set to true because cpu info include flags were configured")
 	}
 
 	var err error

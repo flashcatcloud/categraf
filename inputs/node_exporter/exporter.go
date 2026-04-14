@@ -2,9 +2,9 @@ package node_exporter
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -75,6 +75,6 @@ func (e *Exporter) Gather(slist *types.SampleList) {
 	labels := e.GetLabels()
 	err := inputs.Collect(e.nc, slist, labels)
 	if err != nil {
-		log.Println("E! node exporter collects error:", err)
+		klog.ErrorS(err, "failed to collect node exporter metrics")
 	}
 }

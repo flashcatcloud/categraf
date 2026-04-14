@@ -18,7 +18,6 @@ package collector
 
 import (
 	"fmt"
-	"log"
 	"runtime"
 	"strconv"
 	"strings"
@@ -26,6 +25,7 @@ import (
 	"github.com/hodgesds/perf-utils"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sys/unix"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -214,7 +214,7 @@ func (c *perfTracepointCollector) updateCPU(cpu int, ch chan<- prometheus.Metric
 	profiler := c.profilers[cpu]
 	p := &perf.GroupProfileValue{}
 	if err := profiler.Profile(p); err != nil {
-		log.Println("E! Failed to collect tracepoint profile:", err)
+		klog.ErrorS(err, "failed to collect tracepoint profile", "cpu", cpu)
 		return err
 	}
 
