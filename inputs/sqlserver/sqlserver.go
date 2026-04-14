@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 
@@ -16,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/types"
 
 	mssql "github.com/denisenkom/go-mssqldb"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "sqlserver"
@@ -111,7 +111,7 @@ func (s *Instance) Init() error {
 	}
 
 	if err := s.initQueries(); err != nil {
-		log.Println("E! initQueries err:", err)
+		klog.ErrorS(err, "failed to initialize SQL Server queries")
 		return err
 	}
 
@@ -126,7 +126,7 @@ func (s *Instance) Init() error {
 			var err error
 			pool, err = sql.Open("mssql", serv)
 			if err != nil {
-				log.Println("E! open mssql error:", err)
+				klog.ErrorS(err, "failed to open mssql connection", "server", serv)
 				continue
 			}
 		default:
@@ -141,7 +141,7 @@ func (s *Instance) Init() error {
 func (s *Instance) initQueries() error {
 	s.queries = make(MapQuery)
 	queries := s.queries
-	log.Println("Config: database_type: ", s.DatabaseType, " query_version: ", s.QueryVersion)
+	klog.InfoS("sqlserver query config", "database_type", s.DatabaseType, "query_version", s.QueryVersion)
 
 	// To prevent query definition conflicts
 	// Constant definitions for type "SQLServer" start with sqlServer
@@ -199,7 +199,7 @@ func (s *Instance) initQueries() error {
 	for query := range queries {
 		querylist = append(querylist, query)
 	}
-	log.Println("Config: Effective Queries: ", querylist)
+	klog.InfoS("sqlserver effective queries", "queries", querylist)
 
 	return nil
 }
@@ -252,7 +252,7 @@ func (s *Instance) Gather(slist *types.SampleList) {
 				queryError := s.gatherServer(pool, query, slist, connectionString)
 
 				if queryError != nil {
-					log.Println("E! queryError is ", queryError)
+					klog.ErrorS(queryError, "sqlserver query execution failed", "query", query.ScriptName, "connection", connectionString)
 				}
 				if s.HealthMetric {
 					mutex.Lock()
