@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"net"
 	"regexp"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/Knetic/govaluate"
 	"github.com/gosnmp/gosnmp"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -77,7 +77,7 @@ func (t *Table) Init(tr Translator) error {
 		return nil
 	}
 	if len(t.IncludeFilter) != 0 {
-		log.Println("W! include_filter is deprecated, please use filters instead")
+		klog.Warning("include_filter is deprecated, please use filters instead")
 		t.Filters = append(t.Filters, t.IncludeFilter...)
 	}
 
@@ -349,7 +349,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				}
 				ifv[""] = fv
 			} else {
-				log.Println("W! no info for oid:", oid, "target:", gs.Host())
+				klog.Warningf("no info for oid: %s target: %s", oid, gs.Host())
 			}
 		} else {
 			err := gs.Walk(oid, func(ent gosnmp.SnmpPDU) error {
@@ -386,7 +386,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 							// If no error translating, the original value for ent.Value should be replaced
 							ent.Value = oidText
 						} else {
-							log.Printf("E! translate error:%s, entOid:%s, oid:%s", err, entOid, oid)
+							klog.ErrorS(err, "translate error", "ent_oid", entOid, "oid", oid)
 						}
 					}
 				}
@@ -407,10 +407,10 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				// from the callback
 				var walkErr *walkError
 				if !errors.As(err, &walkErr) {
-					log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
+					klog.ErrorS(err, "snmp walk error", "oid", oid)
 					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
 				} else {
-					log.Printf("W! snmp walk error:%s(%s), oid:%s", err, walkErr.Unwrap(), oid)
+					klog.Warningf("snmp walk error: %s(%v), oid:%s", err, walkErr.Unwrap(), oid)
 				}
 			}
 		}
@@ -482,7 +482,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 	if len(t.FilterExpression) != 0 {
 		expr, err = govaluate.NewEvaluableExpression(t.FilterExpression)
 		if err != nil {
-			log.Println("filters_expression err:", err)
+			klog.ErrorS(err, "filters_expression error")
 		}
 	}
 	strictMode := t.FilterMode == StrictMode
@@ -519,7 +519,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 		if len(params) != 0 {
 			result, err := expr.Evaluate(params)
 			if err != nil {
-				log.Println("filter expression err:", err)
+				klog.ErrorS(err, "filter expression error")
 			}
 			if match, ok := result.(bool); ok && !match {
 				continue
@@ -570,7 +570,7 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 			var ret float64
 			floatVal, err := heuristicDataExtract(vt)
 			if err != nil {
-				log.Printf("E! failed to extract float from string: %s, error: %v", vt, err)
+				klog.ErrorS(err, "failed to extract float from string", "value", vt)
 				vf, _ := strconv.ParseFloat(vt, 64)
 				ret = vf / math.Pow10(d)
 			} else {
