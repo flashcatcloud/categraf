@@ -60,7 +60,8 @@ func TestConfigureBridgesStandardLibraryLog(t *testing.T) {
 		t.Fatalf("configureWithWriter: %v", err)
 	}
 
-	log.Println("legacy bridge message")
+	logger := log.New(log.Writer(), "", log.Flags())
+	logger.Println("legacy bridge message")
 	klog.Flush()
 
 	if !strings.Contains(buf.String(), "legacy bridge message") {

@@ -84,3 +84,17 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		}
 	}
 }
+
+func TestLoggingTestsDoNotUseDirectStandardLogCalls(t *testing.T) {
+	repoRoot := filepath.Clean(filepath.Join("..", ".."))
+	path := filepath.Join(repoRoot, "pkg/logging/logging_test.go")
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+
+	if forbiddenStdLog.Match(content) {
+		t.Fatalf("%s still uses forbidden standard log calls", path)
+	}
+}
