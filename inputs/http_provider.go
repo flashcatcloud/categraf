@@ -14,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/pkg/set"
 	"flashcat.cloud/categraf/pkg/tls"
+	klog "k8s.io/klog/v2"
 )
 
 // HTTPProvider provider a mechanism to get config from remote http server at a fixed interval
@@ -356,9 +357,7 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string]map[string]*cfg.Conf
 	cache := newInnerCache()
 	for inputKey, configs := range newConfigs {
 		for _, inputConfig := range configs {
-			if config.Config.DebugMode {
-				log.Println("D!: inputKey:", inputKey, "config sum:", inputConfig.CheckSum())
-			}
+			klog.V(2).InfoS("http provider config", "input_key", inputKey, "checksum", inputConfig.CheckSum())
 			cache.put(inputKey, *inputConfig)
 		}
 	}
@@ -371,22 +370,16 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string]map[string]*cfg.Conf
 			oldConfig := set.NewWithLoad[string, cfg.ConfigWithFormat](oldConfigMap)
 			add, _, del := newConfig.Diff(oldConfig)
 			for sum := range add {
-				if config.Config.DebugMode {
-					log.Println("D!: add config:", inputKey, "config sum:", sum)
-				}
+				klog.V(1).InfoS("http provider add config", "input_key", inputKey, "checksum", sum)
 				hrp.add.put(inputKey, configMap[sum])
 			}
 			for sum := range del {
-				if config.Config.DebugMode {
-					log.Println("D!: delete config:", inputKey, "config sum:", sum)
-				}
+				klog.V(1).InfoS("http provider delete config", "input_key", inputKey, "checksum", sum)
 				hrp.del.put(inputKey, oldConfigMap[sum])
 			}
 		} else {
 			for _, inputConfig := range configMap {
-				if config.Config.DebugMode {
-					log.Println("D!: add config:", inputKey, "config sum:", inputConfig.CheckSum())
-				}
+				klog.V(1).InfoS("http provider add config", "input_key", inputKey, "checksum", inputConfig.CheckSum())
 				hrp.add.put(inputKey, inputConfig)
 			}
 		}
@@ -395,9 +388,7 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string]map[string]*cfg.Conf
 	for inputKey, configMap := range hrp.cache.iter() {
 		if _, has := cache.get(inputKey); !has {
 			for _, inputConfig := range configMap {
-				if config.Config.DebugMode {
-					log.Println("D!: delete config:", inputKey, "config sum:", inputConfig.CheckSum())
-				}
+				klog.V(1).InfoS("http provider delete config", "input_key", inputKey, "checksum", inputConfig.CheckSum())
 				hrp.del.put(inputKey, inputConfig)
 			}
 		}
@@ -417,9 +408,7 @@ func (hrp *HTTPProvider) LoadInputConfig(configs []cfg.ConfigWithFormat, input I
 		err := cfg.LoadSingleConfig(c, nInput)
 		if err != nil {
 			log.Println("E! load http config error:", err)
-			if config.Config.DebugMode {
-				log.Printf("D! config:%+v load error:%s", c, err)
-			}
+			klog.V(2).InfoS("load http config error", "config", c, "error", err)
 			continue
 		}
 		inputs[c.CheckSum()] = nInput

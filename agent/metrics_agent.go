@@ -282,7 +282,7 @@ func (ma *MetricsAgent) inputGo(name string, sum string, input inputs.Input) {
 		return
 	}
 
-	if err = mayInitWithLogger(input, inputLogger); err != nil {
+	if err = inputs.MayInit(input, inputLogger); err != nil {
 		if !errors.Is(err, types.ErrInstancesEmpty) {
 			klog.ErrorS(err, "failed to init input", "input", name)
 		} else {
@@ -302,7 +302,7 @@ func (ma *MetricsAgent) inputGo(name string, sum string, input inputs.Input) {
 			}
 
 			instanceLogger := inputLogger.WithValues(metricsAgentInstanceLoggerValues(i, instances[i].GetLabels())...)
-			if err := mayInitWithLogger(instances[i], instanceLogger); err != nil {
+			if err := inputs.MayInit(instances[i], instanceLogger); err != nil {
 				if !errors.Is(err, types.ErrInstancesEmpty) {
 					klog.ErrorS(err, "failed to init input", "input", name)
 				}
@@ -367,15 +367,4 @@ func metricsAgentInstanceLoggerValues(index int, labels map[string]string) []int
 		values = append(values, "instance_target", target)
 	}
 	return values
-}
-
-type loggerInitializer interface {
-	InitWithLogger(klog.Logger) error
-}
-
-func mayInitWithLogger(target interface{}, logger klog.Logger) error {
-	if initializer, ok := target.(loggerInitializer); ok {
-		return initializer.InitWithLogger(logger)
-	}
-	return inputs.MayInit(target)
 }
