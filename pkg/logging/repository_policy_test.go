@@ -74,6 +74,7 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"inputs/consul/consul.go",
 		"inputs/dns_query/dns_query.go",
 		"inputs/dmesg/dmesg.go",
+		"inputs/emc_unity/emc_unity.go",
 		"inputs/exec/exec.go",
 		"inputs/hadoop/hadoop.go",
 		"inputs/huatuo/huatuo.go",

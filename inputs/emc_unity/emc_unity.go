@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -15,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -97,20 +97,24 @@ func (i *Instance) Init() error {
 func (i *Instance) Gather(sList *types.SampleList) {
 	for _, a := range i.Addresses {
 		if err := i.collectLun(a, sList); err != nil {
-			log.Println("E! error collectLun:", err)
+			klog.ErrorS(err, "failed to collect emc unity lun metrics", "host", a.baseURL.Host)
 			continue
 		}
 
 		if err := i.collectCpu(a, sList); err != nil {
-			log.Println("E! error collectCpu:", err)
+			klog.ErrorS(err, "failed to collect emc unity cpu metrics", "host", a.baseURL.Host)
 			continue
 		}
 
 		if err := i.collectFibreChannel(a, sList); err != nil {
-			log.Println("E! error collectFibreChannel:", err)
+			klog.ErrorS(err, "failed to collect emc unity fibre channel metrics", "host", a.baseURL.Host)
 			continue
 		}
 	}
+}
+
+func logUnexpectedPath(path string) {
+	klog.ErrorS(nil, "unexpected emc unity metric path", "path", path)
 }
 
 type KpiResp struct {
@@ -182,8 +186,8 @@ func (i *Instance) collectFibreChannel(a Address, sList *types.SampleList) error
 		switch {
 		case strings.Contains(entry.Content.Path, "rw.+.throughput"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -198,8 +202,8 @@ func (i *Instance) collectFibreChannel(a Address, sList *types.SampleList) error
 
 		case strings.Contains(entry.Content.Path, "read.throughput"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -214,8 +218,8 @@ func (i *Instance) collectFibreChannel(a Address, sList *types.SampleList) error
 
 		case strings.Contains(entry.Content.Path, "write.throughput"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -230,8 +234,8 @@ func (i *Instance) collectFibreChannel(a Address, sList *types.SampleList) error
 
 		case strings.Contains(entry.Content.Path, "+.bandwidth"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -246,8 +250,8 @@ func (i *Instance) collectFibreChannel(a Address, sList *types.SampleList) error
 
 		case strings.Contains(entry.Content.Path, "read.bandwidth"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -262,8 +266,8 @@ func (i *Instance) collectFibreChannel(a Address, sList *types.SampleList) error
 
 		case strings.Contains(entry.Content.Path, "write.bandwidth"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -328,8 +332,8 @@ func (i *Instance) collectCpu(a Address, sList *types.SampleList) error {
 		switch {
 		case strings.Contains(entry.Content.Path, "spa.utilization"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -344,8 +348,8 @@ func (i *Instance) collectCpu(a Address, sList *types.SampleList) error {
 
 		case strings.Contains(entry.Content.Path, "spb.utilization"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -416,8 +420,8 @@ func (i *Instance) collectLun(a Address, sList *types.SampleList) error {
 		switch {
 		case strings.HasSuffix(entry.Content.Path, "rw.+.throughput"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -432,8 +436,8 @@ func (i *Instance) collectLun(a Address, sList *types.SampleList) error {
 
 		case strings.HasSuffix(entry.Content.Path, "rw.read.throughput"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -448,8 +452,8 @@ func (i *Instance) collectLun(a Address, sList *types.SampleList) error {
 
 		case strings.HasSuffix(entry.Content.Path, "rw.write.throughput"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -464,8 +468,8 @@ func (i *Instance) collectLun(a Address, sList *types.SampleList) error {
 
 		case strings.HasSuffix(entry.Content.Path, "rw.+.ioSize"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -480,8 +484,8 @@ func (i *Instance) collectLun(a Address, sList *types.SampleList) error {
 
 		case strings.HasSuffix(entry.Content.Path, "rw.read.ioSize"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -496,8 +500,8 @@ func (i *Instance) collectLun(a Address, sList *types.SampleList) error {
 
 		case strings.HasSuffix(entry.Content.Path, "rw.write.ioSize"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
@@ -512,8 +516,8 @@ func (i *Instance) collectLun(a Address, sList *types.SampleList) error {
 
 		case strings.HasSuffix(entry.Content.Path, "sp.+.responseTime"):
 			spl := strings.Split(entry.Content.Path, ".")
-			if len(spl) < 2 {
-				log.Println("E! error parse path:", "unexpected path")
+			if len(spl) < 3 {
+				logUnexpectedPath(entry.Content.Path)
 				continue
 			}
 
