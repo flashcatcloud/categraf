@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -16,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/httpx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "nsq"
@@ -63,7 +63,7 @@ type Instance struct {
 
 func (ins *Instance) Init() error {
 	if len(ins.URL) != 0 {
-		log.Println("W! url is deprecated, please use targets")
+		klog.Warning("url is deprecated, please use targets")
 	}
 	if len(ins.Targets) == 0 && len(ins.URL) == 0 {
 		return types.ErrInstancesEmpty
@@ -97,13 +97,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if len(ins.URL) != 0 {
 		topics, err := ins.GetTopicInfo()
 		if err != nil {
-			log.Println("E! Failed to obtain the topic list error:", err)
+			klog.ErrorS(err, "failed to obtain the topic list")
 		} else {
 			for _, topic := range topics {
 				v, err := ins.getQueuesInfo(topic)
 				if err != nil {
 					v = 0
-					log.Println("E! Failed to obtain topic depth value error:", err)
+					klog.ErrorS(err, "failed to obtain topic depth value", "topic", topic)
 				}
 				fields := map[string]interface{}{
 					"depth": v,
@@ -123,31 +123,31 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 func (ins *Instance) gatherEndpoint(e string, slist *types.SampleList) {
 	u, err := buildURL(e)
 	if err != nil {
-		log.Println("E! error buildURL", err)
+		klog.ErrorS(err, "failed to build nsq url", "endpoint", e)
 		return
 	}
 	r, err := ins.client.Get(u.String())
 	if err != nil {
-		log.Println("E! error while polling", u.String(), err)
+		klog.ErrorS(err, "error while polling nsq", "url", u.String())
 		return
 	}
 	defer r.Body.Close()
 
 	if r.StatusCode != http.StatusOK {
-		log.Println(u.String(), "E! error while polling", r.Status)
+		klog.ErrorS(nil, "unexpected nsq response status", "url", u.String(), "status", r.Status)
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		log.Println("E! error reading body", err)
+		klog.ErrorS(err, "failed to read nsq response body", "url", u.String())
 		return
 	}
 
 	data := &NSQStatsData{}
 	err = json.Unmarshal(body, data)
 	if err != nil {
-		log.Println("E! error parsing response", err)
+		klog.ErrorS(err, "failed to parse nsq response", "url", u.String())
 		return
 
 	}
@@ -156,7 +156,7 @@ func (ins *Instance) gatherEndpoint(e string, slist *types.SampleList) {
 		wrapper := &NSQStats{}
 		err = json.Unmarshal(body, wrapper)
 		if err != nil {
-			log.Println("E! error parsing response", err)
+			klog.ErrorS(err, "failed to parse legacy nsq response", "url", u.String())
 			return
 
 		}
