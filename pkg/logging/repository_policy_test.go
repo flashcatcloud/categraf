@@ -56,6 +56,7 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"inputs/clickhouse/clickhouse.go",
 		"inputs/prometheus/consul.go",
 		"inputs/prometheus/prometheus.go",
+		"inputs/nginx_upstream_check/nginx_upstream_check.go",
 		"parser/influx/parser.go",
 		"parser/prometheus/parser.go",
 		"pkg/aop/logger.go",

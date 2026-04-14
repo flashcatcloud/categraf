@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -17,6 +16,7 @@ import (
 	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "nginx_upstream_check"
@@ -184,7 +184,7 @@ type NginxUpstreamCheckServer struct {
 
 func (ins *Instance) gather(slist *types.SampleList, target string) {
 	if ins.DebugMod {
-		log.Println("D! nginx_upstream_check... target:", target)
+		klog.V(1).InfoS("nginx_upstream_check gather", "target", target)
 	}
 
 	labels := map[string]string{"target": target}
@@ -193,7 +193,7 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 
 	err := ins.gatherJSONData(target, checkData)
 	if err != nil {
-		log.Println("E! failed to gather json data:", err)
+		klog.ErrorS(err, "failed to gather json data", "target", target)
 		return
 	}
 
