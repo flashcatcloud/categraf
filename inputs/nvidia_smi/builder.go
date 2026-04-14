@@ -2,10 +2,10 @@ package nvidia_smi
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"flashcat.cloud/categraf/pkg/stringx"
+	"k8s.io/klog/v2"
 )
 
 func buildQFieldToMetricInfoMap(qFieldtoRFieldMap map[qField]rField) map[qField]MetricInfo {
@@ -55,7 +55,7 @@ func (s *GPUStats) buildQFieldToRFieldMap() ([]qField, map[qField]rField, error)
 	if len(qFieldsSeparated) == 1 && qFieldsSeparated[0] == qFieldsAuto {
 		parsed, err := parseAutoQFields(s.NvidiaSmiCommand)
 		if err != nil {
-			log.Println("W! failed to auto-determine query field names, falling back to the built-in list. error:", err)
+			klog.Warningf("failed to auto-determine nvidia-smi query field names, falling back to built-in list: err=%v", err)
 			return getKeys(fallbackQFieldToRFieldMap), fallbackQFieldToRFieldMap, nil
 		}
 
@@ -67,7 +67,7 @@ func (s *GPUStats) buildQFieldToRFieldMap() ([]qField, map[qField]rField, error)
 	var rFields []rField
 
 	if err != nil {
-		log.Println("W! failed to run an initial scrape, using the built-in list for field mapping")
+		klog.Warningf("failed to run initial nvidia-smi scrape, using built-in field mapping: err=%v", err)
 
 		rFields, err = getFallbackValues(qFields)
 		if err != nil {

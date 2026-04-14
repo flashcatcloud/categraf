@@ -3,7 +3,6 @@ package amd_rocm_smi
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"os"
 	"os/exec"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/cmdx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "amd_rocm_smi"
@@ -52,12 +52,12 @@ func (rsmi *ROCmSMI) Name() string {
 func (rsmi *ROCmSMI) Gather(slist *types.SampleList) {
 	if len(rsmi.BinPath) == 0 {
 		if rsmi.DebugMod {
-			log.Printf("W! empty rocm-smi's bin_path, cannot query GPUs statistics")
+			klog.V(1).InfoS("empty rocm-smi bin path, skipping gpu query")
 		}
 		return
 	}
 	if _, err := os.Stat(rsmi.BinPath); os.IsNotExist(err) {
-		log.Printf("E! rocm-smi binary not found in path %s, cannot query GPUs statistics", rsmi.BinPath)
+		klog.ErrorS(err, "rocm-smi binary not found, cannot query GPUs statistics", "path", rsmi.BinPath)
 		return
 	}
 
@@ -67,7 +67,7 @@ func (rsmi *ROCmSMI) Gather(slist *types.SampleList) {
 	}
 	err := gatherROCmSMI(data, slist)
 	if err != nil {
-		log.Printf("E! Error gathering metrics from rocm-smi: %s", err)
+		klog.ErrorS(err, "failed gathering metrics from rocm-smi", "path", rsmi.BinPath)
 		return
 	}
 }
@@ -121,13 +121,12 @@ func (rsmi *ROCmSMI) pollROCmSMI() []byte {
 	cmd.Stderr = &stderr
 	err, timeout := cmdx.RunTimeout(cmd, time.Duration(rsmi.Timeout))
 	if timeout {
-		log.Printf("run command: %s timeout", cmd)
+		klog.ErrorS(nil, "rocm-smi command timed out", "command", cmd.String(), "timeout", time.Duration(rsmi.Timeout))
 		return nil
 	}
 
 	if err != nil {
-		log.Printf("failed to run command: %s | error: %v | stdout: %s | stderr: %s",
-			cmd, err, stdout.String(), stderr.String())
+		klog.ErrorS(err, "failed to run rocm-smi command", "command", cmd.String(), "stdout", stdout.String(), "stderr", stderr.String())
 		return nil
 	}
 	// ret, _ := internal.StdOutputTimeout(cmd, time.Duration(rsmi.Timeout))

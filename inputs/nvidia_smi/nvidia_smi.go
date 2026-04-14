@@ -3,13 +3,13 @@ package nvidia_smi
 // This is a fork of https://github.com/utkuozdemir/nvidia_gpu_exporter
 
 import (
-	"log"
 	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "nvidia_smi"
@@ -101,7 +101,7 @@ func (s *GPUStats) Gather(slist *types.SampleList) {
 			num, err := transformRawValue(currentCell.rawValue, metricInfo.valueMultiplier)
 			if err != nil {
 				if s.DebugMod {
-					log.Println("D! failed to transform gpu field:", currentCell.qField, "raw value:", currentCell.rawValue, "error:", err)
+					klog.V(1).InfoS("failed to transform gpu field", "field", currentCell.qField, "raw_value", currentCell.rawValue, "err", err)
 				}
 				continue
 			}
