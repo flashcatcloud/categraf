@@ -6,13 +6,13 @@ package kernel_vmstat
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "kernel_vmstat"
@@ -45,7 +45,7 @@ func (s *KernelVmstat) Name() string {
 func (s *KernelVmstat) Gather(slist *types.SampleList) {
 	data, err := s.getProcVmstat()
 	if err != nil {
-		log.Println("E! failed to gather vmstat:", err)
+		klog.ErrorS(err, "failed to gather vmstat")
 		return
 	}
 
@@ -61,7 +61,7 @@ func (s *KernelVmstat) Gather(slist *types.SampleList) {
 			m, err := strconv.ParseInt(string(dataFields[i+1]), 10, 64)
 			if err != nil {
 				if s.DebugMod {
-					log.Println("D! failed to parse vmstat field:", string(dataFields[i]))
+					klog.V(1).InfoS("failed to parse vmstat field", "field", string(dataFields[i]))
 				}
 				continue
 			}
