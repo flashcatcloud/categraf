@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -22,6 +21,7 @@ import (
 	"flashcat.cloud/categraf/types"
 
 	"github.com/tidwall/gjson"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "clickhouse"
@@ -136,14 +136,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, server := range ins.Servers {
 		u, err := url.Parse(server)
 		if err != nil {
-			log.Println("E! failed to parse server url, error: ", err)
+			klog.ErrorS(err, "failed to parse server url", "server", server)
 			return
 		}
 		switch {
 		case ins.AutoDiscovery:
 			var conns []connect
 			if err := ins.execQuery(u, "SELECT cluster, shard_num, host_name FROM system.clusters "+ins.clusterIncludeExcludeFilter(), &conns); err != nil {
-				log.Println("E! failed to exec clickhouse query:", "SELECT cluster, shard_num, host_name FROM system.clusters "+ins.clusterIncludeExcludeFilter())
+				klog.ErrorS(err, "failed to exec clickhouse query", "query", "SELECT cluster, shard_num, host_name FROM system.clusters "+ins.clusterIncludeExcludeFilter())
 				continue
 			}
 			for _, c := range conns {
@@ -178,20 +178,20 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 		for _, metricFunc := range metricsFuncs {
 			if err := metricFunc(slist, &connects[i]); err != nil {
-				log.Println("E! failed to exec  metrics Funcs error:", err)
+				klog.ErrorS(err, "failed to exec metrics func")
 			}
 		}
 
 		for metric := range commonMetrics {
 			if err := ins.commonMetrics(slist, &connects[i], metric); err != nil {
-				log.Println("E! failed to exec query commonMetrics error:", err)
+				klog.ErrorS(err, "failed to exec query common metrics", "metric", metric)
 			}
 		}
-		log.Printf("I! metrics count: %d", len(ins.Metrics))
+		klog.InfoS("clickhouse metrics count", "count", len(ins.Metrics))
 		waitMetrics := new(sync.WaitGroup)
 
 		if len(connects) == 0 {
-			log.Println("W! No available connections for custom metrics")
+			klog.Warning("no available connections for custom metrics")
 			return
 		}
 
@@ -578,7 +578,7 @@ func (ins *Instance) execCustomQuery(conn *connect, waitMetrics *sync.WaitGroup,
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return err
 	}
-	log.Println("content:", len(response.Data))
+	klog.V(1).InfoS("clickhouse response content", "items", len(response.Data))
 	for _, item := range response.Data {
 		localTags := tags
 		for _, label := range metricConf.LabelFields {
@@ -588,7 +588,7 @@ func (ins *Instance) execCustomQuery(conn *connect, waitMetrics *sync.WaitGroup,
 		for _, column := range metricConf.MetricFields {
 			value, err := conv.ToFloat64(gjson.Get(string(item), column).String())
 			if err != nil {
-				log.Println("E! failed to convert field:", column, "value:", value, "error:", err)
+				klog.ErrorS(err, "failed to convert field", "column", column, "value", value)
 				return err
 			}
 
