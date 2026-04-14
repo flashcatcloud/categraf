@@ -18,7 +18,6 @@ package collector
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"sync"
@@ -26,6 +25,7 @@ import (
 
 	"github.com/beevik/ntp"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -78,7 +78,7 @@ func NewNtpCollector() (Collector, error) {
 		return nil, fmt.Errorf("invalid NTP port number %d; must be between 1 and 65535 inclusive", *ntpServerPort)
 	}
 
-	log.Println("W! This collector is deprecated and will be removed in the next major version release.")
+	klog.Warning("this node_exporter ntp collector is deprecated and will be removed in the next major version release")
 	return &ntpCollector{
 		stratum: typedDesc{prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, ntpSubsystem, "stratum"),

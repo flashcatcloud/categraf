@@ -19,12 +19,12 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/ema/qdisc"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 type qdiscStatCollector struct {
@@ -54,7 +54,7 @@ func init() {
 func NewQdiscStatCollector() (Collector, error) {
 	if *oldCollectorQdiskDeviceInclude != "" {
 		if *collectorQdiscDeviceInclude == "" {
-			log.Println("W! --collector.qdisk.device-include is DEPRECATED and will be removed in 2.0.0, use --collector.qdisc.device-include")
+			klog.Warning("--collector.qdisk.device-include is deprecated and will be removed in 2.0.0, use --collector.qdisc.device-include")
 			*collectorQdiscDeviceInclude = *oldCollectorQdiskDeviceInclude
 		} else {
 			return nil, fmt.Errorf("--collector.qdisk.device-include and --collector.qdisc.device-include are mutually exclusive")
@@ -63,7 +63,7 @@ func NewQdiscStatCollector() (Collector, error) {
 
 	if *oldCollectorQdiskDeviceExclude != "" {
 		if *collectorQdiscDeviceExclude == "" {
-			log.Println("W! --collector.qdisk.device-exclude is DEPRECATED and will be removed in 2.0.0, use --collector.qdisc.device-exclude")
+			klog.Warning("--collector.qdisk.device-exclude is deprecated and will be removed in 2.0.0, use --collector.qdisc.device-exclude")
 
 			*collectorQdiscDeviceExclude = *oldCollectorQdiskDeviceExclude
 		} else {

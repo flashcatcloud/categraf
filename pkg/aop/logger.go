@@ -3,13 +3,13 @@ package aop
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mattn/go-isatty"
+	"k8s.io/klog/v2"
 )
 
 type consoleColorModeValue int
@@ -275,7 +275,7 @@ func LoggerWithConfig(conf LoggerConfig) gin.HandlerFunc {
 			param.Path = path
 
 			// fmt.Fprint(out, formatter(param))
-			log.Println("I!", formatter(param))
+			klog.Info(formatter(param))
 
 			// if c.Request.Method != "GET" {
 			// 	logger.Debug(readBody(rdr1))

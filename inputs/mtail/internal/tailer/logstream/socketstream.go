@@ -6,12 +6,12 @@ package logstream
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"sync"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/logline"
 	"flashcat.cloud/categraf/inputs/mtail/internal/waker"
+	"k8s.io/klog/v2"
 )
 
 type socketStream struct {
@@ -73,7 +73,7 @@ func (ss *socketStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wa
 		// glog.V(2).Infof("stream(%s): closing listener", ss.sourcename)
 		err := l.Close()
 		if err != nil {
-			log.Println(err)
+			klog.ErrorS(err, "failed to close listener", "source", ss.sourcename)
 		}
 		connWg.Wait()
 		close(ss.lines)
@@ -87,7 +87,7 @@ func (ss *socketStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wa
 		for {
 			c, err := l.Accept()
 			if err != nil {
-				log.Println(err)
+				klog.ErrorS(err, "failed to accept connection", "source", ss.sourcename)
 				return
 			}
 			// glog.V(2).Infof("stream(%s): got new conn %v", ss.sourcename, c)
@@ -115,7 +115,7 @@ func (ss *socketStream) handleConn(ctx context.Context, wg *sync.WaitGroup, wake
 		err := c.Close()
 		if err != nil {
 			logErrors.Add(ss.address, 1)
-			log.Println(err)
+			klog.ErrorS(err, "failed to close connection", "source", ss.sourcename)
 		}
 		lr.Finish(ctx)
 		logCloses.Add(ss.address, 1)

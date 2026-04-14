@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/golang/snappy"
 	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/prometheus/prompb"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 )
@@ -67,20 +67,20 @@ func (w Writer) Write(items []prompb.TimeSeries) {
 
 	data, err := proto.Marshal(req)
 	if err != nil {
-		log.Println("W! marshal prom data to proto got error:", err, "data:", items)
+		klog.ErrorS(err, "marshal prom data to proto got error", "data", items)
 		return
 	}
 
 	if err := w.post(snappy.Encode(nil, data)); err != nil {
-		log.Println("W! post to", w.Opts.Url, "got error:", err)
-		log.Println("W! example timeseries:", items[0].String())
+		klog.ErrorS(err, "post remote write request got error", "url", w.Opts.Url)
+		klog.Warningf("example timeseries: %s", items[0].String())
 	}
 }
 
 func (w Writer) post(req []byte) error {
 	httpReq, err := http.NewRequest("POST", w.Opts.Url, bytes.NewReader(req))
 	if err != nil {
-		log.Println("W! create remote write request got error:", err)
+		klog.ErrorS(err, "create remote write request got error", "url", w.Opts.Url)
 		return err
 	}
 
@@ -102,7 +102,7 @@ func (w Writer) post(req []byte) error {
 
 	resp, body, err := w.Client.Do(context.Background(), httpReq)
 	if err != nil {
-		log.Println("W! push data with remote write request got error:", err, "response body:", string(body))
+		klog.ErrorS(err, "push data with remote write request got error", "url", w.Opts.Url, "response_body", string(body))
 		return err
 	}
 

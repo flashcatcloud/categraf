@@ -3,13 +3,13 @@
 package ethtool
 
 import (
-	"log"
 	"math"
 	"net"
 	"runtime"
 
 	ethtoolLib "github.com/safchain/ethtool"
 	"github.com/vishvananda/netns"
+	"k8s.io/klog/v2"
 )
 
 type Namespace interface {
@@ -138,13 +138,13 @@ func (n *NamespaceGoroutine) Start() error {
 		// current one.
 		initialNamespace, err := netns.Get()
 		if err != nil {
-			log.Println("E! Could not get initial namespace: ", err)
+			klog.ErrorS(err, "could not get initial namespace")
 			started <- err
 			return
 		}
 		if !initialNamespace.Equal(n.handle) {
 			if err := netns.Set(n.handle); err != nil {
-				log.Printf("E! Could not switch to namespace [%q]: [%s]", n.name, err.Error())
+				klog.ErrorS(err, "could not switch to namespace", "namespace", n.name)
 				started <- err
 				return
 			}
@@ -153,7 +153,7 @@ func (n *NamespaceGoroutine) Start() error {
 		// Every namespace needs its own connection to ethtool
 		e, err := ethtoolLib.NewEthtool()
 		if err != nil {
-			log.Printf("E! Could not create ethtool client for namespace [%q]: [%s]", n.name, err.Error())
+			klog.ErrorS(err, "could not create ethtool client for namespace", "namespace", n.name)
 			started <- err
 			return
 		}

@@ -3,7 +3,6 @@ package prometheus
 import (
 	"context"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "prometheus"
@@ -173,7 +173,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for i := 0; i < len(ins.URLs); i++ {
 		u, err := url.Parse(ins.URLs[i])
 		if err != nil {
-			log.Println("E! failed to parse prometheus scrape url:", ins.URLs[i], "error:", err)
+			klog.ErrorS(err, "failed to parse prometheus scrape url", "url", ins.URLs[i])
 			continue
 		}
 
@@ -184,7 +184,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	urls, err := ins.UrlsFromConsul()
 	if err != nil {
-		log.Println("E! failed to query urls from consul:", err)
+		klog.ErrorS(err, "failed to query urls from consul")
 		return
 	}
 
@@ -205,7 +205,7 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		log.Println("E! failed to new request for url:", u.String(), "error:", err)
+		klog.ErrorS(err, "failed to create request for prometheus url", "url", u.String())
 		return
 	}
 
@@ -213,7 +213,7 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 
 	labels, err := ins.GenerateLabel(u)
 	if err != nil {
-		log.Println("E! failed to generate url label value:", err)
+		klog.ErrorS(err, "failed to generate url label value", "url", u.String())
 		return
 	}
 
@@ -224,13 +224,13 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 	res, err := ins.client.Do(req)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "up", 0, labels))
-		log.Println("E! failed to query url:", u.String(), "error:", err)
+		klog.ErrorS(err, "failed to query prometheus url", "url", u.String())
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
 		slist.PushFront(types.NewSample("", "up", 0, labels))
-		log.Println("E! failed to query url:", u.String(), "status code:", res.StatusCode)
+		klog.ErrorS(nil, "failed to query prometheus url", "url", u.String(), "status_code", res.StatusCode)
 		return
 	}
 
@@ -239,7 +239,7 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "up", 0, labels))
-		log.Println("E! failed to read response body, url:", u.String(), "error:", err)
+		klog.ErrorS(err, "failed to read response body", "url", u.String())
 		return
 	}
 
@@ -247,7 +247,7 @@ func (ins *Instance) gatherUrl(urlwg *sync.WaitGroup, slist *types.SampleList, u
 
 	parser := prometheus.NewParser(ins.NamePrefix, labels, res.Header, ins.DuplicationAllowed, ins.ignoreMetricsFilter, ins.ignoreLabelKeysFilter)
 	if err = parser.Parse(body, slist); err != nil {
-		log.Println("E! failed to parse response body, url:", u.String(), "error:", err)
+		klog.ErrorS(err, "failed to parse response body", "url", u.String())
 	}
 }
 
@@ -259,7 +259,7 @@ func (ins *Instance) setHeaders(req *http.Request) {
 	if ins.BearerTokeFile != "" {
 		content, err := os.ReadFile(ins.BearerTokeFile)
 		if err != nil {
-			log.Println("E! failed to read bearer token file:", ins.BearerTokeFile, "error:", err)
+			klog.ErrorS(err, "failed to read bearer token file", "path", ins.BearerTokeFile)
 			return
 		}
 

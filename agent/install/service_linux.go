@@ -3,7 +3,6 @@ package install
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kardianos/service"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/pkg/cmdx"
 )
@@ -167,7 +167,7 @@ func isSystemd() bool {
 
 	err, timeout := cmdx.RunTimeout(cmd, time.Second*2)
 	if timeout {
-		log.Printf("E! run command: %s timeout", cmd)
+		klog.Warningf("run command timeout: %s", cmd)
 		return false
 	}
 
@@ -234,7 +234,7 @@ func ServiceConfig(userMode bool) *service.Config {
 			cfg.WorkingDirectory = filepath.Dir(ov)
 		}
 	} else {
-		log.Println("E! get exeutable path error:", err)
+		klog.ErrorS(err, "get executable path error")
 	}
 	cfg.Arguments = []string{"-configs", filepath.Dir(ov) + "/conf"}
 	if userMode {

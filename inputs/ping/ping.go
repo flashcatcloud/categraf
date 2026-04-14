@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"os/exec"
 	"runtime"
@@ -18,6 +17,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/cmdx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -139,7 +139,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	if ins.DebugMod {
-		log.Println("D! ping method", ins.Method)
+		klog.V(1).InfoS("ping method", "method", ins.Method)
 	}
 	wg := new(sync.WaitGroup)
 	ch := make(chan struct{}, ins.Conc)
@@ -162,7 +162,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 func (ins *Instance) nativeGather(slist *types.SampleList, target string) {
 	if ins.DebugMod {
-		log.Println("D! ping...", target)
+		klog.V(1).InfoS("ping target", "target", target)
 	}
 
 	labels := map[string]string{"target": target}
@@ -177,7 +177,7 @@ func (ins *Instance) nativeGather(slist *types.SampleList, target string) {
 
 	stats, err := ins.ping(target)
 	if err != nil {
-		log.Println("E! failed to ping:", target, "error:", err)
+		klog.ErrorS(err, "failed to ping", "target", target)
 		if strings.Contains(err.Error(), "unknown") {
 			fields["result_code"] = 1
 		} else {
@@ -190,7 +190,7 @@ func (ins *Instance) nativeGather(slist *types.SampleList, target string) {
 
 	if stats.PacketsSent == 0 {
 		if ins.DebugMod {
-			log.Println("D! no packets sent, target:", target)
+			klog.V(1).InfoS("no packets sent", "target", target)
 		}
 		fields["result_code"] = 2
 		return
@@ -198,7 +198,7 @@ func (ins *Instance) nativeGather(slist *types.SampleList, target string) {
 
 	if stats.PacketsRecv == 0 {
 		if ins.DebugMod {
-			log.Println("D! no packets received, target:", target)
+			klog.V(1).InfoS("no packets received", "target", target)
 		}
 		fields["result_code"] = 1
 		fields["minimum_response_ms"] = float64(-1)
@@ -290,7 +290,7 @@ func hostPinger(binary string, timeout float64, args ...string) (string, error) 
 
 	err, to := cmdx.RunTimeout(cmd, time.Second*time.Duration(timeout+5))
 	if to {
-		log.Printf("E! run command: %s timeout", strings.Join(cmd.Args, " "))
+		klog.ErrorS(nil, "run ping command timeout", "command", strings.Join(cmd.Args, " "))
 		return stderr.String(), errors.New("run command timeout")
 	}
 	return stdout.String(), err

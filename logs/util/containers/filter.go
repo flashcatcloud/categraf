@@ -10,12 +10,12 @@ package containers
 import (
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 
 	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/util"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -112,7 +112,7 @@ func parseFilters(filters []string) (imageFilters, nameFilters, namespaceFilters
 			namespaceFilters = append(namespaceFilters, r)
 		default:
 			warnmsg := fmt.Sprintf("Container filter %q is unknown, ignoring it. The supported filters are 'image', 'name' and 'kube_namespace'", filter)
-			log.Println(warnmsg)
+			klog.Warning(warnmsg)
 			filterWarnings = append(filterWarnings, warnmsg)
 
 		}
@@ -278,7 +278,7 @@ func (cf Filter) IsExcluded(containerName, containerImage, podNamespace string) 
 	for _, r := range cf.ImageExcludeList {
 		match := r.MatchString(containerImage)
 		if util.Debug() {
-			log.Printf("D!, exclude item :%+v, container image:%s, %t\n", r, containerImage, match)
+			klog.V(1).Infof("exclude item :%+v, container image:%s, %t", r, containerImage, match)
 		}
 		if match {
 			return true

@@ -2,7 +2,6 @@ package agent
 
 import (
 	"errors"
-	"log"
 	"strings"
 	"sync"
 
@@ -104,6 +103,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/x509_cert"
 	_ "flashcat.cloud/categraf/inputs/xskyapi"
 	_ "flashcat.cloud/categraf/inputs/zookeeper"
+	"k8s.io/klog/v2"
 )
 
 type MetricsAgent struct {
@@ -167,7 +167,7 @@ func NewMetricsAgent() AgentModule {
 
 	provider, err := inputs.NewProvider(c, agent)
 	if err != nil {
-		log.Println("E! init metrics agent error: ", err)
+		klog.ErrorS(err, "init metrics agent error")
 		return nil
 	}
 	agent.InputProviders = provider
@@ -196,7 +196,7 @@ func (ma *MetricsAgent) Start() error {
 
 func (ma *MetricsAgent) start(idx int) error {
 	if _, err := ma.InputProviders[idx].LoadConfig(); err != nil {
-		log.Println("E! input provider load config get err: ", err)
+		klog.ErrorS(err, "input provider load config get err")
 	}
 	ma.InputProviders[idx].StartReloader()
 
@@ -206,7 +206,7 @@ func (ma *MetricsAgent) start(idx int) error {
 	}
 
 	if len(names) == 0 {
-		log.Println("I! no inputs")
+		klog.InfoS("no inputs")
 		return nil
 	}
 
@@ -218,7 +218,7 @@ func (ma *MetricsAgent) start(idx int) error {
 
 		configs, err := ma.InputProviders[idx].GetInputConfig(name)
 		if err != nil {
-			log.Println("E! failed to get configuration of plugin:", name, "error:", err)
+			klog.ErrorS(err, "failed to get configuration of plugin", "plugin", name)
 			continue
 		}
 
@@ -249,7 +249,7 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 
 	creator, has := inputs.InputCreators[inputKey]
 	if !has {
-		log.Println("E! input:", name, "not supported")
+		klog.Warningf("input %s not supported", name)
 		return
 	}
 
@@ -260,12 +260,12 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 		}
 	}
 	if idx == -1 {
-		log.Println("E! input provider:", typ, "not found")
+		klog.Warningf("input provider %s not found", typ)
 		// hint and panic next line
 	}
 	newInputs, err := ma.InputProviders[idx].LoadInputConfig(configs, creator())
 	if err != nil {
-		log.Println("E! failed to load configuration of plugin:", name, "error:", err)
+		klog.ErrorS(err, "failed to load configuration of plugin", "plugin", name)
 		return
 	}
 
@@ -276,19 +276,18 @@ func (ma *MetricsAgent) RegisterInput(name string, configs []cfg.ConfigWithForma
 
 func (ma *MetricsAgent) inputGo(name string, sum string, input inputs.Input) {
 	var err error
+	inputLogger := klog.Background().WithValues(metricsAgentInputLoggerValues(name, sum)...)
 	if err = input.InitInternalConfig(); err != nil {
-		log.Println("E! failed to init input:", name, "error:", err)
+		klog.ErrorS(err, "failed to init input", "input", name)
 		return
 	}
 
-	if err = inputs.MayInit(input); err != nil {
+	if err = inputs.MayInit(input, inputLogger); err != nil {
 		if !errors.Is(err, types.ErrInstancesEmpty) {
-			log.Println("E! failed to init input:", name, "error:", err)
+			klog.ErrorS(err, "failed to init input", "input", name)
 		} else {
-			if config.Config.DebugMode {
-				_, inputKey := inputs.ParseInputName(name)
-				log.Println("W! no instances for input: ", inputKey)
-			}
+			_, inputKey := inputs.ParseInputName(name)
+			klog.V(1).InfoS("no instances for input", "input", inputKey)
 		}
 		return
 	}
@@ -298,13 +297,14 @@ func (ma *MetricsAgent) inputGo(name string, sum string, input inputs.Input) {
 		empty := true
 		for i := 0; i < len(instances); i++ {
 			if err := instances[i].InitInternalConfig(); err != nil {
-				log.Println("E! failed to init input:", name, "error:", err)
+				klog.ErrorS(err, "failed to init input", "input", name)
 				continue
 			}
 
-			if err := inputs.MayInit(instances[i]); err != nil {
+			instanceLogger := inputLogger.WithValues(metricsAgentInstanceLoggerValues(i, instances[i].GetLabels())...)
+			if err := inputs.MayInit(instances[i], instanceLogger); err != nil {
 				if !errors.Is(err, types.ErrInstancesEmpty) {
-					log.Println("E! failed to init input:", name, "error:", err)
+					klog.ErrorS(err, "failed to init input", "input", name)
 				}
 				continue
 			}
@@ -313,10 +313,8 @@ func (ma *MetricsAgent) inputGo(name string, sum string, input inputs.Input) {
 		}
 
 		if empty {
-			if config.Config.DebugMode {
-				_, inputKey := inputs.ParseInputName(name)
-				log.Printf("W! no instances for input:%s", inputKey)
-			}
+			_, inputKey := inputs.ParseInputName(name)
+			klog.V(1).InfoS("no instances for input", "input", inputKey)
 			return
 		}
 	}
@@ -324,7 +322,7 @@ func (ma *MetricsAgent) inputGo(name string, sum string, input inputs.Input) {
 	reader := newInputReader(name, input)
 	go reader.startInput()
 	ma.InputReaders.Add(name, sum, reader)
-	log.Println("I! input:", name, "started")
+	klog.InfoS("input started", "input", name)
 }
 
 func (ma *MetricsAgent) DeregisterInput(name string, sum string) {
@@ -335,9 +333,9 @@ func (ma *MetricsAgent) DeregisterInput(name string, sum string) {
 			}
 		}
 		ma.InputReaders.Del(name, sum)
-		log.Printf("I! input: %s[checksum:%s] stopped", name, sum)
+		klog.InfoS("input stopped", "input", name, "checksum", sum)
 	} else {
-		log.Printf("W! dereigster input name [%s] not found", name)
+		klog.Warningf("deregister input name [%s] not found", name)
 	}
 }
 
@@ -351,4 +349,22 @@ func parseFilter(filterStr string) map[string]struct{} {
 		filtermap[filters[i]] = struct{}{}
 	}
 	return filtermap
+}
+
+func metricsAgentInputLoggerValues(name, sum string) []interface{} {
+	_, plugin := inputs.ParseInputName(name)
+	return []interface{}{
+		"component", "inputs",
+		"input", name,
+		"plugin", plugin,
+		"checksum", sum,
+	}
+}
+
+func metricsAgentInstanceLoggerValues(index int, labels map[string]string) []interface{} {
+	values := []interface{}{"instance_index", index}
+	if target, ok := labels["target"]; ok && target != "" {
+		values = append(values, "instance_target", target)
+	}
+	return values
 }

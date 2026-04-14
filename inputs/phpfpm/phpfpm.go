@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	fcgiclient "github.com/tomasen/fcgi_client"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -104,7 +104,7 @@ func (ins *Instance) Gather(sList *types.SampleList) {
 
 	urls, err := expandUrls(ins.Urls)
 	if err != nil {
-		log.Println("E! failed to parse urls:", err)
+		klog.ErrorS(err, "failed to expand php-fpm urls")
 		return
 	}
 
@@ -113,7 +113,7 @@ func (ins *Instance) Gather(sList *types.SampleList) {
 		go func(url string) {
 			defer wg.Done()
 			if err := ins.gather(url, sList); err != nil {
-				log.Println("E!", err)
+				klog.ErrorS(err, "failed to gather php-fpm metrics", "url", url)
 			}
 		}(u)
 	}
@@ -123,7 +123,7 @@ func (ins *Instance) Gather(sList *types.SampleList) {
 
 func (ins *Instance) gather(addr string, sList *types.SampleList) error {
 	if ins.DebugMod {
-		log.Println("D! php-fpm... url:", addr)
+		klog.V(1).InfoS("php-fpm gathering url", "url", addr)
 	}
 
 	var resp *http.Response
@@ -144,7 +144,7 @@ func (ins *Instance) gather(addr string, sList *types.SampleList) error {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			log.Println("E! failed to close the body of client:", err)
+			klog.ErrorS(err, "failed to close php-fpm response body", "url", addr)
 		}
 	}(resp.Body)
 
@@ -229,7 +229,7 @@ func (ins *Instance) initHTTPClient() {
 	if ins.client == nil {
 		client, err := ins.createHTTPClient()
 		if err != nil {
-			log.Printf("failed to create http client: %v", err)
+			klog.ErrorS(err, "failed to create php-fpm HTTP client")
 		}
 		ins.client = client
 	}

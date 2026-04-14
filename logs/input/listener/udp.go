@@ -9,11 +9,11 @@ package listener
 
 import (
 	"fmt"
-	"log"
 	"net"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/pipeline"
+	"k8s.io/klog/v2"
 )
 
 // The UDP listener is limited by the size of its read buffer,
@@ -46,10 +46,10 @@ func NewUDPListener(pipelineProvider pipeline.Provider, source *logsconfig.LogSo
 
 // Start opens a new UDP connection and starts a tailer.
 func (l *UDPListener) Start() {
-	log.Printf("Starting UDP forwarder on port: %d, with read buffer size: %d\n", l.source.Config.Port, l.frameSize)
+	klog.Infof("Starting UDP forwarder on port: %d, with read buffer size: %d", l.source.Config.Port, l.frameSize)
 	err := l.startNewTailer()
 	if err != nil {
-		log.Printf("Can't start UDP forwarder on port %d: %v\n", l.source.Config.Port, err)
+		klog.Errorf("Can't start UDP forwarder on port %d: %v", l.source.Config.Port, err)
 		l.source.Status.Error(err)
 		return
 	}
@@ -58,7 +58,7 @@ func (l *UDPListener) Start() {
 
 // Stop stops the tailer.
 func (l *UDPListener) Stop() {
-	log.Printf("Stopping UDP forwarder on port: %d\n", l.source.Config.Port)
+	klog.Infof("Stopping UDP forwarder on port: %d", l.source.Config.Port)
 	l.tailer.Stop()
 }
 
@@ -109,11 +109,11 @@ func (l *UDPListener) read(tailer *Tailer) ([]byte, error) {
 
 // resetTailer creates a new tailer.
 func (l *UDPListener) resetTailer() {
-	log.Printf("Resetting the UDP connection on port: %d\n", l.source.Config.Port)
+	klog.Infof("Resetting the UDP connection on port: %d", l.source.Config.Port)
 	l.tailer.Stop()
 	err := l.startNewTailer()
 	if err != nil {
-		log.Printf("Could not reset the UDP connection on port %d: %v\n", l.source.Config.Port, err)
+		klog.Errorf("Could not reset the UDP connection on port %d: %v", l.source.Config.Port, err)
 		l.source.Status.Error(err)
 		return
 	}

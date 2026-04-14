@@ -3,7 +3,6 @@ package nfsclient
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "nfsclient"
@@ -178,41 +178,41 @@ func (s *NfsClient) Init() error {
 
 	if len(s.IncludeMounts) > 0 {
 		if s.DebugMod {
-			log.Println("D! Including these mount patterns:", s.IncludeMounts)
+			klog.V(1).InfoS("including mount patterns", "mount_patterns", s.IncludeMounts)
 		}
 	} else {
 		if s.DebugMod {
-			log.Println("D! Including all mounts.")
+			klog.V(1).InfoS("including all mounts")
 		}
 	}
 
 	if len(s.ExcludeMounts) > 0 {
 		if s.DebugMod {
-			log.Println("D! Excluding these mount patterns:", s.ExcludeMounts)
+			klog.V(1).InfoS("excluding mount patterns", "mount_patterns", s.ExcludeMounts)
 		}
 	} else {
 		if s.DebugMod {
-			log.Println("D! Not excluding any mounts.")
+			klog.V(1).InfoS("not excluding any mounts")
 		}
 	}
 
 	if len(s.IncludeOperations) > 0 {
 		if s.DebugMod {
-			log.Println("D! Including these operations:", s.IncludeOperations)
+			klog.V(1).InfoS("including operations", "operations", s.IncludeOperations)
 		}
 	} else {
 		if s.DebugMod {
-			log.Println("D! Including all operations.")
+			klog.V(1).InfoS("including all operations")
 		}
 	}
 
 	if len(s.ExcludeOperations) > 0 {
 		if s.DebugMod {
-			log.Println("D! Excluding these mount patterns:", s.ExcludeOperations)
+			klog.V(1).InfoS("excluding operations", "operations", s.ExcludeOperations)
 		}
 	} else {
 		if s.DebugMod {
-			log.Println("D! Not excluding any operations.")
+			klog.V(1).InfoS("not excluding any operations")
 		}
 	}
 
@@ -223,7 +223,7 @@ func (s *NfsClient) Gather(slist *types.SampleList) {
 	file, err := os.Open(s.mountstatsPath)
 	if err != nil {
 		if s.DebugMod {
-			log.Println("D! Failed opening the", file, "file:", err)
+			klog.V(1).InfoS("failed opening mountstats file", "path", s.mountstatsPath, "error", err)
 		}
 		return
 	}
@@ -235,7 +235,7 @@ func (s *NfsClient) Gather(slist *types.SampleList) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Println("E!", err)
+		klog.ErrorS(err, "failed reading mountstats")
 	}
 }
 
@@ -279,7 +279,7 @@ func (s *NfsClient) parseStat(mountpoint string, export string, version string, 
 	}
 
 	if len(nline) == 0 {
-		log.Println("W! Parsing Stat line with one field:", line)
+		klog.Warningf("parsing stat line with one field: %v", line)
 		return nil
 	}
 
@@ -495,7 +495,7 @@ func (s *NfsClient) getMountStatsPath() string {
 		path = os.Getenv("MOUNT_PROC")
 	}
 	if s.DebugMod {
-		log.Println("D! using [", path, "] for mountstats")
+		klog.V(1).InfoS("using mountstats path", "path", path)
 	}
 	return path
 }

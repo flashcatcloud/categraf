@@ -3,20 +3,18 @@
 package main
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"golang.org/x/sys/unix"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/agent"
-	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/pprof"
 )
 
 func runAgent(ag *agent.Agent) {
-	initLog(config.Config.Log.FileName)
 	ag.Start()
 	go profile()
 	go reapDaemon()
@@ -85,11 +83,11 @@ func reapDaemon() {
 		case unix.SIGCHLD:
 			exits, err := reap()
 			if err != nil {
-				log.Printf("E! reaping children failed: %v", err)
+				klog.ErrorS(err, "reaping children failed")
 				continue
 			}
 			for _, e := range exits {
-				log.Printf("I! reaped pid: %d, status: %d", e.pid, e.status)
+				klog.InfoS("reaped child process", "pid", e.pid, "status", e.status)
 			}
 		}
 	}

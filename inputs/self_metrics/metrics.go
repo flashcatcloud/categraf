@@ -1,8 +1,6 @@
 package categraf
 
 import (
-	"log"
-
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 
@@ -11,6 +9,7 @@ import (
 	"flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -39,7 +38,7 @@ func (pt *Categraf) Name() string {
 func (ins *Categraf) Gather(slist *types.SampleList) {
 	mfs, err := prometheus.DefaultGatherer.Gather()
 	if err != nil {
-		log.Println(err)
+		klog.ErrorS(err, "failed to gather self metrics")
 		return
 	}
 	vTag := map[string]string{

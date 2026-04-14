@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"regexp"
@@ -21,6 +20,7 @@ import (
 	"flashcat.cloud/categraf/types"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/stdlib"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -121,7 +121,7 @@ func (ins *Instance) Init() error {
 
 	connConfig, err := pgx.ParseConfig(ins.Address)
 	if err != nil {
-		log.Println("E! can't parse address :", err)
+		klog.ErrorS(err, "can't parse postgresql address", "address", ins.Address)
 		return err
 	}
 
@@ -155,18 +155,18 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	)
 	addr, err := ins.SanitizedAddress()
 	if err != nil {
-		log.Println("E! can't sanitize address :", err)
+		klog.ErrorS(err, "can't sanitize postgresql address")
 	}
 	tags := map[string]string{"server": addr}
 	if ins.db, err = sql.Open("pgx", ins.connConfig); err != nil {
 		slist.PushSample(inputName, "up", 0, tags)
-		log.Println("E! can't open db :", err)
+		klog.ErrorS(err, "can't open postgresql db", "server", addr)
 		return
 	}
 	defer ins.db.Close()
 	if err := ins.db.Ping(); err != nil {
 		slist.PushSample(inputName, "up", 0, tags)
-		log.Println("E! failed to ping postgresql:", addr, err)
+		klog.ErrorS(err, "failed to ping postgresql", "server", addr)
 		return
 	}
 	slist.PushSample(inputName, "up", 1, tags)
@@ -187,7 +187,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	rows, err := ins.db.Query(query)
 	if err != nil {
-		log.Println("E! failed to execute Query :", err)
+		klog.ErrorS(err, "failed to execute postgresql query", "query", query)
 		return
 	}
 
@@ -195,14 +195,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	// grab the column information from the result
 	if columns, err = rows.Columns(); err != nil {
-		log.Println("E! failed to grab column info:", err)
+		klog.ErrorS(err, "failed to grab postgresql column info")
 		return
 	}
 
 	for rows.Next() {
 		err = ins.accRow(rows, slist, "", columns, columns, nil)
 		if err != nil {
-			log.Println("E! failed to get row data:", err)
+			klog.ErrorS(err, "failed to get postgresql row data")
 			return
 		}
 	}
@@ -212,7 +212,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		var version int
 		err = ins.db.QueryRow("SELECT current_setting('server_version_num')::int").Scan(&version)
 		if err != nil {
-			log.Println("E! failed to query current version:", err)
+			klog.ErrorS(err, "failed to query current postgresql version")
 			return
 		}
 		ins.Version = version
@@ -222,7 +222,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		query = `SELECT * FROM pg_stat_bgwriter`
 		bgWriterRow, err := ins.db.Query(query)
 		if err != nil {
-			log.Println("E! failed to execute Query:", err)
+			klog.ErrorS(err, "failed to execute postgresql query", "query", query)
 			return
 		}
 
@@ -230,14 +230,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 		// grab the column information from the result
 		if columns, err = bgWriterRow.Columns(); err != nil {
-			log.Println("E! failed to grab column info:", err)
+			klog.ErrorS(err, "failed to grab postgresql column info")
 			return
 		}
 
 		for bgWriterRow.Next() {
 			err = ins.accRow(bgWriterRow, slist, "", columns, columns, nil)
 			if err != nil {
-				log.Println("E! failed to get row data:", err)
+				klog.ErrorS(err, "failed to get postgresql row data")
 				return
 			}
 		}
@@ -248,20 +248,20 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		query = `SELECT * FROM pg_stat_bgwriter`
 		bgWriterRow, err := ins.db.Query(query)
 		if err != nil {
-			log.Println("E! failed to execute Query pg_stat_bgwriter:", err)
+			klog.ErrorS(err, "failed to execute postgresql query", "query", query)
 			return
 		}
 		defer bgWriterRow.Close()
 
 		if columns, err = bgWriterRow.Columns(); err != nil {
-			log.Println("E! failed to grab column info for pg_stat_bgwriter:", err)
+			klog.ErrorS(err, "failed to grab pg_stat_bgwriter column info")
 			return
 		}
 
 		for bgWriterRow.Next() {
 			err = ins.accRow(bgWriterRow, slist, "", columns, columns, nil)
 			if err != nil {
-				log.Println("E! failed to get row data from pg_stat_bgwriter:", err)
+				klog.ErrorS(err, "failed to get row data from pg_stat_bgwriter")
 				return
 			}
 		}
@@ -285,20 +285,20 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 		checkpointerRow, err := ins.db.Query(query)
 		if err != nil {
-			log.Println("E! failed to get row data:", err)
+			klog.ErrorS(err, "failed to query pg_stat_checkpointer")
 			return
 		}
 		defer checkpointerRow.Close()
 
 		if columns, err = checkpointerRow.Columns(); err != nil {
-			log.Println("E! failed to grab column info for pg_stat_checkpointer:", err)
+			klog.ErrorS(err, "failed to grab column info for pg_stat_checkpointer")
 			return
 		}
 
 		for checkpointerRow.Next() {
 			err = ins.accRow(checkpointerRow, slist, "", columns, columns, nil)
 			if err != nil {
-				log.Println("E! failed to get row data from pg_stat_checkpointer:", err)
+				klog.ErrorS(err, "failed to get row data from pg_stat_checkpointer")
 				return
 			}
 		}
@@ -376,14 +376,14 @@ func (ins *Instance) getStatementMetrics(slist *types.SampleList, version int) {
 
 	statements, err := ins.db.Query(query + limit)
 	if err != nil {
-		log.Println("E! failed to query stat statements:", err.Error())
+		klog.ErrorS(err, "failed to query postgresql stat statements")
 		return
 	}
 	defer statements.Close()
 
 	columns, err := statements.Columns()
 	if err != nil {
-		log.Println("E! failed to grab column info:", err.Error())
+		klog.ErrorS(err, "failed to grab postgresql column info")
 		return
 	}
 
@@ -392,7 +392,7 @@ func (ins *Instance) getStatementMetrics(slist *types.SampleList, version int) {
 	for statements.Next() {
 		err := ins.accRow(statements, slist, "statements", columns, valueColumns, labelColumns)
 		if err != nil {
-			log.Println("E! failed to get row data:", err.Error())
+			klog.ErrorS(err, "failed to get postgresql row data")
 			return
 		}
 	}
@@ -408,12 +408,12 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 	rows, err := ins.db.QueryContext(ctx, metricConf.Request)
 
 	if ctx.Err() == context.DeadlineExceeded {
-		log.Println("E! postgresql query timeout, request:", metricConf.Request)
+		klog.ErrorS(nil, "postgresql query timeout", "request", metricConf.Request)
 		return
 	}
 
 	if err != nil {
-		log.Println("E! failed to query:", err)
+		klog.ErrorS(err, "failed to query postgresql")
 		return
 	}
 
@@ -421,7 +421,7 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 
 	cols, err := rows.Columns()
 	if err != nil {
-		log.Println("E! failed to get columns:", err)
+		klog.ErrorS(err, "failed to get postgresql columns")
 		return
 	}
 
@@ -434,7 +434,7 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 
 		// Scan the result into the column pointers...
 		if err := rows.Scan(columnPointers...); err != nil {
-			log.Println("E! failed to scan:", err)
+			klog.ErrorS(err, "failed to scan postgresql row")
 			return
 		}
 
@@ -448,14 +448,14 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 
 		count := 0
 		if err = ins.parseRow(m, metricConf, slist, tags); err != nil {
-			log.Println("E! failed to parse row:", err)
+			klog.ErrorS(err, "failed to parse postgresql row")
 			continue
 		} else {
 			count++
 		}
 
 		if !metricConf.IgnoreZeroResult && count == 0 {
-			log.Println("E! no metrics found while parsing")
+			klog.ErrorS(nil, "no postgresql metrics found while parsing")
 		}
 	}
 }
@@ -476,7 +476,7 @@ func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, sl
 	for _, column := range metricConf.MetricFields {
 		value, err := conv.ToFloat64(row[column])
 		if err != nil {
-			log.Println("E! failed to convert field:", column, "value:", value, "error:", err)
+			klog.ErrorS(err, "failed to convert postgresql field", "column", column, "value", row[column])
 			return err
 		}
 
@@ -531,19 +531,19 @@ func (ins *Instance) accRow(row scanner, slist *types.SampleList, prefix string,
 		// extract the database name from the column map
 		if dbNameStr, ok := (*columnMap["datname"]).(string); ok {
 			if _, err := dbname.WriteString(dbNameStr); err != nil {
-				log.Println("E! failed to WriteString:", dbNameStr, err)
+				klog.ErrorS(err, "failed to write postgresql db name", "db", dbNameStr)
 				return err
 			}
 		} else {
 			// PG 12 adds tracking of global objects to pg_stat_database
 			if _, err := dbname.WriteString("postgres_global"); err != nil {
-				log.Println("E! failed to WriteString: postgres_global", err)
+				klog.ErrorS(err, "failed to write postgresql db name", "db", "postgres_global")
 				return err
 			}
 		}
 	} else {
 		if _, err := dbname.WriteString("postgres"); err != nil {
-			log.Println("E! failed to WriteString: postgres", err)
+			klog.ErrorS(err, "failed to write postgresql db name", "db", "postgres")
 			return err
 		}
 	}
@@ -551,7 +551,7 @@ func (ins *Instance) accRow(row scanner, slist *types.SampleList, prefix string,
 	var tagAddress string
 	tagAddress, err = ins.SanitizedAddress()
 	if err != nil {
-		log.Println("E! failed to SanitizedAddress", err)
+		klog.ErrorS(err, "failed to sanitize postgresql address")
 		return err
 	}
 

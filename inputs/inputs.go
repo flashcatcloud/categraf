@@ -3,10 +3,15 @@ package inputs
 import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/types"
+	klog "k8s.io/klog/v2"
 )
 
 type Initializer interface {
 	Init() error
+}
+
+type LoggerInitializer interface {
+	InitWithLogger(klog.Logger) error
 }
 
 type SampleGatherer interface {
@@ -21,7 +26,10 @@ type InstancesGetter interface {
 	GetInstances() []Instance
 }
 
-func MayInit(t interface{}) error {
+func MayInit(t interface{}, logger klog.Logger) error {
+	if initializer, ok := t.(LoggerInitializer); ok {
+		return initializer.InitWithLogger(logger)
+	}
 	if initializer, ok := t.(Initializer); ok {
 		return initializer.Init()
 	}

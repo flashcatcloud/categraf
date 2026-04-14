@@ -3,10 +3,9 @@
 package agent
 
 import (
-	"log"
-
 	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/prometheus"
+	"k8s.io/klog/v2"
 )
 
 type PrometheusAgent struct {
@@ -16,7 +15,7 @@ func NewPrometheusAgent() AgentModule {
 	if coreconfig.Config == nil ||
 		coreconfig.Config.Prometheus == nil ||
 		!coreconfig.Config.Prometheus.Enable {
-		log.Println("I! prometheus scraping disabled!")
+		klog.Info("prometheus scraping disabled")
 		return nil
 	}
 	return &PrometheusAgent{}
@@ -24,12 +23,12 @@ func NewPrometheusAgent() AgentModule {
 
 func (pa *PrometheusAgent) Start() error {
 	go prometheus.Start()
-	log.Println("I! prometheus scraping started!")
+	klog.Info("prometheus scraping started")
 	return nil
 }
 
 func (pa *PrometheusAgent) Stop() error {
 	prometheus.Stop()
-	log.Println("I! prometheus scraping stopped!")
+	klog.Info("prometheus scraping stopped")
 	return nil
 }

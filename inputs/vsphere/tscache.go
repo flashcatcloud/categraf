@@ -1,10 +1,10 @@
 package vsphere
 
 import (
-	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	"k8s.io/klog/v2"
 )
 
 // TSCache is a cache of timestamps used to determine the validity of datapoints
@@ -36,7 +36,7 @@ func (t *TSCache) Purge() {
 		}
 	}
 	if t.debug {
-		log.Println(fmt.Sprintf("D! purged timestamp cache. %d deleted with %d remaining", n, len(t.table)))
+		klog.V(1).InfoS("purged vsphere timestamp cache", "deleted", n, "remaining", len(t.table))
 	}
 }
 

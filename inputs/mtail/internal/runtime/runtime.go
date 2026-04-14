@@ -12,7 +12,6 @@ import (
 	"expvar"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -27,6 +26,7 @@ import (
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/vm"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -49,7 +49,7 @@ const (
 // This function returns an error if an internal error occurs.
 func (r *Runtime) LoadAllPrograms() error {
 	if len(r.programPath) == 0 && len(r.progs) == 0 {
-		log.Printf("W! Programpath is empty, loading nothing")
+		klog.Warning("Programpath is empty, loading nothing")
 		return nil
 	}
 	// TODO  load 配置规则
@@ -67,7 +67,7 @@ func (r *Runtime) LoadAllPrograms() error {
 				if r.errorsAbort {
 					return r.programErrors[name]
 				}
-				log.Printf("Compile errors for %s:\n%s", name, r.programErrors[name])
+				klog.Warningf("compile errors for %s:\n%s", name, r.programErrors[name])
 			}
 		}
 		return nil
@@ -86,7 +86,7 @@ func (r *Runtime) LoadAllPrograms() error {
 		markDeleted := make(map[string]struct{})
 		r.handleMu.RLock()
 		for name := range r.handles {
-			log.Printf("added %s", name)
+			klog.V(1).InfoS("marked existing program for reload", "name", name)
 			markDeleted[name] = struct{}{}
 		}
 		r.handleMu.RUnlock()
@@ -99,13 +99,13 @@ func (r *Runtime) LoadAllPrograms() error {
 				if r.errorsAbort {
 					return err
 				}
-				log.Println(err)
+				klog.ErrorS(err, "failed to load program", "program", fi.Name())
 			}
-			log.Printf("unmarking %s", filepath.Base(fi.Name()))
+			klog.V(1).InfoS("unmarking program from deletion", "name", filepath.Base(fi.Name()))
 			delete(markDeleted, filepath.Base(fi.Name()))
 		}
 		for name := range markDeleted {
-			log.Printf("unloading %s", name)
+			klog.V(1).InfoS("unloading stale program", "name", name)
 			r.UnloadProgram(name)
 		}
 	default:
@@ -114,7 +114,7 @@ func (r *Runtime) LoadAllPrograms() error {
 			if r.errorsAbort {
 				return err
 			}
-			log.Println(err)
+			klog.ErrorS(err, "failed to load program", "program", r.programPath)
 		}
 	}
 	return nil
@@ -125,11 +125,11 @@ func (r *Runtime) LoadAllPrograms() error {
 func (r *Runtime) LoadProgram(programPath string) error {
 	name := filepath.Base(programPath)
 	if strings.HasPrefix(name, ".") {
-		log.Printf("W! Skipping %s because it is a hidden file.", programPath)
+		klog.Warningf("skipping %s because it is a hidden file", programPath)
 		return nil
 	}
 	if filepath.Ext(name) != fileExt {
-		log.Printf("W! Skipping %s due to file extension.", programPath)
+		klog.Warningf("skipping %s due to file extension", programPath)
 		return nil
 	}
 	f, err := os.OpenFile(filepath.Clean(programPath), os.O_RDONLY, 0o600)
@@ -139,7 +139,7 @@ func (r *Runtime) LoadProgram(programPath string) error {
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			log.Println(err)
+			klog.ErrorS(err, "failed to close program file", "program", programPath)
 		}
 	}()
 	r.programErrorMu.Lock()
@@ -149,7 +149,7 @@ func (r *Runtime) LoadProgram(programPath string) error {
 		if r.errorsAbort {
 			return r.programErrors[name]
 		}
-		log.Printf("Compile errors for %s:\n%s", name, r.programErrors[name])
+		klog.Warningf("compile errors for %s:\n%s", name, r.programErrors[name])
 	}
 	return nil
 }
@@ -188,7 +188,7 @@ func (r *Runtime) CompileAndRun(name string, input io.Reader) error {
 	v := vm.New(name, obj, r.syslogUseCurrentYear, r.overrideLocation, r.logRuntimeErrors, r.trace)
 
 	if r.dumpBytecode {
-		log.Println("Dumping program objects and bytecode\n", v.DumpByteCode())
+		klog.V(1).InfoS("dumping program objects and bytecode", "program", name, "dump", v.DumpByteCode())
 	}
 
 	// Load the metrics from the compilation into the global metric storage for export.
@@ -205,7 +205,7 @@ func (r *Runtime) CompileAndRun(name string, input io.Reader) error {
 	}
 
 	ProgLoads.Add(name, 1)
-	log.Printf("Loaded program %s", name)
+	klog.InfoS("loaded program", "name", name)
 
 	if r.compileOnly {
 		return nil
@@ -315,7 +315,7 @@ func New(lines <-chan *logline.LogLine, wg *sync.WaitGroup, programPath string, 
 			}
 			r.handleMu.RUnlock()
 		}
-		log.Println("END OF LINE")
+		klog.V(1).InfoS("end of line stream")
 		close(r.signalQuit)
 		r.handleMu.Lock()
 		for prog := range r.handles {
@@ -325,7 +325,7 @@ func New(lines <-chan *logline.LogLine, wg *sync.WaitGroup, programPath string, 
 		r.handleMu.Unlock()
 	}()
 	if len(r.programPath) == 0 && len(r.progs) == 0 {
-		log.Println("No program path specified, no programs will be loaded.")
+		klog.InfoS("no program path specified, no programs will be loaded")
 		return r, nil
 	}
 
@@ -335,7 +335,7 @@ func New(lines <-chan *logline.LogLine, wg *sync.WaitGroup, programPath string, 
 		defer r.wg.Done()
 		<-initDone
 		if len(r.programPath) == 0 && len(r.progs) == 0 {
-			log.Println("no program reload on SIGHUP without programPath")
+			klog.InfoS("no program reload on SIGHUP without programPath")
 			return
 		}
 		n := make(chan os.Signal, 1)
@@ -347,7 +347,7 @@ func New(lines <-chan *logline.LogLine, wg *sync.WaitGroup, programPath string, 
 				return
 			case <-n:
 				if err := r.LoadAllPrograms(); err != nil {
-					log.Println(err)
+					klog.ErrorS(err, "failed to reload programs on SIGHUP")
 				}
 			}
 		}

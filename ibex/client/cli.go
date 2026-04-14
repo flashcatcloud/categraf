@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"net"
 	"net/rpc"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/toolkits/pkg/net/gobrpc"
 	"github.com/ugorji/go/codec"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/ibex/types"
@@ -43,7 +43,7 @@ func getCli() *gobrpc.RPCClient {
 		begin := time.Now()
 		conn, err := net.DialTimeout("tcp", addr, time.Second*5)
 		if err != nil {
-			log.Printf("W! dial %s fail: %s", addr, err)
+			klog.Warningf("dial %s fail: %s", addr, err)
 			continue
 		}
 
@@ -64,7 +64,7 @@ func getCli() *gobrpc.RPCClient {
 		var out string
 		err = c.Call("Server.Ping", "", &out)
 		if err != nil {
-			log.Printf("W! ping %s fail: %s", addr, err)
+			klog.Warningf("ping %s fail: %s", addr, err)
 			continue
 		}
 		use := time.Since(begin).Nanoseconds()
@@ -77,11 +77,11 @@ func getCli() *gobrpc.RPCClient {
 	}
 
 	if address == "" {
-		log.Println("E! no job server found")
+		klog.ErrorS(nil, "no job server found")
 		return nil
 	}
 
-	log.Printf("I! choose server: %s, duration: %dms", address, duration/1000000)
+	klog.InfoS("choose ibex server", "address", address, "duration_ms", duration/1000000)
 
 	for addr, c := range acm {
 		if addr == address {
@@ -119,13 +119,13 @@ func Meta(id int64) (script string, args string, account string, stdin string, e
 	var resp types.TaskMetaResponse
 	err = GetCli().Call("Server.GetTaskMeta", id, &resp)
 	if err != nil {
-		log.Println("E! rpc call Server.GetTaskMeta:", err)
+		klog.ErrorS(err, "rpc call failed", "rpc", "Server.GetTaskMeta", "task_id", id)
 		CloseCli()
 		return
 	}
 
 	if resp.Message != "" {
-		log.Println("E! rpc call Server.GetTaskMeta:", resp.Message)
+		klog.ErrorS(nil, "rpc call failed", "rpc", "Server.GetTaskMeta", "task_id", id, "message", resp.Message)
 		err = fmt.Errorf("%s", resp.Message)
 		return
 	}

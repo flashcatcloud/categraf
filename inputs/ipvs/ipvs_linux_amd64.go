@@ -3,12 +3,12 @@ package ipvs
 import (
 	_ "embed"
 	"fmt"
-	"log"
 	"math/bits"
 	"strconv"
 	"syscall"
 
 	"github.com/moby/ipvs"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -42,7 +42,7 @@ func (i *IPVS) Gather(slist *types.SampleList) {
 	if i.handle == nil {
 		h, err := ipvs.New("")
 		if err != nil {
-			log.Printf("E! Unable to open IPVS handle: %v\n", err)
+			klog.ErrorS(err, "unable to open IPVS handle")
 			return
 		}
 		i.handle = h
@@ -52,7 +52,7 @@ func (i *IPVS) Gather(slist *types.SampleList) {
 	if err != nil {
 		i.handle.Close()
 		i.handle = nil // trigger a reopen on next call to gather
-		log.Printf("E! Failed to list IPVS services: %v\n", err)
+		klog.ErrorS(err, "failed to list IPVS services")
 		return
 	}
 	for _, s := range services {
@@ -70,7 +70,7 @@ func (i *IPVS) Gather(slist *types.SampleList) {
 
 		destinations, err := i.handle.GetDestinations(s)
 		if err != nil {
-			log.Printf("E! Failed to list destinations for a virtual server: %v\n", err)
+			klog.ErrorS(err, "failed to list destinations for IPVS service", "service", serviceTags(s))
 			continue // move on to the next virtual server
 		}
 

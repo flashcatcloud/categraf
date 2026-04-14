@@ -10,7 +10,6 @@ import (
 	"context"
 	"expvar"
 	"fmt"
-	"log"
 	"math"
 	"regexp"
 	"strconv"
@@ -26,6 +25,7 @@ import (
 	"github.com/golang/groupcache/lru"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -103,9 +103,9 @@ func (v *VM) errorf(format string, args ...interface{}) {
 		v.t.pc-1, i.Opcode, i.Operand, v.name, i.SourceLine+1)
 	v.runtimeError += fmt.Sprintf("Full input text from %q was %q", v.input.Filename, v.input.Line)
 	if v.logRuntimeErrors {
-		log.Println(v.name + ": Runtime error: " + v.runtimeError)
+		klog.ErrorS(nil, "vm runtime error", "program", v.name, "detail", v.runtimeError)
 
-		log.Printf("Set logging verbosity higher (-v1 or more) to see full VM state dump.")
+		klog.InfoS("set logging verbosity higher (-v1 or more) to see full VM state dump", "program", v.name)
 	}
 	// if glog.V(1) {
 	// 	glog.Infof("VM stack:\n%s", debug.Stack())
@@ -121,7 +121,7 @@ func (v *VM) errorf(format string, args ...interface{}) {
 	// 	glog.Infof(v.DumpByteCode())
 	// }
 	if v.trace != nil {
-		log.Printf("Execution Trace: %v", v.trace)
+		klog.V(1).InfoS("execution trace", "program", v.name, "trace", v.trace)
 	}
 	v.runtimeErrorMu.Unlock()
 	v.terminate = true
@@ -1033,7 +1033,7 @@ func (v *VM) DumpByteCode() string {
 		fmt.Fprintf(w, "\t%d\t%s\t%v\t%d\t\n", n, i.Opcode, i.Operand, i.SourceLine+1)
 	}
 	if err := w.Flush(); err != nil {
-		log.Printf("flush error: %s", err)
+		klog.ErrorS(err, "failed to flush bytecode dump", "program", v.name)
 	}
 	return b.String()
 }
@@ -1055,5 +1055,5 @@ func (v *VM) Run(lines <-chan *logline.LogLine, wg *sync.WaitGroup) {
 	for line := range lines {
 		v.ProcessLogLine(ctx, line)
 	}
-	log.Printf("VM %q finished", v.name)
+	klog.V(1).InfoS("vm finished", "program", v.name)
 }

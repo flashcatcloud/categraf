@@ -9,9 +9,9 @@ package sender
 
 import (
 	"context"
-	"log"
 
 	"flashcat.cloud/categraf/logs/message"
+	"k8s.io/klog/v2"
 )
 
 // StreamStrategy is a shared stream strategy.
@@ -35,7 +35,7 @@ func (s *streamStrategy) Send(inputChan chan *message.Message, outputChan chan *
 			if shouldStopSending(err) {
 				return
 			}
-			log.Printf("Could not send payload: %v\n", err)
+			klog.Warningf("could not send payload: %v", err)
 		}
 		outputChan <- message
 	}

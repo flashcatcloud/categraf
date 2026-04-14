@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -18,6 +17,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "xskyapi"
@@ -153,7 +153,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 func (ins *Instance) gather(slist *types.SampleList, server string, token string) {
 	if ins.DebugMod {
-		log.Println("D! xskyapi... server:", server)
+		klog.V(1).InfoS("xskyapi gather server", "server", server)
 	}
 
 	pageSize := 500
@@ -172,7 +172,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		for {
 			resp, _, err := ins.sendRequest(currentUrl, token, offset, pageSize)
 			if err != nil {
-				log.Println("E! failed to send request to xskyapi url:", currentUrl, "error:", err)
+				klog.ErrorS(err, "failed to send request to xskyapi url", "url", currentUrl)
 			}
 
 			err = json.Unmarshal(resp, &osUsers)
@@ -205,7 +205,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		for {
 			resp, _, err := ins.sendRequest(currentUrl, token, offset, pageSize)
 			if err != nil {
-				log.Println("E! failed to send request to xskyapi url:", currentUrl, "error:", err)
+				klog.ErrorS(err, "failed to send request to xskyapi url", "url", currentUrl)
 			}
 			err = json.Unmarshal(resp, &osBuckets)
 			if err != nil {
@@ -238,7 +238,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		for {
 			resp, _, err := ins.sendRequest(currentUrl, token, offset, pageSize)
 			if err != nil {
-				log.Println("E! failed to send request to xskyapi url:", currentUrl, "error:", err)
+				klog.ErrorS(err, "failed to send request to xskyapi url", "url", currentUrl)
 			}
 			er := json.Unmarshal(resp, &dfsQuotas)
 			if er != nil {
@@ -270,7 +270,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		for {
 			resp, _, err := ins.sendRequest(currentUrl, token, offset, pageSize)
 			if err != nil {
-				log.Println("E! failed to send request to xskyapi url:", currentUrl, "error:", err)
+				klog.ErrorS(err, "failed to send request to xskyapi url", "url", currentUrl)
 			}
 			er := json.Unmarshal(resp, &blockVolumes)
 			if er != nil {
@@ -301,7 +301,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		for {
 			resp, _, err := ins.sendRequest(currentUrl, token, offset, pageSize)
 			if err != nil {
-				log.Println("E! failed to send request to xskyapi url:", currentUrl, "error:", err)
+				klog.ErrorS(err, "failed to send request to xskyapi url", "url", currentUrl)
 			}
 
 			er := json.Unmarshal(resp, &fsFolders)
@@ -332,15 +332,13 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 		for {
 			resp, _, err := ins.sendRequest(currentUrl, token, offset, pageSize)
 			if err != nil {
-				log.Println("E! failed to send request to xskyapi url:", currentUrl, "error:", err)
+				klog.ErrorS(err, "failed to send request to xskyapi url", "url", currentUrl)
 			}
 
 			err = json.Unmarshal(resp, &blockVolumes)
 			if err != nil {
 				fmt.Printf("Parsing JSON string exception：%s\n", err)
 			}
-
-			// log.Println("D! len(OsUsers):", len(osUsers.OsUser))
 
 			for _, blockVolume := range blockVolumes.BlockVolume {
 				labels["name"] = blockVolume.Name
@@ -355,7 +353,7 @@ func (ins *Instance) gather(slist *types.SampleList, server string, token string
 			}
 		}
 	default:
-		log.Printf("E! dss_type %s not suppported, expected oss, gfs or eus", ins.DssType)
+		klog.ErrorS(nil, "dss_type not supported, expected oss, gfs or eus", "dss_type", ins.DssType)
 	}
 }
 
@@ -363,7 +361,7 @@ func (ins *Instance) sendRequest(serverURL string, token string, offset int, pag
 	// Prepare URL
 	requestURL, _ := url.Parse(serverURL)
 	if ins.DebugMod {
-		log.Println("D! now parseurl:", requestURL)
+		klog.V(1).InfoS("xskyapi parsed url", "url", requestURL.String())
 	}
 
 	// Prepare request query and body

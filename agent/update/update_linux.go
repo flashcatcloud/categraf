@@ -6,16 +6,17 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"k8s.io/klog/v2"
 )
 
 func download(file string) (string, error) {
 	fname := filepath.Base(file)
-	log.Println("downloading file:", file, "save to:", fname)
+	klog.InfoS("downloading file", "source", file, "dest", fname)
 	res, err := http.Get(file)
 	if err != nil {
 		return fname, fmt.Errorf("cannot download file from %s", file)
@@ -67,7 +68,7 @@ func Update(tar string) error {
 	if fi.Mode().IsDir() {
 		return fmt.Errorf("%s is directory", nv)
 	}
-	log.Printf("I! replace old version:%s with new version:%s", ov, "./"+nv)
+	klog.InfoS("replace old version with new version", "old_version", ov, "new_version", "./"+nv)
 
 	// replace
 	err = os.Rename(nv, ov)
@@ -76,15 +77,15 @@ func Update(tar string) error {
 	}
 	err = os.RemoveAll("./" + filepath.Dir(nv))
 	if err != nil {
-		log.Println("E! clean dir:", "./"+filepath.Dir(nv), "error:", err)
+		klog.ErrorS(err, "clean dir failed", "path", "./"+filepath.Dir(nv))
 	} else {
-		log.Println("I! clean dir:", "./"+filepath.Dir(nv), "success")
+		klog.InfoS("clean dir success", "path", "./"+filepath.Dir(nv))
 	}
 	err = os.Remove("./" + fname)
 	if err != nil {
-		log.Println("E! clean file:", "./"+fname, "error:", err)
+		klog.ErrorS(err, "clean file failed", "path", "./"+fname)
 	} else {
-		log.Println("I! clean file:", "./"+fname, "success")
+		klog.InfoS("clean file success", "path", "./"+fname)
 	}
 	return os.Chmod(ov, fm.Mode().Perm())
 }
@@ -128,7 +129,7 @@ func UnTar(dst, src string) (target string, err error) {
 		case tar.TypeReg:
 			err := os.MkdirAll(filepath.Dir(dstFileDir), 0755)
 			if err != nil {
-				log.Printf("mdkir:%s, error:%s", filepath.Base(dstFileDir), err)
+				klog.ErrorS(err, "mkdir failed", "path", filepath.Base(dstFileDir))
 				return target, err
 			}
 			file, err := os.OpenFile(dstFileDir, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))

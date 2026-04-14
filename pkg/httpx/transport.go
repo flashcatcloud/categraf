@@ -7,12 +7,13 @@ package httpx
 
 import (
 	"crypto/tls"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
+
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -41,7 +42,7 @@ func warnOnce(warnMap map[string]bool, key string, format string, params ...inte
 	defer NoProxyMapMutex.Unlock()
 	if _, ok := warnMap[key]; !ok {
 		warnMap[key] = true
-		log.Printf(format, params...)
+		klog.Warningf(format, params...)
 	}
 }
 

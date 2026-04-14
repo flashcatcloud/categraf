@@ -2,10 +2,10 @@ package mysql
 
 import (
 	"database/sql"
-	"log"
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 func (ins *Instance) gatherSchemaSize(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
@@ -15,7 +15,7 @@ func (ins *Instance) gatherSchemaSize(slist *types.SampleList, db *sql.DB, globa
 
 	rows, err := db.Query(SQL_QUERY_SCHEMA_SIZE)
 	if err != nil {
-		log.Println("E! failed to get schema size of", ins.Address, err)
+		klog.ErrorS(err, "failed to query mysql schema sizes", "address", ins.Address)
 		return
 	}
 
@@ -29,7 +29,7 @@ func (ins *Instance) gatherSchemaSize(slist *types.SampleList, db *sql.DB, globa
 
 		err = rows.Scan(&schema, &size)
 		if err != nil {
-			log.Println("E! failed to scan rows of", ins.Address, err)
+			klog.ErrorS(err, "failed to scan mysql schema size rows", "address", ins.Address)
 			return
 		}
 

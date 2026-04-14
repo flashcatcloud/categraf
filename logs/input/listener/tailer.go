@@ -9,13 +9,13 @@ package listener
 
 import (
 	"io"
-	"log"
 	"net"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/decoder"
 	"flashcat.cloud/categraf/logs/message"
 	"flashcat.cloud/categraf/logs/parser"
+	"k8s.io/klog/v2"
 )
 
 // Tailer reads data from a connection
@@ -88,7 +88,7 @@ func (t *Tailer) readForever() {
 			}
 			if err != nil {
 				// an error occurred, stop from reading new data
-				log.Printf("Couldn't read message from connection: %v\n", err)
+				klog.Warningf("Couldn't read message from connection: %v", err)
 				return
 			}
 			t.source.BytesRead.Add(int64(len(data)))

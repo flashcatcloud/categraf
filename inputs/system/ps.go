@@ -1,7 +1,6 @@
 package system
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
+	"k8s.io/klog/v2"
 )
 
 type PS interface {
@@ -155,7 +155,7 @@ func (s *SystemPS) DiskUsage(
 		}
 		du, err := s.PSDiskUsage(mountpoint)
 		if err != nil {
-			log.Println("E! failed to get disk usage, mountpoint:", mountpoint, "error:", err)
+			klog.ErrorS(err, "failed to get disk usage", "mountpoint", mountpoint)
 			dun.DeviceError = 1
 			du = &disk.UsageStat{}
 		}

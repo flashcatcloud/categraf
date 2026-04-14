@@ -3,12 +3,12 @@ package inputs
 import (
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
+	"k8s.io/klog/v2"
 
 	util "flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/types"
@@ -35,19 +35,19 @@ func Collect(e prometheus.Collector, slist *types.SampleList, constLabels ...map
 		desc := metric.Desc().String()
 		descName, err := DescName(desc)
 		if err != nil {
-			log.Printf("error getting metric name: %s", err)
+			klog.ErrorS(err, "failed to get metric name", "desc", desc)
 			continue
 		}
 		ls, err := DescConstLabels(desc)
 		if err != nil {
-			log.Println("E! failed to read labels:", desc)
+			klog.ErrorS(err, "failed to read metric labels", "desc", desc)
 			continue
 		}
 
 		dtoMetric := &dto.Metric{}
 		err = metric.Write(dtoMetric)
 		if err != nil {
-			log.Println("E! failed to write metric:", desc)
+			klog.ErrorS(err, "failed to write metric", "desc", desc)
 			continue
 		}
 

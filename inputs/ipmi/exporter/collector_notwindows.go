@@ -17,11 +17,11 @@
 package exporter
 
 import (
-	"log"
 	"path"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/inputs/ipmi/exporter/freeipmi"
 )
@@ -86,7 +86,7 @@ func Collect(ch chan<- prometheus.Metric, host, binPath string, config IPMIConfi
 		duration := time.Since(start).Seconds()
 
 		if debugMod {
-			log.Println("D!", "Scrape duration", "target", targetName(host), "duration", duration)
+			klog.V(1).InfoS("ipmi scrape duration", "target", targetName(host), "duration", duration)
 		}
 		ch <- prometheus.MustNewConstMetric(
 			durationDesc,
@@ -103,7 +103,7 @@ func Collect(ch chan<- prometheus.Metric, host, binPath string, config IPMIConfi
 	for _, collector := range config.GetCollectors(debugMod) {
 		var up int
 		if debugMod {
-			log.Println("D!", "Running collector", "target", target.host, "collector", collector.Name())
+			klog.V(1).InfoS("running ipmi collector", "target", target.host, "collector", collector.Name())
 		}
 
 		fqcmd := path.Join(binPath, collector.Cmd())

@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -20,6 +19,7 @@ import (
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
+	"k8s.io/klog/v2"
 )
 
 // The highest number of metrics we can query for, no matter what settings
@@ -96,7 +96,7 @@ func (cf *ClientFactory) testClient(ctx context.Context) error {
 	ctx1, cancel1 := context.WithTimeout(ctx, time.Duration(cf.parent.Timeout))
 	defer cancel1()
 	if _, err := methods.GetCurrentTime(ctx1, cf.client.Client); err != nil {
-		log.Println("I! Client session seems to have time out. Reauthenticating!")
+		klog.InfoS("vsphere client session timed out, reauthenticating", "vcenter", cf.vSphereURL.Host)
 		ctx2, cancel2 := context.WithTimeout(ctx, time.Duration(cf.parent.Timeout))
 		defer cancel2()
 		if err := cf.client.Client.SessionManager.Login(ctx2, url.UserPassword(cf.parent.Username, cf.parent.Password)); err != nil {
@@ -124,7 +124,7 @@ func NewClient(ctx context.Context, vSphereURL *url.URL, vs *Instance) (*Client,
 		vSphereURL.User = url.UserPassword(vs.Username, vs.Password)
 	}
 	if vs.DebugMod {
-		log.Println("D! Creating client: ", vSphereURL.Host)
+		klog.V(1).InfoS("creating vsphere client", "vcenter", vSphereURL.Host)
 	}
 	soapClient := soap.NewClient(vSphereURL, tlsCfg.InsecureSkipVerify)
 
@@ -199,10 +199,10 @@ func NewClient(ctx context.Context, vSphereURL *url.URL, vs *Instance) (*Client,
 		return nil, err
 	}
 	if vs.DebugMod {
-		log.Println("D! vCenter says max_query_metrics should be ", n)
+		klog.V(1).InfoS("vcenter reported max_query_metrics", "vcenter", vSphereURL.Host, "max_query_metrics", n)
 	}
 	if n < vs.MaxQueryMetrics {
-		log.Printf("W! Configured max_query_metrics is %d, but server limits it to %d. Reducing.", vs.MaxQueryMetrics, n)
+		klog.Warningf("configured max_query_metrics is %d, but server limits it to %d; reducing", vs.MaxQueryMetrics, n)
 		vs.MaxQueryMetrics = n
 	}
 	return client, nil
@@ -225,7 +225,7 @@ func (c *Client) close() {
 		defer cancel()
 		if c.Client != nil {
 			if err := c.Client.Logout(ctx); err != nil {
-				log.Println("E! Logout: ", err.Error())
+				klog.ErrorS(err, "vsphere logout failed")
 			}
 		}
 	})
@@ -255,7 +255,7 @@ func (c *Client) GetMaxQueryMetrics(ctx context.Context) (int, error) {
 				v, err := strconv.Atoi(s)
 				if err == nil {
 					if c.DebugMode {
-						log.Printf("D! vCenter maxQueryMetrics is defined: %d", v)
+						klog.V(1).InfoS("vcenter maxQueryMetrics is defined", "max_query_metrics", v)
 					}
 					if v == -1 {
 						// Whatever the server says, we never ask for more metrics than this.
@@ -267,17 +267,17 @@ func (c *Client) GetMaxQueryMetrics(ctx context.Context) (int, error) {
 			// Fall through version-based inference if value isn't usable
 		}
 	} else {
-		log.Println("W! Option query for maxQueryMetrics failed. Using default")
+		klog.Warning("option query for maxQueryMetrics failed; using default")
 	}
 
 	// No usable maxQueryMetrics setting. Infer based on version
 	ver := c.Client.Client.ServiceContent.About.Version
 	parts := strings.Split(ver, ".")
 	if len(parts) < 2 {
-		log.Printf("W! vCenter returned an invalid version string: %s. Using default query size=64", ver)
+		klog.Warningf("vCenter returned an invalid version string: %s; using default query size=64", ver)
 		return 64, nil
 	}
-	log.Println("I! vCenter version is: ", ver)
+	klog.InfoS("vcenter version detected", "version", ver)
 	major, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return 0, err

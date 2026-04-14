@@ -1,13 +1,13 @@
 package influx
 
 import (
-	"log"
 	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/types/metric"
 	"github.com/influxdata/line-protocol/v2/lineprotocol"
+	"k8s.io/klog/v2"
 )
 
 // Parser is an InfluxDB Line Protocol parser that implements the
@@ -34,7 +34,7 @@ func (p *Parser) Parse(input []byte, slist *types.SampleList) error {
 	for decoder.Next() {
 		m, err := nextMetric(decoder, p.precision, p.defaultTime)
 		if err != nil {
-			log.Println("E! failed to parse influx line:", string(input), err)
+			klog.ErrorS(err, "failed to parse influx line", "input", string(input))
 			continue
 		}
 		metrics = append(metrics, m)

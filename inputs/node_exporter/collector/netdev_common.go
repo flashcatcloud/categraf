@@ -20,11 +20,12 @@ package collector
 import (
 	"errors"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"log"
 	"net"
 	"strconv"
 	"sync"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -53,7 +54,7 @@ func init() {
 func NewNetDevCollector() (Collector, error) {
 	if *oldNetdevDeviceInclude != "" {
 		if *netdevDeviceInclude == "" {
-			log.Println("W! --collector.netdev.device-whitelist is DEPRECATED and will be removed in 2.0.0, use --collector.netdev.device-include")
+			klog.Warning("--collector.netdev.device-whitelist is DEPRECATED and will be removed in 2.0.0, use --collector.netdev.device-include")
 			*netdevDeviceInclude = *oldNetdevDeviceInclude
 		} else {
 			return nil, errors.New("--collector.netdev.device-whitelist and --collector.netdev.device-include are mutually exclusive")
@@ -62,7 +63,7 @@ func NewNetDevCollector() (Collector, error) {
 
 	if *oldNetdevDeviceExclude != "" {
 		if *netdevDeviceExclude == "" {
-			log.Println("W! --collector.netdev.device-blacklist is DEPRECATED and will be removed in 2.0.0, use --collector.netdev.device-exclude")
+			klog.Warning("--collector.netdev.device-blacklist is DEPRECATED and will be removed in 2.0.0, use --collector.netdev.device-exclude")
 			*netdevDeviceExclude = *oldNetdevDeviceExclude
 		} else {
 			return nil, errors.New("--collector.netdev.device-blacklist and --collector.netdev.device-exclude are mutually exclusive")
@@ -74,11 +75,11 @@ func NewNetDevCollector() (Collector, error) {
 	}
 
 	if *netdevDeviceExclude != "" {
-		log.Println("Parsed flag --collector.netdev.device-exclude", "flag", *netdevDeviceExclude)
+		klog.InfoS("parsed flag --collector.netdev.device-exclude", "flag", *netdevDeviceExclude)
 	}
 
 	if *netdevDeviceInclude != "" {
-		log.Println("Parsed Flag --collector.netdev.device-include", "flag", *netdevDeviceInclude)
+		klog.InfoS("parsed flag --collector.netdev.device-include", "flag", *netdevDeviceInclude)
 	}
 
 	return &netDevCollector{

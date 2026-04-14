@@ -22,12 +22,13 @@ import (
 	"fmt"
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/prometheus/client_golang/prometheus"
-	"log"
 	"math"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -138,7 +139,7 @@ func NewSystemdCollector() (Collector, error) {
 
 	if *oldSystemdUnitExclude != "" {
 		if !systemdUnitExcludeSet {
-			log.Println("W! --collector.systemd.unit-blacklist is DEPRECATED and will be removed in 2.0.0, use --collector.systemd.unit-exclude")
+			klog.Warning("--collector.systemd.unit-blacklist is deprecated and will be removed in 2.0.0, use --collector.systemd.unit-exclude")
 			*systemdUnitExclude = *oldSystemdUnitExclude
 		} else {
 			return nil, errors.New("--collector.systemd.unit-blacklist and --collector.systemd.unit-exclude are mutually exclusive")
@@ -146,7 +147,7 @@ func NewSystemdCollector() (Collector, error) {
 	}
 	if *oldSystemdUnitInclude != "" {
 		if !systemdUnitIncludeSet {
-			log.Println("W! --collector.systemd.unit-whitelist is DEPRECATED and will be removed in 2.0.0, use --collector.systemd.unit-include")
+			klog.Warning("--collector.systemd.unit-whitelist is deprecated and will be removed in 2.0.0, use --collector.systemd.unit-include")
 			*systemdUnitInclude = *oldSystemdUnitInclude
 		} else {
 			return nil, errors.New("--collector.systemd.unit-whitelist and --collector.systemd.unit-include are mutually exclusive")

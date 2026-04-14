@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"time"
+
+	"k8s.io/klog/v2"
 )
 
 // ReadDeadliner has a SetReadDeadline function to be used for interrupting reads.
@@ -21,9 +22,9 @@ type ReadDeadliner interface {
 func SetReadDeadlineOnDone(ctx context.Context, d ReadDeadliner) {
 	go func() {
 		<-ctx.Done()
-		log.Println("cancelled, setting read deadline to interrupt read")
+		klog.V(1).InfoS("cancelled, setting read deadline to interrupt read")
 		if err := d.SetReadDeadline(time.Now()); err != nil {
-			log.Printf("SetReadDeadline() -> %v", err)
+			klog.ErrorS(err, "SetReadDeadline failed")
 		}
 	}()
 }

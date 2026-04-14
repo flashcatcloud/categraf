@@ -9,13 +9,13 @@ package file
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/status"
+	"k8s.io/klog/v2"
 )
 
 // OpenFilesLimitWarningType is the key of the message generated when too many
@@ -84,7 +84,7 @@ func (p *Provider) FilesToTail(sources []*logsconfig.LogSource) []*File {
 				source.Messages.AddMessage(source.Config.Path, fmt.Sprintf("%d files tailed out of %d files matching", tailedFileCounter, len(files)))
 			}
 			if shouldLogErrors {
-				log.Println("W! Could not collect files:", err)
+				klog.Warning("Could not collect files:", err)
 			}
 			continue
 		}
@@ -112,7 +112,7 @@ func (p *Provider) FilesToTail(sources []*logsconfig.LogSource) []*File {
 	}
 
 	if len(filesToTail) == p.filesLimit {
-		log.Println("W! Reached the limit on the maximum number of files in use: ", p.filesLimit)
+		klog.Warning("Reached the limit on the maximum number of files in use: ", p.filesLimit)
 		return filesToTail
 	}
 
@@ -171,10 +171,10 @@ func (p *Provider) searchFiles(pattern string, source *logsconfig.LogSource) ([]
 			return nil, fmt.Errorf("malformed exclusion pattern: %s, %s", excludePattern, err)
 		}
 		for _, excludedPath := range excludedGlob {
-			log.Println("Adding excluded path:", excludedPath)
+			klog.Info("Adding excluded path:", excludedPath)
 			excludedPaths[excludedPath]++
 			if excludedPaths[excludedPath] > 1 {
-				log.Println("Overlapping excluded path:", excludedPath)
+				klog.Warning("Overlapping excluded path:", excludedPath)
 			}
 		}
 	}

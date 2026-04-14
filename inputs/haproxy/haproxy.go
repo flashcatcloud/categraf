@@ -2,12 +2,12 @@ package haproxy
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "haproxy"
@@ -109,6 +109,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	err := inputs.Collect(ins.e, slist)
 	if err != nil {
-		log.Println("E! failed to collect metrics:", err)
+		klog.ErrorS(err, "failed to collect metrics")
 	}
 }

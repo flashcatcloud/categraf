@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -15,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/pkg/globpath"
 	"flashcat.cloud/categraf/types"
 	"github.com/karrick/godirwalk"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "filecount"
@@ -247,7 +247,7 @@ func (ins *Instance) count(slist *types.SampleList, basedir string, glob globpat
 		}
 		match, err := ins.filter(file)
 		if err != nil {
-			log.Println("E! filter file fail:", err)
+			klog.ErrorS(err, "filter file failed", "path", path)
 			return nil
 		}
 		if match {
@@ -309,14 +309,14 @@ func (ins *Instance) count(slist *types.SampleList, basedir string, glob globpat
 		FollowSymbolicLinks:  ins.FollowSymlinks,
 		ErrorCallback: func(osPathname string, err error) godirwalk.ErrorAction {
 			if errors.Is(err, fs.ErrPermission) {
-				log.Println("E! no permission to walk dir:", err)
+				klog.ErrorS(err, "no permission to walk dir", "path", osPathname)
 				return godirwalk.SkipNode
 			}
 			return godirwalk.Halt
 		},
 	})
 	if err != nil {
-		log.Println("E! count dir error:", err)
+		klog.ErrorS(err, "count dir error", "directory", basedir)
 	}
 }
 

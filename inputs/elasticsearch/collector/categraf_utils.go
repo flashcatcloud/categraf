@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
+
+	"k8s.io/klog/v2"
 )
 
 func GetNodeID(client *http.Client, user, password, s string) (string, error) {
@@ -30,7 +31,7 @@ func GetNodeID(client *http.Client, user, password, s string) (string, error) {
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 
@@ -70,7 +71,7 @@ func GetClusterName(client *http.Client, user, password, s string) (string, erro
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close response body, err: ", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 	if res.StatusCode != http.StatusOK {
@@ -102,7 +103,7 @@ func GetCatMaster(client *http.Client, user, password, s string) (string, error)
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 
@@ -133,7 +134,7 @@ func queryURL(client *http.Client, u *url.URL) ([]byte, error) {
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 

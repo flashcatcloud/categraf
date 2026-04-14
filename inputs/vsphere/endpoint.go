@@ -2,8 +2,6 @@ package vsphere
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"math"
 	"math/rand"
 	"net/url"
@@ -18,6 +16,7 @@ import (
 	"github.com/vmware/govmomi/performance"
 	"github.com/vmware/govmomi/vim25/mo"
 	gtypes "github.com/vmware/govmomi/vim25/types"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/types"
@@ -255,7 +254,7 @@ func anythingEnabled(ex []string) bool {
 func newFilterOrPanic(include []string, exclude []string) filter.Filter {
 	f, err := filter.NewIncludeExcludeFilter(include, exclude)
 	if err != nil {
-		log.Println("E! Include/exclude filters are invalid: ", err)
+		klog.ErrorS(err, "include/exclude filters are invalid")
 		return nil
 	}
 	return f
@@ -281,10 +280,10 @@ func (e *Endpoint) startDiscovery(ctx context.Context) {
 			case <-e.discoveryTicker.C:
 				err := e.discover(ctx)
 				if err != nil && err != context.Canceled {
-					log.Println(fmt.Sprintf("E! Discovery for %s: %s", e.URL.Host, err.Error()))
+					klog.ErrorS(err, "vsphere discovery failed", "host", e.URL.Host)
 				}
 			case <-ctx.Done():
-				log.Println("D! Exiting discovery goroutine for ", e.URL.Host)
+				klog.V(1).InfoS("exiting discovery goroutine", "host", e.URL.Host)
 				e.discoveryTicker.Stop()
 				return
 			}
@@ -295,7 +294,7 @@ func (e *Endpoint) startDiscovery(ctx context.Context) {
 func (e *Endpoint) initalDiscovery(ctx context.Context) {
 	err := e.discover(ctx)
 	if err != nil && err != context.Canceled {
-		log.Println(fmt.Sprintf("E! Discovery for %s: %s", e.URL.Host, err.Error()))
+		klog.ErrorS(err, "initial vsphere discovery failed", "host", e.URL.Host)
 	}
 	e.startDiscovery(ctx)
 }
@@ -310,14 +309,14 @@ func (e *Endpoint) init(ctx context.Context) error {
 	if e.customAttrEnabled {
 		fields, err := client.GetCustomFields(ctx)
 		if err != nil {
-			log.Println("W! Could not load custom field metadata")
+			klog.Warning("could not load custom field metadata")
 		} else {
 			e.customFields = fields
 		}
 	}
 
 	if time.Duration(e.Parent.ObjectDiscoveryInterval) > 0 {
-		log.Println("D! Running initial discovery")
+		klog.V(1).InfoS("running initial discovery", "host", e.URL.Host)
 		e.initalDiscovery(ctx)
 	}
 	e.initialized = true
@@ -387,7 +386,7 @@ func (e *Endpoint) getAncestorName(ctx context.Context, client *Client, resource
 			defer cancel1()
 			err := o.Properties(ctx1, here, []string{"parent", "name"}, &result)
 			if err != nil {
-				log.Printf("W! Error while resolving parent. Assuming no parent exists. Error: %s", err.Error())
+				klog.Warningf("error while resolving parent; assuming no parent exists: %s", err.Error())
 				return true
 			}
 			if result.Reference().Type == resourceType {
@@ -397,7 +396,7 @@ func (e *Endpoint) getAncestorName(ctx context.Context, client *Client, resource
 			}
 			if result.Parent == nil {
 				if e.debug() {
-					log.Printf("D! No parent found for %s (ascending from %s)", here.Reference(), r.Reference())
+					klog.V(1).InfoS("no parent found while ascending", "current", here.Reference(), "origin", r.Reference())
 				}
 
 				return true
@@ -433,7 +432,7 @@ func (e *Endpoint) discover(ctx context.Context) error {
 		return err
 	}
 	if e.debug() {
-		log.Printf("D! Discover new objects for %s", e.URL.Host)
+		klog.V(1).InfoS("discovering new objects", "host", e.URL.Host)
 	}
 	dcNameCache := make(map[string]string)
 
@@ -443,7 +442,7 @@ func (e *Endpoint) discover(ctx context.Context) error {
 	newObjects := make(map[string]objectMap)
 	for k, res := range e.resourceKinds {
 		if e.debug() {
-			log.Printf("D! Discovering resources for %s", res.name)
+			klog.V(1).InfoS("discovering resource kind", "resource", res.name)
 		}
 		// Need to do this for all resource types even if they are not enabled
 		if res.enabled || k != "vm" {
@@ -480,7 +479,7 @@ func (e *Endpoint) discover(ctx context.Context) error {
 			}
 			newObjects[k] = objects
 			if e.debug() {
-				log.Printf("D! discovered_objects  type is : %s   and number is : %d ", res.name, int64(len(objects)))
+				klog.V(1).InfoS("discovered objects", "resource", res.name, "count", int64(len(objects)))
 			}
 			numRes += int64(len(objects))
 		}
@@ -502,7 +501,7 @@ func (e *Endpoint) discover(ctx context.Context) error {
 	if e.customAttrEnabled {
 		fields, err = client.GetCustomFields(ctx)
 		if err != nil {
-			log.Printf("W! Could not load custom field metadata ,Error:  %s", err.Error())
+			klog.Warningf("could not load custom field metadata: %s", err.Error())
 			fields = nil
 		}
 	}
@@ -520,18 +519,18 @@ func (e *Endpoint) discover(ctx context.Context) error {
 		e.customFields = fields
 	}
 	if e.debug() {
-		log.Printf("D! discovered_objects  type is : %s   and number is : %d ", "instance-total", numRes)
+		klog.V(1).InfoS("discovered objects", "resource", "instance-total", "count", numRes)
 	}
 	return nil
 }
 
 func (e *Endpoint) simpleMetadataSelect(ctx context.Context, client *Client, res *resourceKind) {
 	if e.debug() {
-		log.Printf("D! Using fast metric metadata selection for %s", res.name)
+		klog.V(1).InfoS("using fast metric metadata selection", "resource", res.name)
 	}
 	m, err := client.CounterInfoByName(ctx)
 	if err != nil {
-		log.Printf("E! Getting metric metadata. Discovery will be incomplete. Error: %s", err.Error())
+		klog.ErrorS(err, "getting metric metadata failed; discovery will be incomplete", "resource", res.name)
 		return
 	}
 	res.metrics = make(performance.MetricList, 0, len(res.include))
@@ -547,7 +546,7 @@ func (e *Endpoint) simpleMetadataSelect(ctx context.Context, client *Client, res
 			}
 			res.metrics = append(res.metrics, cnt)
 		} else {
-			log.Printf("W! Metric name %s is unknown. Will not be collected", s)
+			klog.Warningf("metric name %s is unknown and will not be collected", s)
 		}
 	}
 }
@@ -576,7 +575,7 @@ func (e *Endpoint) complexMetadataSelect(ctx context.Context, res *resourceKind,
 	instInfoMux := sync.Mutex{}
 	te, err := NewThrottledExecutor(e.Parent.DiscoverConcurrency)
 	if err != nil {
-		log.Println("E! NewThrottledExecutor", err.Error())
+		klog.ErrorS(err, "create throttled executor failed")
 		return
 	}
 	for _, obj := range sampledObjects {
@@ -584,7 +583,7 @@ func (e *Endpoint) complexMetadataSelect(ctx context.Context, res *resourceKind,
 			te.Run(ctx, func() {
 				metrics, err := e.getMetadata(ctx, obj, res.sampling)
 				if err != nil {
-					log.Printf("E! Getting metric metadata. Discovery will be incomplete. Error: %s", err.Error())
+					klog.ErrorS(err, "getting metric metadata failed; discovery will be incomplete", "resource", res.name, "object", obj.name)
 				}
 				mMap := make(map[string]gtypes.PerfMetricId)
 				for _, m := range metrics {
@@ -598,7 +597,7 @@ func (e *Endpoint) complexMetadataSelect(ctx context.Context, res *resourceKind,
 					}
 				}
 				if e.debug() {
-					log.Printf("D!Found %d metrics for %s", len(mMap), obj.name)
+					klog.V(1).InfoS("found metrics for object", "count", len(mMap), "object", obj.name)
 				}
 				instInfoMux.Lock()
 				defer instInfoMux.Unlock()
@@ -622,7 +621,7 @@ func getDatacenters(ctx context.Context, e *Endpoint, resourceFilter *ResourceFi
 	defer cancel1()
 	err := resourceFilter.FindAll(ctx1, &resources)
 	if err != nil {
-		log.Println("E! getDatacenters resourceFilter.FindAll Error:", err.Error())
+		klog.ErrorS(err, "getDatacenters resourceFilter.FindAll error")
 		return nil, err
 	}
 	m := make(objectMap, len(resources))
@@ -644,7 +643,7 @@ func getClusters(ctx context.Context, e *Endpoint, resourceFilter *ResourceFilte
 	defer cancel1()
 	err := resourceFilter.FindAll(ctx1, &resources)
 	if err != nil {
-		log.Println("E! getClusters resourceFilter.FindAll Error:", err.Error())
+		klog.ErrorS(err, "getClusters resourceFilter.FindAll error")
 		return nil, err
 	}
 	cache := make(map[string]*gtypes.ManagedObjectReference)
@@ -667,7 +666,7 @@ func getClusters(ctx context.Context, e *Endpoint, resourceFilter *ResourceFilte
 				defer cancel3()
 				err = o.Properties(ctx3, *r.Parent, []string{"parent"}, &folder)
 				if err != nil {
-					log.Printf("W! Error while getting folder parent: %s", err.Error())
+					klog.Warningf("error while getting folder parent: %s", err.Error())
 					p = nil
 				} else {
 					pp := folder.Parent.Reference()
@@ -695,7 +694,7 @@ func getResourcePools(ctx context.Context, e *Endpoint, resourceFilter *Resource
 	var resources []mo.ResourcePool
 	err := resourceFilter.FindAll(ctx, &resources)
 	if err != nil {
-		log.Println("E! getResourcePools resourceFilter.FindAll Error:", err.Error())
+		klog.ErrorS(err, "getResourcePools resourceFilter.FindAll error")
 		return nil, err
 	}
 	m := make(objectMap)
@@ -725,7 +724,7 @@ func getHosts(ctx context.Context, e *Endpoint, resourceFilter *ResourceFilter) 
 	var resources []mo.HostSystem
 	err := resourceFilter.FindAll(ctx, &resources)
 	if err != nil {
-		log.Println("E! getHosts resourceFilter.FindAll Error:", err.Error())
+		klog.ErrorS(err, "getHosts resourceFilter.FindAll error")
 		return nil, err
 	}
 	m := make(objectMap)
@@ -746,7 +745,7 @@ func getVMs(ctx context.Context, e *Endpoint, resourceFilter *ResourceFilter) (o
 	defer cancel1()
 	err := resourceFilter.FindAll(ctx1, &resources)
 	if err != nil {
-		log.Println("E! getVMs resourceFilter.FindAll Error:", err.Error())
+		klog.ErrorS(err, "getVMs resourceFilter.FindAll error")
 		return nil, err
 	}
 	m := make(objectMap)
@@ -826,7 +825,7 @@ func getVMs(ctx context.Context, e *Endpoint, resourceFilter *ResourceFilter) (o
 				}
 				key, ok := e.customFields[val.Key]
 				if !ok {
-					log.Printf("W! Metadata for custom field %d not found. Skipping", val.Key)
+					klog.Warningf("metadata for custom field %d not found; skipping", val.Key)
 					continue
 				}
 				if e.customAttrFilter.Match(key) {
@@ -854,7 +853,7 @@ func getDatastores(ctx context.Context, e *Endpoint, resourceFilter *ResourceFil
 	defer cancel1()
 	err := resourceFilter.FindAll(ctx1, &resources)
 	if err != nil {
-		log.Println("E! getDatastores resourceFilter.FindAll Error:", err.Error())
+		klog.ErrorS(err, "getDatastores resourceFilter.FindAll error")
 		return nil, err
 	}
 	m := make(objectMap)
@@ -885,12 +884,12 @@ func (e *Endpoint) loadCustomAttributes(entity *mo.ManagedEntity) map[string]str
 	for _, v := range entity.CustomValue {
 		cv, ok := v.(*gtypes.CustomFieldStringValue)
 		if !ok {
-			log.Printf("W! Metadata for custom field %d not of string type. Skipping", cv.Key)
+			klog.Warning("metadata for custom field is not of string type; skipping")
 			continue
 		}
 		key, ok := e.customFields[cv.Key]
 		if !ok {
-			log.Printf("W! Metadata for custom field %d not found. Skipping", cv.Key)
+			klog.Warningf("metadata for custom field %d not found; skipping", cv.Key)
 			continue
 		}
 		if e.customAttrFilter.Match(key) {
@@ -958,7 +957,7 @@ func submitChunkJob(ctx context.Context, te *ThrottledExecutor, job queryJob, pq
 func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Time, latest time.Time, job queryJob) {
 	te, err := NewThrottledExecutor(e.Parent.CollectConcurrency)
 	if err != nil {
-		log.Println("E! NewThrottledExecutor", err.Error())
+		klog.ErrorS(err, "create throttled executor failed")
 		return
 	}
 	maxMetrics := e.Parent.MaxQueryMetrics
@@ -983,7 +982,7 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 			metricName := e.getMetricNameForID(metric.CounterId)
 			if metricName == "" {
 				if e.debug() {
-					log.Printf("D! Unable to find metric name for id %d. Skipping!", metric.CounterId)
+					klog.V(1).InfoS("unable to find metric name for id; skipping", "counter_id", metric.CounterId)
 				}
 				continue
 			}
@@ -1015,8 +1014,12 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 			// OR if we're past the absolute maximum limit
 			if (!res.realTime && len(bucket.MetricId) >= maxMetrics) || len(bucket.MetricId) > maxRealtimeMetrics {
 				if e.debug() {
-					log.Printf("D! Submitting partial query: %d metrics (%d remaining) of type %s for %s. Total objects %d",
-						len(bucket.MetricId), len(res.metrics)-metricIdx, res.name, e.URL.Host, len(res.objects))
+					klog.V(1).InfoS("submitting partial query",
+						"metrics", len(bucket.MetricId),
+						"remaining", len(res.metrics)-metricIdx,
+						"resource", res.name,
+						"host", e.URL.Host,
+						"objects", len(res.objects))
 				}
 
 				// Don't send work items if the context has been cancelled.
@@ -1035,7 +1038,7 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 			numQs += len(bucket.MetricId)
 			if (!res.realTime && numQs > e.Parent.MaxQueryObjects) || numQs > maxRealtimeMetrics {
 				if e.debug() {
-					log.Printf("D! Submitting final bucket job for %s: %d metrics", res.name, numQs)
+					klog.V(1).InfoS("submitting final bucket job", "resource", res.name, "metrics", numQs)
 				}
 				submitChunkJob(ctx, te, job, pqs)
 				pqs = make(queryChunk, 0, e.Parent.MaxQueryObjects)
@@ -1046,7 +1049,7 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 	// Submit any jobs left in the queue
 	if len(pqs) > 0 {
 		if e.debug() {
-			log.Printf("D! Submitting job for %s: %d objects, %d metrics", res.name, len(pqs), numQs)
+			klog.V(1).InfoS("submitting job", "resource", res.name, "objects", len(pqs), "metrics", numQs)
 		}
 		submitChunkJob(ctx, te, job, pqs)
 	}
@@ -1059,15 +1062,15 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 	res := e.resourceKinds[resourceType]
 	client, err := e.clientFactory.GetClient(ctx)
 	if e.debug() {
-		log.Printf("D! collectResource  %s ", resourceType)
+		klog.V(1).InfoS("collecting resource", "resource", resourceType)
 	}
 	if err != nil {
-		log.Println("E! collectResource  Error: ", err.Error())
+		klog.ErrorS(err, "collectResource failed", "resource", resourceType)
 		return err
 	}
 	now, err := client.GetServerTime(ctx)
 	if err != nil {
-		log.Println("E! GetServerTime  Error : ", err.Error())
+		klog.ErrorS(err, "GetServerTime failed", "resource", resourceType)
 		return err
 	}
 
@@ -1084,11 +1087,11 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 			estInterval = s
 		}
 		if e.debug() {
-			log.Printf("D! resourceType %s Raw interval %s, padded: %s, estimated: %s", resourceType, rawInterval, paddedInterval, estInterval)
+			klog.V(1).InfoS("resource interval estimated", "resource", resourceType, "raw_interval", rawInterval, "padded_interval", paddedInterval, "estimated_interval", estInterval)
 		}
 	}
 	if e.debug() {
-		log.Printf("D! resourceType %s Interval estimated to %s", resourceType, estInterval)
+		klog.V(1).InfoS("resource interval estimated", "resource", resourceType, "estimated_interval", estInterval)
 	}
 	res.lastColl = localNow
 
@@ -1096,13 +1099,12 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 	if !latest.IsZero() {
 		elapsed := now.Sub(latest).Seconds() + 5.0 // Allow 5 second jitter.
 		if e.debug() {
-			log.Printf("D! Latest: %s, elapsed: %f, resource: %s", latest, elapsed, resourceType)
+			klog.V(1).InfoS("latest sample state", "latest", latest, "elapsed", elapsed, "resource", resourceType)
 		}
 		if !res.realTime && elapsed < float64(res.sampling) {
 			// No new data would be available. We're outta here!
 			if e.debug() {
-				log.Printf("D! Sampling period for %s of %d has not elapsed on %s",
-					resourceType, res.sampling, e.URL.Host)
+				klog.V(1).InfoS("sampling period has not elapsed", "resource", resourceType, "sampling", res.sampling, "host", e.URL.Host)
 			}
 			return nil
 		}
@@ -1110,8 +1112,7 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 		latest = now.Add(time.Duration(-res.sampling) * time.Second)
 	}
 	if e.debug() {
-		log.Printf("D! Collecting metrics for %d objects of type %s for %s",
-			len(res.objects), resourceType, e.URL.Host)
+		klog.V(1).InfoS("collecting metrics", "objects", len(res.objects), "resource", resourceType, "host", e.URL.Host)
 	}
 
 	count := int64(0)
@@ -1125,12 +1126,12 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 			n, localLatest, err := e.collectChunk(ctx, chunk, res, slist, estInterval)
 			if err != nil {
 				if e.debug() {
-					log.Printf("D! CollectChunk for %s returned %d metrics   err: %s ", resourceType, n, err)
+					klog.V(1).InfoS("collectChunk returned error", "resource", resourceType, "metrics", n, "err", err)
 				}
 				return
 			}
 			if e.debug() {
-				log.Printf("D! CollectChunk for %s returned %d metrics", resourceType, n)
+				klog.V(1).InfoS("collectChunk completed", "resource", resourceType, "metrics", n)
 			}
 			atomic.AddInt64(&count, int64(n))
 			tsMux.Lock()
@@ -1140,13 +1141,13 @@ func (e *Endpoint) collectResource(ctx context.Context, resourceType string, sli
 			}
 		})
 	if e.debug() {
-		log.Printf("D! Latest sample for %s set to %s", resourceType, latestSample)
+		klog.V(1).InfoS("latest sample updated", "resource", resourceType, "latest_sample", latestSample)
 	}
 	if !latestSample.IsZero() {
 		res.latestSample = latestSample
 	}
 	if e.debug() {
-		log.Printf("discovered_objects  type is : %s   and number is : %d ", resourceType, count)
+		klog.V(1).InfoS("collected objects", "resource", resourceType, "count", count)
 	}
 
 	return nil
@@ -1162,7 +1163,7 @@ func (e *Endpoint) alignSamples(info []gtypes.PerfSampleInfo, values []int64, in
 		// data coming back with missing values. Take care of that gracefully!
 		if idx >= len(values) {
 			if e.debug() {
-				log.Printf("D! len(SampleInfo)>len(Value) %d > %d during alignment", len(info), len(values))
+				klog.V(1).InfoS("sample/value length mismatch during alignment", "sample_info_len", len(info), "value_len", len(values))
 			}
 			break
 		}
@@ -1194,14 +1195,14 @@ func (e *Endpoint) alignSamples(info []gtypes.PerfSampleInfo, values []int64, in
 
 func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resourceKind, slist *types.SampleList, interval time.Duration) (int, time.Time, error) {
 	if e.debug() {
-		log.Printf("D! Query for %s has %d QuerySpecs", res.name, len(pqs))
+		klog.V(1).InfoS("query chunk specs", "resource", res.name, "query_specs", len(pqs))
 	}
 	latestSample := time.Time{}
 	count := 0
 	resourceType := res.name
 	prefix := resourceType
 	if e.debug() {
-		log.Printf("D! collectChunk for %s", resourceType)
+		klog.V(1).InfoS("collectChunk start", "resource", resourceType)
 	}
 	client, err := e.clientFactory.GetClient(ctx)
 	if err != nil {
@@ -1215,11 +1216,11 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 
 	ems, err := client.QueryMetrics(ctx, pqs)
 	if err != nil {
-		log.Printf("W! client.QueryMetrics for %s  error is %s", resourceType, err.Error())
+		klog.Warningf("client.QueryMetrics for %s error: %s", resourceType, err.Error())
 		return count, latestSample, err
 	}
 	if e.debug() {
-		log.Printf("D! Query for %s returned metrics for %d objects\r\n", resourceType, len(ems))
+		klog.V(1).InfoS("query returned metrics", "resource", resourceType, "objects", len(ems))
 	}
 
 	// Iterate through results
@@ -1227,12 +1228,12 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 		moid := em.Entity.Reference().Value
 		instInfo, found := res.objects[moid]
 		if !found {
-			log.Printf("E! MOID %s not found in cache. Skipping! (This should not happen!)\r\n", moid)
+			klog.ErrorS(nil, "MOID not found in cache; skipping", "moid", moid)
 			continue
 		}
 		buckets := make(map[string]metricEntry)
 		if e.debug() {
-			log.Printf("D! Query for %s  em.Value len is %d \r\n", resourceType, len(em.Value))
+			klog.V(1).InfoS("query returned value count", "resource", resourceType, "value_len", len(em.Value))
 		}
 		for _, v := range em.Value {
 			name := v.Name
@@ -1245,7 +1246,7 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 			// Populate tags
 			objectRef, ok := res.objects[moid]
 			if !ok {
-				log.Printf("E! MOID %s not found in cache. Skipping", moid)
+				klog.ErrorS(nil, "MOID not found in cache; skipping", "moid", moid)
 				continue
 			}
 			e.populateTags(objectRef, resourceType, res, t, &v)
@@ -1253,14 +1254,14 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 			nValues := 0
 			alignedInfo, alignedValues := e.alignSamples(em.SampleInfo, v.Value, interval)
 			if e.debug() {
-				log.Printf("D! Query for %s  alignedInfo len is %d \r\n", resourceType, len(alignedInfo))
+				klog.V(1).InfoS("aligned sample info count", "resource", resourceType, "aligned_info_len", len(alignedInfo))
 			}
 			for idx, sample := range alignedInfo {
 				// According to the docs, SampleInfo and Value should have the same length, but we've seen corrupted
 				// data coming back with missing values. Take care of that gracefully!
 				if idx >= len(alignedValues) {
 					if e.debug() {
-						log.Printf("D! Len(SampleInfo)>len(Value) %d > %d\r\n", len(alignedInfo), len(alignedValues))
+						klog.V(1).InfoS("aligned sample/value length mismatch", "sample_info_len", len(alignedInfo), "value_len", len(alignedValues))
 					}
 					break
 				}
@@ -1273,7 +1274,7 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 				// Organize the metrics into a bucket per measurement.
 				mn, fn := e.makeMetricIdentifier(prefix, name)
 				if e.debug() {
-					log.Printf("D! makeMetricIdentifier: %s   %s\r\n", prefix, name)
+					klog.V(1).InfoS("makeMetricIdentifier", "prefix", prefix, "name", name)
 				}
 				bKey := mn + " " + v.Instance + " " + strconv.FormatInt(ts.UnixNano(), 10)
 				bucket, found := buckets[bKey]
@@ -1285,7 +1286,7 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 				// Percentage values must be scaled down by 100.
 				info, ok := metricInfo[name]
 				if !ok {
-					log.Printf("E! Could not determine unit for %s. Skipping\r\n", name)
+					klog.ErrorS(nil, "could not determine unit; skipping", "metric", name)
 				}
 				v := alignedValues[idx]
 				if info.UnitInfo.GetElementDescription().Key == "percent" {
@@ -1304,7 +1305,7 @@ func (e *Endpoint) collectChunk(ctx context.Context, pqs queryChunk, res *resour
 			}
 			if nValues == 0 {
 				if e.debug() {
-					log.Printf("D! Missing value for: %s, %s", name, objectRef.name)
+					klog.V(1).InfoS("missing value", "metric", name, "object", objectRef.name)
 				}
 				continue
 			}

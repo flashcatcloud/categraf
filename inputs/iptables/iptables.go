@@ -5,7 +5,6 @@ package iptables
 
 import (
 	"errors"
-	"log"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "iptables"
@@ -59,7 +59,7 @@ type chainLister func(table, chain string) (string, error)
 
 func (ins *Instance) Init() error {
 	if ins.Table == "" || len(ins.Chains) == 0 {
-		log.Println("W! Table or Chains is empty")
+		klog.Warning("iptables table or chains is empty")
 		return types.ErrInstancesEmpty
 	}
 	if ins.lister == nil {
@@ -71,11 +71,11 @@ func (ins *Instance) Init() error {
 // Gather gathers iptables packets and bytes throughput from the configured tables and chains.
 func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.Table == "" || len(ins.Chains) == 0 {
-		log.Println("W! Table or Chains is empty")
+		klog.Warning("iptables table or chains is empty")
 		return
 	}
 	if ins.lister == nil {
-		log.Println("E! Lister is empty or not initialized")
+		klog.Error("iptables lister is empty or not initialized")
 		return
 	}
 	// best effort : we continue through the chains even if an error is encountered,
@@ -83,12 +83,12 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, chain := range ins.Chains {
 		data, err := ins.lister(ins.Table, chain)
 		if err != nil {
-			log.Println("E! ChainLister error:", err)
+			klog.ErrorS(err, "iptables chain lister failed", "table", ins.Table, "chain", chain)
 			continue
 		}
 		err = ins.parseAndGather(data, slist)
 		if err != nil {
-			log.Println("E! ParseAndGather failed:", err)
+			klog.ErrorS(err, "iptables parse and gather failed", "table", ins.Table, "chain", chain)
 			continue
 		}
 	}

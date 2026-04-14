@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/pkg/jsonx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "logstash"
@@ -157,11 +157,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if choice.Contains("jvm", ins.Collect) {
 		jvmURL, err := url.Parse(ins.URL + jvmStats)
 		if err != nil {
-			log.Println("E! failed to parse url:", ins.URL+jvmStats)
+			klog.ErrorS(err, "failed to parse logstash url", "url", ins.URL+jvmStats)
 			return
 		}
 		if err := ins.gatherJVMStats(jvmURL.String(), slist); err != nil {
-			log.Println("E! failed to gather jvm stats:", err)
+			klog.ErrorS(err, "failed to gather jvm stats", "url", jvmURL.String())
 			return
 		}
 	}
@@ -169,11 +169,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if choice.Contains("process", ins.Collect) {
 		processURL, err := url.Parse(ins.URL + processStats)
 		if err != nil {
-			log.Println("E! failed to parse url:", ins.URL+processStats)
+			klog.ErrorS(err, "failed to parse logstash url", "url", ins.URL+processStats)
 			return
 		}
 		if err := ins.gatherProcessStats(processURL.String(), slist); err != nil {
-			log.Println("E! failed to gather process stats:", err)
+			klog.ErrorS(err, "failed to gather process stats", "url", processURL.String())
 			return
 		}
 	}
@@ -182,21 +182,21 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		if ins.SinglePipeline {
 			pipelineURL, err := url.Parse(ins.URL + pipelineStats)
 			if err != nil {
-				log.Println("E! failed to parse url:", ins.URL+pipelineStats)
+				klog.ErrorS(err, "failed to parse logstash url", "url", ins.URL+pipelineStats)
 				return
 			}
 			if err := ins.gatherPipelineStats(pipelineURL.String(), slist); err != nil {
-				log.Println("E! failed to gather pipeline stats:", err)
+				klog.ErrorS(err, "failed to gather pipeline stats", "url", pipelineURL.String())
 				return
 			}
 		} else {
 			pipelinesURL, err := url.Parse(ins.URL + pipelinesStats)
 			if err != nil {
-				log.Println("E! failed to parse url:", ins.URL+pipelinesStats)
+				klog.ErrorS(err, "failed to parse logstash url", "url", ins.URL+pipelinesStats)
 				return
 			}
 			if err := ins.gatherPipelinesStats(pipelinesURL.String(), slist); err != nil {
-				log.Println("E! failed to gather pipelines stats:", err)
+				klog.ErrorS(err, "failed to gather pipelines stats", "url", pipelinesURL.String())
 				return
 			}
 		}

@@ -5,7 +5,6 @@ package codegen
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"regexp"
 	"time"
@@ -19,6 +18,7 @@ import (
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/compiler/position"
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/compiler/symbol"
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/compiler/types"
+	"k8s.io/klog/v2"
 )
 
 // codegen represents a code generator.
@@ -97,7 +97,7 @@ func (c *codegen) VisitBefore(node ast.Node) (ast.Visitor, ast.Node) {
 			dtyp = metrics.Buckets
 		default:
 			if !types.IsComplete(t) {
-				log.Printf("Incomplete type %v for %#v", t, n)
+				klog.Warningf("incomplete type %v for %#v", t, n)
 			}
 			dtyp = metrics.Int
 		}

@@ -5,7 +5,6 @@ package ping
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -14,6 +13,7 @@ import (
 	"syscall"
 
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 type roundTripTimeStats struct {
@@ -32,7 +32,7 @@ type statistics struct {
 
 func (ins *Instance) execGather(slist *types.SampleList, target string) {
 	if ins.DebugMod {
-		log.Println("D! ping...", target)
+		klog.V(1).InfoS("ping target", "target", target)
 	}
 
 	fields := map[string]interface{}{"result_code": 0}
@@ -72,9 +72,9 @@ func (ins *Instance) execGather(slist *types.SampleList, target string) {
 			// Combine go err + stderr output
 			out = strings.TrimSpace(out)
 			if len(out) > 0 {
-				log.Println(target, fmt.Errorf("%w - %s", err, out))
+				klog.ErrorS(fmt.Errorf("%w - %s", err, out), "ping command failed", "target", target)
 			} else {
-				log.Println(target, fmt.Errorf("%w", err))
+				klog.ErrorS(fmt.Errorf("%w", err), "ping command failed", "target", target)
 			}
 			fields["result_code"] = 2
 			return
@@ -84,7 +84,7 @@ func (ins *Instance) execGather(slist *types.SampleList, target string) {
 	stats, err := processPingOutput(out)
 	if err != nil {
 		// fatal error
-		log.Println(target, fmt.Errorf("%w - %s", err, out))
+		klog.ErrorS(fmt.Errorf("%w - %s", err, out), "failed to process ping output", "target", target)
 		fields["result_code"] = 2
 		return
 	}

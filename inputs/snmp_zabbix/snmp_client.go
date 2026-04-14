@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gosnmp/gosnmp"
+	"k8s.io/klog/v2"
 )
 
 type SNMPClientManager struct {
@@ -89,7 +90,7 @@ func (m *SNMPClientManager) GetClient(agent string) (*gosnmp.GoSNMP, error) {
 		}
 
 		// 客户端不健康，尝试重连
-		log.Printf("Client for %s is unhealthy, attempting to reconnect", agent)
+		klog.Warningf("client for %s is unhealthy, attempting to reconnect", agent)
 		if err := m.reconnectClient(agent); err != nil {
 			return nil, fmt.Errorf("failed to reconnect unhealthy client: %w", err)
 		}
@@ -147,7 +148,7 @@ func (m *SNMPClientManager) createNewClient(agent string) error {
 
 	// 执行初始健康检查
 	if err := m.performHealthCheckNoLock(wrapper); err != nil {
-		log.Printf("Initial health check failed for %s: %v", agent, err)
+		klog.Warningf("initial health check failed for %s: %v", agent, err)
 		wrapper.healthy = false
 		wrapper.lastError = err
 	}
@@ -193,7 +194,7 @@ func (m *SNMPClientManager) reconnectClient(agent string) error {
 	wrapper.retryCount = 0
 	wrapper.lastSuccess = time.Now()
 
-	log.Printf("Successfully reconnected client for %s", agent)
+	klog.InfoS("successfully reconnected client", "agent", agent)
 	return nil
 }
 
@@ -217,7 +218,7 @@ func (m *SNMPClientManager) healthCheckLoop() {
 		case <-ticker.C:
 			m.performAllHealthChecks()
 		case <-m.stopHealthCheck:
-			log.Println("Stopping health check loop")
+			klog.InfoS("stopping health check loop")
 			return
 		}
 	}
@@ -252,7 +253,7 @@ func (m *SNMPClientManager) performAllHealthChecks() {
 	case <-done:
 		// 所有检查完成
 	case <-time.After(m.healthCheckTimeout * 2):
-		log.Println("Health check timeout, some checks may not have completed")
+		klog.Warning("health check timeout, some checks may not have completed")
 	}
 }
 
@@ -279,14 +280,13 @@ func (m *SNMPClientManager) checkClientHealth(agent string) {
 		// 检查是否超过最大重试次数
 		if wrapper.retryCount >= m.maxRetries {
 			wrapper.healthy = false
-			log.Printf("Client %s marked unhealthy after %d retries: %v",
-				agent, wrapper.retryCount, err)
+			klog.Warningf("client %s marked unhealthy after %d retries: %v", agent, wrapper.retryCount, err)
 
 			// 尝试重连
 			go func() {
 				time.Sleep(5 * time.Second) // 延迟重连
 				if err := m.reconnectClient(agent); err != nil {
-					log.Printf("Failed to reconnect %s: %v", agent, err)
+					klog.ErrorS(err, "failed to reconnect client", "agent", agent)
 				}
 			}()
 		}
@@ -419,7 +419,7 @@ func (m *SNMPClientManager) Close() {
 	for agent, wrapper := range m.clients {
 		if wrapper.client != nil && wrapper.client.Conn != nil {
 			wrapper.client.Conn.Close()
-			log.Printf("Closed connection for agent %s", agent)
+			klog.InfoS("closed connection for agent", "agent", agent)
 		}
 		delete(m.clients, agent)
 	}
@@ -427,7 +427,7 @@ func (m *SNMPClientManager) Close() {
 
 // ForceHealthCheck 强制执行一次健康检查
 func (m *SNMPClientManager) ForceHealthCheck() {
-	log.Println("Forcing health check on all clients")
+	klog.InfoS("forcing health check on all clients")
 	go m.performAllHealthChecks()
 }
 
@@ -557,8 +557,11 @@ func (m *SNMPClientManager) createClient(agent string) (*gosnmp.GoSNMP, error) {
 			agentConfig.Host, agentConfig.Port, err)
 	}
 
-	log.Printf("Successfully created SNMP client for %s://%s:%d (version: %d)",
-		agentConfig.Transport, agentConfig.Host, agentConfig.Port, agentConfig.Version)
+	klog.InfoS("successfully created SNMP client",
+		"transport", agentConfig.Transport,
+		"host", agentConfig.Host,
+		"port", agentConfig.Port,
+		"version", agentConfig.Version)
 
 	return client, nil
 }
@@ -588,7 +591,7 @@ func (m *SNMPClientManager) setAuthProtocol(client *gosnmp.GoSNMP, config *Agent
 		return fmt.Errorf("unsupported auth protocol: %s", config.AuthProtocol)
 	}
 
-	log.Printf("Set auth protocol to %s for user %s", config.AuthProtocol, config.Username)
+	klog.InfoS("set auth protocol", "auth_protocol", config.AuthProtocol, "username", config.Username)
 	return nil
 }
 
@@ -617,7 +620,7 @@ func (m *SNMPClientManager) setPrivProtocol(client *gosnmp.GoSNMP, config *Agent
 		return fmt.Errorf("unsupported priv protocol: %s", config.PrivProtocol)
 	}
 
-	log.Printf("Set privacy protocol to %s for user %s", config.PrivProtocol, config.Username)
+	klog.InfoS("set privacy protocol", "priv_protocol", config.PrivProtocol, "username", config.Username)
 	return nil
 }
 

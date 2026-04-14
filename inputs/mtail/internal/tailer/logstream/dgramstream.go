@@ -6,12 +6,12 @@ package logstream
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"sync"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/logline"
 	"flashcat.cloud/categraf/inputs/mtail/internal/waker"
+	"k8s.io/klog/v2"
 )
 
 type dgramStream struct {
@@ -64,7 +64,7 @@ func (ds *dgramStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wak
 			err := c.Close()
 			if err != nil {
 				logErrors.Add(ds.address, 1)
-				log.Println(err)
+				klog.ErrorS(err, "failed to close datagram connection", "source", ds.sourcename)
 			}
 			logCloses.Add(ds.address, 1)
 			lr.Finish(ctx)

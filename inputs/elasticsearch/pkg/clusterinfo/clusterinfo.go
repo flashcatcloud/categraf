@@ -19,13 +19,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -170,24 +170,24 @@ func (r *Retriever) Run(ctx context.Context) error {
 		for {
 			select {
 			case <-ctx.Done():
-				log.Println("context cancelled, exiting cluster info update loop, err: ", ctx.Err())
+				klog.V(1).InfoS("context cancelled, exiting cluster info update loop", "error", ctx.Err())
 				return
 			case <-r.sync:
-				log.Println("providing consumers with updated cluster info label")
+				klog.V(1).InfoS("providing consumers with updated cluster info label")
 				res, err := r.fetchAndDecodeClusterInfo()
 				if err != nil {
-					log.Println("failed to retrieve cluster info from ES, err: ", err)
+					klog.ErrorS(err, "failed to retrieve cluster info from elasticsearch")
 					r.updateMetrics(nil)
 					continue
 				}
 				r.updateMetrics(res)
 				for name, consumerCh := range r.consumerChannels {
-					log.Println("sending update, consumer: ", name, "res: ", fmt.Sprintf("%+v", res))
+					klog.V(1).InfoS("sending cluster info update", "consumer", name, "response", fmt.Sprintf("%+v", res))
 					// 使用 recover 防止向已关闭 channel 发送导致 panic
 					func() {
 						defer func() {
 							if err := recover(); err != nil {
-								log.Printf("panic caught while sending to consumer %s: %v, removing consumer", name, err)
+								klog.ErrorS(fmt.Errorf("panic: %v", err), "panic caught while sending to cluster info consumer", "consumer", name)
 								// 可选：在这里从 r.consumerChannels 中移除该消费者，避免后续继续尝试发送
 								// delete(r.consumerChannels, name)
 							}
@@ -197,7 +197,7 @@ func (r *Retriever) Run(ctx context.Context) error {
 							// successfully sent
 						default:
 							// channel is full, skip this iteration
-							log.Println("consumer channel full, skipping: ", name)
+							klog.Warningf("cluster info consumer channel full, skipping: %s", name)
 						}
 					}()
 				}
@@ -211,13 +211,13 @@ func (r *Retriever) Run(ctx context.Context) error {
 		}
 	}(ctx)
 	// trigger initial cluster info call
-	log.Println("triggering initial cluster info call")
+	klog.V(1).InfoS("triggering initial cluster info call")
 	r.sync <- struct{}{}
 
 	// start a ticker routine
 	go func(ctx context.Context) {
 		if r.interval <= 0 {
-			log.Println("no periodic cluster info label update requested")
+			klog.V(1).InfoS("no periodic cluster info label update requested")
 			return
 		}
 		ticker := time.NewTicker(r.interval)
@@ -225,10 +225,10 @@ func (r *Retriever) Run(ctx context.Context) error {
 		for {
 			select {
 			case <-ctx.Done():
-				log.Println("context cancelled, exiting cluster info trigger loop, err: ", ctx.Err())
+				klog.V(1).InfoS("context cancelled, exiting cluster info trigger loop", "error", ctx.Err())
 				return
 			case <-ticker.C:
-				log.Println("triggering periodic update")
+				klog.V(1).InfoS("triggering periodic cluster info update")
 				r.sync <- struct{}{}
 			}
 		}
@@ -238,7 +238,7 @@ func (r *Retriever) Run(ctx context.Context) error {
 	select {
 	case <-startupComplete:
 		// first sync has been successful
-		log.Println("initial clusterinfo sync succeeded")
+		klog.V(1).InfoS("initial clusterinfo sync succeeded")
 		return nil
 	case <-time.After(initialTimeout):
 		// initial call timed out
@@ -256,14 +256,14 @@ func (r *Retriever) fetchAndDecodeClusterInfo() (*Response, error) {
 
 	res, err := r.client.Get(u.String())
 	if err != nil {
-		log.Println("failed to get cluster info, err: ", err)
+		klog.ErrorS(err, "failed to get elasticsearch cluster info")
 		return nil, err
 	}
 
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 

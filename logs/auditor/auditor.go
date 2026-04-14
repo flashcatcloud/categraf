@@ -9,7 +9,6 @@ package auditor
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -17,6 +16,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/message"
+	"k8s.io/klog/v2"
 )
 
 // DefaultRegistryFilename is the default registry filename
@@ -88,7 +88,7 @@ func (a *RegistryAuditor) Stop() {
 	a.closeChannels()
 	a.cleanupRegistry()
 	if err := a.flushRegistry(); err != nil {
-		log.Println("W!", err)
+		klog.Warning(err)
 	}
 }
 
@@ -171,10 +171,10 @@ func (a *RegistryAuditor) run() {
 			if err != nil {
 				if os.IsPermission(err) || os.IsNotExist(err) {
 					fileError.Do(func() {
-						log.Println("W!", err)
+						klog.Warning(err)
 					})
 				} else {
-					log.Println("E!", err)
+					klog.Error(err)
 				}
 			}
 		}
@@ -186,15 +186,15 @@ func (a *RegistryAuditor) recoverRegistry() map[string]*RegistryEntry {
 	mr, err := os.ReadFile(a.registryPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			log.Printf("I! Could not find state file at %q, will start with default offsets", a.registryPath)
+			klog.Infof("Could not find state file at %q, will start with default offsets", a.registryPath)
 		} else {
-			log.Println("E!", err)
+			klog.Error(err)
 		}
 		return make(map[string]*RegistryEntry)
 	}
 	r, err := a.unmarshalRegistry(mr)
 	if err != nil {
-		log.Println("E!", err)
+		klog.Error(err)
 		return make(map[string]*RegistryEntry)
 	}
 	return r

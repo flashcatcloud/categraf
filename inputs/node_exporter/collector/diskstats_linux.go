@@ -19,13 +19,13 @@ package collector
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/procfs/blockdevice"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -259,7 +259,7 @@ func NewDiskstatsCollector() (Collector, error) {
 
 	// Only enable getting device properties from udev if the directory is readable.
 	if stat, err := os.Stat(*udevDataPath); err != nil || !stat.IsDir() {
-		log.Println("E! failed to open directory, disabling udev device properties path", *udevDataPath)
+		klog.ErrorS(err, "failed to open directory, disabling udev device properties path", "path", *udevDataPath)
 	} else {
 		collector.getUdevDeviceProperties = getUdevDeviceProperties
 	}
@@ -372,7 +372,7 @@ func (c *diskstatsCollector) Update(ch chan<- prometheus.Metric) error {
 				if value, err := strconv.ParseFloat(str, 64); err == nil {
 					ch <- desc.mustNewConstMetric(value, dev)
 				} else {
-					log.Println("E! Failed to parse ATA value", err)
+					klog.ErrorS(err, "failed to parse ATA value", "value", str, "device", dev)
 				}
 			}
 		}

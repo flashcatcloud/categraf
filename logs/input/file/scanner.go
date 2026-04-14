@@ -8,7 +8,6 @@
 package file
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -22,6 +21,7 @@ import (
 	"flashcat.cloud/categraf/logs/pipeline"
 	"flashcat.cloud/categraf/logs/restart"
 	"flashcat.cloud/categraf/logs/util"
+	"k8s.io/klog/v2"
 )
 
 // rxContainerID is used in the shouldIgnore func to do a best-effort validation
@@ -204,7 +204,7 @@ func (s *Scanner) launchTailers(source *logsconfig.LogSource) {
 	files, err := s.fileProvider.CollectFiles(source)
 	if err != nil {
 		source.Status.Error(err)
-		log.Println("W! Could not collect files: ", err)
+		klog.Warning("Could not collect files: ", err)
 		return
 	}
 	for _, file := range files {
@@ -260,15 +260,15 @@ func (s *Scanner) startNewTailer(file *File, m logsconfig.TailingMode) bool {
 
 	offset, whence, err := Position(s.registry, tailer.Identifier(), mode)
 	if err != nil {
-		log.Println("W! Could not recover offset for file with path", file.Path, err)
+		klog.Warning("Could not recover offset for file with path", file.Path, err)
 	}
 
 	if util.Debug() {
-		log.Printf("Starting a new tailer for: %s (offset: %d, whence: %d) for tailer key %s\n", file.Path, offset, whence, file.GetScanKey())
+		klog.V(1).Infof("Starting a new tailer for: %s (offset: %d, whence: %d) for tailer key %s", file.Path, offset, whence, file.GetScanKey())
 	}
 	err = tailer.Start(offset, whence)
 	if err != nil {
-		log.Println(err)
+		klog.Error(err)
 		return false
 	}
 
@@ -346,7 +346,7 @@ func (s *Scanner) handleTailingModeChange(tailerID string, currentTailingMode lo
 	}
 	previousMode, _ := logsconfig.TailingModeFromString(s.registry.GetTailingMode(tailerID))
 	if previousMode != currentTailingMode {
-		log.Printf("Tailing mode changed for %v. Was: %v: Now: %v\n", tailerID, previousMode, currentTailingMode)
+		klog.Infof("Tailing mode changed for %v. Was: %v: Now: %v", tailerID, previousMode, currentTailingMode)
 		if currentTailingMode == logsconfig.Beginning {
 			// end -> beginning, the offset will be honored if it exists
 			return logsconfig.Beginning
@@ -366,13 +366,13 @@ func (s *Scanner) stopTailer(tailer *Tailer) {
 // restartTailer safely stops tailer and starts a new one
 // returns true if the new tailer is up and running, false if an error occurred
 func (s *Scanner) restartTailerAfterFileRotation(tailer *Tailer, file *File) bool {
-	log.Println("Log rotation happened to ", file.Path)
+	klog.Info("Log rotation happened to ", file.Path)
 	tailer.StopAfterFileRotation()
 	tailer = s.createRotatedTailer(file, tailer.outputChan, tailer.GetDetectedPattern())
 	// force reading file from beginning since it has been log-rotated
 	err := tailer.StartFromBeginning()
 	if err != nil {
-		log.Println(err)
+		klog.Error(err)
 		return false
 	}
 	s.tailers[file.GetScanKey()] = tailer

@@ -8,7 +8,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"net/smtp"
@@ -29,6 +28,7 @@ import (
 	"flashcat.cloud/categraf/pkg/proxy"
 	commontls "flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "x509_cert"
@@ -126,7 +126,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	if err := ins.sourcesToURLs(); err != nil {
-		log.Printf("E! failed to update sources: %v", err)
+		klog.ErrorS(err, "failed to update x509 certificate sources")
 		return
 	}
 
@@ -135,7 +135,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, location := range collectedUrls {
 		certs, ocspresp, err := ins.getCert(location, time.Duration(ins.Timeout))
 		if err != nil {
-			log.Printf("E! cannot get SSL cert %q: %v", location, err)
+			klog.ErrorS(err, "failed to get SSL certificate", "target", location.String())
 			continue
 		}
 
@@ -238,16 +238,19 @@ func (ins *Instance) processCertificate(cert *x509.Certificate, opts x509.Verify
 	chains, err := cert.Verify(opts)
 	if err != nil {
 		if ins.DebugMod {
-			log.Printf("W! Invalid certificate %v: %v", cert.SerialNumber.Text(16), err)
-			log.Printf("W! cert DNS names:    %v", cert.DNSNames)
-			log.Printf("W! cert IP addresses: %v", cert.IPAddresses)
-			log.Printf("W! cert subject:      %v", cert.Subject)
-			log.Printf("W! cert issuer:       %v", cert.Issuer)
-			log.Printf("W! opts.DNSName:      %v", opts.DNSName)
-			log.Printf("W! verify options:    %v", opts)
-			log.Printf("W! verify error:      %v", err)
-			log.Printf("W! tlsCfg.ServerName: %v", ins.tlsCfg.ServerName)
-			log.Printf("W! ServerName:        %v", ins.ServerName)
+			klog.V(1).InfoS(
+				"invalid x509 certificate during verification",
+				"serial_number", cert.SerialNumber.Text(16),
+				"dns_names", cert.DNSNames,
+				"ip_addresses", cert.IPAddresses,
+				"subject", cert.Subject,
+				"issuer", cert.Issuer,
+				"verify_dns_name", opts.DNSName,
+				"verify_options", opts,
+				"tls_server_name", ins.tlsCfg.ServerName,
+				"server_name", ins.ServerName,
+				"error", err,
+			)
 		}
 	}
 
@@ -534,7 +537,7 @@ func (ins *Instance) collectCertURLs() []*url.URL {
 	for _, path := range ins.globPaths {
 		files := path.Match()
 		if len(files) == 0 {
-			log.Println("W! could not find file:", path.GetRoots())
+			klog.Warningf("could not find file: %v", path.GetRoots())
 			continue
 		}
 		for _, file := range files {

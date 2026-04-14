@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -22,6 +21,7 @@ import (
 	"flashcat.cloud/categraf/parser"
 	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "huatuo"
@@ -165,7 +165,7 @@ func (ins *Instance) ensureInstalled() error {
 			subBinPath := filepath.Join(ins.InstallPath, entry.Name(), "bin", "huatuo-bamai")
 			if _, err := os.Stat(subBinPath); err == nil {
 				// Found it! Move everything up one level.
-				log.Printf("I! Detected subdirectory %s, moving files up to %s", entry.Name(), ins.InstallPath)
+				klog.InfoS("detected huatuo subdirectory, moving files into install path", "subdir", entry.Name(), "install_path", ins.InstallPath)
 				srcDir := filepath.Join(ins.InstallPath, entry.Name())
 
 				// Move content
@@ -186,7 +186,7 @@ func (ins *Instance) ensureInstalled() error {
 				}
 				// Remove empty subdir
 				if err := os.Remove(srcDir); err != nil {
-					log.Printf("W! failed to remove empty dir %s: %v", srcDir, err)
+					klog.Warningf("failed to remove empty huatuo dir: path=%s err=%v", srcDir, err)
 				}
 				return nil
 			}
@@ -365,7 +365,7 @@ func (ins *Instance) manageProcess(ctx context.Context) {
 			}
 
 			if err := cmd.Start(); err != nil {
-				log.Printf("E! failed to start huatuo: %v", err)
+				klog.ErrorS(err, "failed to start huatuo", "install_path", ins.InstallPath, "config", confPath)
 				select {
 				case <-ctx.Done():
 					return
@@ -395,7 +395,7 @@ func (ins *Instance) manageProcess(ctx context.Context) {
 				}
 				return
 			case err := <-done:
-				log.Printf("I! huatuo process exited: %v", err)
+				klog.InfoS("huatuo process exited", "err", err, "install_path", ins.InstallPath)
 			}
 
 			// Allow quick restart unless context cancelled
@@ -431,7 +431,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	err := ins.scrape(slist)
 	if err != nil {
-		log.Printf("E! failed to scrape huatuo: %v", err)
+		klog.ErrorS(err, "failed to scrape huatuo", "url", ins.realURL)
 	}
 }
 

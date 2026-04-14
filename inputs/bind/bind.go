@@ -2,7 +2,6 @@ package bind
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -11,6 +10,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -79,7 +79,7 @@ func (b *Instance) Gather(slist *types.SampleList) {
 	for _, u := range b.Urls {
 		addr, err := url.Parse(u)
 		if err != nil {
-			log.Printf("unable to parse address %q: %s", u, err)
+			klog.Warningf("unable to parse address %q: %v", u, err)
 			continue
 		}
 
@@ -88,7 +88,7 @@ func (b *Instance) Gather(slist *types.SampleList) {
 			defer wg.Done()
 			err = b.gatherURL(addr, slist)
 			if err != nil {
-				log.Printf("E! gather url:%s error:%s", addr, err)
+				klog.ErrorS(err, "failed to gather bind url", "url", addr.String())
 			}
 		}(addr)
 	}

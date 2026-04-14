@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -17,6 +16,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "oracle"
@@ -128,18 +128,18 @@ func (ins *Instance) Init() error {
 
 func (ins *Instance) Drop() error {
 	if ins.DebugMod {
-		log.Println("D! dropping oracle connection:", ins.Address)
+		klog.V(1).InfoS("dropping oracle connection", "address", ins.Address)
 	}
 
 	if len(ins.Address) == 0 || ins.client == nil {
 		if ins.DebugMod {
-			log.Println("D! oracle address is empty or client is nil, so there is no need to close")
+			klog.V(1).InfoS("oracle address is empty or client is nil, so there is no need to close", "address", ins.Address)
 		}
 		return nil
 	}
 
 	if err := ins.client.Close(); err != nil {
-		log.Println("E! failed to close oracle connection:", ins.Address, "error:", err)
+		klog.ErrorS(err, "failed to close oracle connection", "address", ins.Address)
 	}
 
 	return nil
@@ -148,7 +148,7 @@ func (ins *Instance) Drop() error {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	if len(ins.Address) == 0 {
 		if ins.DebugMod {
-			log.Println("D! oracle address is empty")
+			klog.V(1).InfoS("oracle address is empty")
 		}
 		return
 	}
@@ -160,13 +160,12 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}(time.Now())
 
 	if err := ins.client.Ping(); err != nil {
-
-		log.Println("I! attempting to rebuild oracle connection:", ins.Address)
+		klog.InfoS("attempting to rebuild oracle connection", "address", ins.Address)
 		ins.Drop()
 		ins.Init()
 		if err := ins.client.Ping(); err != nil {
 			slist.PushFront(types.NewSample(inputName, "up", 0, tags))
-			log.Println("E! failed to ping oracle:", ins.Address, "error:", err)
+			klog.ErrorS(err, "failed to ping oracle", "address", ins.Address)
 			return
 		}
 	} else {
@@ -200,13 +199,12 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 	rows, err := ins.client.QueryContext(ctx, metricConf.Request)
 
 	if ctx.Err() == context.DeadlineExceeded {
-		log.Printf("E! %s oracle query timeout (more than %d seconds), request: %s", ins.Address, metricConf.Timeout/(1000*1000*1000),
-			strings.ReplaceAll(strings.ReplaceAll(metricConf.Request, "\n", " "), "\r", " "))
+		klog.ErrorS(nil, "oracle query timeout", "address", ins.Address, "timeout_seconds", metricConf.Timeout/(1000*1000*1000), "request", strings.ReplaceAll(strings.ReplaceAll(metricConf.Request, "\n", " "), "\r", " "))
 		return
 	}
 
 	if err != nil {
-		log.Println("E! failed to query:", err)
+		klog.ErrorS(err, "failed to query oracle", "address", ins.Address)
 		return
 	}
 
@@ -214,12 +212,12 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 
 	cols, err := rows.Columns()
 	if err != nil {
-		log.Println("E! failed to get columns:", err)
+		klog.ErrorS(err, "failed to get oracle columns", "address", ins.Address)
 		return
 	}
 
 	if ins.DebugMod {
-		log.Println("D! columns:", cols)
+		klog.V(1).InfoS("oracle columns", "address", ins.Address, "columns", cols)
 	}
 
 	for rows.Next() {
@@ -231,7 +229,7 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 
 		// Scan the result into the column pointers...
 		if err := rows.Scan(columnPointers...); err != nil {
-			log.Println("E! failed to scan:", err)
+			klog.ErrorS(err, "failed to scan oracle row", "address", ins.Address)
 			return
 		}
 
@@ -245,14 +243,14 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 
 		count := 0
 		if err = ins.parseRow(m, metricConf, slist, tags); err != nil {
-			log.Println("E! failed to parse row:", err)
+			klog.ErrorS(err, "failed to parse oracle row", "address", ins.Address)
 			continue
 		} else {
 			count++
 		}
 
 		if !metricConf.IgnoreZeroResult && count == 0 {
-			log.Println("E! no metrics found while parsing")
+			klog.ErrorS(nil, "no oracle metrics found while parsing", "address", ins.Address)
 		}
 	}
 }
@@ -273,7 +271,7 @@ func (ins *Instance) parseRow(row map[string]string, metricConf MetricConfig, sl
 	for _, column := range metricConf.MetricFields {
 		value, err := conv.ToFloat64(row[column])
 		if err != nil {
-			log.Println("E! failed to convert field:", column, "value:", value, "error:", err)
+			klog.ErrorS(err, "failed to convert oracle field", "address", ins.Address, "column", column, "value", row[column])
 			return err
 		}
 
@@ -325,7 +323,7 @@ func (ins *Instance) getConnectionString() (string, error) {
 
 	ip, port, service, err := explode(ins.Address)
 	if err != nil {
-		log.Println("E! oracle address format error:", err)
+		klog.ErrorS(err, "oracle address format error", "address", ins.Address)
 		return "", err
 	}
 	return go_ora.BuildUrl(ip, port, service, ins.Username, ins.Password, opts), nil

@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"os"
@@ -14,6 +13,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/toolkits/pkg/file"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/pkg/tls"
@@ -46,6 +46,8 @@ type Log struct {
 	MaxBackups int    `toml:"max_backups"`
 	LocalTime  bool   `toml:"local_time"`
 	Compress   bool   `toml:"compress"`
+	Level      string `toml:"level"`
+	Verbosity  int    `toml:"verbosity"`
 }
 
 type WriterOpt struct {
@@ -128,7 +130,7 @@ type ConfigType struct {
 
 var Config *ConfigType
 
-func InitConfig(configDir string, debugLevel int, debugMode, testMode bool, interval int64, inputFilters string) error {
+func InitConfig(configDir string, debugLevel int, debugMode, testMode bool, debugLevelSet, debugModeSet bool, interval int64, inputFilters string) error {
 	configFile := path.Join(configDir, "config.toml")
 	if !file.IsExist(configFile) {
 		return fmt.Errorf("configuration file(%s) not found", configFile)
@@ -145,6 +147,13 @@ func InitConfig(configDir string, debugLevel int, debugMode, testMode bool, inte
 	if err := cfg.LoadConfigByDir(configDir, Config); err != nil {
 		return fmt.Errorf("failed to load configs of dir: %s err:%s", configDir, err)
 	}
+
+	resolvedDebugMode, resolvedDebugLevel, err := resolveLogSettings(Config.Log, debugLevel, debugMode, debugLevelSet, debugModeSet)
+	if err != nil {
+		return err
+	}
+	Config.DebugMode = resolvedDebugMode
+	Config.DebugLevel = resolvedDebugLevel
 
 	if interval > 0 {
 		Config.Global.Interval = Duration(time.Duration(interval) * time.Second)
@@ -184,6 +193,52 @@ func InitConfig(configDir string, debugLevel int, debugMode, testMode bool, inte
 	}
 
 	return nil
+}
+
+func resolveLogSettings(logCfg Log, cliDebugLevel int, cliDebugMode bool, cliDebugLevelSet, cliDebugModeSet bool) (bool, int, error) {
+	level := strings.ToLower(strings.TrimSpace(logCfg.Level))
+	if level == "" {
+		level = "info"
+	}
+	if logCfg.Verbosity < 0 {
+		return false, 0, fmt.Errorf("invalid log.verbosity %d: must be >= 0", logCfg.Verbosity)
+	}
+
+	verbosity := logCfg.Verbosity
+	switch level {
+	case "debug":
+		if verbosity == 0 {
+			verbosity = 1
+		}
+	case "info", "warn", "warning", "error":
+	default:
+		return false, 0, fmt.Errorf("invalid log.level %q: supported values are debug, info, warn, error", logCfg.Level)
+	}
+
+	debugMode := verbosity > 0
+	debugLevel := verbosity
+
+	if cliDebugModeSet {
+		debugMode = cliDebugMode
+		if !debugMode {
+			debugLevel = 0
+		} else if debugLevel == 0 {
+			debugLevel = 1
+		}
+	}
+
+	if cliDebugLevelSet {
+		debugLevel = cliDebugLevel
+		if cliDebugLevel > 0 {
+			debugMode = true
+		} else if cliDebugModeSet {
+			debugMode = cliDebugMode
+		} else {
+			debugMode = false
+		}
+	}
+
+	return debugMode, debugLevel, nil
 }
 
 func (c *ConfigType) GetHostname() string {
@@ -245,7 +300,7 @@ func getLocalIP() (net.IP, error) {
 		}
 		addrs, err := iface.Addrs()
 		if err != nil {
-			log.Println("W! iface address error", err)
+			klog.Warningf("iface address error: %v", err)
 			continue
 		}
 		for _, addr := range addrs {
@@ -267,13 +322,13 @@ func getLocalIP() (net.IP, error) {
 func GetOutboundIP() (net.IP, error) {
 	addr := defaultProbeAddr
 	if len(Config.Writers) == 0 {
-		log.Printf("E! writers is not configured, use %s as default probe address", defaultProbeAddr)
+		klog.Warningf("writers is not configured, use %s as default probe address", defaultProbeAddr)
 	}
 	for _, v := range Config.Writers {
 		if len(v.Url) != 0 {
 			u, err := url.Parse(v.Url)
 			if err != nil {
-				log.Printf("W! parse writers url %s error %s", v.Url, err)
+				klog.Warningf("parse writers url %s error %s", v.Url, err)
 				continue
 			} else {
 				if strings.Contains(u.Host, "localhost") || strings.Contains(u.Host, "127.0.0.1") {

@@ -17,8 +17,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+
+	"k8s.io/klog/v2"
 )
 
 func getURL(ctx context.Context, hc *http.Client, u string) ([]byte, error) {
@@ -35,7 +36,7 @@ func getURL(ctx context.Context, hc *http.Client, u string) ([]byte, error) {
 	defer func() {
 		err = resp.Body.Close()
 		if err != nil {
-			log.Println("E! failed to close response body:", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 

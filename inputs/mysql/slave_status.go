@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 var slaveStatusQueries = [2]string{"SHOW ALL SLAVES STATUS", "SHOW SLAVE STATUS"}
@@ -42,12 +42,12 @@ func (ins *Instance) gatherSlaveStatus(slist *types.SampleList, db *sql.DB, glob
 
 	rows, err := querySlaveStatus(db)
 	if err != nil {
-		log.Println("E! failed to query slave status:", err)
+		klog.ErrorS(err, "failed to query mysql slave status", "address", ins.Address)
 		return
 	}
 
 	if rows == nil {
-		log.Println("E! failed to query slave status: rows is nil")
+		klog.ErrorS(nil, "mysql slave status rows are nil", "address", ins.Address)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (ins *Instance) gatherSlaveStatus(slist *types.SampleList, db *sql.DB, glob
 
 	slaveCols, err := rows.Columns()
 	if err != nil {
-		log.Println("E! failed to get columns of slave rows:", err)
+		klog.ErrorS(err, "failed to get mysql slave status columns", "address", ins.Address)
 		return
 	}
 
@@ -180,7 +180,7 @@ func (ins *Instance) gatherReplicaStatus(slist *types.SampleList, db *sql.DB, gl
 		}
 	}
 
-	log.Println("E! failed to gather replica status:", err)
+	klog.ErrorS(err, "failed to gather mysql replica status", "address", ins.Address)
 	return err
 }
 
@@ -246,7 +246,7 @@ func (ins *Instance) gatherReplicaStatusOnce(slist *types.SampleList, db *sql.DB
 			value, err := ins.parseValueByDatabaseTypeName(colValue, col.DatabaseTypeName())
 			if err != nil {
 				errString := fmt.Errorf("error parsing mysql slave status %q=%q: %w", colName, string(colValue), err)
-				log.Println(errString)
+				klog.ErrorS(errString, "failed to parse mysql slave status value", "address", ins.Address, "column", colName, "value", string(colValue))
 				continue
 			}
 

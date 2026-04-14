@@ -4,9 +4,9 @@ import (
 	crypto_tls "crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,6 +16,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -116,7 +117,7 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *types.SampleList, 
 	defer wg.Done()
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("E! Recovered in zookeeper gatherOneHost ", zkHost, r)
+			klog.ErrorS(fmt.Errorf("panic: %v", r), "recovered in zookeeper gatherOneHost", "zk_host", zkHost, "stack", string(debug.Stack()))
 		}
 	}()
 
@@ -133,7 +134,7 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *types.SampleList, 
 	mntrConn, err := ins.ZkConnect(zkHost)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "zk_up", 0, tags))
-		log.Println("E! failed to connect zookeeper:", zkHost, "error:", err)
+		klog.ErrorS(err, "failed to connect zookeeper", "zk_host", zkHost, "command", "mntr")
 		return
 	}
 
@@ -147,7 +148,7 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *types.SampleList, 
 	ruokConn, err := ins.ZkConnect(zkHost)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "zk_ruok", 0, tags))
-		log.Println("E! failed to connect zookeeper:", zkHost, "error:", err)
+		klog.ErrorS(err, "failed to connect zookeeper", "zk_host", zkHost, "command", "ruok")
 		return
 	}
 
@@ -160,7 +161,7 @@ func (ins *Instance) gatherOneHost(wg *sync.WaitGroup, slist *types.SampleList, 
 	srvrConn, err := ins.ZkConnect(zkHost)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "zk_zxid", 0, tags))
-		log.Println("E! failed to connect zookeeper:", zkHost, "error:", err)
+		klog.ErrorS(err, "failed to connect zookeeper", "zk_host", zkHost, "command", "srvr")
 		return
 	}
 
@@ -180,7 +181,7 @@ func (ins *Instance) gatherMntrResult(conn net.Conn, slist *types.SampleList, gl
 	// 'mntr' command isn't allowed in zk config, log as warning
 	if strings.Contains(lines[0], cmdNotExecutedSffx) {
 		slist.PushFront(types.NewSample("", "zk_up", 0, globalTags))
-		log.Printf(commandNotAllowedTmpl, "mntr", conn.RemoteAddr().String())
+		klog.Warningf(commandNotAllowedTmpl, "mntr", conn.RemoteAddr().String())
 		return
 	}
 
@@ -225,7 +226,7 @@ func (ins *Instance) gatherMntrResult(conn net.Conn, slist *types.SampleList, gl
 			var k string
 
 			if !isDigit(value) {
-				log.Printf("warning: skipping metric %q which holds not-digit value: %q", key, value)
+				klog.Warningf("skipping zookeeper metric %q which holds non-digit value: %q", key, value)
 				continue
 			}
 			k = metricNameReplacer.Replace(key)
@@ -245,7 +246,7 @@ func (ins *Instance) gatherRuokResult(conn net.Conn, slist *types.SampleList, gl
 		slist.PushFront(types.NewSample("", "zk_ruok", 1, globalTags))
 	} else {
 		if strings.Contains(res, cmdNotExecutedSffx) {
-			log.Printf(commandNotAllowedTmpl, "ruok", conn.RemoteAddr().String())
+			klog.Warningf(commandNotAllowedTmpl, "ruok", conn.RemoteAddr().String())
 		}
 		slist.PushFront(types.NewSample("", "zk_ruok", 0, globalTags))
 	}
@@ -254,7 +255,7 @@ func (ins *Instance) gatherRuokResult(conn net.Conn, slist *types.SampleList, gl
 func (ins *Instance) gatherSrvrResult(conn net.Conn, slist *types.SampleList, globalTags map[string]string) {
 	res := sendZookeeperCmd(conn, "srvr")
 	if strings.Contains(res, cmdNotExecutedSffx) {
-		log.Printf(commandNotAllowedTmpl, "srvr", conn.RemoteAddr().String())
+		klog.Warningf(commandNotAllowedTmpl, "srvr", conn.RemoteAddr().String())
 		slist.PushFront(types.NewSample("", "zk_zxid", 0, globalTags))
 		return
 	}
@@ -267,7 +268,7 @@ func (ins *Instance) gatherSrvrResult(conn net.Conn, slist *types.SampleList, gl
 		zxidStr := strings.TrimSpace(strings.Split(l, ":")[1])
 		zxid, err := strconv.ParseUint(zxidStr, 0, 64)
 		if err != nil {
-			log.Printf("E! failed to parse zxid: %s", err)
+			klog.ErrorS(err, "failed to parse zookeeper zxid", "remote_addr", conn.RemoteAddr().String(), "value", zxidStr)
 			return
 		}
 		low4Bytes := zxid & 0xFFFFFFFF
@@ -278,13 +279,13 @@ func (ins *Instance) gatherSrvrResult(conn net.Conn, slist *types.SampleList, gl
 func sendZookeeperCmd(conn net.Conn, cmd string) string {
 	_, err := conn.Write([]byte(cmd))
 	if err != nil {
-		log.Printf("E! failed to exec Zookeeper command: %s response from '%s': %s", cmd, conn.RemoteAddr().String(), err)
+		klog.ErrorS(err, "failed to exec zookeeper command", "command", cmd, "remote_addr", conn.RemoteAddr().String())
 		return ""
 	}
 
 	res, err := io.ReadAll(conn)
 	if err != nil {
-		log.Printf("E! failed read Zookeeper command: '%s' response from '%s': %s", cmd, conn.RemoteAddr().String(), err)
+		klog.ErrorS(err, "failed to read zookeeper command response", "command", cmd, "remote_addr", conn.RemoteAddr().String())
 		return ""
 	}
 	return string(res)

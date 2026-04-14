@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +20,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
+	"k8s.io/klog/v2"
 
 	tlsx "flashcat.cloud/categraf/pkg/tls"
 	itypes "flashcat.cloud/categraf/types"
@@ -145,7 +145,7 @@ func (ins *Instance) Gather(slist *itypes.SampleList) {
 		c, err := ins.getNewClient()
 		if err != nil {
 			slist.PushSample("docker", "up", 0)
-			log.Println("E! failed to new docker client:", err)
+			klog.ErrorS(err, "failed to create docker client", "endpoint", ins.Endpoint)
 			return
 		}
 		ins.client = c
@@ -155,7 +155,7 @@ func (ins *Instance) Gather(slist *itypes.SampleList) {
 
 	if err := ins.gatherInfo(slist); err != nil {
 		slist.PushSample("docker", "up", 0)
-		log.Println("E! failed to gather docker info:", err)
+		klog.ErrorS(err, "failed to gather docker info", "endpoint", ins.Endpoint)
 		return
 	}
 
@@ -186,11 +186,11 @@ func (ins *Instance) Gather(slist *itypes.SampleList) {
 
 	containers, err := ins.client.ContainerList(ctx, opts)
 	if err == context.DeadlineExceeded {
-		log.Println("E! failed to gather container list: timeout")
+		klog.ErrorS(err, "failed to gather docker container list: timeout", "endpoint", ins.Endpoint)
 		return
 	}
 	if err != nil {
-		log.Println("E! failed to gather container list:", err)
+		klog.ErrorS(err, "failed to gather docker container list", "endpoint", ins.Endpoint)
 		return
 	}
 
@@ -247,11 +247,11 @@ func (ins *Instance) gatherContainer(container types.Container, slist *itypes.Sa
 
 	r, err := ins.client.ContainerStats(ctx, container.ID, false)
 	if err == context.DeadlineExceeded {
-		log.Println("E! failed to get container stats: timeout")
+		klog.ErrorS(err, "failed to get docker container stats: timeout", "container_id", container.ID)
 		return
 	}
 	if err != nil {
-		log.Println("E! failed to get container stats:", err)
+		klog.ErrorS(err, "failed to get docker container stats", "container_id", container.ID)
 		return
 	}
 
@@ -263,7 +263,7 @@ func (ins *Instance) gatherContainer(container types.Container, slist *itypes.Sa
 
 	if err = dec.Decode(&v); err != nil {
 		if err != io.EOF {
-			log.Println("E! failed to decode output of container stats:", err)
+			klog.ErrorS(err, "failed to decode output of docker container stats", "container_id", container.ID)
 		}
 		return
 	}
@@ -277,7 +277,7 @@ func (ins *Instance) gatherContainer(container types.Container, slist *itypes.Sa
 
 	err = ins.gatherContainerInspect(container, slist, tags, r.OSType, v)
 	if err != nil {
-		log.Println("E! failed to gather container inspect:", err)
+		klog.ErrorS(err, "failed to gather docker container inspect", "container_id", container.ID, "container_name", cname)
 	}
 }
 
@@ -630,11 +630,11 @@ func (ins *Instance) gatherSwarmInfo(slist *itypes.SampleList) {
 
 	services, err := ins.client.ServiceList(ctx, types.ServiceListOptions{})
 	if err == context.DeadlineExceeded {
-		log.Println("E! failed to gather swarm info: timeout")
+		klog.ErrorS(err, "failed to gather docker swarm info: timeout", "endpoint", ins.Endpoint)
 		return
 	}
 	if err != nil {
-		log.Println("E! failed to gather swarm info:", err)
+		klog.ErrorS(err, "failed to gather docker swarm services", "endpoint", ins.Endpoint)
 		return
 	}
 
@@ -644,13 +644,13 @@ func (ins *Instance) gatherSwarmInfo(slist *itypes.SampleList) {
 
 	tasks, err := ins.client.TaskList(ctx, types.TaskListOptions{})
 	if err != nil {
-		log.Println("E! failed to gather swarm info:", err)
+		klog.ErrorS(err, "failed to gather docker swarm tasks", "endpoint", ins.Endpoint)
 		return
 	}
 
 	nodes, err := ins.client.NodeList(ctx, types.NodeListOptions{})
 	if err != nil {
-		log.Println("E! failed to gather swarm info:", err)
+		klog.ErrorS(err, "failed to gather docker swarm nodes", "endpoint", ins.Endpoint)
 		return
 	}
 
@@ -690,7 +690,7 @@ func (ins *Instance) gatherSwarmInfo(slist *itypes.SampleList) {
 			fields["tasks_running"] = running[service.ID]
 			fields["tasks_desired"] = tasksNoShutdown[service.ID]
 		} else {
-			log.Println("E! Unknown replica mode")
+			klog.ErrorS(nil, "unknown docker service replica mode", "service_id", service.ID, "service_name", service.Spec.Name)
 		}
 
 		slist.PushSamples("docker_swarm", fields, tags)

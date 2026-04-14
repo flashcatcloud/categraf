@@ -8,8 +8,9 @@
 package tags
 
 import (
-	"log"
 	"strings"
+
+	"k8s.io/klog/v2"
 )
 
 // newTagListBuilder returns a tagListBuilder.
@@ -42,7 +43,7 @@ func (tlb *tagListBuilder) tags() []string {
 // It returns an empty string if one of the arguments is empty.
 func (tlb *tagListBuilder) buildTag(k, v string) string {
 	if k == "" || v == "" {
-		log.Printf("Cannot build tag with empty key or value: key %q - value %q", k, v)
+		klog.Warningf("Cannot build tag with empty key or value: key %q - value %q", k, v)
 		return ""
 	}
 

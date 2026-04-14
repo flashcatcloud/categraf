@@ -13,13 +13,13 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"sync"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/logline"
 	"flashcat.cloud/categraf/inputs/mtail/internal/waker"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -69,7 +69,7 @@ func New(ctx context.Context, wg *sync.WaitGroup, waker waker.Waker, pathname st
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("Parsed url as %v", u)
+	klog.V(1).InfoS("parsed url", "url", u.String())
 
 	path := pathname
 	switch u.Scheme {

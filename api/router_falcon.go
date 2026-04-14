@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/writer"
@@ -207,7 +207,7 @@ func openFalcon(c *gin.Context) {
 	}
 
 	if fail > 0 {
-		log.Println("falcon forwarder error, message:", string(bytes))
+		klog.Errorf("falcon forwarder error, message: %s", string(bytes))
 	}
 
 	writer.WriteTimeSeries(series)

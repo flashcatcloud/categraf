@@ -16,7 +16,6 @@ package collector
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -25,6 +24,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"flashcat.cloud/categraf/inputs/elasticsearch/pkg/clusterinfo"
+	"k8s.io/klog/v2"
 )
 
 // ShardResponse has shard's node and index info
@@ -139,17 +139,17 @@ func NewShards(client *http.Client, url *url.URL) *Shards {
 	// start go routine to fetch clusterinfo updates and save them to lastClusterinfo
 	go func() {
 		timer := time.NewTimer(2 * time.Minute)
-		log.Println("starting cluster info receive loop")
+		klog.V(1).InfoS("starting elasticsearch cluster info receive loop")
 		for {
 			select {
 			case ci := <-shards.clusterInfoCh:
 				if ci != nil {
-					log.Println("received cluster info update, cluster ", ci.ClusterName)
+					klog.V(1).InfoS("received elasticsearch cluster info update", "cluster", ci.ClusterName)
 					shards.lastClusterInfo = ci
 				}
 			case <-timer.C:
 				close(shards.clusterInfoCh)
-				log.Println("exiting cluster info receive loop")
+				klog.V(1).InfoS("exiting elasticsearch cluster info receive loop")
 				return
 			}
 		}
@@ -178,7 +178,7 @@ func (s *Shards) getAndParseURL(u *url.URL) ([]ShardResponse, error) {
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 
@@ -214,7 +214,7 @@ func (s *Shards) Collect(ch chan<- prometheus.Metric) {
 
 	sr, err := s.fetchAndDecodeShards()
 	if err != nil {
-		log.Println("failed to fetch and decode node shards stats, err: ", err)
+		klog.ErrorS(err, "failed to fetch and decode elasticsearch node shards stats")
 		return
 	}
 

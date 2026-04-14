@@ -5,8 +5,9 @@ package mtail
 
 import (
 	"html/template"
-	"log"
 	"net/http"
+
+	"k8s.io/klog/v2"
 )
 
 const statusTemplate = `
@@ -44,11 +45,11 @@ func (m *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	err = m.r.WriteStatusHTML(w)
 	if err != nil {
-		log.Printf("Error while writing loader status: %s", err)
+		klog.ErrorS(err, "error while writing loader status")
 	}
 	err = m.t.WriteStatusHTML(w)
 	if err != nil {
-		log.Printf("W! Error while writing tailer status: %s", err)
+		klog.Warningf("error while writing tailer status: %s", err)
 	}
 }
 

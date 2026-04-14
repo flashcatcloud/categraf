@@ -19,9 +19,9 @@ package collector
 
 import (
 	"errors"
-	"log"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -84,7 +84,7 @@ var (
 func newDiskstatsDeviceFilter() (deviceFilter, error) {
 	if *oldDiskstatsDeviceExclude != "" {
 		if !diskstatsDeviceExcludeSet {
-			log.Println("W! --collector.diskstats.ignore-devices is DEPRECATED and will be removed in 2.0.0, use --collector.diskstats.device-exclude")
+			klog.Warning("--collector.diskstats.ignore-devices is deprecated and will be removed in 2.0.0, use --collector.diskstats.device-exclude")
 			*diskstatsDeviceExclude = *oldDiskstatsDeviceExclude
 		} else {
 			return deviceFilter{}, errors.New("--collector.diskstats.ignored-devices and --collector.diskstats.device-exclude are mutually exclusive")
@@ -96,11 +96,11 @@ func newDiskstatsDeviceFilter() (deviceFilter, error) {
 	}
 
 	if *diskstatsDeviceExclude != "" {
-		log.Println("I! Parsing flag --collector.diskstats.device-exclude", "flag", *diskstatsDeviceExclude)
+		klog.InfoS("parsing flag --collector.diskstats.device-exclude", "flag", *diskstatsDeviceExclude)
 	}
 
 	if *diskstatsDeviceInclude != "" {
-		log.Println("Parsed Flag --collector.diskstats.device-include", "flag", *diskstatsDeviceInclude)
+		klog.InfoS("parsed flag --collector.diskstats.device-include", "flag", *diskstatsDeviceInclude)
 	}
 
 	return newDeviceFilter(*diskstatsDeviceExclude, *diskstatsDeviceInclude), nil

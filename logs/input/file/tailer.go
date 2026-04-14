@@ -11,7 +11,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -26,6 +25,7 @@ import (
 	"flashcat.cloud/categraf/logs/message"
 	"flashcat.cloud/categraf/logs/parser"
 	"flashcat.cloud/categraf/logs/tag"
+	"k8s.io/klog/v2"
 )
 
 // DefaultSleepDuration represents the amount of time the tailer waits before reading new data when no data is received
@@ -180,7 +180,7 @@ func (t *Tailer) readForever() {
 		select {
 		case <-t.stop:
 			if n != 0 && atomic.LoadInt32(&t.didFileRotate) == 1 {
-				log.Println("W! Tailer stopped after rotation close timeout with remaining unread data")
+				klog.Warning("Tailer stopped after rotation close timeout with remaining unread data")
 			}
 			// stop reading data from file
 			return
@@ -237,7 +237,7 @@ func (t *Tailer) startStopTimer() {
 func (t *Tailer) onStop() {
 	t.osFile.Close()
 	t.decoder.Stop()
-	log.Println("Closed", t.file.Path, "for tailer key", t.file.GetScanKey(), "read", t.bytesRead, "bytes and", t.decoder.GetLineCount(), "lines")
+	klog.Info("Closed", t.file.Path, "for tailer key", t.file.GetScanKey(), "read", t.bytesRead, "bytes and", t.decoder.GetLineCount(), "lines")
 }
 
 // forwardMessages lets the Tailer forward log messages to the output channel

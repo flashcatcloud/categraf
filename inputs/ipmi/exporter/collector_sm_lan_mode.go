@@ -18,10 +18,10 @@ package exporter
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/inputs/ipmi/exporter/freeipmi"
 )
@@ -58,11 +58,11 @@ func (c SMLANModeCollector) Args() []string {
 func (c SMLANModeCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	octets, err := freeipmi.GetRawOctets(result)
 	if err != nil {
-		log.Println("E!", "Failed to collect LAN mode data", "target", targetName(target.host), "error", err)
+		klog.ErrorS(err, "failed to collect LAN mode data", "target", targetName(target.host))
 		return 0, err
 	}
 	if len(octets) != 3 {
-		log.Println("E!", "Unexpected number of octets", "target", targetName(target.host), "octets", octets)
+		klog.ErrorS(nil, "unexpected number of octets", "target", targetName(target.host), "octets", octets)
 		return 0, fmt.Errorf("unexpected number of octets in raw response: %d", len(octets))
 	}
 
@@ -71,7 +71,7 @@ func (c SMLANModeCollector) Collect(result freeipmi.Result, ch chan<- prometheus
 		value, _ := strconv.Atoi(octets[2])
 		ch <- prometheus.MustNewConstMetric(lanModeDesc, prometheus.GaugeValue, float64(value))
 	default:
-		log.Println("E!", "Unexpected lan mode status (ipmi-raw)", "target", targetName(target.host), "sgatus", octets[2])
+		klog.ErrorS(nil, "unexpected lan mode status (ipmi-raw)", "target", targetName(target.host), "status", octets[2])
 		return 0, fmt.Errorf("unexpected lan mode status: %s", octets[2])
 	}
 

@@ -22,7 +22,6 @@ import (
 	"encoding/csv"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"os/exec"
@@ -31,6 +30,8 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -126,10 +127,10 @@ func freeipmiConfigPipe(config string) (string, error) {
 	go func(file string, data []byte) {
 		f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModeNamedPipe)
 		if err != nil {
-			log.Println("msg", "Error opening pipe", "error", err)
+			klog.ErrorS(err, "error opening freeipmi pipe", "pipe", file)
 		}
 		if _, err := f.Write(data); err != nil {
-			log.Println("msg", "Error writing config to pipe", "error", err)
+			klog.ErrorS(err, "error writing freeipmi config to pipe", "pipe", file)
 		}
 		f.Close()
 	}(pipe, content)
@@ -147,7 +148,7 @@ func Execute(cmd string, args []string, config string, target string, debugMod b
 	}
 	defer func() {
 		if err := os.Remove(pipe); err != nil {
-			log.Println("msg", "Error deleting named pipe", "error", err)
+			klog.ErrorS(err, "error deleting freeipmi named pipe", "pipe", pipe)
 		}
 	}()
 
@@ -157,7 +158,7 @@ func Execute(cmd string, args []string, config string, target string, debugMod b
 	}
 
 	if debugMod {
-		log.Println("D!", "Executing", "command", cmd, "args", fmt.Sprintf("%+v", args))
+		klog.V(1).InfoS("executing freeipmi command", "command", cmd, "args", fmt.Sprintf("%+v", args))
 	}
 
 	out, err := exec.Command(cmd, args...).CombinedOutput()

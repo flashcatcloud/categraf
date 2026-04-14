@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"log"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -11,6 +11,7 @@ import (
 	"flashcat.cloud/categraf/pkg/runtimex"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
+	"k8s.io/klog/v2"
 )
 
 type InputReader struct {
@@ -43,7 +44,7 @@ func (r *InputReader) startInput() {
 		slist := types.NewSampleList()
 		err := si.Start(slist)
 		if err != nil {
-			log.Printf("I! startInput err:%v", err)
+			klog.ErrorS(err, "start input err", "input", r.inputName)
 			return
 		}
 	}
@@ -58,15 +59,11 @@ func (r *InputReader) startInput() {
 			return
 		case <-timer.C:
 			start = time.Now()
-			if config.Config.DebugMode {
-				log.Println("D!", r.inputName, ": before gather once")
-			}
+			klog.V(1).InfoS("before gather once", "input", r.inputName)
 
 			r.gatherOnce()
 
-			if config.Config.DebugMode {
-				log.Println("D!", r.inputName, ": after gather once,", "duration:", time.Since(start))
-			}
+			klog.V(1).InfoS("after gather once", "input", r.inputName, "duration", time.Since(start))
 
 			next := interval - time.Since(start)
 			if next < 0 {
@@ -80,7 +77,7 @@ func (r *InputReader) startInput() {
 func (r *InputReader) gatherOnce() {
 	defer func() {
 		if rc := recover(); rc != nil {
-			log.Println("E!", r.inputName, ": gather metrics panic:", r, string(runtimex.Stack(3)))
+			klog.ErrorS(fmt.Errorf("panic: %v", rc), "gather metrics panic", "input", r.inputName, "stack", string(runtimex.Stack(3)))
 		}
 	}()
 

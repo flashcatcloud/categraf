@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -17,6 +16,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "nginx"
@@ -120,14 +120,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, u := range ins.Urls {
 		addr, err := url.Parse(u)
 		if err != nil {
-			log.Println("E! failed to parse the url:", u, "error:", err)
+			klog.ErrorS(err, "failed to parse nginx url", "url", u)
 			continue
 		}
 		wg.Add(1)
 		go func(addr *url.URL) {
 			defer wg.Done()
 			if err := ins.gather(addr, slist); err != nil {
-				log.Println("E!", err)
+				klog.ErrorS(err, "failed to gather nginx metrics", "url", addr.String())
 			}
 		}(addr)
 	}
@@ -164,7 +164,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 
 func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	if ins.DebugMod {
-		log.Println("D! nginx... url:", addr)
+		klog.V(1).InfoS("nginx gathering url", "url", addr.String())
 	}
 
 	var body io.Reader
@@ -205,7 +205,7 @@ func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			log.Println("E! failed to close the body of client:", err)
+			klog.ErrorS(err, "failed to close nginx response body", "url", addr.String())
 		}
 	}(resp.Body)
 

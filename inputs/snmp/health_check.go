@@ -1,10 +1,10 @@
 package snmp
 
 import (
-	"log"
 	"time"
 
 	coreconfig "flashcat.cloud/categraf/config"
+	"k8s.io/klog/v2"
 )
 
 func (ins *Instance) StartHealthMonitor() {
@@ -59,20 +59,20 @@ func (ins *Instance) checkAgentHealth(i int, agent string) {
 
 	gs, err := NewWrapper(clientConfig)
 	if err != nil {
-		log.Printf("Health check: agent %s connection creation error: %s", agent, err)
+		klog.ErrorS(err, "health check connection creation error", "agent", agent)
 		ins.markAgentUnhealthy(agent)
 		return
 	}
 
 	err = gs.SetAgent(agent)
 	if err != nil {
-		log.Printf("Health check: agent %s set agent error: %s", agent, err)
+		klog.ErrorS(err, "health check set agent error", "agent", agent)
 		ins.markAgentUnhealthy(agent)
 		return
 	}
 
 	if err := gs.Connect(); err != nil {
-		log.Printf("Health check: agent %s connection error: %s", agent, err)
+		klog.ErrorS(err, "health check connect error", "agent", agent)
 		ins.markAgentUnhealthy(agent)
 		return
 	}
@@ -97,14 +97,14 @@ func (ins *Instance) checkAgentHealth(i int, agent string) {
 		// Mark as unhealthy after reaching max fail count
 		if status.failCount >= ins.MaxFailCount {
 			if status.healthy {
-				log.Printf("Agent %s marked as unhealthy after %d consecutive failures", agent, status.failCount)
+				klog.Warningf("agent %s marked as unhealthy after %d consecutive failures", agent, status.failCount)
 				status.healthy = false
 			}
 		}
 	} else {
 		// If it was unhealthy before, log recovery
 		if !status.healthy {
-			log.Printf("Agent %s recovered and marked healthy", agent)
+			klog.InfoS("agent recovered and marked healthy", "agent", agent)
 		}
 		status.healthy = true
 		status.failCount = 0
@@ -136,7 +136,7 @@ func (ins *Instance) markAgentUnhealthy(agent string) {
 	status.failCount++
 	if status.failCount >= ins.MaxFailCount {
 		if status.healthy {
-			log.Printf("Agent %s marked as unhealthy after %d consecutive failures", agent, status.failCount)
+			klog.Warningf("agent %s marked as unhealthy after %d consecutive failures", agent, status.failCount)
 			status.healthy = false
 		}
 	}

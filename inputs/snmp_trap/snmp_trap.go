@@ -2,7 +2,6 @@ package snmp_trap
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/snmp"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "snmp_trap"
@@ -103,7 +103,7 @@ func (s *Instance) Init() error {
 	}
 
 	if err != nil {
-		log.Printf("Could not get path %v", err)
+		klog.ErrorS(err, "could not get snmp trap path")
 	}
 
 	if len(s.ServiceAddress) == 0 {
@@ -248,7 +248,7 @@ func (s *Instance) start() error {
 
 	select {
 	case <-s.listener.Listening():
-		log.Printf("Listening on %s", s.ServiceAddress)
+		klog.InfoS("snmp trap listener started", "service_address", s.ServiceAddress)
 	case err := <-s.errCh:
 		return err
 	}
@@ -260,7 +260,7 @@ func (s *Instance) Drop() {
 	s.listener.Close()
 	err := <-s.errCh
 	if nil != err {
-		log.Printf("Error stopping trap listener %v", err)
+		klog.ErrorS(err, "error stopping trap listener")
 	}
 }
 
@@ -273,7 +273,7 @@ func setTrapOid(tags map[string]string, oid string, e snmp.MibEntry) {
 func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFunc {
 	return func(packet *gosnmp.SnmpPacket, addr *net.UDPAddr) {
 		if s.DebugMod {
-			log.Printf("Received Trap from: %s, packet content: %v", addr.IP.String(), packet.SafeString())
+			klog.V(1).InfoS("received snmp trap", "source", addr.IP.String(), "packet", packet.SafeString())
 		}
 		fields := map[string]interface{}{}
 		tags := map[string]string{}
@@ -295,7 +295,7 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 			if trapOid != "" {
 				e, err := s.transl.lookup(trapOid)
 				if err != nil {
-					log.Printf("Error resolving V1 OID, oid=%s, source=%s: %v", trapOid, tags["source"], err)
+					klog.ErrorS(err, "error resolving V1 OID", "oid", trapOid, "source", tags["source"])
 					return
 				}
 				setTrapOid(tags, trapOid, e)
@@ -325,7 +325,7 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 			case gosnmp.ObjectIdentifier:
 				val, ok := v.Value.(string)
 				if !ok {
-					log.Println("E! Error getting value OID")
+					klog.Error("error getting value OID")
 					return
 				}
 
@@ -333,7 +333,7 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 				var err error
 				e, err = s.transl.lookup(val)
 				if nil != err {
-					log.Printf("Error resolving value OID, oid=%s, source=%s: %v", val, tags["source"], err)
+					klog.ErrorS(err, "error resolving value OID", "oid", val, "source", tags["source"])
 					return
 				}
 
@@ -351,7 +351,7 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 
 			e, err := s.transl.lookup(v.Name)
 			if nil != err {
-				log.Printf("Error resolving OID oid=%s, source=%s: %v", v.Name, tags["source"], err)
+				klog.ErrorS(err, "error resolving OID", "oid", v.Name, "source", tags["source"])
 				return
 			}
 

@@ -14,7 +14,6 @@ import (
 	"expvar"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -24,6 +23,7 @@ import (
 	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/util"
 	"flashcat.cloud/categraf/logs/util/kubernetes"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -124,19 +124,19 @@ func (kc *kubeletClient) query(ctx context.Context, path string) ([]byte, int, e
 	response, err := kc.client.Do(req)
 	kubeletExpVar.Add(1)
 	if err != nil {
-		log.Printf("Cannot request %s: %s", req.URL.String(), err)
+		klog.Warningf("Cannot request %s: %v", req.URL.String(), err)
 		return nil, 0, err
 	}
 	defer response.Body.Close()
 
 	b, err := io.ReadAll(response.Body)
 	if err != nil {
-		log.Printf("Fail to read request %s body: %s", req.URL.String(), err)
+		klog.Warningf("Fail to read request %s body: %v", req.URL.String(), err)
 		return nil, 0, err
 	}
 
 	if util.Debug() {
-		log.Printf("Successfully queried %s, status code: %d, body len: %d", req.URL.String(), response.StatusCode, len(b))
+		klog.V(1).Infof("Successfully queried %s, status code: %d, body len: %d", req.URL.String(), response.StatusCode, len(b))
 	}
 	return b, response.StatusCode, nil
 }
@@ -211,7 +211,7 @@ func getKubeletClient(ctx context.Context) (*kubeletClient, error) {
 			potentialHosts = &connectionInfo{
 				hostnames: []string{apiServerHost},
 			}
-			log.Printf("EKS on Fargate mode detected, will proxy calls to the Kubelet through the APIServer at %s:%d%s", apiServerHost, kubeletHTTPSPort, kubeletPathPrefix)
+			klog.Infof("EKS on Fargate mode detected, will proxy calls to the Kubelet through the APIServer at %s:%d%s", apiServerHost, kubeletHTTPSPort, kubeletPathPrefix)
 		} else {
 			return nil, errors.New("kubelet proxy mode enabled but nodename is empty - unable to query")
 		}
@@ -225,7 +225,7 @@ func getKubeletClient(ctx context.Context) (*kubeletClient, error) {
 	if kubeletHTTPSPort > 0 {
 		httpsErr = checkKubeletConnection(ctx, "https", kubeletHTTPSPort, kubeletPathPrefix, potentialHosts, &clientConfig)
 		if httpsErr != nil {
-			log.Println("Impossible to reach Kubelet through HTTPS")
+			klog.Warning("Impossible to reach Kubelet through HTTPS")
 			if kubeletHTTPPort <= 0 {
 				return nil, httpsErr
 			}
@@ -239,12 +239,12 @@ func getKubeletClient(ctx context.Context) (*kubeletClient, error) {
 	if kubeletHTTPPort > 0 {
 		httpErr = checkKubeletConnection(ctx, "http", kubeletHTTPPort, kubeletPathPrefix, potentialHosts, &clientConfig)
 		if httpErr != nil {
-			log.Println("Impossible to reach Kubelet through HTTP")
+			klog.Warning("Impossible to reach Kubelet through HTTP")
 			return nil, fmt.Errorf("impossible to reach Kubelet with host: %s. Please check if your setup requires kubelet_tls_verify = false. Activate debug logs to see all attempts made", kubeletHost)
 		}
 
 		if httpsErr != nil {
-			log.Println("Unable to access Kubelet through HTTPS - Using HTTP connection instead. Please check if your setup requires kubelet_tls_verify = false")
+			klog.Warning("Unable to access Kubelet through HTTPS - Using HTTP connection instead. Please check if your setup requires kubelet_tls_verify = false")
 		}
 
 		return newForConfig(clientConfig, kubeletTimeout)
@@ -257,16 +257,16 @@ func checkKubeletConnection(ctx context.Context, scheme string, port int, prefix
 	var err error
 	var kubeClient *kubeletClient
 
-	log.Printf("Trying to reach Kubelet with scheme: %s", scheme)
+	klog.V(1).Infof("Trying to reach Kubelet with scheme: %s", scheme)
 	clientConfig.scheme = scheme
 
 	for _, ip := range hosts.ips {
 		clientConfig.baseURL = fmt.Sprintf("%s:%d", ip, port)
 
-		log.Printf("Trying to reach Kubelet at: %s", clientConfig.baseURL)
+		klog.V(1).Infof("Trying to reach Kubelet at: %s", clientConfig.baseURL)
 		kubeClient, err = newForConfig(*clientConfig, time.Second)
 		if err != nil {
-			log.Printf("Failed to create Kubelet client for host: %s - error: %v", clientConfig.baseURL, err)
+			klog.Warningf("Failed to create Kubelet client for host: %s - error: %v", clientConfig.baseURL, err)
 			continue
 		}
 
@@ -276,17 +276,17 @@ func checkKubeletConnection(ctx context.Context, scheme string, port int, prefix
 			continue
 		}
 
-		log.Printf("Successful configuration found for Kubelet, using URL: %s", kubeClient.kubeletURL)
+		klog.Infof("Successful configuration found for Kubelet, using URL: %s", kubeClient.kubeletURL)
 		return nil
 	}
 
 	for _, host := range hosts.hostnames {
 		clientConfig.baseURL = fmt.Sprintf("%s:%d%s", host, port, prefix)
 
-		log.Printf("Trying to reach Kubelet at: %s", clientConfig.baseURL)
+		klog.V(1).Infof("Trying to reach Kubelet at: %s", clientConfig.baseURL)
 		kubeClient, err = newForConfig(*clientConfig, time.Second)
 		if err != nil {
-			log.Printf("Failed to create Kubelet client for host: %s - error: %v", clientConfig.baseURL, err)
+			klog.Warningf("Failed to create Kubelet client for host: %s - error: %v", clientConfig.baseURL, err)
 			continue
 		}
 
@@ -296,7 +296,7 @@ func checkKubeletConnection(ctx context.Context, scheme string, port int, prefix
 			continue
 		}
 
-		log.Printf("Successful configuration found for Kubelet, using URL: %s", kubeClient.kubeletURL)
+		klog.Infof("Successful configuration found for Kubelet, using URL: %s", kubeClient.kubeletURL)
 		return nil
 	}
 
@@ -306,10 +306,10 @@ func checkKubeletConnection(ctx context.Context, scheme string, port int, prefix
 func logConnectionError(clientConfig *kubeletClientConfig, err error) {
 	switch {
 	case strings.Contains(err.Error(), "x509: certificate is valid for"):
-		log.Printf(`Invalid x509 settings, the kubelet server certificate is not valid for this subject alternative name: %s, %v, Please check the SAN of the kubelet server certificate with "openssl x509 -in ${KUBELET_CERTIFICATE} -text -noout". `, clientConfig.baseURL, err)
+		klog.Warningf(`Invalid x509 settings, the kubelet server certificate is not valid for this subject alternative name: %s, %v, Please check the SAN of the kubelet server certificate with "openssl x509 -in ${KUBELET_CERTIFICATE} -text -noout". `, clientConfig.baseURL, err)
 	case strings.Contains(err.Error(), "x509: certificate signed by unknown authority"):
-		log.Printf(`The kubelet server certificate is signed by unknown authority, the current cacert is %s. Is the kubelet issuing self-signed certificates? Please validate the kubelet certificate with "openssl verify -CAfile %s ${KUBELET_CERTIFICATE}" to avoid this error: %v`, clientConfig.caPath, clientConfig.caPath, err)
+		klog.Warningf(`The kubelet server certificate is signed by unknown authority, the current cacert is %s. Is the kubelet issuing self-signed certificates? Please validate the kubelet certificate with "openssl verify -CAfile %s ${KUBELET_CERTIFICATE}" to avoid this error: %v`, clientConfig.caPath, clientConfig.caPath, err)
 	default:
-		log.Printf("Failed to reach Kubelet at: %s - error: %v", clientConfig.baseURL, err)
+		klog.Warningf("Failed to reach Kubelet at: %s - error: %v", clientConfig.baseURL, err)
 	}
 }

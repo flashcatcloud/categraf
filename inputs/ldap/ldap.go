@@ -4,15 +4,15 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"time"
 
 	"github.com/go-ldap/ldap/v3"
+	"k8s.io/klog/v2"
 
-	commontls "flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	commontls "flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -103,7 +103,7 @@ func (ins *Instance) Init() error {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	conn, err := ins.connect()
 	if err != nil {
-		log.Println("E! failed to connect the server:", ins.Server, "error:", err)
+		klog.ErrorS(err, "failed to connect ldap server", "server", ins.Server)
 		return
 	}
 	defer conn.Close()
@@ -111,12 +111,12 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, req := range ins.requests {
 		result, err := conn.Search(req.query)
 		if err != nil {
-			log.Println("E! failed to search the server:", ins.Server, "error:", err)
+			klog.ErrorS(err, "failed to search ldap server", "server", ins.Server)
 			continue
 		}
 		s, err := ins.gather(req, result)
 		if err != nil {
-			log.Println("E! failed to gather metrics: ", err)
+			klog.ErrorS(err, "failed to gather ldap metrics", "server", ins.Server)
 			return
 		}
 		slist.PushFrontN(s)

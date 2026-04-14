@@ -17,12 +17,12 @@ package collector
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 // Namespace defines the common namespace to be used by all metrics.
@@ -105,7 +105,7 @@ func (nc *NodeCollector) Init(filters ...string) {
 		} else if len(paras) == 2 {
 			params[paras[0]] = paras[1]
 		} else {
-			log.Println(c, "invalid format")
+			klog.ErrorS(nil, "invalid collector filter format", "filter", c)
 		}
 		if strings.HasPrefix(c, "collector.") {
 			c = strings.TrimPrefix(c, "collector.")
@@ -183,14 +183,14 @@ func (n *NodeCollector) execute(name string, c Collector, ch chan<- prometheus.M
 
 	if err != nil {
 		if IsNoDataError(err) {
-			log.Println("E! collector returned no data:", name, "duration_seconds", duration.Seconds(), "err", err)
+			klog.ErrorS(err, "collector returned no data", "name", name, "duration_seconds", duration.Seconds())
 		} else {
-			log.Println("E! collector failed", "name", name, "duration_seconds", duration.Seconds(), "err", err)
+			klog.ErrorS(err, "collector failed", "name", name, "duration_seconds", duration.Seconds())
 		}
 		success = 0
 	} else {
 		if n.DebugMode {
-			log.Println("I!", "collector succeeded", "name", name, "duration_seconds", duration.Seconds())
+			klog.V(1).InfoS("collector succeeded", "name", name, "duration_seconds", duration.Seconds())
 		}
 		success = 1
 	}

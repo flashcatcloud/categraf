@@ -17,12 +17,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -233,7 +233,7 @@ func (c *ClusterHealth) fetchAndDecodeClusterHealth() (clusterHealthResponse, er
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 
@@ -257,7 +257,7 @@ func (c *ClusterHealth) fetchAndDecodeClusterHealth() (clusterHealthResponse, er
 func (c *ClusterHealth) Collect(ch chan<- prometheus.Metric) {
 	clusterHealthResp, err := c.fetchAndDecodeClusterHealth()
 	if err != nil {
-		log.Println("failed to fetch and decode cluster health, err: ", err)
+		klog.ErrorS(err, "failed to fetch and decode elasticsearch cluster health")
 		return
 	}
 

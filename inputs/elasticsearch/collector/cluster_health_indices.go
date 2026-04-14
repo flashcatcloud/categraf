@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 // ClusterHealthIndices type defines the collector struct
@@ -150,7 +150,7 @@ func (c *ClusterHealthIndices) fetchAndDecodeClusterHealthIndices() (clusterHeal
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 
@@ -174,7 +174,7 @@ func (c *ClusterHealthIndices) fetchAndDecodeClusterHealthIndices() (clusterHeal
 func (c *ClusterHealthIndices) Collect(ch chan<- prometheus.Metric) {
 	clusterHealthResp, err := c.fetchAndDecodeClusterHealthIndices()
 	if err != nil {
-		log.Println("failed to fetch and decode cluster health, err: ", err)
+		klog.ErrorS(err, "failed to fetch and decode elasticsearch cluster health indices")
 		return
 	}
 

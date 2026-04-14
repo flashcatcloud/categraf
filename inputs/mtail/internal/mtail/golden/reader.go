@@ -6,7 +6,6 @@ package golden
 import (
 	"bufio"
 	"io"
-	"log"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/metrics"
 	"flashcat.cloud/categraf/inputs/mtail/internal/metrics/datum"
+	"k8s.io/klog/v2"
 )
 
 var varRe = regexp.MustCompile(`^(counter|gauge|timer|text|histogram) ([^ ]+)(?: {([^}]+)})?(?: (\S+))?(?: (.+))?`)
@@ -83,7 +83,7 @@ func ReadTestData(file io.Reader, programfile string) metrics.MetricSlice {
 				if err == nil {
 					timestamp = time.Unix(j/1000000000, j%1000000000)
 				} else {
-					log.Println(err)
+					klog.ErrorS(err, "failed to parse golden metric timestamp", "value", match[5])
 				}
 			}
 		}
@@ -92,7 +92,7 @@ func ReadTestData(file io.Reader, programfile string) metrics.MetricSlice {
 		m := store.FindMetricOrNil(match[2], prog)
 		if m != nil {
 			if m.Type != typ {
-				log.Printf("The type of the fetched metric is not %s: %s", typ, m)
+				klog.Warningf("the type of the fetched metric is not %s: %s", typ, m)
 				continue
 			}
 		} else {
@@ -100,7 +100,8 @@ func ReadTestData(file io.Reader, programfile string) metrics.MetricSlice {
 			if kind == metrics.Counter && len(keys) == 0 {
 				d, err := m.GetDatum()
 				if err != nil {
-					log.Fatal(err)
+					klog.ErrorS(err, "failed to get datum for golden metric initialisation", "metric", match[2])
+					continue
 				}
 				// Initialize to zero at the zero time.
 				switch typ {
@@ -111,14 +112,14 @@ func ReadTestData(file io.Reader, programfile string) metrics.MetricSlice {
 				}
 			}
 			if err := store.Add(m); err != nil {
-				log.Printf("Failed to add metric %v to store: %s", m, err)
+				klog.ErrorS(err, "failed to add metric to store", "metric", m)
 			}
 		}
 
 		if match[4] != "" {
 			d, err := m.GetDatum(vals...)
 			if err != nil {
-				log.Printf("Failed to get datum: %s", err)
+				klog.ErrorS(err, "failed to get datum")
 				continue
 			}
 

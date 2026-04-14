@@ -7,11 +7,12 @@ import (
 	"flashcat.cloud/categraf/types"
 	gnatsd "github.com/nats-io/nats-server/v2/server"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
 	"time"
+
+	"k8s.io/klog/v2"
 )
 
 const inputName = "nats"
@@ -69,32 +70,32 @@ func (ins *Instance) Init() error {
 
 func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.DebugMod {
-		log.Println("D! nats... server:", ins.Server)
+		klog.V(1).InfoS("nats gather", "server", ins.Server)
 	}
 	address, err := url.Parse(ins.Server)
 	if err != nil {
-		log.Println("E! error parseURL", err)
+		klog.ErrorS(err, "error parsing NATS URL", "server", ins.Server)
 		return
 	}
 	address.Path = path.Join(address.Path, "varz")
 
 	resp, err := ins.client.Get(address.String())
 	if err != nil {
-		log.Println("E! error while polling", address.String(), err)
+		klog.ErrorS(err, "error while polling", "url", address.String())
 		return
 	}
 	defer resp.Body.Close()
 
 	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("E! error reading body", err)
+		klog.ErrorS(err, "error reading body", "url", address.String())
 		return
 	}
 
 	stats := new(gnatsd.Varz)
 	err = json.Unmarshal(bytes, &stats)
 	if err != nil {
-		log.Println("E! error parsing response", err)
+		klog.ErrorS(err, "error parsing response", "url", address.String())
 		return
 	}
 

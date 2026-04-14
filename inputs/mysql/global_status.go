@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"database/sql"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 // Regexp to match various groups of status vars.
@@ -21,7 +21,7 @@ func (ins *Instance) gatherGlobalStatus(slist *types.SampleList, db *sql.DB, glo
 	}
 	rows, err := db.Query(SQL_GLOBAL_STATUS)
 	if err != nil {
-		log.Println("E! failed to query global status:", err)
+		klog.ErrorS(err, "failed to query mysql global status", "address", ins.Address)
 		return
 	}
 

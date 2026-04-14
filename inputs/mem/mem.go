@@ -1,13 +1,13 @@
 package mem
 
 import (
-	"log"
 	"runtime"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "mem"
@@ -41,7 +41,7 @@ func (s *MemStats) Name() string {
 func (s *MemStats) Gather(slist *types.SampleList) {
 	vm, err := s.ps.VMStat()
 	if err != nil {
-		log.Println("E! failed to get vmstat:", err)
+		klog.ErrorS(err, "failed to get vmstat")
 		return
 	}
 

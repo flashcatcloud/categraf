@@ -2,7 +2,8 @@ package agent
 
 import (
 	"errors"
-	"log"
+
+	"k8s.io/klog/v2"
 )
 
 type Agent struct {
@@ -35,38 +36,38 @@ func NewAgent() (*Agent, error) {
 }
 
 func (a *Agent) Start() {
-	log.Println("I! agent starting")
+	klog.InfoS("agent starting")
 	for _, agent := range a.agents {
 		if agent == nil {
 			continue
 		}
 		if err := agent.Start(); err != nil {
-			log.Printf("E! start [%T] err: [%+v]", agent, err)
+			klog.ErrorS(err, "start agent module failed", "module", agent)
 		} else {
-			log.Printf("I! [%T] started", agent)
+			klog.InfoS("agent module started", "module", agent)
 		}
 	}
-	log.Println("I! agent started")
+	klog.InfoS("agent started")
 }
 
 func (a *Agent) Stop() {
-	log.Println("I! agent stopping")
+	klog.InfoS("agent stopping")
 	for _, agent := range a.agents {
 		if agent == nil {
 			continue
 		}
 		if err := agent.Stop(); err != nil {
-			log.Printf("E! stop [%T] err: [%+v]", agent, err)
+			klog.ErrorS(err, "stop agent module failed", "module", agent)
 		} else {
-			log.Printf("I! [%T] stopped", agent)
+			klog.InfoS("agent module stopped", "module", agent)
 		}
 	}
-	log.Println("I! agent stopped")
+	klog.InfoS("agent stopped")
 }
 
 func (a *Agent) Reload() {
-	log.Println("I! agent reloading")
+	klog.InfoS("agent reloading")
 	a.Stop()
 	a.Start()
-	log.Println("I! agent reloaded")
+	klog.InfoS("agent reloaded")
 }

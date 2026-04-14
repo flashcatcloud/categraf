@@ -17,9 +17,8 @@
 package exporter
 
 import (
-	"log"
-
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/inputs/ipmi/exporter/freeipmi"
 )
@@ -63,12 +62,12 @@ func (c SELCollector) Args() []string {
 func (c SELCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	entriesCount, err := freeipmi.GetSELInfoEntriesCount(result)
 	if err != nil {
-		log.Println("E!", "Failed to collect SEL data", "target", targetName(target.host), "error", err)
+		klog.ErrorS(err, "failed to collect SEL data", "target", targetName(target.host))
 		return 0, err
 	}
 	freeSpace, err := freeipmi.GetSELInfoFreeSpace(result)
 	if err != nil {
-		log.Println("E!", "Failed to collect SEL data", "target", targetName(target.host), "error", err)
+		klog.ErrorS(err, "failed to collect SEL data", "target", targetName(target.host))
 		return 0, err
 	}
 	ch <- prometheus.MustNewConstMetric(

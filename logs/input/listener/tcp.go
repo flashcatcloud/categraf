@@ -9,7 +9,6 @@ package listener
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -17,6 +16,7 @@ import (
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/pipeline"
 	"flashcat.cloud/categraf/logs/restart"
+	"k8s.io/klog/v2"
 )
 
 // A TCPListener listens and accepts TCP connections and delegates the read operations to a tailer.
@@ -38,7 +38,7 @@ func NewTCPListener(pipelineProvider pipeline.Provider, source *logsconfig.LogSo
 		var err error
 		idleTimeout, err = time.ParseDuration(source.Config.IdleTimeout)
 		if err != nil {
-			log.Printf("Error parsing log's idle_timeout as a duration: %s\n", err)
+			klog.Warningf("Error parsing log's idle_timeout as a duration: %v", err)
 			idleTimeout = 0
 		}
 	}
@@ -55,10 +55,10 @@ func NewTCPListener(pipelineProvider pipeline.Provider, source *logsconfig.LogSo
 
 // Start starts the listener to accepts new incoming connections.
 func (l *TCPListener) Start() {
-	log.Printf("Starting TCP forwarder on port %d, with read buffer size: %d\n", l.source.Config.Port, l.frameSize)
+	klog.Infof("Starting TCP forwarder on port %d, with read buffer size: %d", l.source.Config.Port, l.frameSize)
 	err := l.startListener()
 	if err != nil {
-		log.Printf("Can't start TCP forwarder on port %d: %v\n", l.source.Config.Port, err)
+		klog.Errorf("Can't start TCP forwarder on port %d: %v", l.source.Config.Port, err)
 		l.source.Status.Error(err)
 		return
 	}
@@ -68,7 +68,7 @@ func (l *TCPListener) Start() {
 
 // Stop stops the listener from accepting new connections and all the activer tailers.
 func (l *TCPListener) Stop() {
-	log.Printf("Stopping TCP forwarder on port %d\n", l.source.Config.Port)
+	klog.Infof("Stopping TCP forwarder on port %d", l.source.Config.Port)
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.stop <- struct{}{}
@@ -95,11 +95,11 @@ func (l *TCPListener) run() {
 				return
 			case err != nil:
 				// an error occurred, restart the listener.
-				log.Printf("Can't listen on port %d, restarting a listener: %v\n", l.source.Config.Port, err)
+				klog.Warningf("Can't listen on port %d, restarting a listener: %v", l.source.Config.Port, err)
 				l.listener.Close()
 				err := l.startListener()
 				if err != nil {
-					log.Printf("Can't restart listener on port %d: %v\n", l.source.Config.Port, err)
+					klog.Errorf("Can't restart listener on port %d: %v", l.source.Config.Port, err)
 					l.source.Status.Error(err)
 					return
 				}

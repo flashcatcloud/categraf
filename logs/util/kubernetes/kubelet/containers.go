@@ -10,13 +10,13 @@ package kubelet
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"time"
 
 	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/logs/util/containers/providers"
 	"flashcat.cloud/categraf/pkg/kubernetes"
+	"k8s.io/klog/v2"
 )
 
 // ListContainers lists all non-excluded running containers, and retrieves their performance metrics
@@ -40,7 +40,7 @@ func (ku *KubeUtil) ListContainers(ctx context.Context) ([]*containers.Container
 			}
 			container, err := parseContainerInPod(c, pod)
 			if err != nil {
-				log.Printf("Cannot parse container %s in pod %s: %s", c.ID, pod.Metadata.Name, err)
+				klog.Warningf("Cannot parse container %s in pod %s: %v", c.ID, pod.Metadata.Name, err)
 				continue
 			}
 			if container == nil {
@@ -48,7 +48,7 @@ func (ku *KubeUtil) ListContainers(ctx context.Context) ([]*containers.Container
 				continue
 			}
 			if !providers.ContainerImpl().ContainerExists(container.ID) {
-				log.Printf("No ContainerImplementation found for container %s in pod %s, skipping", container.ID, pod.Metadata.Name)
+				klog.Warningf("No ContainerImplementation found for container %s in pod %s, skipping", container.ID, pod.Metadata.Name)
 				continue
 			}
 			ctrList = append(ctrList, container)
@@ -76,7 +76,7 @@ func (ku *KubeUtil) getContainerDetails(ctn *containers.Container) {
 	var err error
 	ctn.StartedAt, err = providers.ContainerImpl().GetContainerStartTime(ctn.ID)
 	if err != nil {
-		log.Printf("ContainerImplementation cannot get StartTime for container %s, err: %s", ctn.ID[:12], err)
+		klog.Warningf("ContainerImplementation cannot get StartTime for container %s, err: %v", ctn.ID[:12], err)
 		return
 	}
 }
@@ -99,7 +99,7 @@ func parseContainerInPod(status kubernetes.ContainerStatus, pod *kubernetes.Pod)
 	switch {
 	case status.State.Waiting != nil:
 		// We don't display waiting containers
-		log.Printf("Skipping waiting container %s", c.ID)
+		klog.V(1).Infof("Skipping waiting container %s", c.ID)
 		return nil, nil
 	case status.State.Running != nil:
 		c.State = containers.ContainerRunningState
@@ -124,12 +124,12 @@ func parseContainerNetworkAddresses(status kubernetes.ContainerStatus, pod *kube
 	addrList := []containers.NetworkAddress{}
 	podIP := net.ParseIP(pod.Status.PodIP)
 	if podIP == nil {
-		log.Printf("Unable to parse pod IP: %v for pod: %s", pod.Status.PodIP, pod.Metadata.Name)
+		klog.Warningf("Unable to parse pod IP: %v for pod: %s", pod.Status.PodIP, pod.Metadata.Name)
 		return addrList
 	}
 	hostIP := net.ParseIP(pod.Status.HostIP)
 	if hostIP == nil {
-		log.Printf("Unable to parse host IP: %v for pod: %s", pod.Status.HostIP, pod.Metadata.Name)
+		klog.Warningf("Unable to parse host IP: %v for pod: %s", pod.Status.HostIP, pod.Metadata.Name)
 		return addrList
 	}
 	// Look for the ports in container spec

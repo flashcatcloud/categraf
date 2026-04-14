@@ -2,13 +2,13 @@ package mysql
 
 import (
 	"database/sql"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 func (ins *Instance) gatherEngineInnodbStatus(slist *types.SampleList, db *sql.DB, globalTags map[string]string, cache map[string]float64) {
@@ -17,7 +17,7 @@ func (ins *Instance) gatherEngineInnodbStatus(slist *types.SampleList, db *sql.D
 	}
 	rows, err := db.Query(SQL_ENGINE_INNODB_STATUS)
 	if err != nil {
-		log.Println("E! failed to query engine innodb status:", err)
+		klog.ErrorS(err, "failed to query mysql engine innodb status", "address", ins.Address)
 		return
 	}
 
@@ -27,7 +27,7 @@ func (ins *Instance) gatherEngineInnodbStatus(slist *types.SampleList, db *sql.D
 	// First row should contain the necessary info. If many rows returned then it's unknown case.
 	if rows.Next() {
 		if err := rows.Scan(&typeCol, &nameCol, &statusCol); err != nil {
-			log.Println("E! failed to scan result, sql:", SQL_ENGINE_INNODB_STATUS, "error:", err)
+			klog.ErrorS(err, "failed to scan mysql engine innodb status", "address", ins.Address, "sql", SQL_ENGINE_INNODB_STATUS)
 			return
 		}
 	}

@@ -2,10 +2,11 @@ package config
 
 import (
 	"bytes"
-	"log"
 	"net/url"
 	"strings"
 	"text/template"
+
+	"k8s.io/klog/v2"
 )
 
 type UrlLabel struct {
@@ -46,9 +47,7 @@ func (ul *UrlLabel) PrepareUrlTemplate() error {
 				value = k + "=" + v
 			}
 		}
-		if Config.DebugMode {
-			log.Printf("D! label pair tpl:%s", value)
-		}
+		klog.V(1).InfoS("label pair template", "template", value)
 		ul.LabelPairTpl, err = template.New("pair").Parse(value)
 		if err != nil {
 			return err
@@ -99,9 +98,7 @@ func (ul *UrlLabel) GenerateLabel(u *url.URL) (map[string]string, error) {
 			if len(kvs) != 2 {
 				continue
 			}
-			if Config.DebugMode {
-				log.Printf("D! label pairs after rendering: %s=%s", kvs[0], kvs[1])
-			}
+			klog.V(1).InfoS("label pair rendered", "key", kvs[0], "value", kvs[1])
 			ret[kvs[0]] = kvs[1]
 		}
 		buffer.Reset()

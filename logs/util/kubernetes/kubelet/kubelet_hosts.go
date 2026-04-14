@@ -9,11 +9,11 @@ package kubelet
 
 import (
 	"context"
-	"log"
 	"net"
 	"time"
 
 	"flashcat.cloud/categraf/logs/util/docker"
+	"k8s.io/klog/v2"
 )
 
 // connectionInfo contains potential kubelet's ips and hostnames
@@ -31,13 +31,13 @@ func getPotentialKubeletHosts(kubeletHost string) *connectionInfo {
 		configIps, configHostnames := getKubeletHostFromConfig(ctx, kubeletHost)
 		hosts.ips = append(hosts.ips, configIps...)
 		hosts.hostnames = append(hosts.hostnames, configHostnames...)
-		log.Printf("Got potential kubelet connection info from config, ips: %v, hostnames: %v", configIps, configHostnames)
+		klog.V(1).Infof("Got potential kubelet connection info from config, ips: %v, hostnames: %v", configIps, configHostnames)
 	}
 
 	dockerIps, dockerHostnames := getKubeletHostFromDocker(ctx)
 	hosts.ips = append(hosts.ips, dockerIps...)
 	hosts.hostnames = append(hosts.hostnames, dockerHostnames...)
-	log.Printf("Got potential kubelet connection info from docker, ips: %v, hostnames: %v", dockerIps, dockerHostnames)
+	klog.V(1).Infof("Got potential kubelet connection info from docker, ips: %v, hostnames: %v", dockerIps, dockerHostnames)
 
 	dedupeConnectionInfo(&hosts)
 
@@ -48,32 +48,32 @@ func getKubeletHostFromConfig(ctx context.Context, kubeletHost string) ([]string
 	var ips []string
 	var hostnames []string
 	if kubeletHost == "" {
-		log.Printf("kubernetes_kubelet_host is not set")
+		klog.V(1).Info("kubernetes_kubelet_host is not set")
 		return ips, hostnames
 	}
 
-	log.Printf("Trying to parse kubernetes_kubelet_host: %s", kubeletHost)
+	klog.V(1).Infof("Trying to parse kubernetes_kubelet_host: %s", kubeletHost)
 	kubeletIP := net.ParseIP(kubeletHost)
 	if kubeletIP == nil {
-		log.Printf("Parsing kubernetes_kubelet_host: %s is a hostname, cached, trying to resolve it to ip...", kubeletHost)
+		klog.V(1).Infof("Parsing kubernetes_kubelet_host: %s is a hostname, cached, trying to resolve it to ip...", kubeletHost)
 		hostnames = append(hostnames, kubeletHost)
 		ipAddrs, err := net.DefaultResolver.LookupIPAddr(ctx, kubeletHost)
 		if err != nil {
-			log.Printf("Cannot LookupIP hostname %s: %v", kubeletHost, err)
+			klog.Warningf("Cannot LookupIP hostname %s: %v", kubeletHost, err)
 		} else {
-			log.Printf("kubernetes_kubelet_host: %s is resolved to: %v", kubeletHost, ipAddrs)
+			klog.V(1).Infof("kubernetes_kubelet_host: %s is resolved to: %v", kubeletHost, ipAddrs)
 			for _, ipAddr := range ipAddrs {
 				ips = append(ips, ipAddr.IP.String())
 			}
 		}
 	} else {
-		log.Printf("Parsed kubernetes_kubelet_host: %s is an address: %v, cached, trying to resolve it to hostname", kubeletHost, kubeletIP)
+		klog.V(1).Infof("Parsed kubernetes_kubelet_host: %s is an address: %v, cached, trying to resolve it to hostname", kubeletHost, kubeletIP)
 		ips = append(ips, kubeletIP.String())
 		addrs, err := net.DefaultResolver.LookupAddr(ctx, kubeletHost)
 		if err != nil {
-			log.Printf("Cannot LookupHost ip %s: %v", kubeletHost, err)
+			klog.Warningf("Cannot LookupHost ip %s: %v", kubeletHost, err)
 		} else {
-			log.Printf("kubernetes_kubelet_host: %s is resolved to: %v", kubeletHost, addrs)
+			klog.V(1).Infof("kubernetes_kubelet_host: %s is resolved to: %v", kubeletHost, addrs)
 			for _, addr := range addrs {
 				hostnames = append(hostnames, addr)
 			}
@@ -88,17 +88,17 @@ func getKubeletHostFromDocker(ctx context.Context) ([]string, []string) {
 	var hostnames []string
 	dockerHost, err := docker.HostnameProvider(ctx, nil)
 	if err != nil {
-		log.Printf("unable to get hostname from docker, make sure to set the kubernetes_kubelet_host option: %s", err)
+		klog.Warningf("unable to get hostname from docker, make sure to set the kubernetes_kubelet_host option: %v", err)
 		return ips, hostnames
 	}
 
-	log.Printf("Trying to resolve host name %s provided by docker to ip...", dockerHost)
+	klog.V(1).Infof("Trying to resolve host name %s provided by docker to ip...", dockerHost)
 	hostnames = append(hostnames, dockerHost)
 	ipAddrs, err := net.DefaultResolver.LookupIPAddr(ctx, dockerHost)
 	if err != nil {
-		log.Printf("Cannot resolve host name %s, cached, provided by docker to ip: %s", dockerHost, err)
+		klog.Warningf("Cannot resolve host name %s, cached, provided by docker to ip: %v", dockerHost, err)
 	} else {
-		log.Printf("Resolved host name %s provided by docker to %v", dockerHost, ipAddrs)
+		klog.V(1).Infof("Resolved host name %s provided by docker to %v", dockerHost, ipAddrs)
 		for _, ipAddr := range ipAddrs {
 			ips = append(ips, ipAddr.IP.String())
 		}

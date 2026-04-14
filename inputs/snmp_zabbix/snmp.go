@@ -3,7 +3,6 @@ package snmp_zabbix
 import (
 	"context"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -13,6 +12,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 	"flashcat.cloud/categraf/writer"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -48,7 +48,7 @@ func (s *SnmpZabbix) GetInstances() []inputs.Instance {
 	ret := make([]inputs.Instance, len(s.Instances))
 	inputLabels := s.GetLabels()
 	if s.DebugMod {
-		log.Printf("D!, snmp_zabbix input labels:%+v", inputLabels)
+		klog.V(1).InfoS("snmp_zabbix input labels", "labels", inputLabels)
 	}
 	for i := 0; i < len(s.Instances); i++ {
 		if len(s.Instances[i].Labels) == 0 {
@@ -190,13 +190,13 @@ func (s *Instance) Init() error {
 
 	if !s.EnableDiscovery {
 		if s.DebugMod {
-			log.Printf("D! snmp_zabbix discovery disabled")
+			klog.V(1).InfoS("snmp_zabbix discovery disabled")
 		}
 		// return nil
 	}
 	if len(s.TemplateFiles) == 0 && len(s.TemplateFileContents) == 0 && len(s.Items) == 0 {
 		if s.DebugMod {
-			log.Printf("D!, there are no template files, no template_file_contents, and no items defined")
+			klog.V(1).InfoS("there are no template files, no template_file_contents, and no items defined")
 		}
 		return types.ErrInstancesEmpty
 	}
@@ -252,7 +252,7 @@ func (s *Instance) Init() error {
 	if len(s.TemplateFiles) != 0 {
 		mergedTemplate, err = LoadAndMergeTemplates(s.TemplateFiles)
 		if err != nil {
-			log.Printf("E! failed to load template file %v: %v", s.TemplateFiles, err)
+			klog.ErrorS(err, "failed to load template file", "template_files", s.TemplateFiles)
 		}
 	}
 
@@ -268,7 +268,7 @@ func (s *Instance) Init() error {
 			content := s.TemplateFileContents[key]
 			templateToMerge, pErr := ParseTemplateFromContent([]byte(content))
 			if pErr != nil {
-				log.Printf("E! failed to parse template content for key '%s': %v", key, pErr)
+				klog.ErrorS(pErr, "failed to parse template content", "key", key)
 				continue // 跳过解析失败的模板
 			}
 
@@ -304,19 +304,18 @@ func (s *Instance) handleDiscoveryComplete(agent string, rule DiscoveryRule, ite
 	var filtered []MonitorItem
 	for _, item := range items {
 		if strings.Contains(item.OID, "{#") {
-			log.Printf("W! item OID contains unexpanded macro: key=%s, oid=%s", item.Key, item.OID)
+			klog.Warningf("item OID contains unexpanded macro: key=%s, oid=%s", item.Key, item.OID)
 			continue
 		}
 		if item.OID == "" {
-			log.Printf("W! item has empty OID: key=%s", item.Key)
+			klog.Warningf("item has empty OID: key=%s", item.Key)
 			continue
 		}
 		item.IsDiscovered = true
 		filtered = append(filtered, item)
 	}
 
-	log.Printf("Discovery rule '%s' for agent %s produced %d valid items (filtered from %d)",
-		rule.Key, agent, len(filtered), len(items))
+	klog.InfoS("discovery rule produced valid items", "rule", rule.Key, "agent", agent, "valid_items", len(filtered), "total_items", len(items))
 
 	// 解析生命周期 (DeleteTTL, DisableTTL)
 	deleteTTL, disableTTL := ParseLLDLifetimes(rule)
@@ -410,7 +409,7 @@ func (s *Instance) Start(_ *types.SampleList) error {
 		// 启动发现调度器
 		s.discoveryScheduler.Start(baseCtx)
 
-		log.Printf("Discovery scheduler started with template rules")
+		klog.InfoS("discovery scheduler started with template rules")
 	}
 
 	go func(slist *types.SampleList) {
@@ -555,7 +554,7 @@ func (s *Instance) getTemplateStaticItems() []MonitorItem {
 			child := agentItemsMap[depTmpl.Key]
 			if _, ok := agentItemsMap[depTmpl.MasterKey]; !ok {
 				if s.DebugMod {
-					log.Printf("W! dependent item %s missing master %s on agent %s", child.Key, depTmpl.MasterKey, agentAddr)
+					klog.Warningf("dependent item %s missing master %s on agent %s", child.Key, depTmpl.MasterKey, agentAddr)
 				}
 			}
 		}
@@ -570,14 +569,14 @@ func (s *Instance) getTemplateStaticItems() []MonitorItem {
 			ptr, ok := agentItemsMap[key]
 			if !ok || ptr == nil {
 				if s.DebugMod {
-					log.Printf("E! check failed: item key '%s' not found in map during tree build", key)
+					klog.ErrorS(nil, "item key not found in map during tree build", "key", key)
 				}
 				return MonitorItem{}
 			}
 
 			if visited[key] {
 				if s.DebugMod {
-					log.Printf("E! cycle detected in item dependency: %s", key)
+					klog.ErrorS(nil, "cycle detected in item dependency", "key", key)
 				}
 				return *ptr
 			}

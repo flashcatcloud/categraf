@@ -5,7 +5,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -13,9 +12,11 @@ import (
 	"time"
 
 	"github.com/chai2010/winsvc"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/pkg/logging"
 	"flashcat.cloud/categraf/pkg/pprof"
 )
 
@@ -31,15 +32,10 @@ var (
 
 func runAgent(ag *agent.Agent) {
 	if !winsvc.IsAnInteractiveSession() {
-		if config.Config.Log.FileName == "stdout" || config.Config.Log.FileName == "stderr" ||
-			config.Config.Log.FileName == "" {
-			initLog("categraf.log")
-		} else {
-			initLog(config.Config.Log.FileName)
-		}
-
 		if err := winsvc.RunAsService(*flagWinSvcName, ag.Start, ag.Stop, false); err != nil {
-			log.Fatalln("F! failed to run windows service:", err)
+			klog.ErrorS(err, "failed to run windows service")
+			logging.Sync()
+			os.Exit(1)
 		}
 		return
 	}
@@ -53,7 +49,9 @@ func doOSsvc() {
 	// install service
 	if *flagWinSvcInstall {
 		if err := winsvc.InstallService(appPath, *flagWinSvcName, *flagWinSvcDesc); err != nil {
-			log.Fatalln("F! failed to install service:", *flagWinSvcName, "error:", err)
+			klog.ErrorS(err, "failed to install service", "service", *flagWinSvcName)
+			logging.Sync()
+			os.Exit(1)
 		}
 		fmt.Println("done")
 		os.Exit(0)
@@ -62,7 +60,9 @@ func doOSsvc() {
 	// uninstall service
 	if *flagWinSvcUninstall {
 		if err := winsvc.RemoveService(*flagWinSvcName); err != nil {
-			log.Fatalln("F! failed to uninstall service:", *flagWinSvcName, "error:", err)
+			klog.ErrorS(err, "failed to uninstall service", "service", *flagWinSvcName)
+			logging.Sync()
+			os.Exit(1)
 		}
 		fmt.Println("done")
 		os.Exit(0)
@@ -71,7 +71,9 @@ func doOSsvc() {
 	// start service
 	if *flagWinSvcStart {
 		if err := winsvc.StartService(*flagWinSvcName); err != nil {
-			log.Fatalln("F! failed to start service:", *flagWinSvcName, "error:", err)
+			klog.ErrorS(err, "failed to start service", "service", *flagWinSvcName)
+			logging.Sync()
+			os.Exit(1)
 		}
 		fmt.Println("done")
 		os.Exit(0)
@@ -80,7 +82,9 @@ func doOSsvc() {
 	// stop service
 	if *flagWinSvcStop && runtime.GOOS == "windows" {
 		if err := winsvc.StopService(*flagWinSvcName); err != nil {
-			log.Fatalln("F! failed to stop service:", *flagWinSvcName, "error:", err)
+			klog.ErrorS(err, "failed to stop service", "service", *flagWinSvcName)
+			logging.Sync()
+			os.Exit(1)
 		}
 		fmt.Println("done")
 		os.Exit(0)

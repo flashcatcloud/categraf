@@ -1,8 +1,6 @@
 package jolokia_agent
 
 import (
-	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -11,6 +9,7 @@ import (
 	"flashcat.cloud/categraf/inputs/jolokia"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "jolokia_agent"
@@ -82,7 +81,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		for _, url := range ins.URLs {
 			client, err := ins.createClient(url)
 			if err != nil {
-				log.Println("E! failed to create client:", err)
+				klog.ErrorS(err, "failed to create client", "url", url)
 				continue
 			}
 			ins.clients = append(ins.clients, client)
@@ -98,7 +97,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 			err := ins.gatherer.Gather(client, slist)
 			if err != nil {
-				log.Println("E!", fmt.Errorf("unable to gather metrics for %s: %v", client.URL, err))
+				klog.ErrorS(err, "unable to gather metrics", "url", client.URL)
 			}
 		}(client)
 	}

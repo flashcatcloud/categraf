@@ -2,11 +2,11 @@ package kafka
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/IBM/sarama"
 
 	"flashcat.cloud/categraf/logs/util"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -70,7 +70,7 @@ func (p *AsyncProducerWrapper) errorWorker() {
 	for {
 		select {
 		case err := <-p.asyncProducer.Errors():
-			log.Println("E! kafka producer error", err)
+			klog.ErrorS(err, "kafka producer error")
 		case <-p.stop:
 			return
 		}
@@ -83,7 +83,7 @@ func (p *AsyncProducerWrapper) successWorker() {
 		case <-p.asyncProducer.Successes():
 			p.counter++
 			if util.Debug() {
-				log.Printf("D! kafka producer message success, total:%d", p.counter)
+				klog.V(1).Infof("kafka producer message success, total:%d", p.counter)
 			}
 		case <-p.stop:
 			return
@@ -96,7 +96,7 @@ func (p *SyncProducerWrapper) Send(msg *sarama.ProducerMessage) error {
 	if err == nil {
 		p.counter++
 		if util.Debug() {
-			log.Printf("D! kafka producer message success, total:%d", p.counter)
+			klog.V(1).Infof("kafka producer message success, total:%d", p.counter)
 		}
 	}
 	return err

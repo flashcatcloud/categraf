@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -26,6 +25,7 @@ import (
 
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -182,13 +182,13 @@ func execute(ctx context.Context, name string, c Collector, ch chan<- prometheus
 
 	if err != nil {
 		if IsNoDataError(err) {
-			log.Printf("collector returned no data, name: %s, duration_seconds: %f, err: %s\n", name, duration.Seconds(), err)
+			klog.Warningf("elasticsearch collector returned no data, name: %s, duration_seconds: %f, err: %v", name, duration.Seconds(), err)
 		} else {
-			log.Printf("collector failed, name: %s, duration_seconds: %f, err: %s\n", name, duration.Seconds(), err)
+			klog.ErrorS(err, "elasticsearch collector failed", "name", name, "duration_seconds", duration.Seconds())
 		}
 		success = 0
 	} else {
-		log.Printf("collector succeeded, name: %s, duration_seconds: %f, err: %s\n", name, duration.Seconds(), err)
+		klog.V(1).InfoS("elasticsearch collector succeeded", "name", name, "duration_seconds", duration.Seconds())
 		success = 1
 	}
 	ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, duration.Seconds(), name)

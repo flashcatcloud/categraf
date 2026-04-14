@@ -2,17 +2,19 @@ package netstat
 
 import (
 	"fmt"
-	"log"
 	"syscall"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "netstat_filter"
+
 var executed = false
+
 type NetStatFilter struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
@@ -63,7 +65,7 @@ func (ins *Instance) Init() error {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	netconns, err := ins.ps.NetConnections()
 	if err != nil {
-		log.Println("E! failed to get net connections:", err)
+		klog.ErrorS(err, "failed to get filtered net connections")
 		return
 	}
 
@@ -117,7 +119,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	} else {
 		if !executed {
 			// 执行只需要在启动后执行一次的代码
-			log.Println("E! init Key not matched, TCP_ Send_ Queue, TCP_ Recv_Queue，  The queue value is 0,key:", key)
+			klog.ErrorS(nil, "netstat filter key not matched, send and recv queue values are 0", "key", key)
 			executed = true
 		}
 	}

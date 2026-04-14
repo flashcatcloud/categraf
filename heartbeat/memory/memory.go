@@ -7,9 +7,10 @@ package memory
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
+
+	"k8s.io/klog/v2"
 )
 
 type Memory struct{}
@@ -54,7 +55,7 @@ func (self *Memory) Collect() (result interface{}, err error) {
 		}
 		tv, e := convert(newTotal, times)
 		if e != nil {
-			log.Printf("W! parse memory total [%s||%s||%s] error: %s", total, t, newTotal, e)
+			klog.Warningf("parse memory total [%s||%s||%s] error: %v", total, t, newTotal, e)
 			err = e
 		} else {
 			mem["total"] = fmt.Sprintf("%d", int64(tv))
@@ -93,7 +94,7 @@ func (self *Memory) Collect() (result interface{}, err error) {
 		}
 		tv, e := convert(newSwap, times)
 		if e != nil {
-			log.Printf("W! parse memory swap [%s||%s||%s] error: %s", swap, s, newSwap, err)
+			klog.Warningf("parse memory swap [%s||%s||%s] error: %v", swap, s, newSwap, e)
 			err = e
 		} else {
 			mem["swap_total"] = fmt.Sprintf("%d", int64(tv))

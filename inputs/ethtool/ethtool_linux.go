@@ -4,7 +4,6 @@ package ethtool
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"regexp"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/pkg/choice"
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "ethtool"
@@ -115,7 +115,7 @@ func (ins *Instance) Init() error {
 	ins.command = NewCommandEthtool()
 	if _, ok := ins.command.(*CommandEthtool); !ok {
 		errMsg := "Conversion failed"
-		log.Println("E! ", errMsg)
+		klog.ErrorS(nil, "ethtool command conversion failed")
 		return fmt.Errorf("%v", errMsg)
 	}
 
@@ -126,7 +126,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	// Get the list of interfaces
 	interfaces, err := ins.command.Interfaces(ins.includeNamespaces)
 	if err != nil {
-		log.Printf("E! gather interfaces:[%q] error:[%s]", interfaces, err)
+		klog.ErrorS(err, "failed to gather interfaces", "interfaces", interfaces)
 		return
 	}
 
@@ -177,7 +177,7 @@ func (ins *Instance) gatherEthtoolStats(iface NamespacedInterface, slist *types.
 
 	driverName, err := ins.command.DriverName(iface)
 	if err != nil {
-		log.Printf("E! [%q] driver: [%s]", iface.Name, err)
+		klog.ErrorS(err, "failed to get interface driver", "interface", iface.Name)
 		return
 	}
 
@@ -186,7 +186,7 @@ func (ins *Instance) gatherEthtoolStats(iface NamespacedInterface, slist *types.
 	fields := make(map[string]interface{})
 	stats, err := ins.command.Stats(iface)
 	if err != nil {
-		log.Printf("E! [%q] stats: [%s]", iface.Name, err)
+		klog.ErrorS(err, "failed to get interface stats", "interface", iface.Name)
 		return
 	}
 
@@ -198,7 +198,7 @@ func (ins *Instance) gatherEthtoolStats(iface NamespacedInterface, slist *types.
 	cmdget, err := ins.command.Get(iface)
 	// error text is directly from running ethtool and syscalls
 	if err != nil && err.Error() != "operation not supported" {
-		log.Printf("E! [%q] get: [%s]", iface.Name, err)
+		klog.ErrorS(err, "failed to get ethtool settings", "interface", iface.Name)
 		return
 	}
 	for k, v := range cmdget {

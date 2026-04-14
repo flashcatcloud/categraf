@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"log"
 	"os"
 	"path"
 	"runtime"
@@ -18,6 +17,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "netstat"
@@ -66,7 +66,7 @@ func (s *NetStats) gatherSummary(slist *types.SampleList) {
 	}
 	bs, err := os.ReadFile(f)
 	if err != nil {
-		log.Println("E! failed to read sockstat", f, err)
+		klog.ErrorS(err, "failed to read sockstat", "path", f)
 		return
 	}
 	reader := bufio.NewReader(bytes.NewBuffer(bs))
@@ -90,7 +90,7 @@ func (s *NetStats) gatherSummary(slist *types.SampleList) {
 		for i := 0; i < len(kvs); i += 2 {
 			val, err := strconv.ParseUint(kvs[i+1], 10, 64)
 			if err != nil {
-				log.Println("W! parse:", f, "line:", line, "field:", kvs[i+1], "failed:", err)
+				klog.Warningf("failed to parse sockstat field: path=%s line=%q field=%q err=%v", f, line, kvs[i+1], err)
 			}
 			slist.PushSample(inputName+"_"+metric, strings.ToLower(kvs[i]), val, tags)
 		}
@@ -107,7 +107,7 @@ func (s *NetStats) Gather(slist *types.SampleList) {
 	}
 	netconns, err := s.ps.NetConnections()
 	if err != nil {
-		log.Println("E! failed to get net connections:", err)
+		klog.ErrorS(err, "failed to get net connections")
 		return
 	}
 
@@ -158,7 +158,7 @@ func (s *NetStats) gatherExt(slist *types.SampleList) {
 		return
 	}
 	if err != nil {
-		log.Println("E! failed to get ext metrics:", err)
+		klog.ErrorS(err, "failed to get netstat extension metrics")
 		return
 	}
 

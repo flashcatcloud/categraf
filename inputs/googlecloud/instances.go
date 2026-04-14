@@ -3,12 +3,12 @@ package googlecloud
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	apiv3 "cloud.google.com/go/monitoring/apiv3"
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/monitoring/v3"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -66,7 +66,7 @@ func (f *metricCache) isValid() bool {
 func (ins *Instance) Drop() {
 	err := ins.v3client.Close()
 	if err != nil {
-		log.Println("W! close gcp client error:", err)
+		klog.Warningf("close gcp client error: %v", err)
 	}
 }
 
@@ -123,20 +123,20 @@ func (ins *Instance) Init() error {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins == nil ||
 		ins.v3client == nil {
-		log.Println("E! googlecloud client is nil")
+		klog.Error("googlecloud client is nil")
 		return
 	}
 
 	if len(ins.Filter) != 0 {
 		err := ins.readTimeSeriesValue(slist, ins.Filter)
 		if err != nil {
-			log.Println("E! read time series value error:", err)
+			klog.ErrorS(err, "read googlecloud time series value error", "project_id", ins.ProjectID, "filter", ins.Filter)
 		}
 	} else {
 		if ins.metricCache == nil || !ins.metricCache.isValid() {
 			metrics, err := ins.ListMetrics()
 			if err != nil {
-				log.Println("E! list metrics error:", err)
+				klog.ErrorS(err, "list googlecloud metrics error", "project_id", ins.ProjectID)
 				return
 			}
 			ins.metricCache = &metricCache{

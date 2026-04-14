@@ -3,11 +3,11 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -204,7 +204,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	db, err := sql.Open("mysql", ins.dsn)
 	if err != nil {
 		slist.PushSample(inputName, "up", 0, tags)
-		log.Println("E! failed to open mysql:", err)
+		klog.ErrorS(err, "failed to open mysql", "address", ins.Address)
 		return
 	}
 
@@ -216,7 +216,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	if err = db.Ping(); err != nil {
 		slist.PushSample(inputName, "up", 0, tags)
-		log.Println("E! failed to ping mysql:", err)
+		klog.ErrorS(err, "failed to ping mysql", "address", ins.Address)
 		return
 	}
 

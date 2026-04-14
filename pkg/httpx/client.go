@@ -7,12 +7,13 @@ package httpx
 
 import (
 	"crypto/tls"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
+
+	"k8s.io/klog/v2"
 )
 
 // ResetClient wraps (http.Client).Do and resets the underlying connections at the
@@ -62,7 +63,7 @@ func (c *ResetClient) checkReset() {
 		return
 	}
 
-	log.Println("W! Resetting HTTP client's connections")
+	klog.Warning("resetting HTTP client's connections")
 	c.lastReset = time.Now()
 	// Close idle connections on underlying client. Safe to do while other goroutines use the client.
 	// This is a best effort: if other goroutine(s) are currently using the client,

@@ -1,7 +1,6 @@
 package whois
 
 import (
-	"log"
 	"sync"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "whois"
@@ -142,7 +142,7 @@ func (ins *Instance) queryDomain(domain string, slist *types.SampleList) {
 		if retry > 0 {
 			sleepTime := time.Duration(retry) * 3 * time.Second
 			time.Sleep(sleepTime)
-			log.Println("W! Retrying", retry+1, "of", maxRetries, "for domain", domain)
+			klog.Warningf("retrying whois query: attempt=%d max_retries=%d domain=%s", retry+1, maxRetries, domain)
 		}
 
 		result, err = ins.client.Whois(domain, ins.Server)
@@ -150,18 +150,18 @@ func (ins *Instance) queryDomain(domain string, slist *types.SampleList) {
 			break
 		}
 
-		log.Println("W! query", domain, "attempt", retry+1, "failed:", err)
+		klog.Warningf("whois query attempt failed: domain=%s attempt=%d err=%v", domain, retry+1, err)
 	}
 
 	if err != nil {
-		log.Println("E! query", ins.Domain, "domain information failed:", err)
+		klog.ErrorS(err, "failed to query domain information", "domain", domain)
 		return
 	}
 
 	// 使用 whois-parser 解析结果
 	parsedResult, err := whoisparser.Parse(result)
 	if err != nil {
-		log.Println("E! parse", ins.Domain, "domain whois result failure:", err)
+		klog.ErrorS(err, "failed to parse whois result", "domain", domain)
 		return
 	}
 
@@ -172,12 +172,12 @@ func (ins *Instance) queryDomain(domain string, slist *types.SampleList) {
 		if parsedResult.Domain.CreatedDate != "" {
 			CreatedDate, err = ParseTimeToUTCTimestamp(parsedResult.Domain.CreatedDate)
 			if err != nil {
-				log.Println("E! parsing creation time:", parsedResult.Domain.CreatedDate, "time string failure:", err)
+				klog.ErrorS(err, "failed to parse domain creation time", "domain", domain, "time", parsedResult.Domain.CreatedDate)
 				return
 			}
 			fields["domain_createddate"] = CreatedDate
 		} else {
-			log.Println("E! creation time is null")
+			klog.ErrorS(nil, "domain creation time is empty", "domain", domain)
 			return
 		}
 
@@ -185,22 +185,22 @@ func (ins *Instance) queryDomain(domain string, slist *types.SampleList) {
 		if parsedResult.Domain.UpdatedDate != "" {
 			UpdatedDate, err = ParseTimeToUTCTimestamp(parsedResult.Domain.UpdatedDate)
 			if err != nil {
-				log.Println("E! parsing update time:", parsedResult.Domain.UpdatedDate, "time string failure:", err)
+				klog.ErrorS(err, "failed to parse domain update time", "domain", domain, "time", parsedResult.Domain.UpdatedDate)
 			}
 			fields["domain_updateddate"] = UpdatedDate
 		} else {
-			log.Println("W! update time is null")
+			klog.Warningf("domain update time is empty: domain=%s", domain)
 		}
 
 		if parsedResult.Domain.ExpirationDate != "" {
 			ExpirationDate, err = ParseTimeToUTCTimestamp(parsedResult.Domain.ExpirationDate)
 			if err != nil {
-				log.Println("E! parsing expiration time:", parsedResult.Domain.ExpirationDate, "time string failure:", err)
+				klog.ErrorS(err, "failed to parse domain expiration time", "domain", domain, "time", parsedResult.Domain.ExpirationDate)
 				return
 			}
 			fields["domain_expirationdate"] = ExpirationDate
 		} else {
-			log.Println("E! expiration time is null")
+			klog.ErrorS(nil, "domain expiration time is empty", "domain", domain)
 			return
 		}
 
@@ -218,7 +218,7 @@ func (ins *Instance) queryDomain(domain string, slist *types.SampleList) {
 		slist.PushSamples(inputName, fields, tags)
 
 	} else {
-		log.Println("E! creation、update、expiration time is all null")
+		klog.ErrorS(nil, "domain creation, update, and expiration times are all empty", "domain", domain)
 		return
 	}
 

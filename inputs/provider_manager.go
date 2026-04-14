@@ -1,11 +1,11 @@
 package inputs
 
 import (
-	"log"
 	"strings"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/cfg"
+	"k8s.io/klog/v2"
 )
 
 const inputFilePrefix = "input."
@@ -57,7 +57,7 @@ type Provider interface {
 }
 
 func NewProvider(c *config.ConfigType, op InputOperation) ([]Provider, error) {
-	log.Println("I! use input provider:", c.Global.Providers)
+	klog.InfoS("use input providers", "providers", c.Global.Providers)
 	// 不添加provider配置 则默认使用local
 	// 兼容老版本
 	if len(c.Global.Providers) == 0 {
@@ -68,7 +68,7 @@ func NewProvider(c *config.ConfigType, op InputOperation) ([]Provider, error) {
 	for _, p := range c.Global.Providers {
 		name := strings.ToLower(p)
 		if _, ok := record[name]; ok {
-			log.Println("W! duplicate input provider:", name)
+			klog.Warningf("duplicate input provider: %s", name)
 			continue
 		} else {
 			record[name] = struct{}{}

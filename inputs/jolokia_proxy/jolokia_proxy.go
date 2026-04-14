@@ -1,8 +1,6 @@
 package jolokia_proxy
 
 import (
-	"fmt"
-	"log"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -10,6 +8,7 @@ import (
 	"flashcat.cloud/categraf/inputs/jolokia"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "jolokia_proxy"
@@ -89,7 +88,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.client == nil {
 		client, err := ins.createClient(ins.URL)
 		if err != nil {
-			log.Println("E! failed to create client:", err)
+			klog.ErrorS(err, "failed to create jolokia proxy client", "url", ins.URL)
 			return
 		}
 		ins.client = client
@@ -97,7 +96,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	err := ins.gatherer.Gather(ins.client, slist)
 	if err != nil {
-		log.Println("E!", fmt.Errorf("unable to gather metrics for %s: %v", ins.client.URL, err))
+		klog.ErrorS(err, "unable to gather jolokia proxy metrics", "url", ins.client.URL)
 	}
 }
 

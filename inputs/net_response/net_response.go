@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"net"
 	"net/textproto"
@@ -15,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -148,7 +148,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 func (ins *Instance) gather(slist *types.SampleList, target string) {
 	if ins.DebugMod {
-		log.Println("D! net_response... target:", target)
+		klog.V(1).InfoS("net_response gather", "target", target)
 	}
 
 	labels := map[string]string{"target": target}
@@ -172,19 +172,19 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 	case "tcp":
 		returnTags, fields, err = ins.TCPGather(target)
 		if err != nil {
-			log.Println("E! failed to gather:", target, "error:", err)
+			klog.ErrorS(err, "failed to gather net response", "target", target, "protocol", "tcp")
 			return
 		}
 		labels["protocol"] = "tcp"
 	case "udp":
 		returnTags, fields, err = ins.UDPGather(target)
 		if err != nil {
-			log.Println("E! failed to gather:", target, "error:", err)
+			klog.ErrorS(err, "failed to gather net response", "target", target, "protocol", "udp")
 			return
 		}
 		labels["protocol"] = "udp"
 	default:
-		log.Println("E! bad protocol, target:", target)
+		klog.ErrorS(nil, "bad protocol", "target", target, "protocol", ins.Protocol)
 	}
 
 	for k, v := range returnTags {
@@ -240,7 +240,7 @@ func (ins *Instance) TCPGather(address string) (map[string]string, map[string]in
 		responseTime = time.Since(start).Seconds()
 		// Handle error
 		if err != nil {
-			log.Printf("E! read tcp failed, address: %s, error: %s", address, err)
+			klog.ErrorS(err, "read tcp failed", "address", address)
 			fields["result_code"] = ReadFailed
 		} else {
 			if strings.Contains(data, ins.Expect) {
@@ -303,7 +303,7 @@ func (ins *Instance) UDPGather(address string) (map[string]string, map[string]in
 			time.Sleep(1 * time.Second)
 			_, err = conn.Write(msg)
 			if err != nil && ins.DebugMod {
-				log.Printf("E! write udp failed, address: %s, error: %s", address, err)
+				klog.V(1).InfoS("write udp failed", "address", address, "error", err)
 			}
 			if err != nil && strings.Contains(err.Error(), "refused") {
 				fields["result_code"] = ConnectionFailed
@@ -322,7 +322,7 @@ func (ins *Instance) UDPGather(address string) (map[string]string, map[string]in
 	responseTime = time.Since(start).Seconds()
 	// Handle error
 	if err != nil {
-		log.Printf("E! read udp failed, address: %s, error: %s", address, err)
+		klog.ErrorS(err, "read udp failed", "address", address)
 		fields["result_code"] = ReadFailed
 		fields["response_time"] = -1
 		// Error encoded in result

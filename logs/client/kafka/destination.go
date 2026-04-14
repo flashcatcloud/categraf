@@ -5,7 +5,6 @@ package kafka
 import (
 	"context"
 	"errors"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/logs/util"
 	"flashcat.cloud/categraf/pkg/backoff"
+	"k8s.io/klog/v2"
 )
 
 // ContentType options,
@@ -119,7 +119,7 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		typ = AsyncProducer
 	}
 	if util.Debug() {
-		log.Println("D! producer type:", typ, coreconfig.Config.Logs.ChannelBufferSize, coreconfig.Config.Logs.Net.MaxOpenRequests)
+		klog.V(1).Info("producer type:", typ, coreconfig.Config.Logs.ChannelBufferSize, coreconfig.Config.Logs.Net.MaxOpenRequests)
 	}
 	coreconfig.Config.Logs.Config.Producer.Timeout = timeout
 
@@ -160,7 +160,7 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		}
 	}
 	if util.Debug() {
-		log.Printf("D! saram config: %+v", coreconfig.Config.Logs.Config)
+		klog.V(1).Infof("saram config: %+v", coreconfig.Config.Logs.Config)
 	}
 
 	brokers := strings.Split(endpoint.Addr, ",")
@@ -230,7 +230,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 	data := &Data{}
 	err = json.Unmarshal(payload, data)
 	if err != nil {
-		log.Println("E! get topic from payload, ", err)
+		klog.ErrorS(err, "get topic from payload")
 	}
 	if data.Topic != "" {
 		topic = data.Topic
@@ -241,7 +241,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 	}
 	err = NewBuilder().WithMessage(msgKey, encodedPayload).WithTopic(topic).Send(d.client)
 	if err != nil {
-		log.Printf("W! send message to kafka error %s, topic:%s", err, topic)
+		klog.Warningf("send message to kafka error %v, topic:%s", err, topic)
 		if errors.Is(ctx.Err(), context.Canceled) {
 			return ctx.Err()
 		}

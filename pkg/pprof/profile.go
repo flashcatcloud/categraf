@@ -2,10 +2,11 @@ package pprof
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"sync/atomic"
+
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -16,20 +17,20 @@ var (
 func Go() {
 
 	if !atomic.CompareAndSwapUint32(&pprof, 0, 1) {
-		log.Println("pprofile already started,", addr)
+		klog.InfoS("pprof already started", "address", addr)
 		return
 	}
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		log.Println(err)
+		klog.ErrorS(err, "failed to start pprof listener")
 		return
 	}
 	addr = fmt.Sprintf("http://127.0.0.1:%d/debug/pprof", listener.Addr().(*net.TCPAddr).Port)
-	log.Printf("pprof started at %s", addr)
+	klog.InfoS("pprof started", "address", addr)
 
 	err = http.Serve(listener, nil)
 	if err != nil {
-		log.Println(err)
+		klog.ErrorS(err, "pprof server exited")
 		return
 	}
 }

@@ -17,9 +17,8 @@
 package exporter
 
 import (
-	"log"
-
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/inputs/ipmi/exporter/freeipmi"
 )
@@ -56,7 +55,7 @@ func (c DCMICollector) Args() []string {
 func (c DCMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	currentPowerConsumption, err := freeipmi.GetCurrentPowerConsumption(result)
 	if err != nil {
-		log.Println("E!", "Failed to collect DCMI data", "target", targetName(target.host), "error", err)
+		klog.ErrorS(err, "failed to collect DCMI data", "target", targetName(target.host))
 		return 0, err
 	}
 	// Returned value negative == Power Measurement is not avail

@@ -19,7 +19,6 @@ package collector
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/mattn/go-xmlrpc"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -66,7 +66,7 @@ func NewSupervisordCollector() (Collector, error) {
 		xrpc = xmlrpc.NewClient(*supervisordURL)
 	}
 
-	log.Println("W! this collector is deprecated and will be removed in the next major version release.")
+	klog.Warning("this node_exporter supervisord collector is deprecated and will be removed in the next major version release")
 
 	return &supervisordCollector{
 		upDesc: prometheus.NewDesc(

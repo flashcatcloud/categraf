@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "traffic_server"
@@ -108,7 +108,7 @@ type Data struct {
 
 func (ins *Instance) gather(slist *types.SampleList, target string) {
 	if ins.DebugMod {
-		log.Println("D! traffic_server... target:", target)
+		klog.V(1).InfoS("traffic_server gathering target", "target", target)
 	}
 
 	labels := map[string]string{"target": target}
@@ -117,7 +117,7 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 
 	err := ins.gatherJSONData(target, data)
 	if err != nil {
-		log.Println("E! failed to gather json data:", err)
+		klog.ErrorS(err, "failed to gather traffic_server json data", "target", target)
 		return
 	}
 	var fields = make(map[string]interface{})

@@ -19,10 +19,10 @@ package collector
 
 import (
 	"errors"
-	"log"
 	"regexp"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 // Arch-dependent implementation must define:
@@ -97,7 +97,7 @@ func init() {
 func NewFilesystemCollector() (Collector, error) {
 	if *oldMountPointsExcluded != "" {
 		if !mountPointsExcludeSet {
-			log.Println("W! --collector.filesystem.ignored-mount-points isDEPRECATED and will be removed in 2.0.0, use --collector.filesystem.mount-points-exclude")
+			klog.Warning("--collector.filesystem.ignored-mount-points is DEPRECATED and will be removed in 2.0.0, use --collector.filesystem.mount-points-exclude")
 			*mountPointsExclude = *oldMountPointsExcluded
 		} else {
 			return nil, errors.New("--collector.filesystem.ignored-mount-points and --collector.filesystem.mount-points-exclude are mutually exclusive")
@@ -106,7 +106,7 @@ func NewFilesystemCollector() (Collector, error) {
 
 	if *oldFSTypesExcluded != "" {
 		if !fsTypesExcludeSet {
-			log.Println("W! --collector.filesystem.ignored-fs-types is DEPRECATED and will be removed in 2.0.0, use --collector.filesystem.fs-types-exclude")
+			klog.Warning("--collector.filesystem.ignored-fs-types is DEPRECATED and will be removed in 2.0.0, use --collector.filesystem.fs-types-exclude")
 			*fsTypesExclude = *oldFSTypesExcluded
 		} else {
 			return nil, errors.New("--collector.filesystem.ignored-fs-types and --collector.filesystem.fs-types-exclude are mutually exclusive")
@@ -114,9 +114,9 @@ func NewFilesystemCollector() (Collector, error) {
 	}
 
 	subsystem := "filesystem"
-	log.Println("I! Parsed flag --collector.filesystem.mount-points-exclude", "flag", *mountPointsExclude)
+	klog.InfoS("parsed flag --collector.filesystem.mount-points-exclude", "flag", *mountPointsExclude)
 	mountPointPattern := regexp.MustCompile(*mountPointsExclude)
-	log.Println("I! Parsed flag --collector.filesystem.fs-types-exclude", "flag", *fsTypesExclude)
+	klog.InfoS("parsed flag --collector.filesystem.fs-types-exclude", "flag", *fsTypesExclude)
 	filesystemsTypesPattern := regexp.MustCompile(*fsTypesExclude)
 
 	sizeDesc := prometheus.NewDesc(

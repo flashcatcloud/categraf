@@ -8,13 +8,13 @@
 package decoder
 
 import (
-	"log"
 	"regexp"
 	"sort"
 	"sync"
 	"time"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
+	"k8s.io/klog/v2"
 )
 
 type scoredPattern struct {
@@ -156,7 +156,7 @@ func (h *AutoMultilineHandler) processAndTry(message *Message) {
 	timeout := false
 	select {
 	case <-h.timeoutTimer.C:
-		log.Println("Multiline auto detect timed out before reaching line test threshold")
+		klog.Info("Multiline auto detect timed out before reaching line test threshold")
 		timeout = true
 		break
 	default:
@@ -169,11 +169,11 @@ func (h *AutoMultilineHandler) processAndTry(message *Message) {
 		matchRatio := float64(topMatch.score) / float64(h.linesTested)
 
 		if matchRatio >= h.matchThreshold {
-			log.Printf("Pattern %v matched %d lines with a ratio of %f\n", topMatch.regexp.String(), topMatch.score, matchRatio)
+			klog.Infof("Pattern %v matched %d lines with a ratio of %f", topMatch.regexp.String(), topMatch.score, matchRatio)
 			h.detectedPattern.Set(topMatch.regexp)
 			h.switchToMultilineHandler(topMatch.regexp)
 		} else {
-			log.Println("No pattern met the line match threshold during multiline autosensing - using single line handler")
+			klog.Info("No pattern met the line match threshold during multiline autosensing - using single line handler")
 			// Stay with the single line handler and no longer attempt to detect multiline matches.
 			h.processsingFunc = h.singleLineHandler.process
 		}

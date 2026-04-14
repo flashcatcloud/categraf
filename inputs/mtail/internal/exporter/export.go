@@ -10,7 +10,6 @@ import (
 	"expvar"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"sort"
@@ -19,6 +18,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/metrics"
 )
@@ -213,20 +213,20 @@ func (e *Exporter) PushMetrics() {
 		// glog.V(2).Infof("pushing to %s", target.addr)
 		conn, err := net.DialTimeout(target.net, target.addr, writeDeadline)
 		if err != nil {
-			log.Printf("pusher dial error: %s", err)
+			klog.ErrorS(err, "pusher dial error", "network", target.net, "addr", target.addr)
 			continue
 		}
 		err = conn.SetDeadline(time.Now().Add(writeDeadline))
 		if err != nil {
-			log.Printf("Couldn't set deadline on connection: %s", err)
+			klog.ErrorS(err, "couldn't set deadline on connection", "addr", target.addr)
 		}
 		err = e.writeSocketMetrics(conn, target.f, target.total, target.success)
 		if err != nil {
-			log.Printf("pusher write error: %s", err)
+			klog.ErrorS(err, "pusher write error", "addr", target.addr)
 		}
 		err = conn.Close()
 		if err != nil {
-			log.Printf("connection close failed: %s", err)
+			klog.ErrorS(err, "connection close failed", "addr", target.addr)
 		}
 	}
 }
@@ -234,7 +234,7 @@ func (e *Exporter) PushMetrics() {
 // StartMetricPush pushes metrics to the configured services each interval.
 func (e *Exporter) StartMetricPush() {
 	if e.exportDisabled {
-		log.Printf("Export loop disabled.")
+		klog.InfoS("export loop disabled")
 		return
 	}
 	if len(e.pushTargets) == 0 {
@@ -247,7 +247,7 @@ func (e *Exporter) StartMetricPush() {
 	go func() {
 		defer e.wg.Done()
 		<-e.initDone
-		log.Printf("Started metric push.")
+		klog.InfoS("started metric push")
 		ticker := time.NewTicker(e.pushInterval)
 		defer ticker.Stop()
 		for {

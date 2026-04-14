@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 	"text/template"
@@ -13,6 +12,7 @@ import (
 	"flashcat.cloud/categraf/config"
 
 	"github.com/hashicorp/consul/api"
+	"k8s.io/klog/v2"
 )
 
 type ConsulConfig struct {
@@ -75,7 +75,7 @@ func (ins *Instance) InitConsulClient(ctx context.Context) error {
 		for tagName, tagTemplateString := range ins.ConsulConfig.Queries[i].ServiceExtraTags {
 			tagTemplate, err := template.New(tagName).Funcs(templateFunctions).Parse(tagTemplateString)
 			if err != nil {
-				log.Printf("failed to parse the Consul query Extra Tag template (%s): %s", tagTemplateString, err)
+				klog.Warningf("failed to parse the Consul query extra tag template (%s): %v", tagTemplateString, err)
 				continue
 			}
 			q.serviceExtraTagsTemplate[tagName] = tagTemplate
@@ -100,7 +100,7 @@ func (ins *Instance) InitConsulClient(ctx context.Context) error {
 		err := ins.refreshConsulServices(catalog)
 		if err != nil {
 			refreshFailed = true
-			log.Printf("Unable to refreh Consul services: %v", err)
+			klog.Warningf("unable to refresh Consul services: %v", err)
 		}
 		for {
 			select {
@@ -109,16 +109,15 @@ func (ins *Instance) InitConsulClient(ctx context.Context) error {
 			case <-time.After(time.Duration(ins.ConsulConfig.QueryInterval)):
 				err := ins.refreshConsulServices(catalog)
 				if err != nil {
-					message := fmt.Sprintf("Unable to refreh Consul services: %v", err)
 					if refreshFailed {
-						log.Println("E!", message)
+						klog.ErrorS(err, "unable to refresh Consul services")
 					} else {
-						log.Println("W!", message)
+						klog.Warningf("unable to refresh Consul services: %v", err)
 					}
 					refreshFailed = true
 				} else if refreshFailed {
 					refreshFailed = false
-					log.Println("Successfully refreshed Consul services after previous errors")
+					klog.InfoS("successfully refreshed Consul services after previous errors")
 				}
 			}
 		}
@@ -143,7 +142,7 @@ func (ins *Instance) refreshConsulServices(c *api.Catalog) error {
 	consulServiceURLs := make(map[string]*ScrapeUrl)
 
 	if ins.DebugMod {
-		log.Println("Refreshing Consul services")
+		klog.V(1).InfoS("refreshing Consul services")
 	}
 
 	for _, q := range ins.ConsulConfig.Queries {
@@ -159,31 +158,30 @@ func (ins *Instance) refreshConsulServices(c *api.Catalog) error {
 		}
 		if len(consulServices) == 0 {
 			if ins.DebugMod {
-				log.Printf("Queried Consul for Service (%s, %s) but did not find any instances\n", q.ServiceName, q.ServiceTag)
+				klog.V(1).InfoS("queried Consul service and found no instances", "service", q.ServiceName, "tag", q.ServiceTag)
 			}
 			continue
 		}
 		if ins.DebugMod {
-			log.Printf("Queried Consul for Service (%s, %s) and found %d instances\n", q.ServiceName, q.ServiceTag, len(consulServices))
+			klog.V(1).InfoS("queried Consul service and found instances", "service", q.ServiceName, "tag", q.ServiceTag, "count", len(consulServices))
 		}
 
 		for _, consulService := range consulServices {
 			uaa, err := ins.getConsulServiceURL(q, consulService)
 			if err != nil {
-				message := fmt.Sprintf("Unable to get scrape URLs from Consul for Service (%s, %s): %s", q.ServiceName, q.ServiceTag, err)
 				if q.lastQueryFailed {
-					log.Println("E!", message)
+					klog.ErrorS(err, "unable to get scrape URLs from Consul", "service", q.ServiceName, "tag", q.ServiceTag)
 				} else {
-					log.Println("W!", message)
+					klog.Warningf("unable to get scrape URLs from Consul for service (%s, %s): %v", q.ServiceName, q.ServiceTag, err)
 				}
 				q.lastQueryFailed = true
 				break
 			}
 			if q.lastQueryFailed {
-				log.Printf("Created scrape URLs from Consul for Service (%s, %s)\n", q.ServiceName, q.ServiceTag)
+				klog.InfoS("created scrape URLs from Consul after previous errors", "service", q.ServiceName, "tag", q.ServiceTag)
 			}
 			q.lastQueryFailed = false
-			log.Printf("Adding scrape URL from Consul for Service (%s, %s): %s\n", q.ServiceName, q.ServiceTag, uaa.URL.String())
+			klog.InfoS("adding scrape URL from Consul", "service", q.ServiceName, "tag", q.ServiceTag, "url", uaa.URL.String())
 			consulServiceURLs[uaa.URL.String()] = uaa
 		}
 	}
@@ -218,7 +216,7 @@ func (ins *Instance) getConsulServiceURL(q *ConsulQuery, s *api.CatalogService) 
 	}
 
 	if ins.DebugMod {
-		log.Println("D! found consul service:", serviceURL.String())
+		klog.V(1).InfoS("found Consul service", "url", serviceURL.String())
 	}
 
 	return &ScrapeUrl{

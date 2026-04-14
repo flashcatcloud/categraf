@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -19,6 +18,7 @@ import (
 	"flashcat.cloud/categraf/pkg/stringx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 type (
@@ -84,7 +84,7 @@ func (ins *Instance) prepare() error {
 	tmpl, err := template.New("appdynamics").Parse(ins.URLBase)
 	if err != nil {
 		e := fmt.Errorf("failed to parse url template, error: %s", err)
-		log.Println(e)
+		klog.ErrorS(e, "failed to parse appdynamics url template", "url_base", ins.URLBase)
 		return e
 	}
 
@@ -94,20 +94,20 @@ func (ins *Instance) prepare() error {
 		err = tmpl.Execute(&buf, vars)
 		if err != nil {
 			e := fmt.Errorf("failed to prepare url template, error: %s", err)
-			log.Println(e)
+			klog.ErrorS(e, "failed to prepare appdynamics url template", "url_base", ins.URLBase)
 			return e
 		}
 		target := buf.String()
 		addr, err := url.Parse(target)
 		if err != nil {
 			e := fmt.Errorf("failed to parse http(s) url: %s, error: %v", target, err)
-			log.Println(e)
+			klog.ErrorS(e, "failed to parse appdynamics target url", "target", target)
 			return e
 		}
 
 		if addr.Scheme != "http" && addr.Scheme != "https" {
 			e := fmt.Errorf("only http and https are supported, url: %s", target)
-			log.Println(e)
+			klog.ErrorS(e, "unsupported appdynamics url scheme", "target", target)
 			return e
 		}
 
@@ -241,13 +241,13 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 	link = strings.Replace(link, "$END_TIME", fmt.Sprintf("%d", e), -1)
 	u, err := url.Parse(link)
 	if err != nil {
-		log.Println("E! failed to parse url:", link, "error:", err)
+		klog.ErrorS(err, "failed to parse appdynamics url", "url", link)
 		return
 	}
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		log.Println("E! failed to new request for url:", u.String(), "error:", err)
+		klog.ErrorS(err, "failed to create appdynamics request", "url", u.String())
 		return
 	}
 
@@ -255,7 +255,7 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 
 	gTags, err := ins.GenerateLabel(u)
 	if err != nil {
-		log.Println("E! failed to generate url label value:", err)
+		klog.ErrorS(err, "failed to generate appdynamics url label", "url", u.String())
 		return
 	}
 	for k, v := range gTags {
@@ -265,13 +265,13 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 	res, err := ins.client.Do(req)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(tm))
-		log.Println("E! failed to query url:", u.String(), "error:", err)
+		klog.ErrorS(err, "failed to query appdynamics url", "url", u.String())
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
 		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(tm))
-		log.Println("E! failed to query url:", u.String(), "status code:", res.StatusCode)
+		klog.ErrorS(nil, "failed to query appdynamics url", "url", u.String(), "status_code", res.StatusCode)
 		return
 	}
 
@@ -280,7 +280,7 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "up", 0, labels).SetTime(tm))
-		log.Println("E! failed to read response body, url:", u.String(), "error:", err)
+		klog.ErrorS(err, "failed to read appdynamics response body", "url", u.String())
 		return
 	}
 
@@ -288,7 +288,7 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 	metrics := []Metric{}
 	err = json.Unmarshal(body, &metrics)
 	if err != nil {
-		log.Printf("E! failed to unmarshal response body %s, url:%s, error:%s", body, u.String(), err)
+		klog.ErrorS(err, "failed to unmarshal appdynamics response body", "url", u.String(), "body", string(body))
 	}
 	for _, metric := range metrics {
 		name := metric.Path
@@ -322,7 +322,7 @@ func (ins *Instance) gather(slist *types.SampleList, link string, labels map[str
 				}
 			}
 			if len(ins.Filters) == 0 {
-				log.Printf("W! no filter specified, use default filter: current")
+				klog.Warning("no appdynamics filter specified, using default filter: current")
 				slist.PushFront(types.NewSample(inputName, name+"_current", val.Current, labels).SetTime(tm))
 			}
 		}

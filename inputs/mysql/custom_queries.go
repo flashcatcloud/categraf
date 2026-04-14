@@ -3,7 +3,6 @@ package mysql
 import (
 	"context"
 	"database/sql"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 func (ins *Instance) gatherCustomQueries(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
@@ -37,12 +37,12 @@ func (ins *Instance) gatherOneQuery(slist *types.SampleList, db *sql.DB, globalT
 
 	rows, err := db.QueryContext(ctx, query.Request)
 	if ctx.Err() == context.DeadlineExceeded {
-		log.Println("E! query timeout, request:", query.Request)
+		klog.ErrorS(ctx.Err(), "mysql custom query timeout", "address", ins.Address, "request", query.Request)
 		return
 	}
 
 	if err != nil {
-		log.Println("E! failed to query:", err)
+		klog.ErrorS(err, "failed to query mysql custom query", "address", ins.Address, "request", query.Request)
 		return
 	}
 
@@ -50,7 +50,7 @@ func (ins *Instance) gatherOneQuery(slist *types.SampleList, db *sql.DB, globalT
 
 	cols, err := rows.Columns()
 	if err != nil {
-		log.Println("E! failed to get columns:", err)
+		klog.ErrorS(err, "failed to get mysql custom query columns", "address", ins.Address, "request", query.Request)
 		return
 	}
 
@@ -63,7 +63,7 @@ func (ins *Instance) gatherOneQuery(slist *types.SampleList, db *sql.DB, globalT
 
 		// Scan the result into the column pointers...
 		if err := rows.Scan(columnPointers...); err != nil {
-			log.Println("E! failed to scan:", err)
+			klog.ErrorS(err, "failed to scan mysql custom query row", "address", ins.Address, "request", query.Request)
 			return
 		}
 
@@ -74,7 +74,7 @@ func (ins *Instance) gatherOneQuery(slist *types.SampleList, db *sql.DB, globalT
 		}
 
 		if err = ins.parseRow(row, query, slist, globalTags); err != nil {
-			log.Println("E! failed to parse row:", err, "sql:", query.Request)
+			klog.ErrorS(err, "failed to parse mysql custom query row", "address", ins.Address, "request", query.Request)
 		}
 	}
 }
@@ -92,7 +92,7 @@ func (ins *Instance) parseRow(row map[string]string, query QueryConfig, slist *t
 	for _, column := range query.MetricFields {
 		value, err := conv.ToFloat64(row[column])
 		if err != nil {
-			log.Println("E! failed to convert field:", column, "value:", value, "error:", err)
+			klog.ErrorS(err, "failed to convert mysql custom query field", "address", ins.Address, "column", column, "value", row[column])
 			return err
 		}
 

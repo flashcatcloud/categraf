@@ -2,7 +2,6 @@ package kafka
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -13,8 +12,9 @@ import (
 	"flashcat.cloud/categraf/types"
 	"github.com/IBM/sarama"
 	"github.com/go-kit/log/level"
+	"k8s.io/klog/v2"
 
-	klog "github.com/go-kit/log"
+	gokitlog "github.com/go-kit/log"
 )
 
 const inputName = "kafka"
@@ -134,7 +134,7 @@ type Instance struct {
 	// disable calculate lag rate
 	DisableCalculateLagRate bool `toml:"disable_calculate_lag_rate,omitempty"`
 
-	l klog.Logger        `toml:"-"`
+	l gokitlog.Logger    `toml:"-"`
 	e *exporter.Exporter `toml:"-"`
 
 	DialTimeout  int `toml:"dial_timeout"`
@@ -227,7 +227,7 @@ func (ins *Instance) Init() error {
 		WriteTimeout:               time.Duration(ins.WriteTimeout) * time.Second,
 	}
 
-	ins.l = level.NewFilter(klog.NewLogfmtLogger(klog.NewSyncWriter(os.Stderr)), levelFilter(ins.LogLevel))
+	ins.l = level.NewFilter(gokitlog.NewLogfmtLogger(gokitlog.NewSyncWriter(os.Stderr)), levelFilter(ins.LogLevel))
 
 	e, err := exporter.New(ins.l, options, ins.TopicsFilter, ins.TopicExclude, ins.GroupFilter, ins.GroupExclude)
 	if err != nil {
@@ -245,7 +245,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	err := inputs.Collect(ins.e, slist)
 	if err != nil {
-		log.Println("E! failed to collect metrics:", err)
+		klog.ErrorS(err, "failed to collect kafka metrics", "kafka_uris", ins.KafkaURIs)
 	}
 }
 

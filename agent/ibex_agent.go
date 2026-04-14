@@ -3,10 +3,9 @@
 package agent
 
 import (
-	"log"
-
 	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/ibex"
+	"k8s.io/klog/v2"
 )
 
 type IbexAgent struct {
@@ -16,7 +15,7 @@ func NewIbexAgent() AgentModule {
 	if coreconfig.Config == nil ||
 		coreconfig.Config.Ibex == nil ||
 		!coreconfig.Config.Ibex.Enable {
-		log.Println("I! ibex agent disabled!")
+		klog.Info("ibex agent disabled")
 		return nil
 	}
 	if coreconfig.Config.Ibex.MetaDir == "" {

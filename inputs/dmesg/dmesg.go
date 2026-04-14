@@ -6,7 +6,6 @@ package dmesg
 import (
 	"bytes"
 	"errors"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "dmesg"
@@ -67,14 +67,14 @@ func (ins *Instance) Init() error {
 
 	f, err := os.OpenFile("/dev/kmsg", syscall.O_RDONLY|syscall.O_NONBLOCK, 0)
 	if err != nil {
-		log.Println("Error opening /dev/kmsg:", err)
+		klog.ErrorS(err, "error opening /dev/kmsg")
 		return err
 	}
 
 	ins.conn, err = f.SyscallConn()
 	if err != nil {
 		f.Close()
-		log.Println("Error getting raw connection:", err)
+		klog.ErrorS(err, "error getting raw connection")
 		return err
 	}
 
@@ -160,7 +160,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	if err != nil {
-		log.Println("Error reading from /dev/kmsg:", err)
+		klog.ErrorS(err, "error reading from /dev/kmsg")
 		slist.PushFront(types.NewSample(inputName, "up", 0, nil))
 		return
 	}

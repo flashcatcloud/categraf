@@ -5,7 +5,6 @@ package dcgm
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"net/http"
 	"runtime/debug"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 	"flashcat.cloud/categraf/inputs/dcgm/dcgmexporter"
 	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -92,7 +92,7 @@ func (e *Exporter) Drop() {
 	}
 }
 
-func (ins *Instance) Init() error {
+func (ins *Instance) Init() (err error) {
 
 	if len(ins.CollectorsFile) == 0 {
 		return types.ErrInstancesEmpty
@@ -141,33 +141,34 @@ func (ins *Instance) Init() error {
 	// during initialization and return an error.
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println(string(debug.Stack()))
-			log.Printf("E! encountered a failure; err: %v", r)
+			panicErr := fmt.Errorf("panic: %v", r)
+			klog.ErrorS(panicErr, "encountered a dcgm initialization failure", "stack", string(debug.Stack()))
+			err = panicErr
 		}
 	}()
 
 	if ins.DebugMod {
 		// enable debug logging
-		log.Println("Starting dcgm-exporter")
+		klog.V(1).InfoS("starting dcgm-exporter")
 	}
 
 	if ins.DebugMod {
-		log.Printf("%+v", cfg)
+		klog.V(1).InfoS("dcgm exporter config", "config", fmt.Sprintf("%+v", cfg))
 	}
 
 	if cfg.UseRemoteHE {
-		log.Printf("Attemping to connect to remote hostengine at ", cfg.RemoteHEInfo)
+		klog.InfoS("attempting to connect to remote hostengine", "remote_hostengine", cfg.RemoteHEInfo)
 		ins.dcgmCleanup, err = dcgm.Init(dcgm.Standalone, cfg.RemoteHEInfo, "0")
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	} else {
 		ins.dcgmCleanup, err = dcgm.Init(dcgm.Embedded)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
-	log.Println("DCGM successfully initialized!")
+	klog.InfoS("DCGM successfully initialized")
 
 	dcgm.FieldsInit()
 	defer dcgm.FieldsTerm()
@@ -176,16 +177,16 @@ func (ins *Instance) Init() error {
 	groups, err = dcgm.GetSupportedMetricGroups(0)
 	if err != nil {
 		cfg.CollectDCP = false
-		log.Println("Not collecting DCP metrics: ", err)
+		klog.Warningf("not collecting DCP metrics: %v", err)
 	} else {
-		log.Println("Collecting DCP Metrics")
+		klog.InfoS("collecting DCP metrics")
 		cfg.MetricGroups = groups
 	}
 
 	cs, err := dcgmexporter.GetCounterSet(cfg)
 
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
 	// Copy labels from DCGM Counters to ExporterCounters
@@ -212,7 +213,7 @@ func (ins *Instance) Init() error {
 	for _, egt := range dcgmexporter.FieldEntityGroupTypeToMonitor {
 		err := fieldEntityGroupTypeSystemInfo.Load(egt)
 		if err != nil {
-			log.Printf("Not collecting %s metrics; %s", egt.String(), err)
+			klog.Warningf("not collecting %s metrics; %v", egt.String(), err)
 		}
 	}
 
@@ -227,7 +228,7 @@ func (ins *Instance) Init() error {
 	ins.pipeline = pipeline
 	ins.plCleanup = cleanup
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	ins.registry = dcgmexporter.NewRegistry()
@@ -235,33 +236,33 @@ func (ins *Instance) Init() error {
 	if dcgmexporter.IsDCGMExpXIDErrorsCountEnabled(cs.ExporterCounters) {
 		item, exists := fieldEntityGroupTypeSystemInfo.Get(dcgm.FE_GPU)
 		if !exists {
-			log.Fatalf("%s collector cannot be initialized", dcgmexporter.DCGMXIDErrorsCount.String())
+			return fmt.Errorf("%s collector cannot be initialized", dcgmexporter.DCGMXIDErrorsCount.String())
 		}
 
 		xidCollector, err := dcgmexporter.NewXIDCollector(cs.ExporterCounters, hostname, cfg, item)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		ins.registry.Register(xidCollector)
 
-		log.Printf("%s collector initialized", dcgmexporter.DCGMXIDErrorsCount.String())
+		klog.InfoS("dcgm collector initialized", "collector", dcgmexporter.DCGMXIDErrorsCount.String())
 	}
 
 	if dcgmexporter.IsDCGMExpClockEventsCountEnabled(cs.ExporterCounters) {
 		item, exists := fieldEntityGroupTypeSystemInfo.Get(dcgm.FE_GPU)
 		if !exists {
-			log.Fatalf("%s collector cannot be initialized", dcgmexporter.DCGMClockEventsCount.String())
+			return fmt.Errorf("%s collector cannot be initialized", dcgmexporter.DCGMClockEventsCount.String())
 		}
 		clocksThrottleReasonsCollector, err := dcgmexporter.NewClockEventsCollector(
 			cs.ExporterCounters, hostname, cfg, item)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		ins.registry.Register(clocksThrottleReasonsCollector)
 
-		log.Printf("%s collector initialized", dcgmexporter.DCGMClockEventsCount.String())
+		klog.InfoS("dcgm collector initialized", "collector", dcgmexporter.DCGMClockEventsCount.String())
 	}
 	return nil
 }
@@ -335,25 +336,25 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	labels := ins.GetLabels()
 	out, err := ins.pipeline.Run()
 	if err != nil {
-		log.Println("E! dcgm exporter collects error:", err)
+		klog.ErrorS(err, "dcgm exporter pipeline run failed")
 		return
 	}
 	buf.WriteString(out)
 	metrics, err := ins.registry.Gather()
 	if err != nil {
-		log.Println("E! dcgm exporter collects error:", err)
+		klog.ErrorS(err, "dcgm exporter registry gather failed")
 		return
 	}
 	err = dcgmexporter.EncodeExpMetrics(buf, metrics)
 	if err != nil {
-		log.Println("E! dcgm exporter collects error:", err)
+		klog.ErrorS(err, "dcgm exporter encode metrics failed")
 		return
 	}
 	parser := prometheus.NewParser("", labels, http.Header{}, false,
 		nil, nil)
 	err = parser.Parse(buf.Bytes(), slist)
 	if err != nil {
-		log.Println("E! dcgm exporter collects error:", err)
+		klog.ErrorS(err, "dcgm exporter parser parse failed")
 		return
 	}
 }

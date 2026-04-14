@@ -4,7 +4,6 @@ package kubernetes
 
 import (
 	"context"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/logs/util/kubernetes/kubelet"
 	"flashcat.cloud/categraf/pkg/checksum"
 	"flashcat.cloud/categraf/pkg/set"
+	"k8s.io/klog/v2"
 )
 
 type (
@@ -39,7 +39,7 @@ func (s *Scanner) Scan() {
 	if s.kubelet == nil {
 		s.kubelet, err = kubelet.GetKubeUtil()
 		if err != nil {
-			log.Printf("connect kubelet error %s", err)
+			klog.Warningf("connect kubelet error %v", err)
 			return
 		}
 	}
@@ -52,7 +52,7 @@ func (s *Scanner) Scan() {
 		case <-ticker.C:
 			pods, err := s.kubelet.GetLocalPodList(ctx)
 			if err != nil {
-				log.Printf("get local pod list error %s", err)
+				klog.Warningf("get local pod list error %v", err)
 				continue
 			}
 			fetched := make(map[string]checksum.Checksum)

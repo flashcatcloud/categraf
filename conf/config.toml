@@ -37,6 +37,15 @@ concurrency = -1
 # file_name is the file to write logs to
 file_name = "stdout"
 
+# level controls the default runtime log detail.
+# supported values: debug, info, warn, error
+level = "info"
+
+# verbosity controls klog V-level output.
+# 0 disables klog.V(n); 1 enables klog.V(1); 10 enables up to klog.V(10).
+# when level = "debug" and verbosity = 0, categraf will use verbosity = 1.
+verbosity = 0
+
 # options below will not be work when file_name is stdout or stderr
 # max_size is the maximum size in megabytes of the log file before it gets rotated. It defaults to 100 megabytes.
 max_size = 100

@@ -2,12 +2,12 @@ package api
 
 import (
 	"crypto/tls"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/aop"
@@ -50,7 +50,7 @@ func Start() {
 		IdleTimeout:  time.Duration(conf.IdleTimeout) * time.Second,
 	}
 
-	log.Println("I! http server listening on:", addr)
+	klog.InfoS("http server listening", "address", addr)
 
 	var err error
 	if conf.CertFile != "" && conf.KeyFile != "" {

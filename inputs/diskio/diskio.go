@@ -2,7 +2,6 @@ package diskio
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/disk"
@@ -12,6 +11,7 @@ import (
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "diskio"
@@ -66,7 +66,7 @@ func (d *DiskIO) Gather(slist *types.SampleList) {
 
 	diskio, err := d.ps.DiskIO(devices)
 	if err != nil {
-		log.Println("E! failed to get disk io:", err)
+		klog.ErrorS(err, "failed to get disk io")
 		return
 	}
 

@@ -2,11 +2,11 @@ package mysql
 
 import (
 	"database/sql"
-	"log"
 	"strings"
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 // These are const but can't be declared as such because golang doesn't allow const maps
@@ -96,7 +96,7 @@ func (ins *Instance) gatherProcesslistByState(slist *types.SampleList, db *sql.D
 
 	rows, err := db.Query(SQL_INFO_SCHEMA_PROCESSLIST)
 	if err != nil {
-		log.Println("E! failed to get processlist:", err)
+		klog.ErrorS(err, "failed to query mysql processlist by state", "address", ins.Address)
 		return
 	}
 
@@ -120,7 +120,7 @@ func (ins *Instance) gatherProcesslistByState(slist *types.SampleList, db *sql.D
 
 		err = rows.Scan(&command, &state, &count)
 		if err != nil {
-			log.Println("W! failed to scan rows:", err)
+			klog.Warningf("failed to scan mysql processlist rows: address=%s err=%v", ins.Address, err)
 			return
 		}
 		// each state has its mapping

@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 type clusterStatsMetric struct {
@@ -850,7 +850,7 @@ func (c *ClusterStats) fetchAndDecodeClusterStats() (ClusterStatsResponse, error
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close http.Client, err: ", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 
@@ -874,7 +874,7 @@ func (c *ClusterStats) fetchAndDecodeClusterStats() (ClusterStatsResponse, error
 func (c *ClusterStats) Collect(ch chan<- prometheus.Metric) {
 	clusterStatsResp, err := c.fetchAndDecodeClusterStats()
 	if err != nil {
-		log.Println("failed to fetch and decode cluster health, err: ", err)
+		klog.ErrorS(err, "failed to fetch and decode elasticsearch cluster stats")
 		return
 	}
 

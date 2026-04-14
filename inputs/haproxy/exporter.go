@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -32,6 +31,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -375,14 +375,14 @@ func (e *Exporter) scrape(ch chan<- prometheus.Metric) (up float64) {
 	if e.fetchInfo != nil {
 		infoReader, err := e.fetchInfo()
 		if err != nil {
-			log.Println("E! failed to fetch haproxy info:", err)
+			klog.ErrorS(err, "failed to fetch haproxy info")
 			return 0
 		}
 		defer infoReader.Close()
 
 		info, err := e.parseInfo(infoReader)
 		if err != nil {
-			log.Println("E! failed to parse haproxy info:", err)
+			klog.ErrorS(err, "failed to parse haproxy info")
 		} else {
 			ch <- prometheus.MustNewConstMetric(haproxyInfo, prometheus.GaugeValue, 1, info.ReleaseDate, info.Version)
 		}
@@ -390,7 +390,7 @@ func (e *Exporter) scrape(ch chan<- prometheus.Metric) (up float64) {
 
 	body, err := e.fetchStat()
 	if err != nil {
-		log.Println("E! failed to fetch haproxy stat:", err)
+		klog.ErrorS(err, "failed to fetch haproxy stat")
 		return 0
 	}
 	defer body.Close()
@@ -408,11 +408,11 @@ loop:
 			break loop
 		default:
 			if _, ok := err.(*csv.ParseError); ok {
-				log.Println("E! failed to parse csv:", err)
+				klog.ErrorS(err, "failed to parse haproxy csv")
 				e.csvParseFailures.Inc()
 				continue loop
 			}
-			log.Println("E! failed to read csv:", err)
+			klog.ErrorS(err, "failed to read haproxy csv")
 			return 0
 		}
 		e.parseRow(row, ch)
@@ -447,7 +447,7 @@ func (e *Exporter) parseInfo(i io.Reader) (versionInfo, error) {
 
 func (e *Exporter) parseRow(csvRow []string, ch chan<- prometheus.Metric) {
 	if len(csvRow) < minimumCsvFieldCount {
-		log.Println("E! Parser received unexpected number of CSV fields", "min", minimumCsvFieldCount, "received", len(csvRow))
+		klog.ErrorS(nil, "parser received unexpected number of CSV fields", "min", minimumCsvFieldCount, "received", len(csvRow))
 		e.csvParseFailures.Inc()
 		return
 	}
@@ -511,7 +511,7 @@ func (e *Exporter) exportCsvFields(metrics map[int]metricInfo, csvRow []string, 
 			value = float64(valueInt)
 		}
 		if err != nil {
-			log.Println("E! Can't parse CSV field value", "value", valueStr, "err", err)
+			klog.ErrorS(err, "can't parse CSV field value", "value", valueStr)
 			e.csvParseFailures.Inc()
 			continue
 		}

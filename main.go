@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -15,7 +15,7 @@ import (
 	"github.com/kardianos/service"
 	"github.com/toolkits/pkg/net/tcpx"
 	"github.com/toolkits/pkg/runner"
-	"gopkg.in/natefinch/lumberjack.v2"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/agent"
 	agentInstall "flashcat.cloud/categraf/agent/install"
@@ -23,6 +23,7 @@ import (
 	"flashcat.cloud/categraf/api"
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/heartbeat"
+	"flashcat.cloud/categraf/pkg/logging"
 	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/writer"
 )
@@ -47,34 +48,60 @@ var (
 )
 
 func init() {
+	logging.RegisterFlags(flag.CommandLine)
+
 	// change to current dir
 	var err error
 	if appPath, err = winsvc.GetAppPath(); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 	if err := os.Chdir(filepath.Dir(appPath)); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 
 func initLog(output string) {
-	switch {
-	case output == "stdout":
-		log.SetOutput(os.Stdout)
-	case output == "stderr":
-		log.SetOutput(os.Stderr)
-	case len(output) != 0:
-		log.SetOutput(&lumberjack.Logger{
-			Filename:   output,
-			MaxSize:    config.Config.Log.MaxSize,
-			MaxAge:     config.Config.Log.MaxAge,
-			MaxBackups: config.Config.Log.MaxBackups,
-			LocalTime:  config.Config.Log.LocalTime,
-			Compress:   config.Config.Log.Compress,
-		})
-	default:
-		log.SetOutput(os.Stdout)
+	if output == "" {
+		output = config.Config.Log.FileName
+		if config.Config.Log.FileName == "stdout" || config.Config.Log.FileName == "stderr" || config.Config.Log.FileName == "" {
+			if runtime.GOOS == "windows" && !winsvc.IsAnInteractiveSession() {
+				output = "categraf.log"
+			}
+		}
 	}
+
+	if err := logging.Configure(
+		output,
+		config.Config.Log.MaxSize,
+		config.Config.Log.MaxAge,
+		config.Config.Log.MaxBackups,
+		config.Config.Log.LocalTime,
+		config.Config.Log.Compress,
+		config.Config.DebugMode,
+		config.Config.DebugLevel,
+	); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func initServiceCommandLog() {
+	if err := logging.Configure("stderr", 0, 0, 0, false, false, *debugMode, *debugLevel); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func flagWasSet(name string) bool {
+	set := false
+	flag.CommandLine.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			set = true
+		}
+	})
+	return set
 }
 
 func main() {
@@ -84,18 +111,34 @@ func main() {
 		fmt.Println(config.Version)
 		os.Exit(0)
 	}
+
 	if *install || *remove || *start || *stop || *status || *update {
-		err := serviceProcess()
-		if err != nil {
-			log.Println("E!", err)
+		initServiceCommandLog()
+		defer logging.Sync()
+
+		if err := serviceProcess(); err != nil {
+			klog.ErrorS(err, "service command failed")
 		}
 		return
 	}
 
 	// init configs
-	if err := config.InitConfig(*configDir, *debugLevel, *debugMode, *testMode, *interval, *inputFilters); err != nil {
-		log.Fatalln("F! failed to init config:", err)
+	if err := config.InitConfig(
+		*configDir,
+		*debugLevel,
+		*debugMode,
+		*testMode,
+		flagWasSet("debug-level"),
+		flagWasSet("debug"),
+		*interval,
+		*inputFilters,
+	); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to init config: %v\n", err)
+		os.Exit(1)
 	}
+
+	initLog("")
+	defer logging.Sync()
 
 	doOSsvc()
 	printEnv()
@@ -108,15 +151,18 @@ func main() {
 	tcpx.WaitHosts()
 	ag, err := agent.NewAgent()
 	if err != nil {
-		fmt.Println("F! failed to init agent:", err)
-		os.Exit(-1)
+		klog.ErrorS(err, "failed to init agent")
+		logging.Sync()
+		os.Exit(1)
 	}
 	runAgent(ag)
 }
 
 func initWriters() {
 	if err := writer.InitWriters(); err != nil {
-		log.Fatalln("F! failed to init writer:", err)
+		klog.ErrorS(err, "failed to init writer")
+		logging.Sync()
+		os.Exit(1)
 	}
 }
 
@@ -131,10 +177,10 @@ EXIT:
 		sig := <-sc
 		switch sig {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
-			log.Println("I! received signal:", sig.String())
+			klog.InfoS("received signal", "signal", sig.String())
 			break EXIT
 		case syscall.SIGHUP:
-			log.Println("I! received signal:", sig.String())
+			klog.InfoS("received signal", "signal", sig.String())
 			ag.Reload()
 		case syscall.SIGPIPE:
 			// https://pkg.go.dev/os/signal#hdr-SIGPIPE
@@ -143,15 +189,13 @@ EXIT:
 	}
 
 	ag.Stop()
-	log.Println("I! exited")
+	logging.Sync()
+	klog.InfoS("exited")
 }
 
 func printEnv() {
 	runner.Init()
-	log.Println("I! runner.binarydir:", runner.Cwd)
-	log.Println("I! runner.hostname:", runner.Hostname)
-	log.Println("I! runner.fd_limits:", runner.FdLimits())
-	log.Println("I! runner.vm_limits:", runner.VMLimits())
+	klog.InfoS("runner environment", "binarydir", runner.Cwd, "hostname", runner.Hostname, "fd_limits", runner.FdLimits(), "vm_limits", runner.VMLimits())
 }
 
 type program struct{}
@@ -169,109 +213,109 @@ func serviceProcess() error {
 	prg := &program{}
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
-		fmt.Println("generate categraf service error " + err.Error())
+		klog.ErrorS(err, "generate categraf service error")
 		return nil
 	}
 
 	if *stop {
 		if sts, err := s.Status(); err != nil {
-			log.Println("W! show categraf service status failed:", err)
+			klog.Warningf("show categraf service status failed: %v", err)
 		} else {
 			switch sts {
 			case service.StatusRunning:
-				log.Println("I! categraf service status: running")
+				klog.InfoS("categraf service status", "status", "running")
 			case service.StatusStopped:
-				log.Println("I! categraf service status: stopped")
+				klog.InfoS("categraf service status", "status", "stopped")
 			default:
-				log.Println("I! categraf service status: unknown")
+				klog.InfoS("categraf service status", "status", "unknown")
 			}
 		}
 		if err := s.Stop(); err != nil {
-			log.Println("E! stop categraf service failed:", err)
+			klog.ErrorS(err, "stop categraf service failed")
 		} else {
-			log.Println("I! stop categraf service ok")
+			klog.InfoS("stop categraf service ok")
 		}
 		return nil
 	}
 
 	if *remove {
 		if sts, err := s.Status(); err != nil {
-			log.Println("W! show categraf service status failed:", err)
+			klog.Warningf("show categraf service status failed: %v", err)
 		} else {
 			switch sts {
 			case service.StatusRunning:
-				log.Println("I! categraf service status: running")
+				klog.InfoS("categraf service status", "status", "running")
 			case service.StatusStopped:
-				log.Println("I! categraf service status: stopped")
+				klog.InfoS("categraf service status", "status", "stopped")
 			default:
-				log.Println("I! categraf service status: unknown")
+				klog.InfoS("categraf service status", "status", "unknown")
 			}
 		}
 		if err := s.Stop(); err != nil {
-			log.Println("W! stop categraf service failed:", err)
+			klog.ErrorS(err, "stop categraf service failed")
 		} else {
-			log.Println("I! stop categraf service ok")
+			klog.InfoS("stop categraf service ok")
 		}
 		if err := s.Uninstall(); err != nil {
-			log.Println("E! remove categraf service failed:", err)
+			klog.ErrorS(err, "remove categraf service failed")
 		} else {
-			log.Println("I! remove categraf service ok")
+			klog.InfoS("remove categraf service ok")
 		}
 		return nil
 	}
 
 	if *install {
 		if sts, err := s.Status(); err != nil {
-			log.Println("W! show categraf service status failed:", err)
+			klog.Warningf("show categraf service status failed: %v", err)
 		} else {
 			switch sts {
 			case service.StatusRunning:
-				log.Println("I! categraf service status: running")
+				klog.InfoS("categraf service status", "status", "running")
 			case service.StatusStopped:
-				log.Println("I! categraf service status: stopped")
+				klog.InfoS("categraf service status", "status", "stopped")
 			default:
-				log.Println("I! categraf service status: unknown")
+				klog.InfoS("categraf service status", "status", "unknown")
 			}
 		}
 		if err := s.Install(); err != nil {
-			log.Println("E! install categraf service failed:", err)
+			klog.ErrorS(err, "install categraf service failed")
 		} else {
-			log.Println("I! install categraf service ok")
+			klog.InfoS("install categraf service ok")
 		}
 		return nil
 	}
 
 	if *start {
 		if sts, err := s.Status(); err != nil {
-			log.Println("W! show categraf service status failed:", err)
+			klog.Warningf("show categraf service status failed: %v", err)
 		} else {
 			switch sts {
 			case service.StatusRunning:
-				log.Println("I! categraf service status: running")
+				klog.InfoS("categraf service status", "status", "running")
 			case service.StatusStopped:
-				log.Println("I! categraf service status: stopped")
+				klog.InfoS("categraf service status", "status", "stopped")
 			default:
-				log.Println("I! categraf service status: unknown")
+				klog.InfoS("categraf service status", "status", "unknown")
 			}
 		}
 		if err := s.Start(); err != nil {
-			log.Println("E! start categraf service failed:", err)
+			klog.ErrorS(err, "start categraf service failed")
 		} else {
-			log.Println("I! start categraf service ok")
+			klog.InfoS("start categraf service ok")
 		}
 		return nil
 	}
 	if *status {
 		if sts, err := s.Status(); err != nil {
-			log.Println("E! show categraf service status failed:", err)
+			klog.ErrorS(err, "show categraf service status failed")
 		} else {
 			switch sts {
 			case service.StatusRunning:
-				log.Println("I! show categraf service status: running")
+				klog.InfoS("show categraf service status", "status", "running")
 			case service.StatusStopped:
-				log.Println("I! show categraf service status: stopped")
+				klog.InfoS("show categraf service status", "status", "stopped")
 			default:
-				log.Println("I! show categraf service status: unknown")
+				klog.InfoS("show categraf service status", "status", "unknown")
 			}
 		}
 
@@ -283,30 +327,30 @@ func serviceProcess() error {
 		}
 		if sts, err := s.Status(); err != nil {
 			if strings.Contains(err.Error(), "not installed") {
-				log.Println("E! update only support mode that running in service mode")
+				klog.Warningf("update only support mode that running in service mode")
 			}
 			return nil
 		} else {
 			switch sts {
 			case service.StatusRunning:
-				log.Println("I! categraf service status: running, version:", config.Version)
+				klog.InfoS("categraf service status", "status", "running", "version", config.Version)
 			case service.StatusStopped:
-				log.Println("I! categraf service status: stopped, version:", config.Version)
+				klog.InfoS("categraf service status", "status", "stopped", "version", config.Version)
 			default:
-				log.Println("I! categraf service status: unknown, version:", config.Version)
+				klog.InfoS("categraf service status", "status", "unknown", "version", config.Version)
 			}
 		}
 		err := agentUpdate.Update(*updateFile)
 		if err != nil {
-			log.Println("E! update categraf failed:", err)
+			klog.ErrorS(err, "update categraf failed")
 			return nil
 		}
 		err = s.Restart()
 		if err != nil {
-			log.Println("E! restart categraf failed:", err)
+			klog.ErrorS(err, "restart categraf failed")
 			return nil
 		}
-		log.Println("I! update categraf success")
+		klog.InfoS("update categraf success")
 	}
 	return nil
 }

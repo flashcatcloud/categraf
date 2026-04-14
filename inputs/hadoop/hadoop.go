@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/emirpasic/gods/lists/singlylinkedlist"
-	"log"
 	"sync"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "hadoop"
@@ -79,13 +79,13 @@ func (ins *Hadoop) Gather(slist *types.SampleList) {
 
 		data, getDataErr := component.GetData(component.ComposeMetricUrl())
 		if getDataErr != nil {
-			log.Printf("E! Failed to get data from %s: %v", component.Name, getDataErr)
+			klog.ErrorS(getDataErr, "failed to get hadoop component data", "component", component.Name)
 			return
 		}
 
 		res, fetchDataErr := component.FetchData(data)
 		if fetchDataErr != nil {
-			log.Printf("E! Failed to fetch data from %s: %v", component.Name, fetchDataErr)
+			klog.ErrorS(fetchDataErr, "failed to fetch hadoop component data", "component", component.Name)
 			return
 		}
 

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"sync"
@@ -19,6 +18,7 @@ import (
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/pkg/backoff"
 	httputils "flashcat.cloud/categraf/pkg/httpx"
+	"k8s.io/klog/v2"
 )
 
 // ContentType options,
@@ -108,7 +108,7 @@ func errorToTag(err error) string {
 // the error returned can be retryable and it is the responsibility of the callee to retry.
 func (d *Destination) Send(payload []byte) error {
 	if d.blockedUntil.After(time.Now()) {
-		// log.Printf("%s: sleeping until %v before retrying\n", d.url, d.blockedUntil)
+		// wait until the backoff window expires before retrying
 		d.waitForBackoff()
 	}
 
@@ -171,7 +171,7 @@ func (d *Destination) unconditionalSend(payload []byte) (err error) {
 		return err
 	}
 	if resp.StatusCode >= 400 {
-		log.Printf("W! failed to post http payload. code=%d host=%s response=%s\n", resp.StatusCode, d.host, string(response))
+		klog.Warningf("failed to post http payload. code=%d host=%s response=%s", resp.StatusCode, d.host, string(response))
 	}
 	if resp.StatusCode == 429 || resp.StatusCode >= 500 {
 		// the server could not serve the request, most likely because of an
@@ -265,18 +265,18 @@ func buildContentEncoding(endpoint logsconfig.Endpoint) ContentEncoding {
 
 // CheckConnectivity check if sending logs through HTTP works
 func CheckConnectivity(endpoint logsconfig.Endpoint) logsconfig.HTTPConnectivity {
-	log.Println("I! Checking HTTP connectivity...")
+	klog.Info("Checking HTTP connectivity...")
 	ctx := client.NewDestinationsContext()
 	ctx.Start()
 	defer ctx.Stop()
 	// Lower the timeout to 5s because HTTP connectivity test is done synchronously during the agent bootstrap sequence
 	destination := newDestination(endpoint, JSONContentType, ctx, time.Second*5, 0)
-	log.Println("I! Sending HTTP connectivity request to", destination.url)
+	klog.Info("Sending HTTP connectivity request to", destination.url)
 	err := destination.unconditionalSend(emptyPayload)
 	if err != nil {
-		log.Println("E! HTTP connectivity failure:", err)
+		klog.ErrorS(err, "HTTP connectivity failure")
 	} else {
-		log.Println("HTTP connectivity successful")
+		klog.Info("HTTP connectivity successful")
 	}
 	return err == nil
 }

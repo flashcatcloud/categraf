@@ -16,7 +16,6 @@ package collector
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -29,6 +28,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"flashcat.cloud/categraf/inputs/elasticsearch/pkg/clusterinfo"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -499,7 +499,7 @@ func NewIndices(client *http.Client, url *url.URL, shards bool, includeAliases b
 			select {
 			case ci := <-indices.clusterInfoCh:
 				if ci != nil {
-					log.Println("received cluster info update, cluster: ", ci.ClusterName)
+					klog.V(1).InfoS("received elasticsearch cluster info update", "cluster", ci.ClusterName)
 					indices.lastClusterInfo = ci
 				}
 			case <-timer.C:
@@ -689,7 +689,7 @@ func (i *Indices) fetchAndDecodeIndexStats(ctx context.Context) (indexStatsRespo
 		u := i.url.ResolveReference(&url.URL{Path: "_alias"})
 		resp, err := getURL(ctx, i.client, u.String())
 		if err != nil {
-			log.Println("error getting alias information, err: ", err)
+			klog.ErrorS(err, "error getting elasticsearch alias information")
 			return isr, err
 		}
 
@@ -745,7 +745,7 @@ func (i *Indices) Collect(ch chan<- prometheus.Metric) {
 	ctx := context.TODO()
 	indexStatsResp, err := i.fetchAndDecodeIndexStats(ctx)
 	if err != nil {
-		log.Println("failed to fetch and decode index stats, err", err)
+		klog.ErrorS(err, "failed to fetch and decode elasticsearch index stats")
 		return
 	}
 

@@ -10,7 +10,6 @@ package kubelet
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -23,6 +22,7 @@ import (
 	"flashcat.cloud/categraf/pkg/cache"
 	"flashcat.cloud/categraf/pkg/kubernetes"
 	"flashcat.cloud/categraf/pkg/retry"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -127,7 +127,7 @@ func GetKubeUtilWithRetrier() (KubeUtilInterface, *retry.Retrier) {
 	}
 	err := globalKubeUtil.initRetry.TriggerRetry()
 	if err != nil {
-		log.Printf("Kube util init error: %s", err)
+		klog.Warningf("Kube util init error: %v", err)
 		return nil, &globalKubeUtil.initRetry
 	}
 	return globalKubeUtil, nil
@@ -186,7 +186,7 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*kubernetes.Pod, err
 	if cached, hit := cache.Cache.Get(podListCacheKey); hit {
 		pods, ok = cached.(kubernetes.PodList)
 		if !ok {
-			log.Printf("Invalid pod list cache format, forcing a cache miss")
+			klog.Warning("Invalid pod list cache format, forcing a cache miss")
 		} else {
 			return pods.Items, nil
 		}
@@ -215,7 +215,7 @@ func (ku *KubeUtil) GetLocalPodList(ctx context.Context) ([]*kubernetes.Pod, err
 			pod.Status.AllContainers = allContainers
 			if !ku.filterPod(pod) {
 				if util.Debug() {
-					log.Printf("D! filter include, pod name: %s, pod namespace: %s. pod image:[%v]", pod.Metadata.Name, pod.Metadata.Namespace, pod.Spec.Containers)
+					klog.V(1).Infof("filter include, pod name: %s, pod namespace: %s. pod image:[%v]", pod.Metadata.Name, pod.Metadata.Namespace, pod.Spec.Containers)
 				}
 				tmpSlice = append(tmpSlice, pod)
 			}
@@ -233,7 +233,7 @@ func (ku *KubeUtil) filterPod(pod *kubernetes.Pod) bool {
 	for _, c := range pod.Status.GetAllContainers() {
 		if ku.filter.IsExcluded(c.Name, c.Image, pod.Metadata.Namespace) {
 			if util.Debug() {
-				log.Printf("D! container name:%s image:%s, ns:%s, exclude:true", c.Name, c.Image, pod.Metadata.Namespace)
+				klog.V(1).Infof("container name:%s image:%s, ns:%s, exclude:true", c.Name, c.Image, pod.Metadata.Namespace)
 			}
 			return true
 		}
@@ -263,7 +263,7 @@ func (ku *KubeUtil) GetPodForContainerID(ctx context.Context, containerID string
 
 	// Retry with cache invalidation
 	if err != nil && errors.IsNotFound(err) {
-		log.Printf("Cannot get container %q: %s, retrying without cache...", containerID, err)
+		klog.Warningf("Cannot get container %q: %v, retrying without cache...", containerID, err)
 		pods, err = ku.ForceGetLocalPodList(ctx)
 		if err != nil {
 			return nil, err
@@ -277,7 +277,7 @@ func (ku *KubeUtil) GetPodForContainerID(ctx context.Context, containerID string
 	// On some kubelet versions, containers can take up to a second to
 	// register in the podlist, retry a few times before failing
 	if ku.waitOnMissingContainer == 0 {
-		log.Printf("Still cannot get container %q, wait disabled", containerID)
+		klog.Warningf("Still cannot get container %q, wait disabled", containerID)
 		return pod, err
 	}
 	timeout := time.NewTimer(ku.waitOnMissingContainer)
@@ -285,7 +285,7 @@ func (ku *KubeUtil) GetPodForContainerID(ctx context.Context, containerID string
 	retryTicker := time.NewTicker(250 * time.Millisecond)
 	defer retryTicker.Stop()
 	for {
-		log.Printf("Still cannot get container %q: %s, retrying in 250ms", containerID, err)
+		klog.Warningf("Still cannot get container %q: %v, retrying in 250ms", containerID, err)
 		select {
 		case <-retryTicker.C:
 			pods, err = ku.ForceGetLocalPodList(ctx)
@@ -359,7 +359,7 @@ func (ku *KubeUtil) GetPodFromUID(ctx context.Context, podUID string) (*kubernet
 			return pod, nil
 		}
 	}
-	log.Printf("cannot get the pod uid %q: %s, retrying without cache...", podUID, err)
+	klog.Warningf("cannot get the pod uid %q: %v, retrying without cache...", podUID, err)
 
 	pods, err = ku.ForceGetLocalPodList(ctx)
 	if err != nil {
