@@ -19,7 +19,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
-	"log"
 	"net/http"
 	"time"
 
@@ -28,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -48,7 +48,7 @@ func NewAWSSigningTransport(transport http.RoundTripper, region string, roleArn 
 	}
 	cfg, err := config.LoadDefaultConfig(context.Background(), opts...)
 	if err != nil {
-		log.Println("failed to load aws default config , err: ", err)
+		klog.ErrorS(err, "failed to load aws default config")
 		return nil, err
 	}
 
@@ -61,7 +61,7 @@ func NewAWSSigningTransport(transport http.RoundTripper, region string, roleArn 
 	// are valid before returning the transport.
 	_, err = cfg.Credentials.Retrieve(context.Background())
 	if err != nil {
-		log.Println("failed to retrive aws credentials, err: ", err)
+		klog.ErrorS(err, "failed to retrieve aws credentials")
 		return nil, err
 	}
 
@@ -76,20 +76,20 @@ func (a *AWSSigningTransport) RoundTrip(req *http.Request) (*http.Response, erro
 	signer := v4.NewSigner()
 	payloadHash, newReader, err := hashPayload(req.Body)
 	if err != nil {
-		log.Println("failed to hash request body, err: ", err)
+		klog.ErrorS(err, "failed to hash elasticsearch aws request body")
 		return nil, err
 	}
 	req.Body = newReader
 
 	creds, err := a.creds.Retrieve(context.Background())
 	if err != nil {
-		log.Println("failed to retrieve aws credentials, err: ", err)
+		klog.ErrorS(err, "failed to retrieve aws credentials")
 		return nil, err
 	}
 
 	err = signer.SignHTTP(context.Background(), creds, req, payloadHash, service, a.region, time.Now())
 	if err != nil {
-		log.Println("failed to sign request body, err: ", err)
+		klog.ErrorS(err, "failed to sign elasticsearch aws request body")
 		return nil, err
 	}
 	return a.t.RoundTrip(req)

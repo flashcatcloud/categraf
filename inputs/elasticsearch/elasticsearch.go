@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,6 +29,7 @@ import (
 	"flashcat.cloud/categraf/types"
 
 	"github.com/prometheus/common/version"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "elasticsearch"
@@ -161,7 +161,7 @@ func (ins *Instance) Init() error {
 		return err
 	}
 	if ins.ExportIndexAliases {
-		log.Println("export_index_aliases is deprecated, use export_indices_aliases instead")
+		klog.Warning("export_index_aliases is deprecated, use export_indices_aliases instead")
 		ins.ExportIndicesAliases = true
 	}
 
@@ -177,7 +177,7 @@ func (ins *Instance) Init() error {
 func (ins *Instance) Gather(slist *types.SampleList) {
 	// version metric
 	if err := inputs.Collect(NewCollector(inputName), slist); err != nil {
-		log.Println("E! failed to collect version metric:", err)
+		klog.ErrorS(err, "failed to collect elasticsearch version metric")
 	}
 	if ins.ClusterStats || len(ins.IndicesInclude) > 0 {
 		var wgC sync.WaitGroup
@@ -193,7 +193,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				// Gather node ID
 				if info.nodeID, err = collector.GetNodeID(ins.Client, ins.UserName, ins.Password, s); err != nil {
 					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
-					log.Println("E! failed to gather node id:", err)
+					klog.ErrorS(err, "failed to gather elasticsearch node id", "address", s)
 					return
 				}
 
@@ -201,13 +201,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				// whether this node is the Master
 				if info.masterID, err = collector.GetCatMaster(ins.Client, ins.UserName, ins.Password, s); err != nil {
 					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
-					log.Println("E! failed to get cat master:", err)
+					klog.ErrorS(err, "failed to get elasticsearch cat master", "address", s)
 					return
 				}
 
 				if info.clusterName, err = collector.GetClusterName(ins.Client, ins.UserName, ins.Password, s); err != nil {
 					slist.PushSample("elasticsearch", "up", 0, map[string]string{"address": s})
-					log.Println("E! failed to get cluster name:", err)
+					klog.ErrorS(err, "failed to get elasticsearch cluster name", "address", s)
 					return
 				}
 
@@ -232,7 +232,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			defer wg.Done()
 			EsUrl, err := url.Parse(s)
 			if err != nil {
-				log.Println("failed to parse es_uri, err: ", err)
+				klog.ErrorS(err, "failed to parse elasticsearch url", "address", s)
 				return
 			}
 			if ins.UserName != "" && ins.Password != "" {
@@ -249,11 +249,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				collector.EnableExportClusterSettings(ins.ExportClusterSettings),
 			)
 			if err != nil {
-				log.Println("E! failed to create Elasticsearch collector, err: ", err)
+				klog.ErrorS(err, "failed to create Elasticsearch collector", "address", s)
 				return
 			}
 			if err := inputs.Collect(exporter, slist); err != nil {
-				log.Println("E! failed to collect metrics:", err)
+				klog.ErrorS(err, "failed to collect elasticsearch exporter metrics", "address", s)
 			}
 
 			if ins.NumMostRecentIndices != 0 {
@@ -269,11 +269,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				uu.RawQuery = "format=json&s=index:desc&h=index"
 				indices_bts, err := ins.queryURL(&uu)
 				if err != nil {
-					log.Println("E! failed to query all indices:", err)
+					klog.ErrorS(err, "failed to query all elasticsearch indices", "address", s)
 				}
 				var indices []IndicesInfo
 				if err := json.Unmarshal(indices_bts, &indices); err != nil {
-					log.Println("E! json unmarshal to query all indices:", err)
+					klog.ErrorS(err, "failed to unmarshal elasticsearch indices", "address", s)
 				}
 
 				var indexList []string
@@ -288,7 +288,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 			// Always gather node stats
 			if err := inputs.Collect(collector.NewNodes(ins.Client, EsUrl, ins.AllNodes, ins.Node, ins.Local, ins.NodeStats), slist); err != nil {
-				log.Println("E! failed to collect nodes metrics:", err)
+				klog.ErrorS(err, "failed to collect elasticsearch nodes metrics", "address", s)
 			}
 
 			clusterInfoRetriever := clusterinfo.New(ins.Client, EsUrl, time.Duration(ins.ClusterInfoInterval))
@@ -296,47 +296,47 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			if ins.ClusterHealth {
 				if ins.ClusterHealthLevel == "indices" {
 					if err := inputs.Collect(collector.NewClusterHealthIndices(ins.Client, EsUrl), slist); err != nil {
-						log.Println("E! failed to collect cluster health indices metrics:", err)
+						klog.ErrorS(err, "failed to collect elasticsearch cluster health indices metrics", "address", s)
 					}
 				} else {
 					if err := inputs.Collect(collector.NewClusterHealth(ins.Client, EsUrl), slist); err != nil {
-						log.Println("E! failed to collect cluster health metrics:", err)
+						klog.ErrorS(err, "failed to collect elasticsearch cluster health metrics", "address", s)
 					}
 				}
 			}
 
 			if ins.ClusterStats && (ins.serverInfo[s].isMaster() || !ins.Local) {
 				if err := inputs.Collect(collector.NewClusterStats(ins.Client, EsUrl), slist); err != nil {
-					log.Println("E! failed to collect cluster stats metrics:", err)
+					klog.ErrorS(err, "failed to collect elasticsearch cluster stats metrics", "address", s)
 				}
 			}
 
 			if (ins.ExportIndices || ins.ExportShards) && (ins.serverInfo[s].isMaster() || !ins.Local) {
 				sC := collector.NewShards(ins.Client, EsUrl)
 				if err := inputs.Collect(sC, slist); err != nil {
-					log.Println("E! failed to collect shards metrics:", err)
+					klog.ErrorS(err, "failed to collect elasticsearch shards metrics", "address", s)
 				}
 				iC := collector.NewIndices(ins.Client, EsUrl, ins.ExportShards, ins.ExportIndicesAliases, ins.NewIndicesInclude, ins.MaxIndicesIncludeCount)
 				if err := inputs.Collect(iC, slist); err != nil {
-					log.Println("E! failed to collect indices metrics:", err)
+					klog.ErrorS(err, "failed to collect elasticsearch indices metrics", "address", s)
 				}
 				if registerErr := clusterInfoRetriever.RegisterConsumer(iC); registerErr != nil {
-					log.Println("failed to register indices collector in cluster info")
+					klog.ErrorS(registerErr, "failed to register indices collector in cluster info", "address", s)
 				}
 				if registerErr := clusterInfoRetriever.RegisterConsumer(sC); registerErr != nil {
-					log.Println("failed to register shards collector in cluster info")
+					klog.ErrorS(registerErr, "failed to register shards collector in cluster info", "address", s)
 				}
 			}
 
 			if ins.ExportIndicesSettings {
 				if err := inputs.Collect(collector.NewIndicesSettings(ins.Client, EsUrl, ins.NewIndicesInclude, ins.MaxIndicesIncludeCount), slist); err != nil {
-					log.Println("E! failed to collect indices settings metrics:", err)
+					klog.ErrorS(err, "failed to collect elasticsearch indices settings metrics", "address", s)
 				}
 			}
 
 			if ins.ExportIndicesMappings {
 				if err := inputs.Collect(collector.NewIndicesMappings(ins.Client, EsUrl, ins.NewIndicesInclude, ins.MaxIndicesIncludeCount), slist); err != nil {
-					log.Println("E! failed to collect indices mappings metrics:", err)
+					klog.ErrorS(err, "failed to collect elasticsearch indices mappings metrics", "address", s)
 				}
 			}
 
@@ -348,20 +348,20 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				switch runErr := clusterInfoRetriever.Run(ctx); {
 				case runErr == nil:
 					if ins.DebugMod {
-						log.Println("started cluster info retriever, interval: ", ins.ClusterInfoInterval)
+						klog.V(1).InfoS("started cluster info retriever", "interval", ins.ClusterInfoInterval)
 					}
 				case errors.Is(runErr, clusterinfo.ErrInitialCallTimeout):
 					if ins.DebugMod {
-						log.Println("initial cluster info call timed out")
+						klog.V(1).InfoS("initial cluster info call timed out")
 					}
 				default:
-					log.Println("failed to run cluster info retriever, err: ", err)
+					klog.ErrorS(runErr, "failed to run cluster info retriever", "address", s)
 					return
 				}
 
 				// register cluster info retriever as prometheus collector
 				if err := inputs.Collect(clusterInfoRetriever, slist); err != nil {
-					log.Println("E! failed to collect cluster info metrics:", err)
+					klog.ErrorS(err, "failed to collect elasticsearch cluster info metrics", "address", s)
 				}
 				ins.serverInfoMutex.Lock()
 				ins.hasRunBefore = true
@@ -408,7 +408,7 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 	if ins.AwsRegion != "" {
 		ins.Client.Transport, err = roundtripper.NewAWSSigningTransport(httpTransport, ins.AwsRegion, ins.AwsRoleArn)
 		if err != nil {
-			log.Println("E! failed to create AWS transport, err: ", err)
+			klog.ErrorS(err, "failed to create AWS transport")
 		}
 	}
 
@@ -441,7 +441,7 @@ func (ins *Instance) queryURL(u *url.URL) ([]byte, error) {
 	defer func() {
 		err := res.Body.Close()
 		if err != nil {
-			log.Println("E! failed to close response body:", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 

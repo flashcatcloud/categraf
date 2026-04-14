@@ -17,7 +17,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -26,6 +25,7 @@ import (
 
 	"flashcat.cloud/categraf/pkg/filter"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 var defaultIndicesMappingsLabels = []string{"index"}
@@ -121,13 +121,13 @@ func (im *IndicesMappings) getAndParseURL(u *url.URL) (*IndicesMappingsResponse,
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Println("failed to read response body, err: ", err)
+		klog.ErrorS(err, "failed to read elasticsearch response body")
 		return nil, err
 	}
 
 	err = res.Body.Close()
 	if err != nil {
-		log.Println("failed to close response body, err: ", err)
+		klog.ErrorS(err, "failed to close elasticsearch response body")
 		return nil, err
 	}
 
@@ -155,7 +155,7 @@ func (im *IndicesMappings) fetchAndDecodeIndicesMappings() (*IndicesMappingsResp
 func (im *IndicesMappings) Collect(ch chan<- prometheus.Metric) {
 	indicesMappingsResponse, err := im.fetchAndDecodeIndicesMappings()
 	if err != nil {
-		log.Println("failed to fetch and decode cluster mappings stats, err: ", err)
+		klog.ErrorS(err, "failed to fetch and decode elasticsearch indices mappings")
 		return
 	}
 

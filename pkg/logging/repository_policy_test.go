@@ -206,3 +206,39 @@ func TestLoggingTestsDoNotUseDirectStandardLogCalls(t *testing.T) {
 		t.Fatalf("%s still uses forbidden standard log calls", path)
 	}
 }
+
+func TestElasticsearchTreeDoesNotUseStandardLogCalls(t *testing.T) {
+	repoRoot := filepath.Clean(filepath.Join("..", ".."))
+	checkGoTreeForForbiddenStdLog(t, filepath.Join(repoRoot, "inputs/elasticsearch"))
+}
+
+func checkGoTreeForForbiddenStdLog(t *testing.T, root string) {
+	t.Helper()
+
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if filepath.Ext(path) != ".go" {
+			return nil
+		}
+		if filepath.Base(path) == "README.md" {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if forbiddenStdLog.Match(content) {
+			t.Fatalf("%s still uses forbidden standard log calls", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walk %s: %v", root, err)
+	}
+}

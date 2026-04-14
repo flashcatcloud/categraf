@@ -17,7 +17,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -27,6 +26,7 @@ import (
 
 	"flashcat.cloud/categraf/pkg/filter"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 )
 
 // IndicesSettings information struct
@@ -139,7 +139,7 @@ func (cs *IndicesSettings) getAndParseURL(u *url.URL, data interface{}) error {
 	defer func() {
 		err = res.Body.Close()
 		if err != nil {
-			log.Println("failed to close http.Client, err :", err)
+			klog.ErrorS(err, "failed to close elasticsearch response body")
 		}
 	}()
 
@@ -186,7 +186,7 @@ func (cs *IndicesSettings) Collect(ch chan<- prometheus.Metric) {
 	asr, err := cs.fetchAndDecodeIndicesSettings()
 	if err != nil {
 		cs.readOnlyIndices.Set(0)
-		log.Println("failed to fetch and decode cluster settings stats, err :", err)
+		klog.ErrorS(err, "failed to fetch and decode elasticsearch indices settings")
 		return
 	}
 
