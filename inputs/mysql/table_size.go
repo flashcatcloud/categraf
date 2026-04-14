@@ -2,10 +2,10 @@ package mysql
 
 import (
 	"database/sql"
-	"log"
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 func (ins *Instance) gatherTableSize(slist *types.SampleList, db *sql.DB, globalTags map[string]string, isSystem bool) {
@@ -23,7 +23,7 @@ func (ins *Instance) gatherTableSize(slist *types.SampleList, db *sql.DB, global
 
 	rows, err := db.Query(query)
 	if err != nil {
-		log.Println("E! failed to get table size:", err)
+		klog.ErrorS(err, "failed to query mysql table sizes", "address", ins.Address, "system_tables", isSystem)
 		return
 	}
 
@@ -37,7 +37,7 @@ func (ins *Instance) gatherTableSize(slist *types.SampleList, db *sql.DB, global
 
 		err = rows.Scan(&schema, &table, &indexSize, &dataSize, &dataFree)
 		if err != nil {
-			log.Println("E! failed to scan rows:", err)
+			klog.ErrorS(err, "failed to scan mysql table size rows", "address", ins.Address, "system_tables", isSystem)
 			return
 		}
 

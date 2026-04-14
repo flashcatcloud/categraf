@@ -2,10 +2,10 @@ package mysql
 
 import (
 	"database/sql"
-	"log"
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 func (ins *Instance) gatherProcesslistByUser(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
@@ -15,7 +15,7 @@ func (ins *Instance) gatherProcesslistByUser(slist *types.SampleList, db *sql.DB
 
 	rows, err := db.Query(SQL_INFO_SCHEMA_PROCESSLIST_BY_USER)
 	if err != nil {
-		log.Println("E! failed to get processlist:", err)
+		klog.ErrorS(err, "failed to query mysql processlist by user", "address", ins.Address)
 		return
 	}
 
@@ -29,7 +29,7 @@ func (ins *Instance) gatherProcesslistByUser(slist *types.SampleList, db *sql.DB
 
 		err = rows.Scan(&user, &connections)
 		if err != nil {
-			log.Println("E! failed to scan rows:", err)
+			klog.ErrorS(err, "failed to scan mysql processlist by user rows", "address", ins.Address)
 			return
 		}
 
