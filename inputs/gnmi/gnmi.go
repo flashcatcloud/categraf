@@ -4,7 +4,6 @@ package gnmi
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +17,7 @@ import (
 	"flashcat.cloud/categraf/pkg/choice"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 // Define the warning to show if we cannot get a metric name.
@@ -119,7 +119,7 @@ func (c *Instance) Init() error {
 	// Check options
 	if time.Duration(c.Redial) <= 0 {
 		c.Redial = config.Duration(10 * time.Second)
-		log.Println("W! redial duration must be positive")
+		klog.Warning("redial duration must be positive")
 	}
 
 	// Check vendor_specific options configured by user
@@ -200,7 +200,7 @@ func (c *Instance) Init() error {
 	for alias, encodingPath := range c.Aliases {
 		c.internalAliases[newInfoFromString(encodingPath)] = alias
 	}
-	log.Printf("D! Internal alias mapping: %+v", c.internalAliases)
+	klog.V(1).InfoS("internal alias mapping", "aliases", c.internalAliases)
 
 	go c.Start()
 	return nil
@@ -248,7 +248,7 @@ func (c *Instance) Start() error {
 			}
 			for ctx.Err() == nil {
 				if err := h.subscribeGNMI(ctx, c.slist, tlscfg, request); err != nil && ctx.Err() == nil {
-					log.Println("W! Error in gNMI subscription:", err)
+					klog.Warningf("error in gNMI subscription: %v", err)
 				}
 
 				select {

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"path"
 	"sort"
@@ -25,6 +24,7 @@ import (
 	jnprHeader "flashcat.cloud/categraf/inputs/gnmi/extensions/jnpr_gnmi_extention"
 	"flashcat.cloud/categraf/pkg/choice"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const eidJuniperTelemetryHeader = 1
@@ -81,7 +81,7 @@ func (h *handler) subscribeGNMI(ctx context.Context, slist *types.SampleList, tl
 		return fmt.Errorf("failed to send subscription request: %w", err)
 	}
 
-	log.Printf("Connection to gNMI device %s established", h.address)
+	klog.InfoS("connection to gNMI device established", "address", h.address)
 
 	// Used to report the status of the TCP connection to the device. If the
 	// GNMI connection goes down, but TCP is still up this will still report
@@ -89,7 +89,7 @@ func (h *handler) subscribeGNMI(ctx context.Context, slist *types.SampleList, tl
 	// connectStat := selfstat.Register("gnmi", "grpc_connection_status", map[string]string{"source": h.address})
 	// connectStat.Set(1)
 
-	defer log.Printf("Connection to gNMI device %s closed", h.address)
+	defer klog.InfoS("connection to gNMI device closed", "address", h.address)
 	for ctx.Err() == nil {
 		var reply *gnmiLib.SubscribeResponse
 		if reply, err = subscribeClient.Recv(); err != nil {
@@ -103,10 +103,10 @@ func (h *handler) subscribeGNMI(ctx context.Context, slist *types.SampleList, tl
 		if h.trace {
 			buf, err := protojson.Marshal(reply)
 			if err != nil {
-				log.Printf("Marshal failed: %v", err)
+				klog.Warningf("marshal failed: %v", err)
 			} else {
 				t := reply.GetUpdate().GetTimestamp()
-				log.Printf("Got update_%v: %s", t, string(buf))
+				klog.V(1).InfoS("got gNMI update", "timestamp", t, "payload", string(buf))
 			}
 		}
 		if response, ok := reply.Response.(*gnmiLib.SubscribeResponse_Update); ok {
@@ -137,7 +137,7 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 			if choice.Contains("juniper_header", h.vendorExt) {
 				juniperHeader := &jnprHeader.GnmiJuniperTelemetryHeaderExtension{}
 				if err := proto.Unmarshal(currentExt, juniperHeader); err != nil {
-					log.Printf("unmarshal gnmi Juniper Header extension failed: %v", err)
+					klog.Warningf("unmarshal gnmi Juniper Header extension failed: %v", err)
 				} else {
 					// Add only relevant Tags from the Juniper Header extension.
 					// These are required for aggregation
@@ -167,7 +167,7 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 		fullPath := prefix.append(update.Path)
 		fields, err := newFieldsFromUpdate(fullPath, update)
 		if err != nil {
-			log.Printf("Processing update %v failed: %v", update, err)
+			klog.Warningf("processing update %v failed: %v", update, err)
 		}
 
 		// Prepare tags from prefix
@@ -185,9 +185,9 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 			if !fullPath.equalsPathNoKeys(tagSub.fullPath) {
 				continue
 			}
-			log.Printf("Tag-subscription update for %q: %+v", tagSub.Name, update)
+			klog.V(1).InfoS("tag-subscription update", "subscription", tagSub.Name, "update", update)
 			if err := h.tagStore.insert(tagSub, fullPath, fields, tags); err != nil {
-				log.Printf("E! Inserting tag failed: %v", err)
+				klog.ErrorS(err, "inserting tag failed", "subscription", tagSub.Name)
 			}
 			tagUpdate = true
 			break
@@ -225,9 +225,9 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 		// Lookup alias for the metric
 		aliasPath, name := h.lookupAlias(field.path)
 		if name == "" {
-			log.Printf("No measurement alias for gNMI path: %s", field.path)
+			klog.Warningf("no measurement alias for gNMI path: %s", field.path)
 			if !h.emptyNameWarnShown {
-				log.Printf(emptyNameWarning, response.Update)
+				klog.Warningf(emptyNameWarning, response.Update)
 				h.emptyNameWarnShown = true
 			}
 		}
@@ -254,7 +254,7 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 			key = strings.TrimLeft(key, "/.")
 		}
 		if key == "" {
-			log.Printf("E! Invalid empty path %q with alias %q", fieldPath, aliasPath)
+			klog.ErrorS(nil, "invalid empty path", "path", fieldPath, "alias", aliasPath)
 			continue
 		}
 		prefix := inputName

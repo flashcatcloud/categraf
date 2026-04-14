@@ -56,6 +56,8 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"inputs/system/ps.go",
 		"inputs/ethtool/ethtool_linux.go",
 		"inputs/filecount/filecount.go",
+		"inputs/gnmi/gnmi.go",
+		"inputs/gnmi/handler.go",
 		"inputs/provider_manager.go",
 		"inputs/redis/redis.go",
 		"inputs/redis_sentinel/redis_sentinel.go",
