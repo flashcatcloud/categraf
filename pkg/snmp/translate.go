@@ -2,7 +2,6 @@ package snmp
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/sleepinggenius2/gosmi"
 	"github.com/sleepinggenius2/gosmi/types"
+	"k8s.io/klog/v2"
 )
 
 // must init, append path for each directory, load module for every file
@@ -54,34 +54,34 @@ func LoadMibsFromPath(paths []string, loader MibLoader) error {
 		loader.appendPath(path)
 		modules, err := os.ReadDir(path)
 		if err != nil {
-			log.Printf("W! Can't read directory %v", modules)
+			klog.Warningf("can't read directory %s: %v", path, err)
 			continue
 		}
 
 		for _, entry := range modules {
 			info, err := entry.Info()
 			if err != nil {
-				log.Printf("W! Couldn't get info for %v: %v", entry.Name(), err)
+				klog.Warningf("couldn't get info for %v: %v", entry.Name(), err)
 				continue
 			}
 			if info.Mode()&os.ModeSymlink != 0 {
 				symlink := filepath.Join(path, info.Name())
 				target, err := filepath.EvalSymlinks(symlink)
 				if err != nil {
-					log.Printf("W! Couldn't evaluate symbolic links for %v: %v", symlink, err)
+					klog.Warningf("couldn't evaluate symbolic links for %v: %v", symlink, err)
 					continue
 				}
 				// replace symlink's info with the target's info
 				info, err = os.Lstat(target)
 				if err != nil {
-					log.Printf("W! Couldn't stat target %v: %v", target, err)
+					klog.Warningf("couldn't stat target %v: %v", target, err)
 					continue
 				}
 			}
 			if info.Mode().IsRegular() {
 				err := loader.loadModule(info.Name())
 				if err != nil {
-					log.Printf("W! Couldn't load module %v: %v", info.Name(), err)
+					klog.Warningf("couldn't load module %v: %v", info.Name(), err)
 					continue
 				}
 			}
@@ -107,9 +107,9 @@ func walkPaths(paths []string) ([]string, error) {
 
 		err := filepath.Walk(mibPath, func(path string, info os.FileInfo, err error) error {
 			if info == nil {
-				log.Println("W! No mibs found")
+				klog.Warning("no mibs found")
 				if os.IsNotExist(err) {
-					log.Printf("W! MIB path doesn't exist: %q", mibPath)
+					klog.Warningf("MIB path doesn't exist: %q", mibPath)
 				} else if err != nil {
 					return err
 				}
@@ -119,11 +119,11 @@ func walkPaths(paths []string) ([]string, error) {
 			if info.Mode()&os.ModeSymlink != 0 {
 				target, err := filepath.EvalSymlinks(path)
 				if err != nil {
-					log.Printf("W! Couldn't evaluate symbolic links for %v: %v", path, err)
+					klog.Warningf("couldn't evaluate symbolic links for %v: %v", path, err)
 				}
 				info, err = os.Lstat(target)
 				if err != nil {
-					log.Printf("W! Couldn't stat target %v: %v", target, err)
+					klog.Warningf("couldn't stat target %v: %v", target, err)
 				}
 				path = target
 			}
