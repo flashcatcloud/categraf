@@ -2,10 +2,10 @@ package vsphere
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/vmware/govmomi/vim25/soap"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -173,12 +173,12 @@ func (ins *Instance) Init() error {
 	// Create endpoints, one for each vCenter we're monitoring
 	u, err := soap.ParseURL(ins.Vcenter)
 	if err != nil {
-		log.Println("E! soap.ParseURL", err)
+		klog.ErrorS(err, "soap.ParseURL failed", "vcenter", ins.Vcenter)
 		return err
 	}
 	ep, err := NewEndpoint(ctx, ins, u)
 	if err != nil {
-		log.Println("E! NewEndpoint", err)
+		klog.ErrorS(err, "create vsphere endpoint failed", "vcenter", ins.Vcenter)
 		return err
 	}
 	ins.endpoints = ep
@@ -186,7 +186,7 @@ func (ins *Instance) Init() error {
 }
 
 func (v *Instance) Drop() {
-	log.Printf("I! Stopping plugin")
+	klog.InfoS("stopping vsphere plugin")
 	v.cancel()
 
 	// Wait for all endpoints to finish. No need to wait for
@@ -195,7 +195,7 @@ func (v *Instance) Drop() {
 	// wait for any discovery to complete by trying to grab the
 	// "busy" mutex.
 	if v.DebugMod {
-		log.Printf("D! Waiting for endpoint %q to finish", v.endpoints.URL.Host)
+		klog.V(1).InfoS("waiting for endpoint to finish", "endpoint", v.endpoints.URL.Host)
 	}
 	func() {
 		v.endpoints.busy.Lock() // Wait until discovery is finished
@@ -214,7 +214,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 	if err != nil {
 		// acc.AddError(err)
-		log.Println("E! fail to gather: ", err)
+		klog.ErrorS(err, "vsphere gather failed")
 	}
 
 }
