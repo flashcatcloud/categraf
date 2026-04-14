@@ -18,7 +18,6 @@ package collector
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -28,6 +27,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -76,7 +76,7 @@ func convertMetricFamily(metricFamily *dto.MetricFamily, ch chan<- prometheus.Me
 
 	for _, metric := range metricFamily.Metric {
 		if metric.TimestampMs != nil {
-			log.Println("W! ignoring unsupported custom timestamp on textfile collector metric", metric)
+			klog.Warningf("ignoring unsupported custom timestamp on textfile collector metric: metric=%v", metric)
 		}
 
 		labels := metric.GetLabel()
@@ -207,7 +207,7 @@ func (c *textFileCollector) Update(ch chan<- prometheus.Metric) error {
 		files, err := os.ReadDir(path)
 		if err != nil && path != "" {
 			errored = true
-			log.Println("E! failed to read textfile collector directory", path, err)
+			klog.ErrorS(err, "failed to read textfile collector directory", "path", path)
 		}
 
 		for _, f := range files {
@@ -225,7 +225,7 @@ func (c *textFileCollector) Update(ch chan<- prometheus.Metric) error {
 
 			if err != nil {
 				errored = true
-				log.Println("E! failed to collect textfile data", "file", f.Name(), "err", err)
+				klog.ErrorS(err, "failed to collect textfile data", "file", f.Name())
 				continue
 			}
 
