@@ -2,11 +2,11 @@ package jolokia
 
 import (
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const defaultFieldName = "value"
@@ -60,7 +60,7 @@ func (g *Gatherer) gatherResponses(responses []ReadResponse, tags map[string]str
 		responsePoints, responseErrors := g.generatePoints(metric, responses)
 		points = append(points, responsePoints...)
 		for _, err := range responseErrors {
-			log.Println("E!", err)
+			klog.ErrorS(err, "failed to generate jolokia points", "metric", metric.Name)
 		}
 
 		series[metric.Name] = points

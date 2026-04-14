@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/types"
 
 	"github.com/hashicorp/consul/api"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "consul"
@@ -149,7 +149,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, fn := range fns {
 		if err := fn(slist); err != nil {
 			up = 0
-			log.Println("E! failed to gather http target:", ins.Address, "error:", err)
+			klog.ErrorS(err, "failed to gather consul target", "address", ins.Address)
 		}
 	}
 	slist.PushFront(types.NewSample(inputName, "up", up, tag))
