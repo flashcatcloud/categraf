@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -20,6 +19,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 // Instance plugin reads metrics from storage devices supporting S.M.A.R.T.
@@ -90,10 +90,7 @@ func (m *Instance) Init() error {
 	if err != nil {
 		m.PathNVMe = ""
 		// without nvme, plugin will not be able to gather vendor specific attributes (but it can work without it)
-		log.Printf(
-			"W! nvme not found: verify that nvme is installed and it is in your PATH (or specified in config) to gather vendor specific attributes: %s",
-			err.Error(),
-		)
+		klog.Warningf("nvme not found: verify that nvme is installed and it is in your PATH (or specified in config) to gather vendor specific attributes: %s", err.Error())
 	}
 
 	return nil
@@ -116,7 +113,7 @@ func (m *Instance) Gather(slist *types.SampleList) {
 		if isVendorExtension && isNVMe {
 			scannedNVMeDevices, _, err = m.scanAllDevices(true)
 			if err != nil {
-				log.Println("E! error while scanning devices:", err)
+				klog.ErrorS(err, "error while scanning SMART devices")
 				return
 			}
 			nvmeDevices := distinguishNVMeDevices(devicesFromConfig, scannedNVMeDevices)
@@ -127,7 +124,7 @@ func (m *Instance) Gather(slist *types.SampleList) {
 	}
 	scannedNVMeDevices, scannedNonNVMeDevices, err = m.scanAllDevices(false)
 	if err != nil {
-		log.Println("E! error while scanning all devices:", err)
+		klog.ErrorS(err, "error while scanning all SMART devices")
 		return
 	}
 	var devicesFromScan []string
@@ -278,7 +275,7 @@ func getDeviceInfoForNVMeDisks(slist *types.SampleList, devices []string, nvme s
 	for _, device := range devices {
 		newDevice, err := gatherNVMeDeviceInfo(nvme, device, timeout, useSudo)
 		if err != nil {
-			log.Printf("E! cannot find device info for %s device", device)
+			klog.ErrorS(err, "cannot find NVMe device info", "device", device)
 			continue
 		}
 		nvmeDevices = append(nvmeDevices, newDevice)
@@ -344,7 +341,7 @@ func gatherIntelNVMeDisk(slist *types.SampleList, timeout config.Duration, usesu
 
 	_, er := exitStatus(e)
 	if er != nil {
-		log.Printf("E! failed to run command '%s %s': %v - %s", nvme, strings.Join(args, " "), e, outStr)
+		klog.ErrorS(e, "failed to run NVMe command", "command", nvme, "args", strings.Join(args, " "), "output", outStr)
 		return
 	}
 
@@ -413,7 +410,7 @@ func (m *Instance) gatherDisk(slist *types.SampleList, device string, wg *sync.W
 	// Ignore all exit statuses except if it is a command line parse error
 	exitStatus, er := exitStatus(e)
 	if er != nil {
-		log.Printf("E! failed to run command '%s %s': %v - %s", m.PathSmartctl, strings.Join(args, " "), e, outStr)
+		klog.ErrorS(e, "failed to run smartctl command", "command", m.PathSmartctl, "args", strings.Join(args, " "), "output", outStr)
 		return
 	}
 
@@ -548,7 +545,7 @@ func (m *Instance) gatherDisk(slist *types.SampleList, device string, wg *sync.W
 					}
 
 					if err := parse(fields, deviceFields, metric, matches[2]); err != nil {
-						log.Printf("E!error parsing %s: %q: %v", attr.Name, matches[2], err)
+						klog.ErrorS(err, "error parsing SMART attribute", "attribute", attr.Name, "value", matches[2])
 						continue
 					}
 					// if the field is classified as an attribute, only add it

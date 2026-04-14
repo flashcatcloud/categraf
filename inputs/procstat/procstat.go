@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"regexp"
@@ -19,6 +18,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 var execCommand = exec.Command
@@ -71,21 +71,21 @@ func (ins *Instance) Init() error {
 
 	if ins.SearchExecSubstring != "" {
 		ins.searchString = ins.SearchExecSubstring
-		log.Println("I! procstat: search_exec_substring:", ins.SearchExecSubstring)
+		klog.InfoS("procstat configured search_exec_substring", "value", ins.SearchExecSubstring)
 	} else if ins.SearchCmdlineSubstring != "" {
 		ins.searchString = ins.SearchCmdlineSubstring
-		log.Println("I! procstat: search_cmdline_substring:", ins.SearchCmdlineSubstring)
+		klog.InfoS("procstat configured search_cmdline_substring", "value", ins.SearchCmdlineSubstring)
 	} else if ins.SearchWinService != "" {
 		ins.searchString = ins.SearchWinService
-		log.Println("I! procstat: search_win_service:", ins.SearchWinService)
+		klog.InfoS("procstat configured search_win_service", "value", ins.SearchWinService)
 	} else if ins.SearchExecRegexp != "" {
 		ins.searchExecRegexp = regexp.MustCompile(ins.SearchExecRegexp)
 		ins.searchString = ins.SearchExecRegexp
-		log.Println("I! procstat: search_exec_regexp:", ins.SearchExecRegexp)
+		klog.InfoS("procstat configured search_exec_regexp", "value", ins.SearchExecRegexp)
 	} else if ins.SearchCmdLineRegexp != "" {
 		ins.searchCmdLineRegexp = regexp.MustCompile(ins.SearchCmdLineRegexp)
 		ins.searchString = ins.SearchCmdLineRegexp
-		log.Println("I! procstat: search_cmdline_regexp:", ins.SearchCmdLineRegexp)
+		klog.InfoS("procstat configured search_cmdline_regexp", "value", ins.SearchCmdLineRegexp)
 	} else {
 		return errors.New("the fields should not be all blank: search_exec_substring, search_cmdline_substring, search_win_service")
 	}
@@ -97,9 +97,9 @@ func (ins *Instance) Init() error {
 		extractLabelKey := r.SubexpNames()
 		if len(extractLabelKey) > 0 {
 			ins.labelsFromCmdlineRegexp = r
-			log.Println("I! procstat: gather labels from cmdline using regexp. labels: ", extractLabelKey)
+			klog.InfoS("procstat gather labels from cmdline using regexp", "labels", extractLabelKey)
 		} else {
-			log.Println("W! procstat: labels_from_cmdline_reggroup no NamedGroup label includes, ignore this conf: ", ins.LabelsFromCmdlineRegexp)
+			klog.Warningf("procstat labels_from_cmdline_reggroup has no named groups, ignoring config: %s", ins.LabelsFromCmdlineRegexp)
 		}
 	}
 
@@ -192,12 +192,12 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	} else if ins.SearchWinService != "" {
 		pids, err = ins.winServicePIDs()
 	} else {
-		log.Println("E! Oops... search string not found")
+		klog.Error("procstat search string not found")
 		return
 	}
 
 	if err != nil {
-		log.Println("E! procstat: failed to lookup pids, search string:", ins.searchString, "error:", err)
+		klog.ErrorS(err, "procstat failed to lookup pids", "search_string", ins.searchString)
 		slist.PushFront(types.NewSample(inputName, "lookup_count", 0, tags))
 		return
 	}
@@ -238,14 +238,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 						exeMd5cache[exe] = sum
 					} else {
 						if ins.DebugMod {
-							log.Println("E! failed to get md5sum of exe:", exe, "pid:", p.PID(), err)
+							klog.V(1).InfoS("failed to get md5sum of exe", "exe", exe, "pid", p.PID(), "error", err)
 						}
 						if sum, err := md5sum(fmt.Sprintf("/proc/%d/exe", pid)); err == nil {
 							info["binary_md5sum"] = sum
 							exeMd5cache[exe] = sum
 						} else {
 							if ins.DebugMod {
-								log.Println("E! failed to get md5sum of /proc/pid/exe:", p.PID(), err)
+								klog.V(1).InfoS("failed to get md5sum of /proc/pid/exe", "pid", p.PID(), "error", err)
 							}
 						}
 					}
@@ -274,7 +274,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		case "jvm":
 			ins.gatherJvm(slist, ins.procs, tags)
 		default:
-			log.Println("E! unknown choice in gather_more_metrics:", field)
+			klog.ErrorS(nil, "unknown choice in gather_more_metrics", "field", field)
 		}
 	}
 }
@@ -545,7 +545,7 @@ func (ins *Instance) gatherJvm(slist *types.SampleList, procs map[PID]Process, t
 	for pid := range procs {
 		jvmStat, err := ins.execJstat(pid)
 		if err != nil {
-			log.Println("E! failed to exec jstat:", err)
+			klog.ErrorS(err, "failed to exec jstat", "pid", pid)
 			continue
 		}
 
