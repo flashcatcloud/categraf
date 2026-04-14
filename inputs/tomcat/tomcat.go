@@ -2,7 +2,6 @@ package tomcat
 
 import (
 	"encoding/xml"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "tomcat"
@@ -169,13 +169,13 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	resp, err := ins.client.Do(ins.request)
 	if err != nil {
 		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
-		log.Println("E! failed to query tomcat url:", err)
+		klog.ErrorS(err, "failed to query tomcat url", "url", ins.URL)
 		return
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
-		log.Println("E! received HTTP status code:", resp.StatusCode, "expected: 200")
+		klog.ErrorS(nil, "received unexpected HTTP status code", "url", ins.URL, "status_code", resp.StatusCode, "expected", 200)
 		return
 	}
 
@@ -184,7 +184,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	var status TomcatStatus
 	if err := xml.NewDecoder(resp.Body).Decode(&status); err != nil {
 		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
-		log.Println("E! failed to decode response body:", err)
+		klog.ErrorS(err, "failed to decode tomcat response body", "url", ins.URL)
 		return
 	}
 

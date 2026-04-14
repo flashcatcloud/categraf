@@ -3,7 +3,6 @@ package chrony
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/cmdx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "chrony"
@@ -63,24 +63,24 @@ func (c *Chrony) Gather(slist *types.SampleList) {
 
 	err, timeout := cmdx.RunTimeout(cmd, time.Second*5)
 	if timeout {
-		log.Printf("E! run command: %s timeout", strings.Join(cmd.Args, " "))
+		klog.Warningf("run command timeout: %s", strings.Join(cmd.Args, " "))
 		return
 	}
 
 	if err != nil {
-		log.Printf("E! failed to run command: %s | error: %v | stdout: %s | stderr: %s",
+		klog.Errorf("failed to run command: %s | error: %v | stdout: %s | stderr: %s",
 			strings.Join(cmd.Args, " "), err, stdout.String(), stderr.String())
 		return
 	}
 
 	fields, tags, err := processChronycOutput(stdout.String())
 	if err != nil {
-		log.Println("E! failed to gather chrony processOutput: ", err)
+		klog.ErrorS(err, "failed to gather chrony process output")
 		return
 	}
 
 	if len(fields) == 0 {
-		log.Println("E! Chrony input failed to collect metrics")
+		klog.Error("chrony input failed to collect metrics")
 	}
 
 	slist.PushSamples("chrony", fields, tags)
