@@ -2,7 +2,6 @@ package supervisor
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 
@@ -12,6 +11,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "supervisor"
@@ -106,7 +106,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	var rawProcessData []processInfo
 	err := ins.rpcClient.Call("supervisor.getAllProcessInfo", nil, &rawProcessData)
 	if err != nil {
-		log.Println("failed to get processes info: %w", err)
+		klog.ErrorS(err, "failed to get supervisor processes info", "rpc", "supervisor.getAllProcessInfo", "url", ins.Url)
 		return
 	}
 
@@ -114,14 +114,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	var status supervisorInfo
 	err = ins.rpcClient.Call("supervisor.getState", nil, &status)
 	if err != nil {
-		log.Println("failed to get processes info: %w", err)
+		klog.ErrorS(err, "failed to get supervisor state", "rpc", "supervisor.getState", "url", ins.Url)
 		return
 	}
 
 	// API call to get identification string
 	err = ins.rpcClient.Call("supervisor.getIdentification", nil, &status.Ident)
 	if err != nil {
-		log.Println("failed to get instance identification: %w", err)
+		klog.ErrorS(err, "failed to get supervisor identification", "rpc", "supervisor.getIdentification", "url", ins.Url)
 		return
 	}
 
@@ -129,7 +129,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, process := range rawProcessData {
 		processTags, processFields, err := ins.parseProcessData(process, status)
 		if err != nil {
-			log.Println("E! failed to parse process data: ", err)
+			klog.ErrorS(err, "failed to parse supervisor process data", "process", process.Name, "group", process.Group, "url", ins.Url)
 			continue
 		}
 		slist.PushSamples("supervisor_processes", processFields, processTags)
@@ -138,7 +138,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	// Adding instance info fields to accumulator
 	instanceTags, instanceFields, err := ins.parseInstanceData(status)
 	if err != nil {
-		log.Println("failed to parse instance data: %w", err)
+		klog.ErrorS(err, "failed to parse supervisor instance data", "id", status.Ident, "url", ins.Url)
 		return
 	}
 	slist.PushSamples("supervisor_instance", instanceFields, instanceTags)
