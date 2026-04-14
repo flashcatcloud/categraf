@@ -2,12 +2,12 @@ package mysql
 
 import (
 	"database/sql"
-	"log"
 	"strconv"
 	"strings"
 
 	"flashcat.cloud/categraf/pkg/tagx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 func (ins *Instance) gatherBinlog(slist *types.SampleList, db *sql.DB, globalTags map[string]string) {
@@ -17,7 +17,7 @@ func (ins *Instance) gatherBinlog(slist *types.SampleList, db *sql.DB, globalTag
 	var logBin uint8
 	err := db.QueryRow(`SELECT @@log_bin`).Scan(&logBin)
 	if err != nil {
-		log.Println("E! failed to query SELECT @@log_bin:", err)
+		klog.ErrorS(err, "failed to query mysql @@log_bin", "address", ins.Address)
 		return
 	}
 
@@ -28,7 +28,7 @@ func (ins *Instance) gatherBinlog(slist *types.SampleList, db *sql.DB, globalTag
 
 	rows, err := db.Query(`SHOW BINARY LOGS`)
 	if err != nil {
-		log.Println("E! failed to query SHOW BINARY LOGS:", err)
+		klog.ErrorS(err, "failed to query mysql binary logs", "address", ins.Address)
 		return
 	}
 
@@ -36,7 +36,7 @@ func (ins *Instance) gatherBinlog(slist *types.SampleList, db *sql.DB, globalTag
 
 	columns, err := rows.Columns()
 	if err != nil {
-		log.Println("E! failed to get columns:", err)
+		klog.ErrorS(err, "failed to get mysql binary log columns", "address", ins.Address)
 		return
 	}
 
@@ -46,8 +46,8 @@ func (ins *Instance) gatherBinlog(slist *types.SampleList, db *sql.DB, globalTag
 		filename    string
 		filesize    uint64
 		encrypted   string
-		algorithm   string  // 加密算法（在某些版本中可用）；Reserved for future use: currently unused
-		columnCount int = len(columns)
+		algorithm   string // 加密算法（在某些版本中可用）；Reserved for future use: currently unused
+		columnCount int    = len(columns)
 	)
 
 	for rows.Next() {
@@ -65,7 +65,7 @@ func (ins *Instance) gatherBinlog(slist *types.SampleList, db *sql.DB, globalTag
 				return
 			}
 		default:
-			log.Println("E! invalid number of columns:", columnCount)
+			klog.ErrorS(nil, "invalid number of mysql binary log columns", "address", ins.Address, "column_count", columnCount)
 		}
 
 		size += filesize
