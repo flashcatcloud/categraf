@@ -22,6 +22,8 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"agent/metrics_agent.go",
 		"agent/metrics_reader.go",
 		"agent/prometheus_agent.go",
+		"agent/update/update_linux.go",
+		"agent/update/update_windows.go",
 		"api/router_falcon.go",
 		"api/router_opentsdb.go",
 		"api/server.go",
