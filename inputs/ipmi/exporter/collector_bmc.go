@@ -17,9 +17,8 @@
 package exporter
 
 import (
-	"log"
-
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/inputs/ipmi/exporter/freeipmi"
 )
@@ -56,18 +55,18 @@ func (c BMCCollector) Args() []string {
 func (c BMCCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	firmwareRevision, err := freeipmi.GetBMCInfoFirmwareRevision(result)
 	if err != nil {
-		log.Println("E!", "Failed to collect BMC data", "target", targetName(target.host), "error", err)
+		klog.ErrorS(err, "failed to collect BMC data", "target", targetName(target.host))
 		return 0, err
 	}
 	manufacturerID, err := freeipmi.GetBMCInfoManufacturerID(result)
 	if err != nil {
-		log.Println("E!", "Failed to collect BMC data", "target", targetName(target.host), "error", err)
+		klog.ErrorS(err, "failed to collect BMC data", "target", targetName(target.host))
 		return 0, err
 	}
 	systemFirmwareVersion, err := freeipmi.GetBMCInfoSystemFirmwareVersion(result)
 	if err != nil {
 		// This one is not always available.
-		log.Println("E!", "Failed to parse bmc-info data", "target", targetName(target.host), "error", err)
+		klog.ErrorS(err, "failed to parse bmc-info data", "target", targetName(target.host))
 		systemFirmwareVersion = "N/A"
 	}
 	ch <- prometheus.MustNewConstMetric(

@@ -17,9 +17,8 @@
 package exporter
 
 import (
-	"log"
-
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/inputs/ipmi/exporter/freeipmi"
 )
@@ -68,17 +67,17 @@ func (c ChassisCollector) Args() []string {
 func (c ChassisCollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metric, target ipmiTarget) (int, error) {
 	currentChassisPowerState, err := freeipmi.GetChassisPowerState(result)
 	if err != nil {
-		log.Println("E!", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
+		klog.ErrorS(err, "failed to collect chassis data", "target", targetName(target.host))
 		return 0, err
 	}
 	currentChassisDriveFault, err := freeipmi.GetChassisDriveFault(result)
 	if err != nil {
-		log.Println("E!", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
+		klog.ErrorS(err, "failed to collect chassis data", "target", targetName(target.host))
 		return 0, err
 	}
 	currentChassisCoolingFault, err := freeipmi.GetChassisCoolingFault(result)
 	if err != nil {
-		log.Println("E!", "Failed to collect chassis data", "target", targetName(target.host), "error", err)
+		klog.ErrorS(err, "failed to collect chassis data", "target", targetName(target.host))
 		return 0, err
 	}
 	ch <- prometheus.MustNewConstMetric(

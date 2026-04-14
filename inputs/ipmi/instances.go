@@ -2,10 +2,10 @@ package ipmi
 
 import (
 	"flashcat.cloud/categraf/inputs"
-	"log"
 
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/ipmi/exporter"
@@ -51,19 +51,19 @@ func (m *Instance) Gather(slist *types.SampleList) {
 		desc := metric.Desc().String()
 		descName, err := inputs.DescName(desc)
 		if err != nil {
-			log.Println("E! failed to parse desc name:", desc)
+			klog.ErrorS(err, "failed to parse ipmi metric desc name", "desc", desc)
 			continue
 		}
 		icLabels, err := inputs.DescConstLabels(desc)
 		if err != nil {
-			log.Println("E! failed to read labels:", desc)
+			klog.ErrorS(err, "failed to read ipmi metric labels", "desc", desc)
 			continue
 		}
 
 		dtoMetric := &dto.Metric{}
 		err = metric.Write(dtoMetric)
 		if err != nil {
-			log.Println("E! failed to write metric:", desc)
+			klog.ErrorS(err, "failed to write ipmi metric", "desc", desc)
 			continue
 		}
 
