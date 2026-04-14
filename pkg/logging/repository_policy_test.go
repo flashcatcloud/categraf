@@ -42,6 +42,8 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"inputs/kernel_vmstat/kernel_vmstat.go",
 		"inputs/nats/nats.go",
 		"inputs/provider_manager.go",
+		"inputs/redis/redis.go",
+		"inputs/jolokia_agent/jolokia_agent.go",
 		"parser/influx/parser.go",
 		"parser/prometheus/parser.go",
 		"pkg/aop/logger.go",

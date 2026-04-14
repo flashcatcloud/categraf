@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	"github.com/go-redis/redis/v8"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "redis"
@@ -122,7 +122,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	slist.PushFront(types.NewSample(inputName, "ping_use_seconds", time.Since(begun).Seconds(), tags))
 	if err != nil {
 		slist.PushFront(types.NewSample(inputName, "up", 0, tags))
-		log.Println("E! failed to ping redis:", ins.Address, "error:", err)
+		klog.ErrorS(err, "failed to ping redis", "address", ins.Address)
 		return
 	} else {
 		slist.PushFront(types.NewSample(inputName, "up", 1, tags))
@@ -139,7 +139,7 @@ func (ins *Instance) gatherSlowLog(slist *types.SampleList, tags map[string]stri
 	}
 	info, err := ins.client.SlowLogGet(context.Background(), ins.SlowLogMaxLen).Result()
 	if err != nil {
-		log.Println("E! get slow log err:", err)
+		klog.ErrorS(err, "get slow log error", "address", ins.Address)
 		return
 	}
 	now := time.Now().Unix()
@@ -163,7 +163,7 @@ func (ins *Instance) gatherCommandValues(slist *types.SampleList, tags map[strin
 	for _, cmd := range ins.Commands {
 		val, err := ins.client.Do(context.Background(), cmd.Command...).Result()
 		if err != nil {
-			log.Println("E! failed to exec redis command:", cmd.Command)
+			klog.ErrorS(err, "failed to exec redis command", "address", ins.Address, "command", cmd.Command)
 			continue
 		}
 
@@ -172,7 +172,7 @@ func (ins *Instance) gatherCommandValues(slist *types.SampleList, tags map[strin
 		}
 		fval, err := conv.ToFloat64(val)
 		if err != nil {
-			log.Println("E! failed to convert result of command:", cmd.Command, "error:", err)
+			klog.ErrorS(err, "failed to convert result of command", "address", ins.Address, "command", cmd.Command)
 			continue
 		}
 
@@ -191,7 +191,7 @@ func (ins *Instance) gatherInfoAll(slist *types.SampleList, tags map[string]stri
 	}
 
 	if err != nil {
-		log.Println("E! failed to call redis `info all`:", err)
+		klog.ErrorS(err, "failed to call redis info all", "address", ins.Address)
 		return
 	}
 
