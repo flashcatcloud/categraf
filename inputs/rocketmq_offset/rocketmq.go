@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "rocketmq_offset"
@@ -106,13 +106,13 @@ func (ins *Instance) Init() error {
 func (ins *Instance) Gather(slist *types.SampleList) {
 
 	// 判断username是否为空，如果不为空则登录并获取 cookie
-	log.Printf("console login username: %s", ins.Username)
+	klog.V(1).InfoS("rocketmq console login", "username", ins.Username, "address", ins.RocketMQConsoleIPAndPort)
 	cookies := ""
 	if ins.Username != "" {
 		loginCookie, err := ins.Login()
 		cookies = loginCookie
 		if err != nil {
-			log.Printf("E! failed to login: %v", err)
+			klog.ErrorS(err, "failed to login rocketmq console", "address", ins.RocketMQConsoleIPAndPort, "username", ins.Username)
 			return
 		}
 	}
@@ -120,7 +120,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	// 获取rocketmq集群中的topicNameList
 	topicNameArray := GetTopicNameList(ins.RocketMQConsoleIPAndPort, cookies)
 	if topicNameArray == nil {
-		log.Println("E! fail to get topic,please check config!")
+		klog.ErrorS(nil, "failed to get rocketmq topic list, please check config", "address", ins.RocketMQConsoleIPAndPort)
 		return
 	}
 
@@ -340,14 +340,14 @@ func GetTopicNameList(rocketmqConsoleIPAndPort string, cookies string) []string 
 	var url = consoleSchema + rocketmqConsoleIPAndPort + topicNameListPath
 	var content, err = doRequest(url, cookies)
 	if err != nil {
-		log.Println("E! unable to get topic name list", err)
+		klog.ErrorS(err, "unable to get rocketmq topic name list", "url", url)
 		return nil
 	}
 
 	var jsonData TopicList
 	err = json.Unmarshal([]byte(content), &jsonData)
 	if err != nil {
-		log.Println("E! unable to decode topic name list", err)
+		klog.ErrorS(err, "unable to decode rocketmq topic name list", "url", url)
 		return nil
 	}
 
@@ -358,14 +358,14 @@ func GetConsumerListByTopic(rocketmqConsoleIPAndPort string, topicName string, c
 	var url = consoleSchema + rocketmqConsoleIPAndPort + queryConsumerByTopicPath + topicName
 	var content, err = doRequest(url, cookies)
 	if err != nil {
-		log.Println("E! unable to get consumer list by topic", err)
+		klog.ErrorS(err, "unable to get rocketmq consumer list by topic", "url", url, "topic", topicName)
 		return nil
 	}
 
 	var jsonData *ConsumerListByTopic
 	err = json.Unmarshal([]byte(content), &jsonData)
 	if err != nil {
-		log.Println("E! unable to decode consumer list by topic", err)
+		klog.ErrorS(err, "unable to decode rocketmq consumer list by topic", "url", url, "topic", topicName)
 		return nil
 	}
 
@@ -391,7 +391,7 @@ func doRequest(url string, cookies string) ([]byte, error) {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Println("E! fail to read request data", err)
+		klog.ErrorS(err, "failed to read rocketmq request body", "url", url)
 		return nil, err
 	}
 
