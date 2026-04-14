@@ -68,3 +68,49 @@ func TestConfigureBridgesStandardLibraryLog(t *testing.T) {
 		t.Fatalf("expected buffer to contain bridged message, got %q", buf.String())
 	}
 }
+
+func TestConfigureUsesConfiguredVerbosity(t *testing.T) {
+	state := klog.CaptureState()
+	defer state.Restore()
+
+	fs := flag.NewFlagSet("logging", flag.ContinueOnError)
+	RegisterFlags(fs)
+	if err := fs.Parse(nil); err != nil {
+		t.Fatalf("parse flags: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := configureWithWriter(&buf, fs, false, 2); err != nil {
+		t.Fatalf("configureWithWriter: %v", err)
+	}
+
+	klog.V(2).InfoS("verbosity two enabled")
+	klog.Flush()
+
+	if !strings.Contains(buf.String(), "verbosity two enabled") {
+		t.Fatalf("expected buffer to contain v=2 message, got %q", buf.String())
+	}
+}
+
+func TestConfigureDoesNotExceedConfiguredVerbosity(t *testing.T) {
+	state := klog.CaptureState()
+	defer state.Restore()
+
+	fs := flag.NewFlagSet("logging", flag.ContinueOnError)
+	RegisterFlags(fs)
+	if err := fs.Parse(nil); err != nil {
+		t.Fatalf("parse flags: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := configureWithWriter(&buf, fs, false, 1); err != nil {
+		t.Fatalf("configureWithWriter: %v", err)
+	}
+
+	klog.V(2).InfoS("verbosity two should stay hidden")
+	klog.Flush()
+
+	if strings.Contains(buf.String(), "verbosity two should stay hidden") {
+		t.Fatalf("expected buffer to exclude v=2 message, got %q", buf.String())
+	}
+}

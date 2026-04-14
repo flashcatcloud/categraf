@@ -94,6 +94,16 @@ func initServiceCommandLog() {
 	}
 }
 
+func flagWasSet(name string) bool {
+	set := false
+	flag.CommandLine.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			set = true
+		}
+	})
+	return set
+}
+
 func main() {
 	flag.Parse()
 
@@ -113,7 +123,16 @@ func main() {
 	}
 
 	// init configs
-	if err := config.InitConfig(*configDir, *debugLevel, *debugMode, *testMode, *interval, *inputFilters); err != nil {
+	if err := config.InitConfig(
+		*configDir,
+		*debugLevel,
+		*debugMode,
+		*testMode,
+		flagWasSet("debug-level"),
+		flagWasSet("debug"),
+		*interval,
+		*inputFilters,
+	); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to init config: %v\n", err)
 		os.Exit(1)
 	}
