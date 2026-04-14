@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	osExec "os/exec"
 	"path/filepath"
@@ -21,6 +20,7 @@ import (
 	"flashcat.cloud/categraf/parser/prometheus"
 	"flashcat.cloud/categraf/pkg/cmdx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "exec"
@@ -111,7 +111,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 		matches, err := filepath.Glob(cmdAndArgs[0])
 		if err != nil {
-			log.Println("E! failed to get filepath glob of commands:", err)
+			klog.ErrorS(err, "failed to glob exec commands", "pattern", cmdAndArgs[0])
 			continue
 		}
 
@@ -134,7 +134,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	if len(commands) == 0 {
-		log.Println("W! no commands after parse")
+		klog.Warning("no exec commands available after parsing")
 		return
 	}
 
@@ -152,17 +152,17 @@ func (ins *Instance) ProcessCommand(slist *types.SampleList, command string, wg 
 
 	out, errbuf, runErr := commandRun(command, time.Duration(ins.Timeout))
 	if runErr != nil || len(errbuf) > 0 {
-		log.Println("E! exec_command:", command, "error:", runErr, "stderr:", string(errbuf))
+		klog.ErrorS(runErr, "exec command failed", "command", command, "stderr", string(errbuf))
 		return
 	}
 	if len(out) == 0 {
-		log.Println("E! exec_command:", command, "output is empty?, please check your command:", string(out))
+		klog.ErrorS(nil, "exec command output is empty", "command", command)
 		return
 	}
 
 	err := ins.parser.Parse(out, slist)
 	if err != nil {
-		log.Println("E! failed to parse command stdout:", err)
+		klog.ErrorS(err, "failed to parse exec command stdout", "command", command)
 	}
 }
 
