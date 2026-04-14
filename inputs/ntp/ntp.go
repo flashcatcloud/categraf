@@ -1,13 +1,13 @@
 package ntp
 
 import (
-	"log"
 	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 	"github.com/beevik/ntp"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "ntp"
@@ -55,7 +55,7 @@ func (n *NTPStat) Gather(slist *types.SampleList) {
 		})
 
 		if err != nil {
-			log.Println("E! failed to connect ntp server:", n.server, "error:", err)
+			klog.ErrorS(err, "failed to connect ntp server", "server", n.server)
 			n.server = ""
 			continue
 		}
