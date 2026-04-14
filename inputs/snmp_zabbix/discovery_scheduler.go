@@ -3,9 +3,10 @@ package snmp_zabbix
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	"k8s.io/klog/v2"
 )
 
 // DiscoveryScheduler 管理所有发现规则的调度
@@ -132,7 +133,7 @@ func (s *DiscoveryScheduler) Start(ctx context.Context) {
 		}
 	}
 
-	log.Printf("DiscoveryScheduler started with %d intervals", len(s.intervals))
+	klog.InfoS("discovery scheduler started", "intervals", len(s.intervals))
 }
 
 // Stop 停止调度器
@@ -148,11 +149,11 @@ func (s *DiscoveryScheduler) Stop() {
 	close(s.stopCh)
 	s.runningIntervals = make(map[time.Duration]bool)
 
-	log.Println("DiscoveryScheduler stopped")
+	klog.InfoS("discovery scheduler stopped")
 }
 
 func (s *DiscoveryScheduler) runInterval(ctx context.Context, interval time.Duration) {
-	log.Printf("Starting discovery runner for interval %v", interval)
+	klog.InfoS("starting discovery runner", "interval", interval)
 
 	// 立即执行一次发现
 	s.mu.RLock()
@@ -181,10 +182,10 @@ func (s *DiscoveryScheduler) runInterval(ctx context.Context, interval time.Dura
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("Discovery runner for interval %v stopped: context done", interval)
+			klog.InfoS("discovery runner stopped: context done", "interval", interval)
 			return
 		case <-s.stopCh:
-			log.Printf("Discovery runner for interval %v stopped", interval)
+			klog.InfoS("discovery runner stopped", "interval", interval)
 			return
 		case now := <-ticker.C:
 			s.mu.RLock()
@@ -211,21 +212,19 @@ func (s *DiscoveryScheduler) checkAndExecuteRules(ctx context.Context, now time.
 			rule.LastRun = now
 			// 计算下次运行时间，添加少量jitter避免同时执行
 			rule.NextRun = now.Add(rule.Interval).Add(jitter(rule.Interval))
-			log.Printf("Scheduled discovery rule '%s' for agent %s, next run at %v",
-				rule.Rule.Key, rule.Agent, rule.NextRun)
+			klog.InfoS("scheduled discovery rule", "rule", rule.Rule.Key, "agent", rule.Agent, "next_run", rule.NextRun)
 		} else {
-			log.Printf("Discovery rule '%s' for agent %s not ready yet, next run at %v (now: %v)",
-				rule.Rule.Key, rule.Agent, rule.NextRun, now)
+			klog.V(1).InfoS("discovery rule not ready yet", "rule", rule.Rule.Key, "agent", rule.Agent, "next_run", rule.NextRun, "now", now)
 		}
 	}
 	s.mu.Unlock()
 
 	if len(readyRules) == 0 {
-		log.Printf("No discovery rules ready to execute at %v", now)
+		klog.V(1).InfoS("no discovery rules ready to execute", "time", now)
 		return
 	}
 
-	log.Printf("Executing %d discovery rules at %v", len(readyRules), now)
+	klog.InfoS("executing discovery rules", "count", len(readyRules), "time", now)
 
 	// 并发执行发现规则
 	var wg sync.WaitGroup
@@ -246,9 +245,9 @@ func (s *DiscoveryScheduler) checkAndExecuteRules(ctx context.Context, now time.
 
 	select {
 	case <-done:
-		log.Printf("All discovery rules completed")
+		klog.InfoS("all discovery rules completed")
 	case <-time.After(5 * time.Minute): // 5分钟超时
-		log.Printf("Warning: Discovery execution timeout, some rules may not have completed")
+		klog.Warning("discovery execution timeout, some rules may not have completed")
 	}
 }
 
@@ -261,8 +260,7 @@ func (s *DiscoveryScheduler) executeDiscovery(ctx context.Context, scheduled *Sc
 	scheduled.RunCount++
 	s.mu.Unlock()
 
-	log.Printf("Executing discovery rule '%s' for agent %s (run #%d)",
-		scheduled.Rule.Key, scheduled.Agent, scheduled.RunCount)
+	klog.InfoS("executing discovery rule", "rule", scheduled.Rule.Key, "agent", scheduled.Agent, "run_count", scheduled.RunCount)
 
 	// 执行发现
 	discoveries, err := s.engine.ExecuteDiscovery(ctx, scheduled.Agent, scheduled.Rule)
@@ -272,8 +270,7 @@ func (s *DiscoveryScheduler) executeDiscovery(ctx context.Context, scheduled *Sc
 		scheduled.LastError = err
 		scheduled.ErrorCount++
 		s.mu.Unlock()
-		log.Printf("Discovery rule '%s' for agent %s failed: %v",
-			scheduled.Rule.Key, scheduled.Agent, err)
+		klog.ErrorS(err, "discovery rule failed", "rule", scheduled.Rule.Key, "agent", scheduled.Agent)
 		return
 	}
 
@@ -281,8 +278,7 @@ func (s *DiscoveryScheduler) executeDiscovery(ctx context.Context, scheduled *Sc
 	scheduled.SuccessCount++
 	s.mu.Unlock()
 
-	log.Printf("Discovery rule '%s' for agent %s found %d items (took %v)",
-		scheduled.Rule.Key, scheduled.Agent, len(discoveries), time.Since(startTime))
+	klog.InfoS("discovery rule completed", "rule", scheduled.Rule.Key, "agent", scheduled.Agent, "items", len(discoveries), "duration", time.Since(startTime))
 
 	// 应用item prototypes生成监控项
 	items := s.engine.ApplyItemPrototypes(discoveries, scheduled.Rule)
@@ -305,7 +301,7 @@ func (s *DiscoveryScheduler) executeDiscovery(ctx context.Context, scheduled *Sc
 // LoadFromTemplate 从模板加载所有发现规则
 func (s *DiscoveryScheduler) LoadFromTemplate(agents []string, template *ZabbixTemplate) {
 	if template == nil {
-		log.Printf("W! no template provided for discovery scheduler")
+		klog.Warning("no template provided for discovery scheduler")
 		return
 	}
 
@@ -315,20 +311,17 @@ func (s *DiscoveryScheduler) LoadFromTemplate(agents []string, template *ZabbixT
 		for _, rule := range template.DiscoveryRules {
 			// 只处理SNMP类型的发现规则
 			if itemType := ConvertZabbixItemType(rule.Type); itemType != "snmp" {
-				log.Printf("W! skipping non-SNMP discovery rule '%s' (type: %s -> %s)",
-					rule.Key, rule.Type, itemType)
+				klog.Warningf("skipping non-SNMP discovery rule '%s' (type: %s -> %s)", rule.Key, rule.Type, itemType)
 				continue
 			}
-			log.Printf("I! adding SNMP discovery rule '%s' (delay: %s) for agent %s",
-				rule.Key, rule.Delay, agent)
+			klog.InfoS("adding SNMP discovery rule", "rule", rule.Key, "delay", rule.Delay, "agent", agent)
 
 			s.AddDiscoveryRule(agent, rule)
 			addedCount++
 		}
 	}
 
-	log.Printf("I! loaded %d discovery rules from template (skipped %d non-SNMP rules)",
-		addedCount, skippedCount)
+	klog.InfoS("loaded discovery rules from template", "added", addedCount, "skipped", skippedCount)
 }
 
 // removeFromIntervalSlice 从interval切片中移除指定的调度项

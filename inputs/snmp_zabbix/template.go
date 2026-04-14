@@ -2,13 +2,13 @@ package snmp_zabbix
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"strings"
 
 	"github.com/Knetic/govaluate"
 	"gopkg.in/yaml.v3"
+	"k8s.io/klog/v2"
 )
 
 // Zabbix 现代YAML模板结构（6.0+版本）
@@ -862,7 +862,7 @@ func (t *ZabbixTemplate) evaluateFormula(formula string, results map[string]bool
 	expression, err := govaluate.NewEvaluableExpression(expressionStr)
 	if err != nil {
 		// 如果公式本身有语法错误，记录日志并返回 false
-		log.Printf("E! failed to parse formula '%s': %v", formula, err)
+		klog.ErrorS(err, "failed to parse formula", "formula", formula)
 		return false
 	}
 
@@ -877,7 +877,7 @@ func (t *ZabbixTemplate) evaluateFormula(formula string, results map[string]bool
 	result, err := expression.Evaluate(parameters)
 	if err != nil {
 		// 如果执行过程中出错（例如缺少变量），记录日志并返回 false
-		log.Printf("E! failed to evaluate formula '%s' with params %v: %v", formula, parameters, err)
+		klog.ErrorS(err, "failed to evaluate formula", "formula", formula, "params", parameters)
 		return false
 	}
 
@@ -885,7 +885,7 @@ func (t *ZabbixTemplate) evaluateFormula(formula string, results map[string]bool
 	//    govaluate 的结果是 interface{} 类型，需要进行类型断言
 	resultBool, ok := result.(bool)
 	if !ok {
-		log.Printf("E! formula '%s' did not return a boolean value", formula)
+		klog.ErrorS(nil, "formula did not return a boolean value", "formula", formula)
 		return false
 	}
 

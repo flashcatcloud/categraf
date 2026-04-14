@@ -3,13 +3,13 @@ package snmp_zabbix
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gosnmp/gosnmp"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/types"
 )
@@ -75,7 +75,7 @@ func (c *SNMPCollector) CollectItems(ctx context.Context, items []MonitorItem, s
 			// 记录错误但继续处理其他结果
 			// 降低日志级别或增加频率限制，防止日志刷屏
 			if c.config.DebugMode {
-				log.Printf("D! collected agent: %s, key: %s, error: %v", result.Agent, result.Key, result.Error)
+				klog.V(1).InfoS("collected agent error", "agent", result.Agent, "key", result.Key, "error", result.Error)
 			}
 			continue
 		}
@@ -150,7 +150,7 @@ func (c *SNMPCollector) collectFromAgent(ctx context.Context, agent string, item
 		if err != nil {
 			// 只有在调试模式下才打印详细的批量失败日志
 			if c.config.DebugMode {
-				log.Printf("D! bulk request failed for agent %s (size: %d): %v. Falling back to individual collection.", agent, len(oids), err)
+				klog.V(1).InfoS("bulk request failed, falling back to individual collection", "agent", agent, "size", len(oids), "error", err)
 			}
 			// 降级：尝试单独请求这个批次的OID
 			c.collectIndividually(client, agent, batchItems, resultChan)
@@ -243,7 +243,7 @@ func (c *SNMPCollector) processSingleResult(agent string, item MonitorItem, resu
 			)
 			if err != nil {
 				if !strings.Contains(err.Error(), "no previous value") && c.config.DebugMode {
-					log.Printf("D! preprocessing failed for %s: %v", item.Key, err)
+					klog.V(1).InfoS("preprocessing failed", "key", item.Key, "error", err)
 				}
 				processedValue = rawValue
 			} else {
@@ -304,7 +304,7 @@ func (c *SNMPCollector) processSingleDependentItem(agent string, item MonitorIte
 
 	if err != nil {
 		if c.config.DebugMode {
-			log.Printf("D! dependent preprocessing failed for %s: %v", item.Key, err)
+			klog.V(1).InfoS("dependent preprocessing failed", "key", item.Key, "error", err)
 		}
 		return
 	}

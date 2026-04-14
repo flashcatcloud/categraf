@@ -3,13 +3,14 @@ package snmp_zabbix
 import (
 	"container/heap"
 	"context"
+	"fmt"
 	"hash/fnv"
-	"log"
 	"runtime/debug"
 	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 type ItemScheduler struct {
@@ -174,7 +175,7 @@ func (s *ItemScheduler) runLoop(ctx context.Context) {
 func (s *ItemScheduler) executeTask(ctx context.Context, agent string, items []MonitorItem) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("E! [CRITICAL] collection goroutine for agent %s panicked: %v\n%s", agent, r, debug.Stack())
+			klog.ErrorS(fmt.Errorf("panic: %v", r), "collection goroutine panicked", "agent", agent, "stack", string(debug.Stack()))
 		}
 	}()
 
@@ -183,7 +184,7 @@ func (s *ItemScheduler) executeTask(ctx context.Context, agent string, items []M
 	}
 
 	if err := s.collector.CollectItems(ctx, items, s.slist); err != nil {
-		log.Printf("Failed to collect items for agent %s: %v\n", agent, err)
+		klog.ErrorS(err, "failed to collect items", "agent", agent)
 	}
 }
 
@@ -262,7 +263,7 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 				if !sch.IsLost {
 					sch.IsLost = true
 					sch.LostSince = now
-					log.Printf("I! item marked as lost: %s", id)
+					klog.InfoS("item marked as lost", "id", id)
 				}
 				sch.DeleteTTL = deleteTTL
 				sch.DisableTTL = disableTTL
@@ -270,7 +271,7 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 				if !sch.IsDisabled && disableTTL == 0 {
 					s.removeItemFromTask(sch)
 					sch.IsDisabled = true
-					log.Printf("I! item disabled immediately: %s", id)
+					klog.InfoS("item disabled immediately", "id", id)
 				}
 			}
 		}
@@ -288,7 +289,7 @@ func (s *ItemScheduler) UpdateDiscoveredDiff(ruleKey string, newItems []MonitorI
 			if sch.IsLost {
 				sch.IsLost = false
 				sch.LostSince = time.Time{}
-				log.Printf("I! item recovered: %s", id)
+				klog.InfoS("item recovered", "id", id)
 			}
 
 			wasDisabled := sch.IsDisabled

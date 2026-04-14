@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gosnmp/gosnmp"
-	"log"
 	"net"
 	"regexp"
 	"strconv"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/oliveagle/jsonpath"
+	"k8s.io/klog/v2"
 )
 
 var scriptCache = NewJSCache()
@@ -142,7 +142,7 @@ func applyDiscoveryPreprocessingStep(value interface{}, step PreprocessStep) (in
 	case "JSONPATH", "12":
 		return applyJSONPath(value, step.Parameters)
 	default:
-		log.Printf("W! unsupported preprocessing type in discovery phase: %s, skipping", step.Type)
+		klog.Warningf("unsupported preprocessing type in discovery phase: %s, skipping", step.Type)
 		return value, nil
 	}
 }
@@ -185,7 +185,7 @@ func applyPreprocessingStep(value interface{}, step PreprocessStep, context *Pre
 
 	default:
 		// 未实现的预处理类型，记录警告但不中断处理
-		log.Printf("W! unsupported preprocessing type: %s at step %d, skipping", step.Type, stepIndex)
+		klog.Warningf("unsupported preprocessing type: %s at step %d, skipping", step.Type, stepIndex)
 		return value, nil
 	}
 }
@@ -754,15 +754,15 @@ func applyJavaScript(value interface{}, params []string) (interface{}, error) {
 	}
 	console := vm.NewObject()
 	console.Set("log", func(call goja.FunctionCall) goja.Value {
-		log.Printf("I! JS-LOG: %s", call.Argument(0).String())
+		klog.InfoS("JS-LOG", "message", call.Argument(0).String())
 		return goja.Undefined()
 	})
 	console.Set("error", func(call goja.FunctionCall) goja.Value {
-		log.Printf("E! JS-ERROR: %s", call.Argument(0).String())
+		klog.ErrorS(nil, "JS-ERROR", "message", call.Argument(0).String())
 		return goja.Undefined()
 	})
 	console.Set("warn", func(call goja.FunctionCall) goja.Value {
-		log.Printf("W! JS-WARN: %s", call.Argument(0).String())
+		klog.Warningf("JS-WARN: %s", call.Argument(0).String())
 		return goja.Undefined()
 	})
 	vm.Set("console", console)
