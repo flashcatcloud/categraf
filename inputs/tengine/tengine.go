@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -18,6 +17,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "tengine"
@@ -136,14 +136,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	for _, u := range ins.Urls {
 		addr, err := url.Parse(u)
 		if err != nil {
-			log.Println("E! failed to parse the url:", u, "error:", err)
+			klog.ErrorS(err, "failed to parse tengine url", "url", u)
 			continue
 		}
 		wg.Add(1)
 		go func(addr *url.URL) {
 			defer wg.Done()
 			if err := ins.gather(addr, slist); err != nil {
-				log.Println("E!", err)
+				klog.ErrorS(err, "failed to gather tengine metrics", "url", addr.String())
 			}
 		}(addr)
 	}
@@ -153,7 +153,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 func (ins *Instance) gather(addr *url.URL, slist *types.SampleList) error {
 	if ins.DebugMod {
-		log.Println("D! tengine... url:", addr)
+		klog.V(1).InfoS("tengine gathering url", "url", addr.String())
 	}
 	var tengineStatus TengineStatus
 

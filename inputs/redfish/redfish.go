@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 	"github.com/tidwall/gjson"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -141,7 +141,7 @@ func join(in ...string) string {
 func (i *Instance) Gather(sList *types.SampleList) {
 	for _, a := range i.Addresses {
 		if err := i.gatherRedfishUp(a, sList); err != nil {
-			log.Println("E! error gatherRedfishAccess", err)
+			klog.ErrorS(err, "failed to gather redfish access metrics", "host", a.baseURL.Host)
 			continue
 		}
 
@@ -150,7 +150,7 @@ func (i *Instance) Gather(sList *types.SampleList) {
 
 			js, err := a.getData(setUrl.String())
 			if err != nil {
-				log.Println("E! error getData", err)
+				klog.ErrorS(err, "failed to get redfish data", "url", setUrl.String(), "host", a.baseURL.Host)
 				continue
 			}
 
@@ -209,7 +209,7 @@ func (i *Instance) Gather(sList *types.SampleList) {
 		}
 
 		if err := i.gatherDisks(a, &i.Disks, sList, ""); err != nil {
-			log.Println("E! get disks data error", err)
+			klog.ErrorS(err, "failed to gather redfish disk data", "host", a.baseURL.Host)
 			continue
 		}
 	}
