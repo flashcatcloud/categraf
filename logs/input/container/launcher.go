@@ -8,12 +8,12 @@
 package container
 
 import (
-	"log"
 	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/logs/restart"
 	"flashcat.cloud/categraf/pkg/retry"
+	"k8s.io/klog/v2"
 )
 
 // Launchable is a retryable wrapper for a restartable
@@ -60,11 +60,11 @@ func (l *Launcher) shouldRetry() (bool, time.Duration) {
 		}
 	}
 	if retryer == nil {
-		log.Println("Nothing to retry - stopping")
+		klog.Info("Nothing to retry - stopping")
 		return false, 0
 	}
 	nextRetry := time.Until(retryer.NextRetry())
-	log.Printf("Could not find an available a container launcher - will try again in %s", nextRetry.Truncate(time.Second))
+	klog.Infof("Could not find an available a container launcher - will try again in %s", nextRetry.Truncate(time.Second))
 	return true, nextRetry
 
 }

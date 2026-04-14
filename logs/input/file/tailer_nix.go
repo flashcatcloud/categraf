@@ -10,11 +10,11 @@ package file
 import (
 	"fmt"
 	"io"
-	"log"
 	"path/filepath"
 
 	"flashcat.cloud/categraf/logs/decoder"
 	"flashcat.cloud/categraf/logs/util"
+	"k8s.io/klog/v2"
 )
 
 // setup sets up the file tailer
@@ -29,7 +29,7 @@ func (t *Tailer) setup(offset int64, whence int) error {
 	t.tags = t.buildTailerTags()
 
 	if util.Debug() {
-		log.Println("I! Opening", t.file.Path, "for tailer key", t.file.GetScanKey())
+		klog.V(1).Info("Opening", t.file.Path, "for tailer key", t.file.GetScanKey())
 	}
 	f, err := openFile(fullpath)
 	if err != nil {

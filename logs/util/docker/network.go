@@ -12,7 +12,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"sort"
 	"strings"
@@ -22,6 +21,7 @@ import (
 
 	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/logs/util/containers/providers"
+	"k8s.io/klog/v2"
 )
 
 type dockerNetwork struct {
@@ -52,14 +52,14 @@ func findDockerNetworks(containerID string, pid int, container types.Container) 
 	// Check the known network modes that require specific handling.
 	// Other network modes will look at the docker NetworkSettings.
 	if netMode == containers.HostNetworkMode {
-		log.Printf("Container %s is in network host mode, its network metrics are for the whole host", containerID)
+		klog.Infof("Container %s is in network host mode, its network metrics are for the whole host", containerID)
 		return []dockerNetwork{hostNetwork}
 	} else if netMode == containers.NoneNetworkMode {
-		log.Printf("Container %s is in network mode 'none', we will collect metrics for the whole host", containerID)
+		klog.Infof("Container %s is in network mode 'none', we will collect metrics for the whole host", containerID)
 		return []dockerNetwork{hostNetwork}
 	} else if strings.HasPrefix(netMode, "container:") {
 		netContainerID := strings.TrimPrefix(netMode, "container:")
-		log.Printf("Container %s uses the network namespace of container:%s", containerID, netContainerID)
+		klog.Infof("Container %s uses the network namespace of container:%s", containerID, netContainerID)
 		return []dockerNetwork{{routingContainerID: netContainerID}}
 	}
 
@@ -67,7 +67,7 @@ func findDockerNetworks(containerID string, pid int, container types.Container) 
 	// not provide the network settings in container inspect.
 	netSettings := container.NetworkSettings
 	if netSettings == nil || netSettings.Networks == nil || len(netSettings.Networks) == 0 {
-		log.Println("No network settings available from docker, defaulting to host network")
+		klog.Warning("No network settings available from docker, defaulting to host network")
 		return []dockerNetwork{hostNetwork}
 	}
 
@@ -75,7 +75,7 @@ func findDockerNetworks(containerID string, pid int, container types.Container) 
 	interfaces := make(map[string]uint64)
 	for netName, netConf := range netSettings.Networks {
 		if netName == "host" {
-			log.Printf("Container %s is in network host mode, its network metrics are for the whole host", containerID)
+			klog.Infof("Container %s is in network host mode, its network metrics are for the whole host", containerID)
 			return []dockerNetwork{hostNetwork}
 		}
 
@@ -85,13 +85,13 @@ func findDockerNetworks(containerID string, pid int, container types.Container) 
 		if strings.Contains(ipString, "/") {
 			ip, _, err = net.ParseCIDR(ipString)
 			if err != nil {
-				log.Printf("Malformed IP %s for container id %s: %s, skipping", ipString, containerID, err)
+				klog.Warningf("Malformed IP %s for container id %s: %v, skipping", ipString, containerID, err)
 				continue
 			}
 		} else {
 			ip = net.ParseIP(ipString)
 			if ip == nil {
-				log.Printf("Malformed IP %s for container id %s: %s, skipping", ipString, containerID, err)
+				klog.Warningf("Malformed IP %s for container id %s: %v, skipping", ipString, containerID, err)
 				continue
 			}
 		}
@@ -102,7 +102,7 @@ func findDockerNetworks(containerID string, pid int, container types.Container) 
 
 	destinations, err := providers.ContainerImpl().DetectNetworkDestinations(pid)
 	if err != nil {
-		log.Printf("Cannot list interfaces for container id %s: %s, skipping", containerID, err)
+		klog.Warningf("Cannot list interfaces for container id %s: %v, skipping", containerID, err)
 		return nil
 	}
 
@@ -132,7 +132,7 @@ func resolveDockerNetworks(containerNetworks map[string][]dockerNetwork) {
 			if cnw, ok := containerNetworks[nw.routingContainerID]; ok {
 				containerNetworks[cid] = cnw
 			} else {
-				log.Printf("Unable to resolve network for c:%s that uses namespace of c:%s", cid, nw.routingContainerID)
+				klog.Warningf("Unable to resolve network for c:%s that uses namespace of c:%s", cid, nw.routingContainerID)
 				containerNetworks[cid] = nil
 			}
 		}

@@ -11,13 +11,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"time"
 
 	"github.com/coreos/go-systemd/sdjournal"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/message"
+	"k8s.io/klog/v2"
 )
 
 // defaultWaitDuration represents the delay before which we try to collect a new log from the journal
@@ -58,14 +58,14 @@ func (t *Tailer) Start(cursor string) error {
 	}
 	t.source.Status.Success()
 	t.source.AddInput(t.journalPath())
-	log.Println("Start tailing journal ", t.journalPath())
+	klog.Info("Start tailing journal ", t.journalPath())
 	go t.tail()
 	return nil
 }
 
 // Stop stops the tailer
 func (t *Tailer) Stop() {
-	log.Println("Stop tailing journal ", t.journalPath())
+	klog.Info("Stop tailing journal ", t.journalPath())
 	t.stop <- struct{}{}
 	t.source.RemoveInput(t.journalPath())
 	<-t.done
@@ -139,7 +139,7 @@ func (t *Tailer) tail() {
 			if err != nil && err != io.EOF {
 				err := fmt.Errorf("cant't tail journal %s: %s", t.journalPath(), err)
 				t.source.Status.Error(err)
-				log.Println(err)
+				klog.Error(err)
 				return
 			}
 			if n < 1 {
@@ -149,7 +149,7 @@ func (t *Tailer) tail() {
 			}
 			entry, err := t.journal.GetEntry()
 			if err != nil {
-				log.Printf("Could not retrieve journal entry: %s\n", err)
+				klog.Warningf("Could not retrieve journal entry: %v", err)
 				continue
 			}
 			if t.shouldDrop(entry) {

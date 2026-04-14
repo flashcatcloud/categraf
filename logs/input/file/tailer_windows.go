@@ -10,11 +10,11 @@ package file
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
 	"flashcat.cloud/categraf/logs/decoder"
+	"k8s.io/klog/v2"
 )
 
 // setup sets up the file tailer
@@ -28,7 +28,7 @@ func (t *Tailer) setup(offset int64, whence int) error {
 	// adds metadata to enable users to filter logs by filename
 	t.tags = t.buildTailerTags()
 
-	log.Println("Opening ", t.fullpath)
+	klog.Info("Opening ", t.fullpath)
 	f, err := openFile(t.fullpath)
 	if err != nil {
 		return err
@@ -51,18 +51,18 @@ func (t *Tailer) readAvailable() (int, error) {
 
 	st, err := f.Stat()
 	if err != nil {
-		log.Println("Error stat()ing file", err)
+		klog.ErrorS(err, "Error stat()ing file")
 		return 0, err
 	}
 
 	sz := st.Size()
 	offset := t.GetReadOffset()
 	if sz == 0 {
-		log.Println("File size now zero, resetting offset")
+		klog.Info("File size now zero, resetting offset")
 		t.SetReadOffset(0)
 		t.SetDecodedOffset(0)
 	} else if sz < offset {
-		log.Println("Offset off end of file, resetting")
+		klog.Info("Offset off end of file, resetting")
 		t.SetReadOffset(0)
 		t.SetDecodedOffset(0)
 	}

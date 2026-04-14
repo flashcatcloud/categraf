@@ -9,10 +9,10 @@ package decoder
 
 import (
 	"bytes"
-	"log"
 	"time"
 
 	"flashcat.cloud/categraf/logs/parser"
+	"k8s.io/klog/v2"
 )
 
 // LineParser e
@@ -67,7 +67,7 @@ func (p *SingleLineParser) process(input *DecodedInput) {
 	// Just parse an pass to the next step
 	content, status, timestamp, _, err := p.parser.Parse(input.content)
 	if err != nil {
-		log.Println(err)
+		klog.Error(err)
 	}
 	p.lineHandler.Handle(NewMessage(content, status, input.rawDataLen, timestamp))
 }
@@ -155,7 +155,7 @@ func (p *MultiLineParser) run() {
 func (p *MultiLineParser) process(input *DecodedInput) {
 	content, status, timestamp, partial, err := p.parser.Parse(input.content)
 	if err != nil {
-		log.Println(err, string(input.content))
+		klog.ErrorS(err, "failed to parse multiline input", "content", string(input.content))
 	}
 	// track the raw data length and the timestamp so that the agent tails
 	// from the right place at restart

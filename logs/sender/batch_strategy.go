@@ -9,11 +9,11 @@ package sender
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/logs/message"
+	"k8s.io/klog/v2"
 )
 
 // batchStrategy contains all the logic to send logs in batch.
@@ -109,7 +109,7 @@ func (s *batchStrategy) processMessage(m *message.Message, outputChan chan *mess
 	added := s.buffer.AddMessage(m)
 	if !added || s.buffer.IsFull() {
 		if s.buffer.IsFull() {
-			log.Printf("I! buffer full len: %d, size: %d",
+			klog.Infof("buffer full len: %d, size: %d",
 				len(s.buffer.messageBuffer), s.buffer.contentSize)
 		}
 		s.flushBuffer(outputChan, send)
@@ -118,7 +118,7 @@ func (s *batchStrategy) processMessage(m *message.Message, outputChan chan *mess
 		// it's possible that the m could not be added because the buffer was full
 		// so we need to retry once again
 		if !s.buffer.AddMessage(m) {
-			log.Printf("Dropped message in pipeline=%s reason=too-large ContentLength=%d ContentSizeLimit=%d\n", s.pipelineName, len(m.Content), s.buffer.ContentSizeLimit())
+			klog.Warningf("dropped message in pipeline=%s reason=too-large ContentLength=%d ContentSizeLimit=%d", s.pipelineName, len(m.Content), s.buffer.ContentSizeLimit())
 		}
 	}
 }
@@ -151,7 +151,7 @@ func (s *batchStrategy) sendMessages(messages []*message.Message, outputChan cha
 		if shouldStopSending(err) {
 			return
 		}
-		log.Printf("Could not send payload: %v\n", err)
+		klog.Warningf("could not send payload: %v", err)
 	}
 
 	for _, message := range messages {

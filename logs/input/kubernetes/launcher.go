@@ -11,7 +11,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,6 +25,7 @@ import (
 	"flashcat.cloud/categraf/logs/util/kubernetes/kubelet"
 	"flashcat.cloud/categraf/pkg/kubernetes"
 	"flashcat.cloud/categraf/pkg/retry"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -68,10 +68,10 @@ func IsAvailable() (bool, *retry.Retrier) {
 
 	util, retrier := kubelet.GetKubeUtilWithRetrier()
 	if util != nil {
-		log.Println("Kubernetes launcher is available")
+		klog.Info("Kubernetes launcher is available")
 		return true, nil
 	}
-	log.Println("Kubernetes launcher is not available: ", retrier.LastError())
+	klog.Warning("Kubernetes launcher is not available: ", retrier.LastError())
 	return false, retrier
 }
 
@@ -79,7 +79,7 @@ func IsAvailable() (bool, *retry.Retrier) {
 func NewLauncher(sources *logsconfig.LogSources, services *service.Services, collectAll bool) *Launcher {
 	kubeutil, err := kubelet.GetKubeUtil()
 	if err != nil {
-		log.Println("KubeUtil not available, failed to create launcher: ", err)
+		klog.ErrorS(err, "KubeUtil not available, failed to create launcher")
 		return nil
 	}
 	launcher := &Launcher{
@@ -99,13 +99,13 @@ func NewLauncher(sources *logsconfig.LogSources, services *service.Services, col
 
 // Start starts the launcher
 func (l *Launcher) Start() {
-	log.Println("Starting Kubernetes launcher")
+	klog.Info("Starting Kubernetes launcher")
 	go l.run()
 }
 
 // Stop stops the launcher
 func (l *Launcher) Stop() {
-	log.Println("Stopping Kubernetes launcher")
+	klog.Info("Stopping Kubernetes launcher")
 	l.stopped <- struct{}{}
 }
 
@@ -121,7 +121,7 @@ func (l *Launcher) run() {
 		case ops := <-l.retryOperations:
 			l.addSource(ops.service)
 		case <-l.stopped:
-			log.Println("Kubernetes launcher stopped")
+			klog.Info("Kubernetes launcher stopped")
 			return
 		}
 	}
@@ -153,7 +153,7 @@ func (l *Launcher) scheduleServiceForRetry(svc *service.Service) {
 func (l *Launcher) delayRetry(ops *retryOps) {
 	delay := ops.backoff.NextBackOff()
 	if delay == backoff.Stop {
-		log.Println("Unable to add source for container ", ops.service.GetEntityID())
+		klog.Warning("Unable to add source for container ", ops.service.GetEntityID())
 		delete(l.pendingRetries, ops.service.GetEntityID())
 		return
 	}
@@ -169,7 +169,7 @@ func (l *Launcher) addSource(svc *service.Service) {
 	// If the container is already tailed, we don't do anything
 	// That shouldn't happen
 	if _, exists := l.sourcesByContainer[svc.GetEntityID()]; exists {
-		log.Printf("A source already exist for container %v", svc.GetEntityID())
+		klog.Warningf("A source already exist for container %v", svc.GetEntityID())
 		return
 	}
 
@@ -177,22 +177,22 @@ func (l *Launcher) addSource(svc *service.Service) {
 	if err != nil {
 		if errors.IsRetriable(err) {
 			// Attempt to reschedule the source later
-			log.Printf("Failed to fetch pod info for container %v, will retry: %v", svc.Identifier, err)
+			klog.Warningf("Failed to fetch pod info for container %v, will retry: %v", svc.Identifier, err)
 			l.scheduleServiceForRetry(svc)
 			return
 		}
-		log.Printf("Could not add source for container %v: %v", svc.Identifier, err)
+		klog.ErrorS(err, "Could not add source for container", "container", svc.Identifier)
 		return
 	}
 	container, err := l.kubeutil.GetStatusForContainerID(pod, svc.GetEntityID())
 	if err != nil {
-		log.Println(err)
+		klog.Error(err)
 		return
 	}
 	source, err := l.getSource(pod, container)
 	if err != nil {
 		if err != errCollectAllDisabled {
-			log.Printf("Invalid configuration for pod %v, container %v: %v", pod.Metadata.Name, container.Name, err)
+			klog.Warningf("Invalid configuration for pod %v, container %v: %v", pod.Metadata.Name, container.Name, err)
 		}
 		return
 	}
@@ -246,7 +246,7 @@ func (l *Launcher) getSource(pod *kubernetes.Pod, container kubernetes.Container
 		logsSource := ""
 		shortImageName, err := l.getShortImageName(pod, container.Name)
 		if err != nil {
-			log.Printf("Couldn't get short image for container '%s': %v", container.Name, err)
+			klog.Warningf("Couldn't get short image for container '%s': %v", container.Name, err)
 			// Fallback and use `kubernetes` as source name
 			logsSource = kubernetesIntegration
 		} else {
@@ -257,7 +257,7 @@ func (l *Launcher) getSource(pod *kubernetes.Pod, container kubernetes.Container
 		if ok {
 			err = json.Unmarshal([]byte(ruleStr), &rules)
 			if err != nil {
-				log.Printf("pod rule %s unmarshal error %s", ruleStr, err)
+				klog.Warningf("pod rule %s unmarshal error %v", ruleStr, err)
 			}
 		}
 		topic := pod.Metadata.Annotations[AnnotationTopicKey]
@@ -333,7 +333,7 @@ func buildTags(pod *kubernetes.Pod, container kubernetes.ContainerStatus) []stri
 func getTaggerEntityID(ctrID string) string {
 	taggerEntityID, err := kubelet.KubeContainerIDToTaggerEntityID(ctrID)
 	if err != nil {
-		log.Printf("Could not get tagger entity ID: %v", err)
+		klog.Warningf("Could not get tagger entity ID: %v", err)
 		return ctrID
 	}
 	return taggerEntityID
@@ -380,28 +380,28 @@ func (l *Launcher) getPath(basePath string, pod *kubernetes.Pod, container kuber
 		v110Dir := filepath.Join(oldDirectory, container.Name)
 		_, err := os.Stat(v110Dir)
 		if err == nil {
-			log.Printf("Logs path found for container %s, v1.13 >= kubernetes version >= v1.10", container.Name)
+			klog.V(1).Infof("Logs path found for container %s, v1.13 >= kubernetes version >= v1.10", container.Name)
 			return filepath.Join(v110Dir, anyLogFile)
 		}
 		if !os.IsNotExist(err) {
-			log.Printf("Cannot get file info for %s: %v", v110Dir, err)
+			klog.Warningf("Cannot get file info for %s: %v", v110Dir, err)
 		}
 
 		v19Files := filepath.Join(oldDirectory, fmt.Sprintf(anyV19LogFile, container.Name))
 		files, err := filepath.Glob(v19Files)
 		if err == nil && len(files) > 0 {
-			log.Printf("Logs path found for container %s, kubernetes version <= v1.9", container.Name)
+			klog.V(1).Infof("Logs path found for container %s, kubernetes version <= v1.9", container.Name)
 			return v19Files
 		}
 		if err != nil {
-			log.Printf("Cannot get file info for %s: %v", v19Files, err)
+			klog.Warningf("Cannot get file info for %s: %v", v19Files, err)
 		}
 		if len(files) == 0 {
-			log.Printf("Files matching %s not found", v19Files)
+			klog.V(1).Infof("Files matching %s not found", v19Files)
 		}
 	}
 
-	log.Printf("Using the latest kubernetes logs path for container %s", container.Name)
+	klog.V(1).Infof("Using the latest kubernetes logs path for container %s", container.Name)
 	return filepath.Join(basePath, l.getPodDirectorySince1_14(pod), container.Name, anyLogFile)
 }
 
@@ -423,7 +423,7 @@ func (l *Launcher) getShortImageName(pod *kubernetes.Pod, containerName string) 
 	}
 	_, shortName, _, err := containers.SplitImageName(containerSpec.Image)
 	if err != nil {
-		log.Printf("Cannot parse image name: %v", err)
+		klog.Warningf("Cannot parse image name: %v", err)
 	}
 	return shortName, err
 }

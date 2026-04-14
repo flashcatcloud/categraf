@@ -6,10 +6,10 @@
 package platform
 
 import (
-	"log"
 	"strings"
 
 	"golang.org/x/sys/unix"
+	"k8s.io/klog/v2"
 )
 
 var unameOptions = []string{"-s", "-n", "-r", "-m", "-p"}
@@ -36,10 +36,10 @@ func updateArchInfo(archInfo map[string]interface{}, values []string) {
 	archInfo["os"] = values[0]
 
 	if isTranslated, err := processIsTranslated(); err == nil && isTranslated {
-		log.Println("Running under Rosetta translator; overriding architecture values")
+		klog.Info("Running under Rosetta translator; overriding architecture values")
 		archInfo["processor"] = "arm"
 		archInfo["machine"] = "arm64"
 	} else if err != nil {
-		log.Printf("Error when detecting Rosetta translator: %s", err)
+		klog.Warningf("error when detecting Rosetta translator: %v", err)
 	}
 }

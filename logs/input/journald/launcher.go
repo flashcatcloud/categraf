@@ -8,12 +8,11 @@
 package journald
 
 import (
-	"log"
-
 	config "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/auditor"
 	"flashcat.cloud/categraf/logs/pipeline"
 	"flashcat.cloud/categraf/logs/restart"
+	"k8s.io/klog/v2"
 )
 
 // Launcher is in charge of starting and stopping new journald tailers
@@ -53,7 +52,7 @@ func (l *Launcher) run() {
 			}
 			tailer, err := l.setupTailer(source)
 			if err != nil {
-				log.Println("Could not set up journald tailer: ", err)
+				klog.ErrorS(err, "Could not set up journald tailer")
 			} else {
 				l.tailers[identifier] = tailer
 			}

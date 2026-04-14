@@ -9,13 +9,13 @@ package processor
 
 import (
 	"context"
-	"log"
 	"sync"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/diagnostic"
 	"flashcat.cloud/categraf/logs/message"
 	"flashcat.cloud/categraf/logs/util"
+	"k8s.io/klog/v2"
 )
 
 // A Processor updates messages from an inputChan and pushes
@@ -92,11 +92,11 @@ func (p *Processor) processMessage(msg *message.Message) {
 		// Encode the message to its final format
 		content, err := p.encoder.Encode(msg, redactedMsg)
 		if err != nil {
-			log.Println("unable to encode msg ", err)
+			klog.ErrorS(err, "unable to encode msg")
 			return
 		}
 		if util.Debug() {
-			log.Println("D! log item:", string(content))
+			klog.V(1).Info("log item:", string(content))
 		}
 		msg.Content = content
 		p.outputChan <- msg

@@ -12,7 +12,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net"
 	"strconv"
@@ -21,6 +20,7 @@ import (
 	"time"
 
 	"golang.org/x/net/proxy"
+	"k8s.io/klog/v2"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/status"
@@ -60,9 +60,9 @@ func (cm *ConnectionManager) NewConnection(ctx context.Context) (net.Conn, error
 
 	cm.firstConn.Do(func() {
 		if cm.endpoint.ProxyAddress != "" {
-			log.Printf("Connecting to the backend: %v, via socks5: %v, with SSL: %v\n", cm.address(), cm.endpoint.ProxyAddress, cm.endpoint.UseSSL)
+			klog.Infof("Connecting to the backend: %v, via socks5: %v, with SSL: %v", cm.address(), cm.endpoint.ProxyAddress, cm.endpoint.UseSSL)
 		} else {
-			log.Printf("Connecting to the backend: %v, with SSL: %v\n", cm.address(), cm.endpoint.UseSSL)
+			klog.Infof("Connecting to the backend: %v, with SSL: %v", cm.address(), cm.endpoint.UseSSL)
 		}
 	})
 
@@ -91,7 +91,7 @@ func (cm *ConnectionManager) NewConnection(ctx context.Context) (net.Conn, error
 			var dialer proxy.Dialer
 			dialer, err = proxy.SOCKS5("tcp", cm.endpoint.ProxyAddress, nil, proxy.Direct)
 			if err != nil {
-				log.Println("E!", err)
+				klog.Error(err)
 				continue
 			}
 			// TODO: handle timeouts with ctx.
@@ -103,10 +103,10 @@ func (cm *ConnectionManager) NewConnection(ctx context.Context) (net.Conn, error
 			conn, err = dialer.DialContext(dctx, "tcp", cm.address())
 		}
 		if err != nil {
-			log.Println("W!", err)
+			klog.Warning(err)
 			continue
 		}
-		log.Println("I! connected to", cm.address())
+		klog.Info("connected to", cm.address())
 
 		if cm.endpoint.UseSSL {
 			sslConn := tls.Client(conn, &tls.Config{
@@ -114,10 +114,10 @@ func (cm *ConnectionManager) NewConnection(ctx context.Context) (net.Conn, error
 			})
 			err = cm.handshakeWithTimeout(sslConn, connectionTimeout)
 			if err != nil {
-				log.Println("E!", err)
+				klog.Error(err)
 				continue
 			}
-			log.Println("SSL handshake successful")
+			klog.Info("SSL handshake successful")
 			conn = sslConn
 		}
 
@@ -152,7 +152,7 @@ func (cm *ConnectionManager) ShouldReset(connCreationTime time.Time) bool {
 // CloseConnection closes a connection on the client side
 func (cm *ConnectionManager) CloseConnection(conn net.Conn) {
 	conn.Close()
-	log.Println("Connection closed")
+	klog.Info("Connection closed")
 }
 
 // handleServerClose lets the connection manager detect when a connection
@@ -173,7 +173,7 @@ func (cm *ConnectionManager) handleServerClose(conn net.Conn) {
 			cm.CloseConnection(conn)
 			return
 		default:
-			log.Println("E!", err)
+			klog.Error(err)
 			return
 		}
 	}

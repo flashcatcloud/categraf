@@ -9,13 +9,13 @@ package decoder
 
 import (
 	"bytes"
-	"log"
 	"regexp"
 	"sync/atomic"
 	"time"
 
 	config "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/parser"
+	"k8s.io/klog/v2"
 )
 
 // defaultContentLenLimit represents the max size for a line,
@@ -124,10 +124,10 @@ func NewDecoderWithEndLineMatcher(source *config.LogSource, parser parser.Parser
 	if lineHandler == nil {
 		// TODO configure multiline
 		if source.Config.AutoMultiLine {
-			log.Println("Auto multi line log detection enabled")
+			klog.Info("Auto multi line log detection enabled")
 
 			if multiLinePattern != nil {
-				log.Println("Found a previously detected pattern - using multiline handler")
+				klog.Info("Found a previously detected pattern - using multiline handler")
 
 				// Save the pattern again for the next rotation
 				detectedPattern.Set(multiLinePattern)
@@ -165,7 +165,7 @@ func buildAutoMultilineHandlerFromConfig(outputChan chan *Message, lineLimit int
 	for _, p := range additionalPatterns {
 		compiled, err := regexp.Compile("^" + p)
 		if err != nil {
-			log.Println("logs_config.auto_multi_line_extra_patterns containing value: ", p, " is not a valid regular expression")
+			klog.Warningf("logs_config.auto_multi_line_extra_patterns containing value %q is not a valid regular expression", p)
 			continue
 		}
 		additionalPatternsCompiled = append(additionalPatternsCompiled, compiled)

@@ -11,11 +11,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/docker/docker/api/types/system"
-	"log"
 	"math"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -55,7 +56,7 @@ func (s *StorageStats) GetPercentUsed() float64 {
 	total := s.Total
 	if s.Total != nil && s.Used != nil && s.Free != nil {
 		if *s.Total < *s.Used+*s.Free {
-			log.Println("total lower than free+used, re-computing total")
+			klog.Info("total lower than free+used, re-computing total")
 			totalValue := *s.Used + *s.Free
 			total = &totalValue
 		}
@@ -88,12 +89,12 @@ func parseStorageStatsFromInfo(info system.Info) ([]*StorageStats, error) {
 		valueString := entry[1]
 		fields := strings.Fields(key)
 		if len(fields) != 3 || strings.ToLower(fields[1]) != "space" {
-			log.Println("ignoring invalid storage stat: ", key)
+			klog.Warning("ignoring invalid storage stat: ", key)
 			continue
 		}
 		valueInt, err := parseDiskQuantity(valueString)
 		if err != nil {
-			log.Printf("ignoring invalid value %s for stat %s: %s", valueString, key, err)
+			klog.Warningf("ignoring invalid value %s for stat %s: %v", valueString, key, err)
 			continue
 		}
 		storageType := strings.ToLower(fields[0])

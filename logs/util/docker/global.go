@@ -9,12 +9,12 @@ package docker
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/pkg/retry"
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -38,7 +38,7 @@ func GetDockerUtilWithRetrier() (*DockerUtil, *retry.Retrier) {
 		})
 	}
 	if err := globalDockerUtil.initRetry.TriggerRetry(); err != nil {
-		log.Printf("Docker init error: %s", err)
+		klog.Warningf("Docker init error: %v", err)
 		return nil, &globalDockerUtil.initRetry
 	}
 	return globalDockerUtil, nil

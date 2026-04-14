@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types/container"
 	"io"
-	"log"
 	"net"
 	"regexp"
 	"strings"
@@ -25,6 +24,7 @@ import (
 	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/logs/util/containers/providers"
+	"k8s.io/klog/v2"
 )
 
 var healthRe = regexp.MustCompile(`\(health: (\w+)\)`)
@@ -64,13 +64,13 @@ func (d *DockerUtil) ListContainers(ctx context.Context, cfg *ContainerListConfi
 			// the inspect should be in the cache already so this is not a problem
 			inspect, err := d.Inspect(ctx, container.ID, false)
 			if err != nil {
-				log.Printf("Error inspecting container %s: %s", container.ID, err)
+				klog.Warningf("Error inspecting container %s: %v", container.ID, err)
 				continue
 			}
 			networkMode, err := GetContainerNetworkMode(ctx, container.ID)
-			log.Printf("container %s network mode: %s", container.Name, networkMode)
+			klog.V(1).Infof("container %s network mode: %s", container.Name, networkMode)
 			if err != nil {
-				log.Printf("Failed to get network mode for container %s. Network info will be missing. Error: %s", container.ID, err)
+				klog.Warningf("Failed to get network mode for container %s. Network info will be missing. Error: %v", container.ID, err)
 				continue
 			}
 			// in awsvpc, and host mode, we assume that those ports are listening to all ip addresses
@@ -84,7 +84,7 @@ func (d *DockerUtil) ListContainers(ctx context.Context, cfg *ContainerListConfi
 			if networkMode == containers.HostNetworkMode {
 				ips := GetDockerHostIPs()
 				if len(ips) == 0 {
-					log.Printf("Failed to get host IPs. Container %s will be missing network info: %s", container.Name, err)
+					klog.Warningf("Failed to get host IPs. Container %s will be missing network info: %v", container.Name, err)
 					continue
 				}
 				ipAddr := []containers.NetworkAddress{}
@@ -123,7 +123,7 @@ func (d *DockerUtil) getContainerDetails(ctn *containers.Container) {
 	var err error
 	ctn.StartedAt, err = providers.ContainerImpl().GetContainerStartTime(ctn.ID)
 	if err != nil {
-		log.Printf("ContainerImplementation cannot get StartTime for container %s, err: %s", ctn.ID[:12], err)
+		klog.Warningf("ContainerImplementation cannot get StartTime for container %s, err: %v", ctn.ID[:12], err)
 		return
 	}
 }
@@ -152,7 +152,7 @@ func (d *DockerUtil) dockerContainers(ctx context.Context, cfg *ContainerListCon
 				i, err := d.Inspect(ctx, c.ID, false)
 				if err != nil {
 					d.Unlock()
-					log.Printf("Error inspecting container %s: %s", c.ID, err)
+					klog.Warningf("Error inspecting container %s: %v", c.ID, err)
 					continue
 				}
 				d.networkMappings[c.ID] = findDockerNetworks(c.ID, i.State.Pid, c)
@@ -162,7 +162,7 @@ func (d *DockerUtil) dockerContainers(ctx context.Context, cfg *ContainerListCon
 
 		image, err := d.ResolveImageName(ctx, c.Image)
 		if err != nil {
-			log.Printf("Can't resolve image name %s: %s", c.Image, err)
+			klog.Warningf("Can't resolve image name %s: %v", c.Image, err)
 		}
 
 		pauseContainerExcluded := containers.IsPauseContainer(c.Labels)
@@ -229,14 +229,14 @@ func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Po
 	addrList := []containers.NetworkAddress{}
 	tempAddrList := []containers.NetworkAddress{}
 	if netSettings == nil || len(netSettings.Networks) == 0 {
-		log.Println("No network settings available from docker")
+		klog.Warning("No network settings available from docker")
 		return addrList
 	}
 	for _, port := range ports {
 		if isExposed(port) {
 			IP := net.ParseIP(port.IP)
 			if IP == nil {
-				log.Printf("Unable to parse IP: %v for container: %s", port.IP, container)
+				klog.Warningf("Unable to parse IP: %v for container: %s", port.IP, container)
 				continue
 			}
 			addrList = append(addrList, containers.NetworkAddress{
@@ -254,12 +254,12 @@ func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Po
 	// Retieve IPs from network settings for the cached ports
 	for _, network := range netSettings.Networks {
 		if network.IPAddress == "" {
-			log.Printf("No IP found for container %s in network %s", container, network.NetworkID)
+			klog.Warningf("No IP found for container %s in network %s", container, network.NetworkID)
 			continue
 		}
 		IP := net.ParseIP(network.IPAddress)
 		if IP == nil {
-			log.Printf("Unable to parse IP: %v for container: %s", network.IPAddress, container)
+			klog.Warningf("Unable to parse IP: %v for container: %s", network.IPAddress, container)
 			continue
 		}
 		for _, addr := range tempAddrList {

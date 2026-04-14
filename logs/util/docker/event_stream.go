@@ -10,12 +10,12 @@ package docker
 import (
 	"context"
 	"io"
-	"log"
 	"strconv"
 	"time"
 
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
+	"k8s.io/klog/v2"
 )
 
 // // eventStreamState logic unit tested in event_stream_test.go
@@ -108,10 +108,10 @@ CONNECT: // Outer loop handles re-connecting in case the docker daemon closes th
 			case err := <-errs:
 				if err == io.EOF {
 					// Silently ignore io.EOF that happens on http connection reset
-					log.Println("D! Got EOF, re-connecting")
+					klog.V(1).Info("Got EOF, re-connecting")
 				} else {
 					// Else, let's wait 10 seconds and try reconnecting
-					log.Println("W! Got error from docker, waiting for 10 seconds: ", err)
+					klog.Warning("Got error from docker, waiting for 10 seconds: ", err)
 					time.Sleep(10 * time.Second)
 				}
 				cancelFunc()
@@ -120,7 +120,7 @@ CONNECT: // Outer loop handles re-connecting in case the docker daemon closes th
 				latestTimestamp = msg.Time
 				event, err := d.processContainerEvent(ctx, msg)
 				if err != nil {
-					log.Println("D! Skipping event: ", err)
+					klog.V(1).Info("Skipping event: ", err)
 					continue
 				}
 				if event == nil {

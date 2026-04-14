@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -26,6 +25,7 @@ import (
 	"flashcat.cloud/categraf/logs/util/containers/providers"
 	"flashcat.cloud/categraf/pkg/cache"
 	"flashcat.cloud/categraf/pkg/retry"
+	"k8s.io/klog/v2"
 )
 
 // DockerUtil wraps interactions with a local docker API.
@@ -91,7 +91,7 @@ func ConnectToDocker(ctx context.Context) (*client.Client, error) {
 		return nil, err
 	}
 
-	log.Println("Successfully connected to Docker server")
+	klog.Info("Successfully connected to Docker server")
 
 	return cli, nil
 }
@@ -193,7 +193,7 @@ func (d *DockerUtil) ResolveImageName(ctx context.Context, image string) (string
 			sp := strings.SplitN(r.RepoDigests[0], "@", 2)
 			d.imageNameBySha[image] = sp[0]
 		} else {
-			log.Printf("No information in image/inspect to resolve: %s", image)
+			klog.Warningf("No information in image/inspect to resolve: %s", image)
 			d.imageNameBySha[image] = image
 		}
 	}
@@ -226,7 +226,7 @@ func (d *DockerUtil) Inspect(ctx context.Context, id string, withSize bool) (typ
 	if hit {
 		container, ok := cached.(types.ContainerJSON)
 		if !ok {
-			log.Println("Invalid inspect cache format, forcing a cache miss")
+			klog.Warning("Invalid inspect cache format, forcing a cache miss")
 		} else {
 			return container, nil
 		}

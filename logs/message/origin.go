@@ -10,10 +10,10 @@ package message
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
+	"k8s.io/klog/v2"
 )
 
 // Origin represents the Origin of a message
@@ -104,7 +104,7 @@ func (o *Origin) TagsToJsonString() string {
 	if len(tagsMap) != 0 {
 		data, err := json.Marshal(tagsMap)
 		if err != nil {
-			log.Println("marshal tags error:", err)
+			klog.ErrorS(err, "marshal tags error")
 			return ret
 		}
 		ret = string(data)

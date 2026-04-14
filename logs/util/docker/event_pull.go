@@ -12,12 +12,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
+	"k8s.io/klog/v2"
 )
 
 // openEventChannel just wraps the client.Event call with saner argument types.
@@ -63,11 +63,11 @@ func (d *DockerUtil) processContainerEvent(ctx context.Context, msg events.Messa
 		var err error
 		imageName, err = d.ResolveImageName(ctx, imageName)
 		if err != nil {
-			log.Printf("I! can't resolve image name %s: %s", imageName, err)
+			klog.Infof("can't resolve image name %s: %v", imageName, err)
 		}
 	}
 	if d.cfg.filter.IsExcluded(containerName, imageName, "") {
-		log.Printf("I! events from %s are skipped as the image is excluded for the event collection", containerName)
+		klog.Infof("events from %s are skipped as the image is excluded for the event collection", containerName)
 		return nil, nil
 	}
 
@@ -117,7 +117,7 @@ func (d *DockerUtil) LatestContainerEvents(ctx context.Context, since time.Time)
 		case msg := <-msgChan:
 			event, err := d.processContainerEvent(ctx, msg)
 			if err != nil {
-				log.Println("W! error parsing docker message: ", err)
+				klog.Warning("error parsing docker message: ", err)
 				continue
 			} else if event == nil {
 				continue

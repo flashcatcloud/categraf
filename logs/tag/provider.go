@@ -50,7 +50,6 @@ func (p *provider) GetTags() []string {
 
 	// tags, err := tagger.Tag(p.entityID, collectors.HighCardinality)
 	// if err != nil {
-	// 	log.Printf("Cannot tag container %s: %v\n", p.entityID, err)
 	// 	return []string{}
 	// }
 

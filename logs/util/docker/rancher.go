@@ -8,8 +8,9 @@
 package docker
 
 import (
-	"log"
 	"net"
+
+	"k8s.io/klog/v2"
 )
 
 const rancherIPLabel = "io.rancher.container.ip"
@@ -21,7 +22,7 @@ func FindRancherIPInLabels(labels map[string]string) (string, bool) {
 	if found {
 		ipv4Addr, _, err := net.ParseCIDR(cidr)
 		if err != nil {
-			log.Printf("error while retrieving Rancher IP: %q is not valid", cidr)
+			klog.Warningf("error while retrieving Rancher IP: %q is not valid", cidr)
 			return "", false
 		}
 		return ipv4Addr.String(), true

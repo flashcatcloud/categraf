@@ -8,9 +8,8 @@
 package providers
 
 import (
-	"log"
-
 	"flashcat.cloud/categraf/logs/util/containers"
+	"k8s.io/klog/v2"
 )
 
 // ContainerImpl without implementation
@@ -31,7 +30,7 @@ func Register(impl containers.ContainerImplementation) {
 	if containerImpl == nil {
 		containerImpl = impl
 	} else {
-		log.Printf("Trying to set multiple ContainerImplementation")
+		klog.Warning("Trying to set multiple ContainerImplementation")
 	}
 }
 

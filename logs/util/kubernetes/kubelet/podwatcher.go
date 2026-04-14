@@ -10,13 +10,13 @@ package kubelet
 import (
 	"context"
 	"hash/fnv"
-	"log"
 	"sort"
 	"strconv"
 	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/pkg/kubernetes"
+	"k8s.io/klog/v2"
 )
 
 const unreadinessTimeout = 30 * time.Second
@@ -153,7 +153,7 @@ func (w *PodWatcher) computeChanges(podList []*kubernetes.Pod) ([]*kubernetes.Po
 			updatedPods = append(updatedPods, pod)
 		}
 	}
-	log.Printf("Found %d changed pods out of %d", len(updatedPods), len(podList))
+	klog.V(1).Infof("Found %d changed pods out of %d", len(updatedPods), len(podList))
 	return updatedPods, nil
 }
 
