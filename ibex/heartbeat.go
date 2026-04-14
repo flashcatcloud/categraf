@@ -4,7 +4,6 @@ package ibex
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,10 +12,11 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/ibex/client"
 	"flashcat.cloud/categraf/ibex/types"
+	"k8s.io/klog/v2"
 )
 
 func heartbeatCron(ctx context.Context, ib *config.IbexConfig) {
-	log.Println("I! ibex agent start rolling request Server.Report.")
+	klog.InfoS("ibex agent start rolling request", "rpc", "Server.Report")
 	interval := time.Duration(ib.Interval)
 	for {
 		select {
@@ -40,13 +40,13 @@ func heartbeat() {
 	err := client.GetCli().Call("Server.Report", req, &resp)
 
 	if err != nil {
-		log.Println("E! rpc call Server.Report fail:", err)
+		klog.ErrorS(err, "rpc call failed", "rpc", "Server.Report")
 		client.CloseCli()
 		return
 	}
 
 	if resp.Message != "" {
-		log.Println("E! error from server:", resp.Message)
+		klog.ErrorS(nil, "error from server", "rpc", "Server.Report", "message", resp.Message)
 		return
 	}
 
@@ -62,7 +62,7 @@ func heartbeat() {
 	}
 
 	if len(assigned) > 0 {
-		log.Println("I! assigned tasks:", mapKeys(assigned))
+		klog.InfoS("assigned tasks", "task_ids", mapKeys(assigned))
 	}
 
 	Locals.Clean(assigned)
@@ -85,7 +85,7 @@ func Start() {
 EXIT:
 	for {
 		sig := <-sc
-		log.Println("I! ibex agent received signal:", sig.String())
+		klog.InfoS("ibex agent received signal", "signal", sig.String())
 		switch sig {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
 			break EXIT

@@ -3,9 +3,8 @@
 package ibex
 
 import (
-	"log"
-
 	"flashcat.cloud/categraf/ibex/types"
+	"k8s.io/klog/v2"
 )
 
 type LocalTasksT struct {
@@ -89,7 +88,7 @@ func (lt *LocalTasksT) AssignTask(at types.AssignTask) {
 		local.SetStatus("running")
 		local.start()
 	} else {
-		log.Printf("W! unknown action: %s of task %d", at.Action, at.Id)
+		klog.Warningf("unknown action: %s of task %d", at.Action, at.Id)
 	}
 }
 

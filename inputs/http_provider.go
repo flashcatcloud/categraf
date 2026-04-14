@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -165,7 +164,7 @@ func (hrp *HTTPProvider) check() error {
 func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 	req, err := http.NewRequest("GET", hrp.RemoteUrl, nil)
 	if err != nil {
-		log.Println("E! http provider: build reload config request error:", err)
+		klog.ErrorS(err, "http provider build reload config request error", "remote_url", hrp.RemoteUrl)
 		return nil, err
 	}
 
@@ -192,20 +191,20 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 
 	resp, err := hrp.client.Do(req)
 	if err != nil {
-		log.Println("E! http provider: request reload config error:", err)
+		klog.ErrorS(err, "http provider request reload config error", "remote_url", hrp.RemoteUrl)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("E! http provider: request reload config error:", err)
+		klog.ErrorS(err, "http provider read reload config response error", "remote_url", hrp.RemoteUrl)
 		return nil, err
 	}
 
 	confResp := &httpProviderResponse{}
 	err = json.Unmarshal(respData, confResp)
 	if err != nil {
-		log.Println("E! http provider: unmarshal result error:", err)
+		klog.ErrorS(err, "http provider unmarshal result error", "remote_url", hrp.RemoteUrl)
 		return nil, err
 	}
 
@@ -227,11 +226,11 @@ func (hrp *HTTPProvider) doReq() (*httpProviderResponse, error) {
 }
 
 func (hrp *HTTPProvider) LoadConfig() (bool, error) {
-	log.Println("I! http provider: start reload config from remote:", hrp.RemoteUrl)
+	klog.InfoS("http provider start reload config from remote", "remote_url", hrp.RemoteUrl)
 
 	confResp, err := hrp.doReq()
 	if err != nil {
-		log.Printf("W! http provider: request remote err: [%+v]", err)
+		klog.Warningf("http provider request remote error: %+v", err)
 		return false, err
 	}
 
@@ -239,7 +238,7 @@ func (hrp *HTTPProvider) LoadConfig() (bool, error) {
 	if confResp.Version == hrp.version || confResp.Version == "" {
 		return false, nil
 	}
-	log.Printf("I! remote version:%s, current version:%s", confResp.Version, hrp.version)
+	klog.InfoS("http provider version changed", "remote_version", confResp.Version, "current_version", hrp.version)
 
 	// delete empty entries
 	for k, v := range confResp.Configs {
@@ -291,7 +290,7 @@ func (hrp *HTTPProvider) StartReloader() {
 				}
 				if changed {
 					if hrp.add.len() > 0 {
-						log.Println("I! http provider: new or updated inputs:", hrp.add)
+						klog.InfoS("http provider new or updated inputs", "cache", hrp.add)
 						for inputKey, cm := range hrp.add.iter() {
 							hrp.preStop(inputKey)
 							for _, conf := range cm {
@@ -301,7 +300,7 @@ func (hrp *HTTPProvider) StartReloader() {
 					}
 
 					if hrp.del.len() > 0 {
-						log.Println("I! http provider: deleted inputs:", hrp.del)
+						klog.InfoS("http provider deleted inputs", "cache", hrp.del)
 						for inputKey, cm := range hrp.del.iter() {
 							if hrp.serviceInput(inputKey) {
 								continue
@@ -407,8 +406,7 @@ func (hrp *HTTPProvider) LoadInputConfig(configs []cfg.ConfigWithFormat, input I
 		nInput := input.Clone()
 		err := cfg.LoadSingleConfig(c, nInput)
 		if err != nil {
-			log.Println("E! load http config error:", err)
-			klog.V(2).InfoS("load http config error", "config", c, "error", err)
+			klog.ErrorS(err, "load http config error", "config", c)
 			continue
 		}
 		inputs[c.CheckSum()] = nInput

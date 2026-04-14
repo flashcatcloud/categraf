@@ -7,7 +7,8 @@ package kubernetes
 
 import (
 	"encoding/json"
-	"log"
+
+	"k8s.io/klog/v2"
 )
 
 type creatorRef struct {
@@ -35,11 +36,11 @@ func (p *Pod) Owners() []PodOwner {
 
 	// Error handling
 	if err != nil {
-		log.Printf("Cannot parse created-by field for pod %q: %s", p.Metadata.Name, err)
+		klog.Warningf("cannot parse created-by field for pod %q: %s", p.Metadata.Name, err)
 		return nil
 	}
 	if ref.Kind != "SerializedReference" {
-		log.Printf("Cannot parse created-by field for pod %q: unknown kind %q", p.Metadata.Name, ref.Kind)
+		klog.Warningf("cannot parse created-by field for pod %q: unknown kind %q", p.Metadata.Name, ref.Kind)
 		return nil
 	}
 
