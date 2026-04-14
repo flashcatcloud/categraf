@@ -2,7 +2,6 @@ package net
 
 import (
 	"fmt"
-	"log"
 	"net"
 
 	"flashcat.cloud/categraf/config"
@@ -10,6 +9,7 @@ import (
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "net"
@@ -62,13 +62,13 @@ func (s *NetIOStats) Init() error {
 func (s *NetIOStats) Gather(slist *types.SampleList) {
 	netio, err := s.ps.NetIO()
 	if err != nil {
-		log.Println("E! failed to get net io metrics:", err)
+		klog.ErrorS(err, "failed to get net io metrics")
 		return
 	}
 
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		log.Println("E! failed to list interfaces:", err)
+		klog.ErrorS(err, "failed to list interfaces")
 		return
 	}
 

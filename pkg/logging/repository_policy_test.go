@@ -40,6 +40,7 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"inputs/haproxy/exporter.go",
 		"inputs/http_response/http_response.go",
 		"inputs/mem/mem.go",
+		"inputs/net/net.go",
 		"inputs/kernel_vmstat/kernel_vmstat.go",
 		"inputs/nats/nats.go",
 		"inputs/nfsclient/nfsclient.go",
