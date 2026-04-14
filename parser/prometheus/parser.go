@@ -3,12 +3,12 @@ package prometheus
 import (
 	"bytes"
 	"io"
-	"log"
 	"math"
 	"mime"
 	"net/http"
 
 	dto "github.com/prometheus/client_model/go"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/pkg/filter"
 	util "flashcat.cloud/categraf/pkg/metrics"
@@ -158,7 +158,7 @@ func (p *Parser) Parse(buf []byte, slist *types.SampleList) error {
 				}
 
 				if err := p.parse(reader, slist); err != nil {
-					log.Println("E! parse metrics failed, error:", err)
+					klog.ErrorS(err, "parse metrics failed")
 				}
 			}
 		}

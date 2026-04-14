@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/writer"
@@ -156,7 +156,7 @@ func openTSDB(c *gin.Context) {
 	series := make([]prompb.TimeSeries, 0, count)
 	for i := 0; i < len(list); i++ {
 		if err := list[i].Clean(ts); err != nil {
-			log.Println("clean opentsdb sample:", err)
+			klog.ErrorS(err, "clean opentsdb sample")
 			if fail == 0 {
 				msg = fmt.Sprintf("%s , Error clean: %s", msg, err.Error())
 			}
@@ -179,7 +179,7 @@ func openTSDB(c *gin.Context) {
 
 		pt, err := list[i].ToProm()
 		if err != nil {
-			log.Println("convert opentsdb sample:", err)
+			klog.ErrorS(err, "convert opentsdb sample")
 			if fail == 0 {
 				msg = fmt.Sprintf("%s , Error toprom: %s", msg, err.Error())
 			}
@@ -192,7 +192,7 @@ func openTSDB(c *gin.Context) {
 	}
 
 	if fail > 0 {
-		log.Println("opentsdb forwarder error, message:", string(bytes))
+		klog.Errorf("opentsdb forwarder error, message: %s", string(bytes))
 	}
 
 	writer.WriteTimeSeries(series)

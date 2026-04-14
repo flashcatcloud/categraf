@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"time"
+
+	"k8s.io/klog/v2"
 )
 
 type HostInfoCache struct {
@@ -101,13 +102,13 @@ func (c *HostInfoCache) update() {
 		time.Sleep(time.Minute)
 		name, err := os.Hostname()
 		if err != nil {
-			log.Println("E! failed to get hostname:", err)
+			klog.ErrorS(err, "failed to get hostname")
 		} else {
 			HostInfo.SetHostname(name)
 		}
 		ip, err := GetOutboundIP()
 		if err != nil {
-			log.Println("E! failed to get ip:", err)
+			klog.ErrorS(err, "failed to get ip")
 		} else {
 			HostInfo.SetIP(fmt.Sprint(ip))
 		}

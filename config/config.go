@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"os"
@@ -14,6 +13,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/toolkits/pkg/file"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/pkg/tls"
@@ -245,7 +245,7 @@ func getLocalIP() (net.IP, error) {
 		}
 		addrs, err := iface.Addrs()
 		if err != nil {
-			log.Println("W! iface address error", err)
+			klog.Warningf("iface address error: %v", err)
 			continue
 		}
 		for _, addr := range addrs {
@@ -267,13 +267,13 @@ func getLocalIP() (net.IP, error) {
 func GetOutboundIP() (net.IP, error) {
 	addr := defaultProbeAddr
 	if len(Config.Writers) == 0 {
-		log.Printf("E! writers is not configured, use %s as default probe address", defaultProbeAddr)
+		klog.Warningf("writers is not configured, use %s as default probe address", defaultProbeAddr)
 	}
 	for _, v := range Config.Writers {
 		if len(v.Url) != 0 {
 			u, err := url.Parse(v.Url)
 			if err != nil {
-				log.Printf("W! parse writers url %s error %s", v.Url, err)
+				klog.Warningf("parse writers url %s error %s", v.Url, err)
 				continue
 			} else {
 				if strings.Contains(u.Host, "localhost") || strings.Contains(u.Host, "127.0.0.1") {
