@@ -5,7 +5,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -28,6 +27,7 @@ import (
 	"flashcat.cloud/categraf/pkg/stringx"
 	internalTypes "flashcat.cloud/categraf/types"
 	internalMetric "flashcat.cloud/categraf/types/metric"
+	"k8s.io/klog/v2"
 )
 
 //go:embed sample.conf
@@ -170,7 +170,7 @@ func (cw *CloudWatch) GetInstances() []inputs.Instance {
 func (ins *Instance) Gather(slist *internalTypes.SampleList) {
 	filteredMetrics, err := getFilteredMetrics(ins)
 	if err != nil {
-		log.Println("E! filter metrics error,", err)
+		klog.ErrorS(err, "filter cloudwatch metrics error", "namespaces", ins.Namespaces)
 		return
 	}
 
@@ -179,7 +179,7 @@ func (ins *Instance) Gather(slist *internalTypes.SampleList) {
 	// Get all of the possible queries so we can send groups of 100.
 	queries := ins.getDataQueries(filteredMetrics)
 	if len(queries) == 0 {
-		log.Printf("E! data queries length is 0, namespaces:%+v", ins.Namespaces)
+		klog.ErrorS(nil, "cloudwatch data queries length is 0", "namespaces", ins.Namespaces)
 		return
 	}
 
@@ -208,7 +208,7 @@ func (ins *Instance) Gather(slist *internalTypes.SampleList) {
 				defer wg.Done()
 				result, err := ins.gatherMetrics(ins.getDataInputs(inm))
 				if err != nil {
-					log.Printf("E! gather namespace:%s error:%s", n, err)
+					klog.ErrorS(err, "gather cloudwatch namespace error", "namespace", n)
 					return
 				}
 
@@ -223,7 +223,7 @@ func (ins *Instance) Gather(slist *internalTypes.SampleList) {
 
 	err = ins.aggregateMetrics(slist, results)
 	if err != nil {
-		log.Println("E! aggregate metrics error,", err)
+		klog.ErrorS(err, "aggregate cloudwatch metrics error", "namespaces", ins.Namespaces)
 	}
 }
 
@@ -311,7 +311,7 @@ type filteredMetric struct {
 func getFilteredMetrics(c *Instance) ([]filteredMetric, error) {
 	if c.metricCache != nil && c.metricCache.isValid() {
 		if c.DebugMod {
-			log.Printf("D! use filtered metrics cache for namespace %+v", c.Namespaces)
+			klog.V(1).InfoS("use filtered cloudwatch metrics cache", "namespaces", c.Namespaces)
 		}
 		return c.metricCache.metrics, nil
 	}
@@ -407,7 +407,7 @@ func (ins *Instance) fetchNamespaceMetrics() []types.Metric {
 		for {
 			resp, err := ins.client.ListMetrics(context.Background(), params)
 			if err != nil {
-				log.Printf("E! failed to list metrics with namespace %s: %v", namespace, err)
+				klog.ErrorS(err, "failed to list cloudwatch metrics", "namespace", namespace)
 				// skip problem namespace on error and continue to next namespace
 				break
 			}
@@ -514,7 +514,7 @@ func (ins *Instance) getDataQueries(filteredMetrics []filteredMetric) map[string
 
 	if len(dataQueries) == 0 {
 		if ins.DebugMod {
-			log.Printf("D! no metrics found to collect for namespace:%+v", ins.Namespaces)
+			klog.V(1).InfoS("no cloudwatch metrics found to collect", "namespaces", ins.Namespaces)
 		}
 		return nil
 	}
