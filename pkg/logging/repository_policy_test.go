@@ -224,6 +224,20 @@ func TestLoggingTestsDoNotUseDirectStandardLogCalls(t *testing.T) {
 	}
 }
 
+func TestNTPTestsDoNotUseDirectStandardLogCalls(t *testing.T) {
+	repoRoot := filepath.Clean(filepath.Join("..", ".."))
+	path := filepath.Join(repoRoot, "inputs/ntp/ntp_test.go")
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+
+	if forbiddenStdLog.Match(content) {
+		t.Fatalf("%s still uses forbidden standard log calls", path)
+	}
+}
+
 func TestElasticsearchTreeDoesNotUseStandardLogCalls(t *testing.T) {
 	repoRoot := filepath.Clean(filepath.Join("..", ".."))
 	checkGoTreeForForbiddenStdLog(t, filepath.Join(repoRoot, "inputs/elasticsearch"))
