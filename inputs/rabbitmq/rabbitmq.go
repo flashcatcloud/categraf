@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "rabbitmq"
@@ -379,7 +379,7 @@ func (ins *Instance) requestEndpoint(u string) ([]byte, error) {
 	endpoint := ins.URL + u
 
 	if ins.DebugMod {
-		log.Println("D! requesting:", endpoint)
+		klog.V(1).InfoS("requesting rabbitmq endpoint", "endpoint", endpoint)
 	}
 
 	req, err := http.NewRequest("GET", endpoint, nil)
@@ -429,12 +429,12 @@ func gatherOverview(ins *Instance, slist *types.SampleList) {
 
 	err := ins.requestJSON("/api/overview", &overview)
 	if err != nil {
-		log.Println("E! failed to query rabbitmq /api/overview:", err)
+		klog.ErrorS(err, "failed to query rabbitmq overview", "url", ins.URL)
 		return
 	}
 
 	if overview.QueueTotals == nil || overview.ObjectTotals == nil || overview.MessageStats == nil || overview.Listeners == nil {
-		log.Println("E! wrong answer from rabbitmq. probably auth issue")
+		klog.ErrorS(nil, "wrong answer from rabbitmq, probably auth issue", "url", ins.URL, "endpoint", "/api/overview")
 		return
 	}
 
@@ -480,7 +480,7 @@ func gatherExchanges(ins *Instance, slist *types.SampleList) {
 	exchanges := make([]Exchange, 0)
 	err := ins.requestJSON("/api/exchanges", &exchanges)
 	if err != nil {
-		log.Println("E! failed to query rabbitmq /api/exchanges:", err)
+		klog.ErrorS(err, "failed to query rabbitmq exchanges", "url", ins.URL)
 		return
 	}
 
@@ -528,7 +528,7 @@ func gatherFederationLinks(ins *Instance, slist *types.SampleList) {
 	federationLinks := make([]FederationLink, 0)
 	err := ins.requestJSON("/api/federation-links", &federationLinks)
 	if err != nil {
-		log.Println("E! failed to query rabbitmq /api/federation-links:", err)
+		klog.ErrorS(err, "failed to query rabbitmq federation links", "url", ins.URL)
 		return
 	}
 
@@ -587,7 +587,7 @@ func gatherNodes(ins *Instance, slist *types.SampleList) {
 
 	err := ins.requestJSON("/api/nodes", &allNodes)
 	if err != nil {
-		log.Println("E! failed to query rabbitmq /api/nodes:", err)
+		klog.ErrorS(err, "failed to query rabbitmq nodes", "url", ins.URL)
 		return
 	}
 
@@ -644,7 +644,7 @@ func gatherNodes(ins *Instance, slist *types.SampleList) {
 			var memory MemoryResponse
 			err = ins.requestJSON("/api/nodes/"+node.Name+"/memory", &memory)
 			if err != nil {
-				log.Println("E! failed to query rabbitmq /api/nodes/"+node.Name+"/memory:", err)
+				klog.ErrorS(err, "failed to query rabbitmq node memory", "url", ins.URL, "node", node.Name)
 				return
 			}
 
@@ -682,14 +682,14 @@ func gatherNodes(ins *Instance, slist *types.SampleList) {
 							}
 
 							msg := fmt.Sprintf("unknown type %T for %q total memory", x, estimator)
-							log.Println("E!", msg)
+							klog.Error(msg)
 						}
 					}
 					if !foundEstimator {
-						log.Println("E! no known memory estimation in", v)
+						klog.ErrorS(nil, "no known memory estimation in rabbitmq response", "value", v, "node", node.Name)
 					}
 				default:
-					log.Println("E! unknown type", memory.Memory.Total, "for total memory")
+					klog.ErrorS(nil, "unknown rabbitmq memory total type", "value", memory.Memory.Total, "node", node.Name)
 				}
 			}
 
@@ -730,7 +730,7 @@ func gatherQueues(ins *Instance, slist *types.SampleList) {
 	queues := make([]Queue, 0)
 	err := ins.requestJSON("/api/queues", &queues)
 	if err != nil {
-		log.Println("E! failed to query rabbitmq /api/queues:", err)
+		klog.ErrorS(err, "failed to query rabbitmq queues", "url", ins.URL)
 		return
 	}
 
