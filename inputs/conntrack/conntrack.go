@@ -4,7 +4,6 @@
 package conntrack
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,6 +12,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "conntrack"
@@ -86,20 +86,20 @@ func (c *Conntrack) Gather(slist *types.SampleList) {
 
 			contents, err := os.ReadFile(fName)
 			if err != nil {
-				log.Println("E! failed to read file:", fName, "error:", err)
+				klog.ErrorS(err, "failed to read conntrack file", "path", fName)
 				continue
 			}
 
 			v := strings.TrimSpace(string(contents))
 			fields[metricKey], err = strconv.ParseFloat(v, 64)
 			if err != nil {
-				log.Println("E! failed to parse metric, expected number but found:", v, "error:", err)
+				klog.ErrorS(err, "failed to parse conntrack metric", "value", v, "path", fName)
 			}
 		}
 	}
 
 	if len(fields) == 0 && !c.Quiet {
-		log.Println("E! Conntrack input failed to collect metrics. Is the conntrack kernel module loaded?")
+		klog.Error("conntrack input failed to collect metrics. Is the conntrack kernel module loaded?")
 	}
 
 	slist.PushSamples("conntrack", fields)
