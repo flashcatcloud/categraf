@@ -6,7 +6,6 @@ package processes
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +17,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/osx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "processes"
@@ -60,11 +60,11 @@ func (p *Processes) Gather(slist *types.SampleList) {
 	// Gather stats from 'ps' or procfs
 	if usePS {
 		if err := p.gatherFromPS(fields); err != nil {
-			log.Println("E! failed to gather from ps:", err)
+			klog.ErrorS(err, "failed to gather process metrics from ps")
 		}
 	} else {
 		if err := p.gatherFromProc(fields); err != nil {
-			log.Println("E! failed to gather from proc:", err)
+			klog.ErrorS(err, "failed to gather process metrics from proc")
 		}
 	}
 
@@ -132,7 +132,7 @@ func (p *Processes) gatherFromPS(fields map[string]interface{}) error {
 		case '?':
 			fields["unknown"] = fields["unknown"].(int64) + int64(1)
 		default:
-			log.Println("W! unknown state:", string(status[0]), "from ps")
+			klog.Warningf("unknown process state %q from ps", string(status[0]))
 		}
 		fields["total"] = fields["total"].(int64) + int64(1)
 	}
@@ -189,13 +189,13 @@ func (p *Processes) gatherFromProc(fields map[string]interface{}) error {
 			}
 			fields["parked"] = int64(1)
 		default:
-			log.Println("W! Unknown state:", string(stats[0][0]), "in file:", filename)
+			klog.Warningf("unknown process state %q in file %s", string(stats[0][0]), filename)
 		}
 		fields["total"] = fields["total"].(int64) + int64(1)
 
 		threads, err := strconv.Atoi(string(stats[17]))
 		if err != nil {
-			log.Println("W! Error parsing thread count:", err)
+			klog.Warningf("error parsing process thread count from %s: %v", filename, err)
 			continue
 		}
 		fields["total_threads"] = fields["total_threads"].(int64) + int64(threads)

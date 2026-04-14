@@ -7,12 +7,13 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"k8s.io/klog/v2"
 )
 
 var (
@@ -42,7 +43,7 @@ func Trim(s string) string {
 func decToInt(n string) int {
 	d, err := strconv.ParseInt(n, 10, 64)
 	if err != nil {
-		log.Printf("Error while parsing %s to int: %s", n, err)
+		klog.ErrorS(err, "error while parsing decimal to int", "value", n)
 	}
 	return int(d)
 }
@@ -50,7 +51,7 @@ func decToInt(n string) int {
 func hexToInt(h string) uint {
 	d, err := strconv.ParseUint(h, 16, 64)
 	if err != nil {
-		log.Printf("Error while parsing %s to int: %s", h, err)
+		klog.ErrorS(err, "error while parsing hex to int", "value", h)
 	}
 	return uint(d)
 }
@@ -59,18 +60,18 @@ func hexToInt2(h string) (uint, uint) {
 	if len(h) > 16 {
 		d, err := strconv.ParseUint(h[:16], 16, 64)
 		if err != nil {
-			log.Printf("Error while parsing %s to int: %s", h[16:], err)
+			klog.ErrorS(err, "error while parsing hex to int", "value", h[:16])
 		}
 		d2, err := strconv.ParseUint(h[16:], 16, 64)
 		if err != nil {
-			log.Printf("Error while parsing %s to int: %s", h[16:], err)
+			klog.ErrorS(err, "error while parsing hex to int", "value", h[16:])
 		}
 		return uint(d), uint(d2)
 	}
 
 	d, err := strconv.ParseUint(h, 16, 64)
 	if err != nil {
-		log.Printf("Error while parsing %s to int: %s", h[16:], err)
+		klog.ErrorS(err, "error while parsing hex to int", "value", h)
 	}
 	return uint(d), 0
 }
@@ -112,7 +113,7 @@ func Parse(proto string) ([]Entry, error) {
 		line := Trim(scanner.Text())
 		m := parser.FindStringSubmatch(line)
 		if m == nil {
-			log.Printf("Could not parse netstat line from %s: %s", filename, line)
+			klog.Warningf("could not parse netstat line from %s: %s", filename, line)
 			continue
 		}
 		//只统计状态为TCP_ESTABLISHED
