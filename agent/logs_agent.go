@@ -11,7 +11,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -31,6 +30,7 @@ import (
 	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	logService "flashcat.cloud/categraf/logs/service"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -71,20 +71,20 @@ func NewLogsAgent() AgentModule {
 	if err != nil {
 		message := fmt.Sprintf("Invalid endpoints: %v", err)
 		status.AddGlobalError("invalid endpoints", message)
-		log.Println("E!", errors.New(message))
+		klog.ErrorS(errors.New(message), "invalid endpoints")
 		return nil
 	}
 	processingRules, err := GlobalProcessingRules()
 	if err != nil {
 		message := fmt.Sprintf("Invalid processing rules: %v", err)
 		status.AddGlobalError(invalidProcessingRules, message)
-		log.Println("E!", errors.New(message))
+		klog.ErrorS(errors.New(message), "invalid processing rules")
 		return nil
 	}
 
 	sources := logsconfig.NewLogSources()
 	services := logService.NewServices()
-	log.Println("I! Starting logs-agent...")
+	klog.Info("starting logs-agent")
 
 	// setup the auditor
 	// We pass the health handle to the auditor because it's the end of the pipeline and the most
@@ -120,7 +120,7 @@ func NewLogsAgent() AgentModule {
 		journald.NewLauncher(sources, pipelineProvider, auditor),
 	}
 	if coreconfig.EnableCollectContainer() {
-		log.Println("collect docker logs...")
+		klog.Info("collect docker logs")
 		inputs = append(inputs, container.NewLauncher(containerLaunchables))
 	}
 
@@ -142,7 +142,7 @@ func (la *LogsAgent) Start() error {
 	if coreconfig.EnableCollectContainer() {
 		// collect container all
 		if util.Debug() {
-			log.Println("Adding ContainerCollectAll source to the Logs Agent")
+			klog.V(1).Info("adding ContainerCollectAll source to the Logs Agent")
 		}
 		kubesource := logsconfig.NewLogSource(logsconfig.ContainerCollectAll,
 			&logsconfig.LogsConfig{
@@ -161,7 +161,7 @@ func (la *LogsAgent) Start() error {
 		}
 		source := logsconfig.NewLogSource(c.Name, c)
 		if err := c.Validate(); err != nil {
-			log.Println("W! Invalid logs configuration:", err)
+			klog.Warningf("invalid logs configuration: %v", err)
 			source.Status.Error(err)
 			continue
 		}
@@ -214,7 +214,7 @@ func (a *LogsAgent) Stop() error {
 	select {
 	case <-c:
 	case <-time.After(timeout):
-		log.Println("I! Timed out when stopping logs-agent, forcing it to stop now")
+		klog.Info("timed out when stopping logs-agent, forcing it to stop now")
 		// We force all destinations to read/flush all the messages they get without
 		// trying to write to the network.
 		a.destinationsCtx.Stop()
@@ -226,7 +226,7 @@ func (a *LogsAgent) Stop() error {
 		select {
 		case <-c:
 		case <-timeout.C:
-			log.Println("W! Force close of the Logs LogsAgent, dumping the Go routines.")
+			klog.Warning("force close of the logs agent, dumping the Go routines")
 		}
 	}
 	return nil

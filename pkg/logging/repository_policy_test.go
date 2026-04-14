@@ -18,6 +18,7 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"main_windows.go",
 		"agent/agent.go",
 		"agent/ibex_agent.go",
+		"agent/logs_agent.go",
 		"agent/metrics_agent.go",
 		"agent/metrics_reader.go",
 		"agent/prometheus_agent.go",
