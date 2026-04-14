@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -17,6 +16,7 @@ import (
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "jenkins"
@@ -88,12 +88,12 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	if ins.client == nil {
 		client, err := ins.newHTTPClient()
 		if err != nil {
-			log.Println("E! failed to new HTTPClient:", err)
+			klog.ErrorS(err, "failed to create Jenkins HTTP client", "url", ins.URL)
 			return
 		}
 
 		if err = ins.initialize(client); err != nil {
-			log.Println("E! failed to initialize:", err)
+			klog.ErrorS(err, "failed to initialize Jenkins input", "url", ins.URL)
 			return
 		}
 	}
@@ -224,7 +224,7 @@ func (ins *Instance) gatherNodeData(n node, slist *types.SampleList) error {
 func (ins *Instance) gatherNodesData(slist *types.SampleList) {
 	nodeResp, err := ins.client.getAllNodes(context.Background())
 	if err != nil {
-		log.Println("E! gatherNodesData", err)
+		klog.ErrorS(err, "failed to gather Jenkins node data", "url", ins.URL)
 		return
 	}
 
@@ -246,7 +246,7 @@ func (ins *Instance) gatherNodesData(slist *types.SampleList) {
 func (ins *Instance) gatherJobs(slist *types.SampleList) {
 	js, err := ins.client.getJobs(context.Background(), nil)
 	if err != nil {
-		log.Println("E! gatherJobs", err)
+		klog.ErrorS(err, "failed to gather Jenkins jobs", "url", ins.URL)
 		return
 	}
 	var wg sync.WaitGroup
@@ -259,7 +259,7 @@ func (ins *Instance) gatherJobs(slist *types.SampleList) {
 				parents: []string{},
 				layer:   0,
 			}, slist); err != nil {
-				log.Println("E! getJobDetail", err)
+				klog.ErrorS(err, "failed to get Jenkins job detail", "url", ins.URL, "job", name)
 			}
 		}(job.Name, &wg, slist)
 	}
@@ -293,7 +293,7 @@ func (ins *Instance) getJobDetail(jr jobRequest, slist *types.SampleList) error 
 				parents: jr.combined(),
 				layer:   jr.layer + 1,
 			}, slist); err != nil {
-				log.Println("E! getJobDetail", err)
+				klog.ErrorS(err, "failed to get Jenkins sub-job detail", "url", ins.URL, "job", ij.Name, "parent_job", jr.hierarchyName())
 			}
 		}(ij, jr, slist)
 	}
@@ -312,7 +312,7 @@ func (ins *Instance) getJobDetail(jr jobRequest, slist *types.SampleList) error 
 
 	if build.Building {
 		if ins.DebugMod {
-			log.Println("Ignore running build on ", jr.name, "build", number)
+			klog.V(1).InfoS("ignoring running Jenkins build", "url", ins.URL, "job", jr.name, "build", number)
 		}
 		return nil
 	}
