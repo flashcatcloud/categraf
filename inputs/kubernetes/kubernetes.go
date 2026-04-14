@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -110,7 +110,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	urlpath := fmt.Sprintf("%s/stats/summary", ins.URL)
 	err := ins.LoadJSON(urlpath, summaryMetrics)
 	if err != nil {
-		log.Println("E! failed to load", urlpath, "error:", err)
+		klog.ErrorS(err, "failed to load kubernetes summary metrics", "url", urlpath)
 		slist.PushSample(inputName, "kubelet_up", 0)
 		return
 	}
@@ -119,7 +119,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	podInfos, err := ins.gatherPodInfo(ins.URL)
 	if err != nil {
-		log.Println("E! failed to gather pod info, error:", err)
+		klog.ErrorS(err, "failed to gather kubernetes pod info", "url", ins.URL)
 		return
 	}
 

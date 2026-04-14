@@ -2,7 +2,6 @@ package dns_query
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -13,6 +12,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
 	"github.com/miekg/dns"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "dns_query"
@@ -84,7 +84,7 @@ func (ins *Instance) Init() error {
 
 		config, err := dns.ClientConfigFromFile(resolvPath)
 		if err != nil {
-			log.Println("E! failed to detect local dns server:", err)
+			klog.ErrorS(err, "failed to detect local dns server", "path", resolvPath)
 			return types.ErrInstancesEmpty
 		}
 
@@ -145,7 +145,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					setResult(Timeout, fields)
 				} else if err != nil {
 					setResult(Error, fields)
-					log.Println("E!", err)
+					klog.ErrorS(err, "dns query failed", "domain", domain, "server", server, "record_type", ins.RecordType)
 				}
 
 				slist.PushSamples("dns_query", fields, tags)
