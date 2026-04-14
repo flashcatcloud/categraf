@@ -6,7 +6,6 @@ package arp_packet
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "arp_packet"
@@ -92,7 +92,7 @@ func (ins *Instance) Init() error {
 	var err error
 	ins.LocalIP, err = ins.GetInterfaceIpv4Addr(ins.Ethdevice)
 	if err != nil {
-		log.Println("E!", err)
+		klog.ErrorS(err, "failed to get ARP packet interface IPv4 address", "device", ins.Ethdevice)
 		return types.ErrInstancesEmpty
 	}
 	ins.snapshot_len = 1024
@@ -101,11 +101,11 @@ func (ins *Instance) Init() error {
 	// Open device
 	ins.EthHandle, err = pcap.OpenLive(ins.Ethdevice, ins.snapshot_len, ins.promiscuous, ins.timeout)
 	if err != nil {
-		log.Println("E!", err)
+		klog.ErrorS(err, "failed to open ARP packet capture handle", "device", ins.Ethdevice)
 		return types.ErrInstancesEmpty
 	}
 	go ins.arpStat()
-	log.Println("I! start arp stat")
+	klog.InfoS("start ARP packet stat", "device", ins.Ethdevice, "local_ip", ins.LocalIP)
 	return nil
 }
 func (ins *Instance) Gather(slist *types.SampleList) {
@@ -138,8 +138,7 @@ func (ins *Instance) arpStat() {
 				sourceAddr := sip.String()
 				dip = arp.DstProtAddress
 				if sourceAddr == ins.LocalIP {
-					log.Println("I! ARPResp: SourceProtAddress:", sourceAddr, " mac:", macs)
-					log.Println("I! ARPResp: DstProtAddress:", dip.String(), " mac:", macd)
+					klog.InfoS("ARP response observed", "source_prot_address", sourceAddr, "source_mac", macs.String(), "dst_prot_address", dip.String(), "dst_mac", macd.String())
 					ins.mutex.Lock()
 					ins.resARP++
 					ins.mutex.Unlock()
@@ -154,8 +153,7 @@ func (ins *Instance) arpStat() {
 				sourceAddr := sip.String()
 				dip = arp.DstProtAddress
 				if sourceAddr == ins.LocalIP {
-					log.Println("I! ARPReq: SourceProtAddress:", sourceAddr, " mac:", macs)
-					log.Println("I! ARPReq: DstProtAddress:", dip.String(), " mac:", macd)
+					klog.InfoS("ARP request observed", "source_prot_address", sourceAddr, "source_mac", macs.String(), "dst_prot_address", dip.String(), "dst_mac", macd.String())
 					ins.mutex.Lock()
 					ins.reqARP++
 					ins.mutex.Unlock()

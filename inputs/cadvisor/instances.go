@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -20,6 +19,7 @@ import (
 	util "flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -141,7 +141,7 @@ func (ins *Instance) cache() {
 	podUrl.Path = "/pods"
 	req, err := http.NewRequest("GET", podUrl.String(), nil)
 	if err != nil {
-		log.Println("E! failed to new request for url:", podUrl.String(), "error:", err)
+		klog.ErrorS(err, "failed to create cadvisor pod request", "url", podUrl.String())
 		return
 	}
 	ins.setHeaders(req)
@@ -152,19 +152,19 @@ func (ins *Instance) cache() {
 		case <-timer.C:
 			resp, err := ins.client.Do(req)
 			if err != nil {
-				log.Println("E! failed to request for url:", podUrl.String(), "error:", err)
+				klog.ErrorS(err, "failed to request cadvisor pods", "url", podUrl.String())
 				continue
 			}
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
-				log.Println("E! failed to read body for url:", podUrl.String(), "error:", err)
+				klog.ErrorS(err, "failed to read cadvisor pod body", "url", podUrl.String())
 				continue
 			}
 			resp.Body.Close()
 			pods := kubernetes.PodList{}
 			err = json.Unmarshal(body, &pods)
 			if err != nil {
-				log.Println("E! unmarshal pods info", err)
+				klog.ErrorS(err, "failed to unmarshal cadvisor pod info", "url", podUrl.String())
 				continue
 			}
 			for _, pod := range pods.Items {
@@ -182,7 +182,7 @@ func cacheKey(ns, pod string) string {
 }
 
 func (ins *Instance) Drop() {
-	log.Println("I! cadvisor instance stop")
+	klog.InfoS("cadvisor instance stop", "url", ins.URL)
 	close(ins.stop)
 }
 
@@ -209,7 +209,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	req, err := http.NewRequest("GET", ins.u.String(), nil)
 	if err != nil {
-		log.Println("E! failed to new request for url:", ins.u.String(), "error:", err)
+		klog.ErrorS(err, "failed to create cadvisor request", "url", ins.u.String())
 		return
 	}
 
@@ -217,20 +217,20 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	labels, err := ins.GenerateLabel(ins.u)
 	if err != nil {
-		log.Println("E! failed to generate url label value:", err)
+		klog.ErrorS(err, "failed to generate cadvisor url label", "url", ins.u.String())
 		return
 	}
 
 	res, err := ins.client.Do(req)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "up", 0, labels))
-		log.Println("E! failed to query url:", ins.u.String(), "error:", err)
+		klog.ErrorS(err, "failed to query cadvisor url", "url", ins.u.String())
 		return
 	}
 
 	if res.StatusCode != http.StatusOK {
 		slist.PushFront(types.NewSample("", "up", 0, labels))
-		log.Println("E! failed to query url:", ins.u.String(), "status code:", res.StatusCode)
+		klog.ErrorS(nil, "failed to query cadvisor url", "url", ins.u.String(), "status_code", res.StatusCode)
 		return
 	}
 
@@ -239,7 +239,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		slist.PushFront(types.NewSample("", "up", 0, labels))
-		log.Println("E! failed to read response body, url:", ins.u.String(), "error:", err)
+		klog.ErrorS(err, "failed to read cadvisor response body", "url", ins.u.String())
 		return
 	}
 
@@ -252,7 +252,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 func (ins *Instance) gather(buf []byte, header http.Header, defaultLabels map[string]string, slist *types.SampleList) {
 	metricFamilies, err := util.Parse(buf, header)
 	if err != nil {
-		log.Println("E! failed to parse metrics, url:", ins.u.String(), "error:", err)
+		klog.ErrorS(err, "failed to parse cadvisor metrics", "url", ins.u.String())
 		return
 	}
 
@@ -335,7 +335,7 @@ func (ins *Instance) makeLabels(m *dto.Metric, defaultLabels map[string]string) 
 				}
 			} else {
 				if ins.DebugMod {
-					log.Println(cacheKey(namespace, podName), "not in cache")
+					klog.V(1).InfoS("cadvisor pod cache miss", "cache_key", cacheKey(namespace, podName))
 				}
 			}
 		}
@@ -356,7 +356,7 @@ func (ins *Instance) setHeaders(req *http.Request) {
 	if ins.BearerTokeFile != "" {
 		content, err := os.ReadFile(ins.BearerTokeFile)
 		if err != nil {
-			log.Println("E! failed to read bearer token file:", ins.BearerTokeFile, "error:", err)
+			klog.ErrorS(err, "failed to read cadvisor bearer token file", "file", ins.BearerTokeFile)
 			return
 		}
 

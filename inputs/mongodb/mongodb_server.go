@@ -3,7 +3,6 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 type Server struct {
@@ -44,11 +44,7 @@ func (s *Server) ping() error {
 }
 
 func (s *Server) authLog(err error) {
-	if IsAuthorization(err) {
-		log.Printf("W! %s", err.Error())
-	} else {
-		log.Printf("W! %s", err.Error())
-	}
+	klog.Warning(err.Error())
 }
 
 func (s *Server) runCommand(database string, cmd interface{}, result interface{}) error {
@@ -241,7 +237,7 @@ func (s *Server) gatherCollectionStats(colStatsDbs []string) (*ColStats, error) 
 			var colls []string
 			colls, err = s.client.Database(dbName).ListCollectionNames(context.Background(), filter)
 			if err != nil {
-				log.Printf("E! Error getting collection names: %s", err.Error())
+				klog.ErrorS(err, "error getting MongoDB collection names", "db", dbName)
 				continue
 			}
 			for _, colName := range colls {
@@ -292,7 +288,7 @@ func (s *Server) gatherData(
 	if gatherReplicasetStatus {
 		replSetStatus, err = s.gatherReplSetStatus()
 		if err != nil {
-			log.Printf("W! Unable to gather replica set status: %s", err.Error())
+			klog.Warningf("unable to gather MongoDB replica set status: %s", err.Error())
 		}
 
 		// Gather the oplog if we are a member of a replica set.  Non-replica set
@@ -309,7 +305,7 @@ func (s *Server) gatherData(
 	if gatherClusterStatus {
 		status, err := s.gatherClusterStatus()
 		if err != nil {
-			log.Printf("W! Unable to gather cluster status: %s", err.Error())
+			klog.Warningf("unable to gather MongoDB cluster status: %s", err.Error())
 		}
 		clusterStatus = status
 	}
@@ -338,7 +334,7 @@ func (s *Server) gatherData(
 		for _, name := range names {
 			db, err := s.gatherDBStats(name)
 			if err != nil {
-				log.Printf("W! Error getting db stats from %q: %s", name, err.Error())
+				klog.Warningf("error getting MongoDB db stats from %q: %s", name, err.Error())
 			}
 			dbStats.Dbs = append(dbStats.Dbs, *db)
 		}
@@ -348,7 +344,7 @@ func (s *Server) gatherData(
 	if gatherTopStat {
 		topStats, err := s.gatherTopStatData()
 		if err != nil {
-			log.Printf("W! Unable to gather top stat data: %s", err.Error())
+			klog.Warningf("unable to gather MongoDB top stat data: %s", err.Error())
 			return err
 		}
 		topStatData = topStats
