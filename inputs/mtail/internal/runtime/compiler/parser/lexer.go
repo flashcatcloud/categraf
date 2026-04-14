@@ -8,13 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"sort"
 	"strings"
 	"unicode"
 
 	// "github.com/golang/glog"
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/compiler/position"
+	"k8s.io/klog/v2"
 )
 
 // List of keywords.  Keep this list sorted!
@@ -147,7 +147,7 @@ func (l *Lexer) backup() {
 		return
 	}
 	if err := l.input.UnreadRune(); err != nil {
-		log.Println(err)
+		klog.ErrorS(err, "failed to unread rune")
 	}
 }
 

@@ -7,13 +7,13 @@ import (
 	"expvar"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/metrics"
 	"flashcat.cloud/categraf/inputs/mtail/internal/metrics/datum"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/expfmt"
+	"k8s.io/klog/v2"
 )
 
 var metricExportTotal = expvar.NewInt("metric_export_total")
@@ -79,7 +79,7 @@ func (e *Exporter) Collect(c chan<- prometheus.Metric) {
 					vals...)
 			}
 			if err != nil {
-				log.Println(err)
+				klog.ErrorS(err, "failed to construct prometheus metric", "metric", m.Name)
 				return nil
 			}
 			// By default no timestamp is emitted to Prometheus. Setting a

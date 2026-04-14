@@ -6,11 +6,11 @@ package types
 import (
 	"errors"
 	"fmt"
-	"log"
 	"regexp/syntax"
 	"strings"
 	"sync"
 	// "github.com/golang/glog"
+	"k8s.io/klog/v2"
 )
 
 // Type represents a type in the mtail program.
@@ -289,7 +289,7 @@ func FreshType(t Type) Type {
 			}
 			return &Operator{p1.Name, args}
 		default:
-			log.Printf("Unexpected type p1: %v", p1)
+			klog.Warningf("unexpected type p1: %v", p1)
 		}
 		return tp
 	}

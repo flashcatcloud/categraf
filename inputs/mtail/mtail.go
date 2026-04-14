@@ -2,7 +2,6 @@ package mtail
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"flashcat.cloud/categraf/inputs/mtail/internal/waker"
 	util "flashcat.cloud/categraf/pkg/metrics"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = `mtail`
@@ -134,7 +134,7 @@ func (ins *Instance) Init() error {
 
 	m, err := mtail.New(ins.ctx, store, opts...)
 	if err != nil {
-		log.Println(err)
+		klog.ErrorS(err, "failed to create mtail server")
 		ins.cancel()
 		return err
 	}
@@ -182,7 +182,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	reg := ins.m.GetRegistry()
 	mfs, done, err := prometheus.ToTransactionalGatherer(reg).Gather()
 	if err != nil {
-		log.Println(err)
+		klog.ErrorS(err, "failed to gather mtail metrics")
 		return
 	}
 	defer done()

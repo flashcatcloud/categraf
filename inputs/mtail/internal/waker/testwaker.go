@@ -5,8 +5,9 @@ package waker
 
 import (
 	"context"
-	"log"
 	"sync"
+
+	"k8s.io/klog/v2"
 )
 
 // A testWaker is used to manually signal to idle routines it's time to look for new work.
@@ -47,22 +48,22 @@ func NewTest(ctx context.Context, n int) (Waker, WakeFunc) {
 	}()
 	wakeFunc := func(after int) {
 		<-initDone
-		log.Println(1, "TestWaker yielding to Wakee")
+		klog.V(1).InfoS("TestWaker yielding to Wakee")
 		for i := 0; i < t.n; i++ {
 			t.wait <- struct{}{}
 		}
-		log.Printf("waiting for %d wakees to get the wake chan", t.n)
+		klog.V(1).InfoS("waiting for wakees to get the wake chan", "count", t.n)
 		for i := 0; i < t.n; i++ {
 			<-t.wakeeReady
 		}
 		t.broadcastWakeAndReset()
 		// Now wakeFunc blocks here
-		log.Printf("waiting for %d wakees to return to Wake", after)
+		klog.V(1).InfoS("waiting for wakees to return to Wake", "count", after)
 		for i := 0; i < after; i++ {
 			<-t.wakeeDone
 		}
 		t.n = after
-		log.Println("Wakee yielding to TestWaker")
+		klog.V(1).InfoS("Wakee yielding to TestWaker")
 	}
 	return t, wakeFunc
 }
@@ -72,7 +73,7 @@ func (t *testWaker) Wake() (w <-chan struct{}) {
 	t.mu.Lock()
 	w = t.wake
 	t.mu.Unlock()
-	log.Println("waiting for wakeup on chan ", w)
+	klog.V(1).InfoS("waiting for wakeup on chan", "chan", w)
 	// Background this so we can return the wake channel.
 	// The wakeFunc won't close the channel until this completes.
 	go func() {
@@ -101,10 +102,10 @@ func (t *testWaker) Wake() (w <-chan struct{}) {
 func (t *testWaker) broadcastWakeAndReset() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	log.Printf("broadcasting wake to chan %p", t.wake)
+	klog.V(1).InfoS("broadcasting wake", "chan", t.wake)
 	close(t.wake)
 	t.wake = make(chan struct{})
-	log.Printf("wake channel reset")
+	klog.V(1).InfoS("wake channel reset")
 }
 
 // alwaysWaker never blocks the wakee.

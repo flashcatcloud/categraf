@@ -8,7 +8,6 @@ import (
 	"errors"
 	"expvar"
 	"io"
-	"log"
 	"os"
 	"sync"
 	"syscall"
@@ -16,6 +15,7 @@ import (
 	// "github.com/golang/glog"
 	"flashcat.cloud/categraf/inputs/mtail/internal/logline"
 	"flashcat.cloud/categraf/inputs/mtail/internal/waker"
+	"k8s.io/klog/v2"
 )
 
 // fileTruncates counts the truncations of a file stream.
@@ -74,7 +74,7 @@ func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 			logErrors.Add(fs.sourcename, 1)
 			if err := fd.Close(); err != nil {
 				logErrors.Add(fs.sourcename, 1)
-				log.Printf("stream(%s): closing file: %v", fs.sourcename, err)
+				klog.ErrorS(err, "closing file failed", "source", fs.sourcename)
 			}
 			return err
 		}
@@ -93,7 +93,7 @@ func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 			// glog.V(2).Infof("stream(%s): closing file descriptor", fs.sourcename)
 			if err := fd.Close(); err != nil {
 				logErrors.Add(fs.sourcename, 1)
-				log.Printf("stream(%s): closing file: %v", fs.sourcename, err)
+				klog.ErrorS(err, "closing file failed", "source", fs.sourcename)
 			}
 			logCloses.Add(fs.sourcename, 1)
 		}()
@@ -118,15 +118,15 @@ func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 				// errors, and end on unretriables; e.g. ESTALE looks
 				// retryable.
 				if errors.Is(err, syscall.ESTALE) {
-					log.Printf("stream(%s): reopening stream due to %s", fs.sourcename, err)
+					klog.Warningf("stream(%s): reopening stream due to %s", fs.sourcename, err)
 					// streamFromStart always true on a stream reopen
 					if nerr := fs.stream(ctx, wg, waker, fi, oneShot, true); nerr != nil {
-						log.Printf("stream(%s): new stream: %v", fs.sourcename, nerr)
+						klog.ErrorS(nerr, "failed to create reopened file stream", "source", fs.sourcename)
 					}
 					// Close this stream.
 					return
 				}
-				log.Printf("stream(%s): read error: %v", fs.sourcename, err)
+				klog.ErrorS(err, "file stream read error", "source", fs.sourcename)
 			}
 
 			// If we have read no bytes and are at EOF, check for truncation and rotation.
@@ -137,7 +137,7 @@ func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 				// common change pattern anyway.
 				newfi, serr := os.Stat(fs.pathname)
 				if serr != nil {
-					log.Printf("stream(%s): stat error: %v", fs.pathname, serr)
+					klog.ErrorS(serr, "file stream stat error", "pathname", fs.pathname)
 					// If this is a NotExist error, then we should wrap up this
 					// goroutine. The Tailer will create a new logstream if the
 					// file is in the middle of a rotation and gets recreated
@@ -157,7 +157,7 @@ func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 					// glog.V(2).Infof("stream(%s): adding a new file routine", fs.sourcename)
 					// Stream from start always true on a stream reopen
 					if err := fs.stream(ctx, wg, waker, newfi, oneShot, true); err != nil {
-						log.Printf("stream(%s): new stream: %v", fs.sourcename, err)
+						klog.ErrorS(err, "failed to create rotated file stream", "source", fs.sourcename)
 					}
 					// We're at EOF so there's nothing left to read here.
 					return
@@ -165,7 +165,7 @@ func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 				currentOffset, serr := fd.Seek(0, io.SeekCurrent)
 				if serr != nil {
 					logErrors.Add(fs.sourcename, 1)
-					log.Println(serr)
+					klog.ErrorS(serr, "failed to seek current offset", "source", fs.sourcename)
 					continue
 				}
 				// glog.V(2).Infof("stream(%s): current seek is %d", fs.sourcename, currentOffset)
@@ -183,7 +183,7 @@ func (fs *fileStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 					_, serr := fd.Seek(0, io.SeekStart)
 					if serr != nil {
 						logErrors.Add(fs.sourcename, 1)
-						log.Printf("stream(%s): seek: %v", fs.sourcename, serr)
+						klog.ErrorS(serr, "failed to seek to start", "source", fs.sourcename)
 					}
 					// glog.V(2).Infof("stream(%s): Seeked to %d", fs.sourcename, p)
 					fileTruncates.Add(fs.sourcename, 1)

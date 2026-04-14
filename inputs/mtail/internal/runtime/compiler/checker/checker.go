@@ -6,7 +6,6 @@ package checker
 import (
 	goerrors "errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/compiler/parser"
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/compiler/symbol"
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/compiler/types"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -251,7 +251,7 @@ func (c *checker) checkSymbolTable() {
 					// Don't warn about the zeroth capture group; it's not user-defined.
 					continue
 				}
-				log.Printf("capture group reference `%s' at %s appears to be unused", sym.Name, sym.Pos)
+				klog.Warningf("capture group reference `%s` at %s appears to be unused", sym.Name, sym.Pos)
 				continue
 			}
 			c.errors.Add(sym.Pos, fmt.Sprintf("Declaration of %s `%s' here is never used.", sym.Kind, sym.Name))
@@ -811,7 +811,7 @@ func (c *checker) VisitAfter(node ast.Node) ast.Node {
 				// glog.V(2).Infof("time_str is %q", timeStr)
 				_, err := time.Parse(f.Text, timeStr)
 				if err != nil {
-					log.Printf("time.Parse(%q, %q) failed: %s", f.Text, timeStr, err)
+					klog.Warningf("time.Parse(%q, %q) failed: %s", f.Text, timeStr, err)
 					c.errors.Add(f.Pos(), fmt.Sprintf("invalid time format string %q\n\tRefer to the documentation at https://golang.org/pkg/time/#pkg-constants for advice.", f.Text))
 					n.SetType(types.Error)
 					return n

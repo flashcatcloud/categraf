@@ -8,7 +8,6 @@ package metrics
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"reflect"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/metrics/datum"
 )
@@ -193,7 +193,7 @@ func (m *Metric) RemoveOldestDatum() {
 		// glog.V(1).Infof("removeOldest: removing oldest LV: %v", oldestLV)
 		err := m.RemoveDatum(oldestLV.Labels...)
 		if err != nil {
-			log.Println("W!", err)
+			klog.Warningf("remove oldest datum failed: %v", err)
 		}
 	}
 }

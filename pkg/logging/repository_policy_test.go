@@ -248,6 +248,11 @@ func TestSNMPZabbixTreeDoesNotUseStandardLogCalls(t *testing.T) {
 	checkGoTreeForForbiddenStdLog(t, filepath.Join(repoRoot, "inputs/snmp_zabbix"))
 }
 
+func TestMtailTreeDoesNotUseStandardLogCalls(t *testing.T) {
+	repoRoot := filepath.Clean(filepath.Join("..", ".."))
+	checkGoTreeForForbiddenStdLog(t, filepath.Join(repoRoot, "inputs/mtail"))
+}
+
 func checkGoTreeForForbiddenStdLog(t *testing.T, root string) {
 	t.Helper()
 

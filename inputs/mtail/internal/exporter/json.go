@@ -6,8 +6,9 @@ package exporter
 import (
 	"encoding/json"
 	"expvar"
-	"log"
 	"net/http"
+
+	"k8s.io/klog/v2"
 )
 
 var exportJSONErrors = expvar.NewInt("exporter_json_errors")
@@ -17,13 +18,13 @@ func (e *Exporter) HandleJSON(w http.ResponseWriter, r *http.Request) {
 	b, err := json.MarshalIndent(e.store, "", "  ")
 	if err != nil {
 		exportJSONErrors.Add(1)
-		log.Printf("error marshalling metrics into json:%s", err.Error())
+		klog.ErrorS(err, "error marshalling metrics into json")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("content-type", "application/json")
 	if _, err := w.Write(b); err != nil {
-		log.Println(err)
+		klog.ErrorS(err, "failed to write json export response")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

@@ -5,11 +5,11 @@ package mtail
 
 import (
 	"context"
-	"log"
 	"net"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/exporter"
 	"flashcat.cloud/categraf/inputs/mtail/internal/logline"
@@ -125,7 +125,7 @@ func (m *Server) Run() error {
 	m.wg.Wait()
 	m.cancel()
 	if m.compileOnly {
-		log.Println("compile-only is set, exiting")
+		klog.InfoS("compile-only is set, exiting")
 		return nil
 	}
 	return nil

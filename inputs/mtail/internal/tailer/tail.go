@@ -10,7 +10,6 @@ import (
 	"errors"
 	"expvar"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -20,6 +19,7 @@ import (
 	"flashcat.cloud/categraf/inputs/mtail/internal/logline"
 	"flashcat.cloud/categraf/inputs/mtail/internal/tailer/logstream"
 	"flashcat.cloud/categraf/inputs/mtail/internal/waker"
+	"k8s.io/klog/v2"
 )
 
 // logCount records the number of logs that are being tailed.
@@ -288,10 +288,10 @@ func (t *Tailer) TailPath(pathname string) error {
 // shut down the tailer when there are outstanding patterns to poll for.
 func (t *Tailer) pollLogPattern(pattern string) {
 	if err := t.doPatternGlob(pattern); err != nil {
-		log.Printf("pollPattern(%v): glob failed: %v", pattern, err)
+		klog.ErrorS(err, "pollPattern glob failed", "pattern", pattern)
 	}
 	if t.logPatternPollWaker == nil {
-		log.Printf("pollPattern(%v): log pattern polling disabled by no waker", pattern)
+		klog.InfoS("log pattern polling disabled by no waker", "pattern", pattern)
 		return
 	}
 	t.wg.Add(1)
@@ -299,7 +299,7 @@ func (t *Tailer) pollLogPattern(pattern string) {
 		defer t.wg.Done()
 		<-t.initDone
 		if t.oneShot {
-			log.Printf("pollPattern(%v): no polling loop in oneshot mode", pattern)
+			klog.InfoS("no polling loop in oneshot mode", "pattern", pattern)
 			return
 		}
 		// glog.V(1).Infof("pollPattern(%v): starting log pattern poll loop", pattern)
@@ -309,7 +309,7 @@ func (t *Tailer) pollLogPattern(pattern string) {
 				return
 			case <-t.logPatternPollWaker.Wake():
 				if err := t.doPatternGlob(pattern); err != nil {
-					log.Printf("pollPattern(%v): glob failed: %v", pattern, err)
+					klog.ErrorS(err, "pollPattern glob failed", "pattern", pattern)
 				}
 			}
 		}
@@ -335,7 +335,7 @@ func (t *Tailer) doPatternGlob(pattern string) error {
 		}
 		// glog.V(2).Infof("doPatternGlob(%v): tailable path is %q", pattern, absPath)
 		if err := t.TailPath(absPath); err != nil {
-			log.Println(err)
+			klog.ErrorS(err, "failed to tail path", "pattern", pattern, "path", absPath)
 		}
 	}
 	return nil

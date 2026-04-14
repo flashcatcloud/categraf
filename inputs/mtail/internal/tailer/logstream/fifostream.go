@@ -7,13 +7,13 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
 	"os"
 	"sync"
 	"syscall"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/logline"
 	"flashcat.cloud/categraf/inputs/mtail/internal/waker"
+	"k8s.io/klog/v2"
 )
 
 type fifoStream struct {
@@ -49,7 +49,7 @@ func fifoOpen(pathname string) (*os.File, error) {
 	// Open in nonblocking mode because the write end of the fifo may not have started yet; this also gives us the ability to set a read deadline when the context is cancelled. https://github.com/golang/go/issues/24842
 	fd, err := os.OpenFile(pathname, os.O_RDONLY|syscall.O_NONBLOCK, 0o600) // #nosec G304 -- path already validated by caller
 	if err != nil {
-		log.Printf("fifoOpen(%s): open failed: %v", pathname, err)
+		klog.ErrorS(err, "fifo open failed", "pathname", pathname)
 		logErrors.Add(pathname, 1)
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (ps *fifoStream) stream(ctx context.Context, wg *sync.WaitGroup, waker wake
 			err := fd.Close()
 			if err != nil {
 				logErrors.Add(ps.pathname, 1)
-				log.Println(err)
+				klog.ErrorS(err, "failed to close fifo", "pathname", ps.pathname)
 			}
 			logCloses.Add(ps.pathname, 1)
 			lr.Finish(ctx)

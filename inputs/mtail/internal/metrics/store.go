@@ -7,12 +7,12 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 )
 
 // Store contains Metrics.
@@ -154,7 +154,7 @@ func (s *Store) Range(f func(*Metric) error) error {
 // Gc iterates through the Store looking for metrics that can be tidied up,
 // if they are passed their expiry or sized greater than their limit.
 func (s *Store) Gc() error {
-	// log.Println("D! Running Store.Expire()")
+	// Debug note: running Store.Expire().
 	now := time.Now()
 	return s.Range(func(m *Metric) error {
 		if m.Limit > 0 && len(m.LabelValues) >= m.Limit {
@@ -182,18 +182,18 @@ func (s *Store) Gc() error {
 // StartGcLoop runs a permanent goroutine to expire metrics every duration.
 func (s *Store) StartGcLoop(ctx context.Context, duration time.Duration) {
 	if duration <= 0 {
-		log.Println("Metric store expiration disabled")
+		klog.InfoS("metric store expiration disabled")
 		return
 	}
 	go func() {
-		log.Printf("Starting metric store expiry loop every %s", duration.String())
+		klog.InfoS("starting metric store expiry loop", "duration", duration.String())
 		ticker := time.NewTicker(duration)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
 				if err := s.Gc(); err != nil {
-					log.Println(err)
+					klog.ErrorS(err, "metric store gc failed")
 				}
 			case <-ctx.Done():
 				return

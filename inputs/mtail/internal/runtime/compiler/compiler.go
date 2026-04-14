@@ -5,7 +5,6 @@ package compiler
 
 import (
 	"io"
-	"log"
 	"path/filepath"
 
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/code"
@@ -14,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/compiler/codegen"
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/compiler/opt"
 	"flashcat.cloud/categraf/inputs/mtail/internal/runtime/compiler/parser"
+	"k8s.io/klog/v2"
 	// "github.com/golang/glog"
 )
 
@@ -98,7 +98,7 @@ func (c *Compiler) Compile(name string, input io.Reader) (obj *code.Object, err 
 	}
 	if c.emitAst {
 		s := parser.Sexp{}
-		log.Printf("%s AST:\n%s", name, s.Dump(ast))
+		klog.V(1).Infof("%s AST:\n%s", name, s.Dump(ast))
 	}
 
 	if !c.disableOptimisation {
@@ -108,7 +108,7 @@ func (c *Compiler) Compile(name string, input io.Reader) (obj *code.Object, err 
 		}
 		if c.emitAstTypes {
 			s := parser.Sexp{}
-			log.Printf("Post optimisation %s AST:\n%s", name, s.Dump(ast))
+			klog.V(1).Infof("Post optimisation %s AST:\n%s", name, s.Dump(ast))
 		}
 	}
 
@@ -119,7 +119,7 @@ func (c *Compiler) Compile(name string, input io.Reader) (obj *code.Object, err 
 	if c.emitAstTypes {
 		s := parser.Sexp{}
 		s.EmitTypes = true
-		log.Printf("%s AST with Type Annotation:\n%s", name, s.Dump(ast))
+		klog.V(1).Infof("%s AST with Type Annotation:\n%s", name, s.Dump(ast))
 	}
 
 	if !c.disableOptimisation {
@@ -130,7 +130,7 @@ func (c *Compiler) Compile(name string, input io.Reader) (obj *code.Object, err 
 		if c.emitAstTypes {
 			s := parser.Sexp{}
 			s.EmitTypes = true
-			log.Printf("Post optimisation %s AST with Type Annotation:\n%s", name, s.Dump(ast))
+			klog.V(1).Infof("Post optimisation %s AST with Type Annotation:\n%s", name, s.Dump(ast))
 		}
 	}
 
