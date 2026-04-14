@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptrace"
@@ -20,6 +19,7 @@ import (
 	"flashcat.cloud/categraf/pkg/httpx"
 	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -192,7 +192,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 func (ins *Instance) gather(slist *types.SampleList, target string) {
 	if ins.DebugMod {
-		log.Println("D! http_response... target:", target)
+		klog.V(1).InfoS("http_response gather", "target", target)
 	}
 
 	labels := map[string]string{"target": target}
@@ -225,7 +225,7 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 
 	returnTags, fields, err = ins.httpGather(target)
 	if err != nil {
-		log.Println("E! failed to gather http target:", target, "error:", err)
+		klog.ErrorS(err, "failed to gather http target", "target", target)
 	}
 
 	for k, v := range returnTags {
@@ -293,7 +293,7 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	// If an error in returned, it means we are dealing with a network error, as
 	// HTTP error codes do not generate errors in the net/http library
 	if err != nil {
-		log.Println("E! network error while polling:", target, "error:", err)
+		klog.ErrorS(err, "network error while polling", "target", target)
 
 		// metric: result_code
 		fields["result_code"] = ConnectionFailed
@@ -337,23 +337,23 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 
 	bs, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Println("E! failed to read response body:", err, "target:", target)
+		klog.ErrorS(err, "failed to read response body", "target", target)
 		return tags, fields, nil
 	}
 
 	if len(ins.ExpectResponseSubstring) > 0 && !strings.Contains(string(bs), ins.ExpectResponseSubstring) {
-		log.Println("E! body mismatch, response body:", string(bs))
+		klog.ErrorS(nil, "body mismatch", "target", target, "body", string(bs))
 		fields["result_code"] = BodyMismatch
 	}
 
 	if ins.regularExpression != nil && !ins.regularExpression.Match(bs) {
-		log.Println("E! body mismatch, response body:", string(bs))
+		klog.ErrorS(nil, "body mismatch", "target", target, "body", string(bs))
 		fields["result_code"] = BodyMismatch
 	}
 
 	if ins.ExpectResponseStatusCode != nil && *ins.ExpectResponseStatusCode != resp.StatusCode ||
 		len(ins.ExpectResponseStatusCodes) > 0 && !strings.Contains(ins.ExpectResponseStatusCodes, fmt.Sprintf("%d", resp.StatusCode)) {
-		log.Println("E! status code mismatch, response stats code:", resp.StatusCode)
+		klog.ErrorS(nil, "status code mismatch", "target", target, "status_code", resp.StatusCode)
 		fields["result_code"] = CodeMismatch
 	}
 
