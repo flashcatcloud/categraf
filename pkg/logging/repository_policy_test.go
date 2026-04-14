@@ -37,6 +37,7 @@ func TestCoreRuntimeDoesNotUseStandardLogOrDebugBranches(t *testing.T) {
 		"ibex/client/cli.go",
 		"inputs/http_provider.go",
 		"inputs/haproxy/haproxy.go",
+		"inputs/haproxy/exporter.go",
 		"inputs/http_response/http_response.go",
 		"inputs/mem/mem.go",
 		"inputs/kernel_vmstat/kernel_vmstat.go",
