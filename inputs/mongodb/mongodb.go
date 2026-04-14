@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"flashcat.cloud/categraf/config"
@@ -10,6 +9,7 @@ import (
 	"flashcat.cloud/categraf/inputs/mongodb/exporter"
 	"flashcat.cloud/categraf/types"
 	"github.com/sirupsen/logrus"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "mongodb"
@@ -131,6 +131,6 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	err := inputs.Collect(ins.e, slist)
 	if err != nil {
-		log.Println("E! failed to collect metrics:", err)
+		klog.ErrorS(err, "failed to collect mongodb metrics", "mongodb_uri", ins.MongodbURI)
 	}
 }

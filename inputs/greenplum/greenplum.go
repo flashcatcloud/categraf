@@ -1,13 +1,13 @@
 package greenplum
 
 import (
-	"log"
 	"os/exec"
 	"strings"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"k8s.io/klog/v2"
 )
 
 const inputName = "greenplum"
@@ -48,7 +48,7 @@ func (ins *Greenplum) Gather(slist *types.SampleList) {
 	stateValue = strings.TrimSpace(stateValue)
 	gpstate := strings.Fields(stateValue)
 	if len(gpstate)%7 != 0 {
-		log.Printf("E! failed to parse gpstate -m output: %v", gpstate)
+		klog.ErrorS(nil, "failed to parse gpstate -m output", "fields", gpstate)
 		return
 	}
 	line := len(gpstate) / 7
