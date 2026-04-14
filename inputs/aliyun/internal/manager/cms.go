@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +12,7 @@ import (
 	cms2021101 "github.com/alibabacloud-go/cms-export-20211101/v2/client"
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	"github.com/alibabacloud-go/tea/tea"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/inputs/aliyun/internal/types"
 	"flashcat.cloud/categraf/pkg/limiter"
@@ -120,8 +120,13 @@ func (m *Manager) requestDebugLog(req *cms20190101.DescribeMetricListRequest, re
 				token = *resp.Body.NextToken
 			}
 		}
-		log.Printf("cms.DescribeMetricList request took %s, namespace:%s, metric name:%s, page:%d, request id:%s, next token:%s",
-			cost, *req.Namespace, *req.MetricName, page, reqid, token)
+		klog.V(1).InfoS("cms.DescribeMetricList request completed",
+			"cost", cost.String(),
+			"namespace", *req.Namespace,
+			"metric_name", *req.MetricName,
+			"page", page,
+			"request_id", reqid,
+			"next_token", token)
 	}
 }
 
@@ -148,7 +153,7 @@ func (m *Manager) GetMetric(ctx context.Context, req *cms20190101.DescribeMetric
 		resp, err = m.cms.DescribeMetricList(req)
 		m.requestDebugLog(req, resp, count, time.Since(now))
 		if err != nil {
-			log.Println(err)
+			klog.ErrorS(err, "failed to describe aliyun metric list page")
 			continue
 		}
 		points, err := m.dataPointConverter(*req.MetricName, *req.Namespace, *resp.Body.Datapoints)

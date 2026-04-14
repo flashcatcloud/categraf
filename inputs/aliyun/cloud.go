@@ -3,13 +3,13 @@ package aliyun
 import (
 	"context"
 	"fmt"
-	"log"
 	"regexp"
 	"sync"
 	"time"
 
 	cms20190101 "github.com/alibabacloud-go/cms-20190101/v8/client"
 	"github.com/alibabacloud-go/tea/tea"
+	"k8s.io/klog/v2"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
@@ -149,7 +149,7 @@ func (ins *Instance) Init() error {
 
 	err := ins.initialize()
 	if err != nil {
-		log.Println("E! initialize error:", err)
+		klog.ErrorS(err, "initialize aliyun client error")
 		return err
 	}
 
@@ -193,7 +193,7 @@ func (ins *Instance) initialize() error {
 	if ins.metaCache.Size() == 0 {
 		hosts, err := ins.client.GetEcsHosts()
 		if err != nil {
-			log.Println(err)
+			klog.ErrorS(err, "failed to get aliyun ecs hosts")
 			return err
 		}
 		for _, host := range hosts {
@@ -258,7 +258,7 @@ func (ins *Instance) getFilteredMetrics(slist *types.SampleList) ([]filteredMetr
 
 	if ins.DebugMod {
 		for _, m := range metrics {
-			log.Println("D!", m.Namespace, m.MetricName, m.Dimensions)
+			klog.V(1).InfoS("aliyun metric selected", "namespace", m.Namespace, "metric_name", m.MetricName, "dimensions", m.Dimensions)
 		}
 	}
 
@@ -288,7 +288,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	} else {
 		filteredMetrics, err := ins.getFilteredMetrics(slist)
 		if err != nil {
-			log.Println("E!", err)
+			klog.ErrorS(err, "failed to get filtered aliyun metrics")
 			return
 		}
 		for _, filtered := range filteredMetrics {
@@ -328,7 +328,7 @@ func (ins *Instance) sendMetrics(metric internalTypes.Metric, wg *sync.WaitGroup
 		"callee":      "DescribeMetricList",
 	}).SetTime(time.Now()))
 	if err != nil {
-		log.Printf("E! get metrics %s::%s error, %s", metric.Namespace, metric.MetricName, err)
+		klog.ErrorS(err, "get aliyun metrics error", "namespace", metric.Namespace, "metric_name", metric.MetricName)
 		return
 	}
 	for _, point := range points {
@@ -450,7 +450,7 @@ func (ins *Instance) fetchNamespaceMetrics(slist *types.SampleList, namespaces [
 		}).SetTime(time.Now()))
 
 		if err != nil {
-			log.Printf("E! failed to list metrics with namespace %s: %v", namespace, err)
+			klog.ErrorS(err, "failed to list aliyun metrics", "namespace", namespace)
 			// skip problem namespace on error and continue to next namespace
 			return nil, err
 		}
