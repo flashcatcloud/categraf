@@ -35,10 +35,26 @@
   ## databases are gathered.  Do NOT use with the 'ignored_databases' option.
   # databases = ["app_production", "testing"]
 
+  ## Whether to collect statement-level metrics.
+  ## Requires extension pg_stat_statements enabled, see https://www.postgresql.org/docs/current/pgstatstatements.html
+  # enable_statement_metrics = false
+  ## Max number of statements to collect
+  ## applies only when enable_statement_metrics=true
+  ## 0 means no limit
+  # statement_metrics_limit = 100
+ 
   ## Whether to use prepared statements when connecting to the database.
   ## This should be set to false when connecting through a PgBouncer instance
   ## with pool_mode set to transaction.
   #prepared_statements = true
+
+  ## Whether to skip built-in metrics from pg_stat_database.
+  # disable_pg_stat_database = false
+
+  ## Whether to skip built-in metrics from pg_stat_bgwriter.
+  ## On PostgreSQL 17+, this also skips compatibility metrics collected from pg_stat_checkpointer.
+  # disable_pg_stat_bgwriter = false
+
   # [[instances.metrics]]
   # mesurement = "sessions"
   # label_fields = [ "status", "type" ]
