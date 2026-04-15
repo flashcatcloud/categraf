@@ -50,6 +50,13 @@ address = ""
 ## with pool_mode set to transaction.
 ## 是否使用prepared statements 连接数据库
 # prepared_statements = true
+
+## Whether to skip built-in metrics from pg_stat_database.
+# disable_pg_stat_database = false
+
+## Whether to skip built-in metrics from pg_stat_bgwriter.
+## On PostgreSQL 17+, this also skips compatibility metrics collected from pg_stat_checkpointer.
+# disable_pg_stat_bgwriter = false
 ```
 ![dashboard](./postgresql.png)
 

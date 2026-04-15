@@ -176,6 +176,7 @@ require (
 require (
 	cloud.google.com/go/monitoring v1.16.3
 	github.com/AlekSi/pointer v1.2.0
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/IBM/sarama v1.42.1
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible
 	github.com/NVIDIA/go-dcgm v0.0.0-20240118201113-3385e277e49f
