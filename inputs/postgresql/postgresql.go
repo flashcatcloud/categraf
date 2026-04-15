@@ -207,6 +207,10 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		}
 	}
 
+	if err = rows.Err(); err != nil {
+		log.Println("E! failed during pg_stat_database row iteration:", err)
+	}
+
 	// Check Postgres Version
 	if ins.Version == 0 {
 		var version int
@@ -241,6 +245,10 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				return
 			}
 		}
+
+		if err = bgWriterRow.Err(); err != nil {
+			log.Println("E! failed during pg_stat_bgwriter row iteration:", err)
+		}
 	} else {
 		// PG 17+ split pg_stat_bgwriter into pg_stat_bgwriter and pg_stat_checkpointer
 
@@ -264,6 +272,10 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				log.Println("E! failed to get row data from pg_stat_bgwriter:", err)
 				return
 			}
+		}
+
+		if err = bgWriterRow.Err(); err != nil {
+			log.Println("E! failed during pg_stat_bgwriter row iteration:", err)
 		}
 
 		// 2. Query pg_stat_checkpointer (moved columns, aliased to old names for compatibility)
@@ -301,6 +313,10 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 				log.Println("E! failed to get row data from pg_stat_checkpointer:", err)
 				return
 			}
+		}
+
+		if err = checkpointerRow.Err(); err != nil {
+			log.Println("E! failed during pg_stat_checkpointer row iteration:", err)
 		}
 	}
 
@@ -396,6 +412,10 @@ func (ins *Instance) getStatementMetrics(slist *types.SampleList, version int) {
 			return
 		}
 	}
+
+	if err = statements.Err(); err != nil {
+		log.Println("E! failed during pg_stat_statements row iteration:", err)
+	}
 }
 
 func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.SampleList, metricConf MetricConfig, tags map[string]string) {
@@ -457,6 +477,10 @@ func (ins *Instance) scrapeMetric(waitMetrics *sync.WaitGroup, slist *types.Samp
 		if !metricConf.IgnoreZeroResult && count == 0 {
 			log.Println("E! no metrics found while parsing")
 		}
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Println("E! failed during custom metric row iteration:", err)
 	}
 }
 
