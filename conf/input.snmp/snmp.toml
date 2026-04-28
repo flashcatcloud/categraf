@@ -91,7 +91,7 @@ agents = [
 #inherit_tags = ["source"]
 # filters = ["A:ifIndex:^2$","B:ifOperStatus:1", "C:ifDescr:^eno*"]
 # filters_expression = "(A && B) || C"
-# filters_mode="strict"
+# filters_mode = "strict"
 
 #[[instances.table.field]]
 #oid = "IF-MIB::ifDescr"
