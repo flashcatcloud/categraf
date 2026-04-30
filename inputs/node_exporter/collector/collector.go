@@ -49,11 +49,9 @@ const (
 )
 
 var (
-	factories              = make(map[string]func() (Collector, error))
-	initiatedCollectorsMtx = sync.Mutex{}
-	initiatedCollectors    = make(map[string]Collector)
-	collectorState         = make(map[string]*bool)
-	forcedCollectors       = map[string]bool{} // collectors which have been explicitly enabled or disabled
+	factories        = make(map[string]func() (Collector, error))
+	collectorState   = make(map[string]*bool)
+	forcedCollectors = map[string]bool{} // collectors which have been explicitly enabled or disabled
 )
 
 func registerCollector(collector string, isDefaultEnabled bool, factory func() (Collector, error)) {
@@ -134,26 +132,35 @@ func NewNodeCollector(debugMode bool, filters ...string) (*NodeCollector, error)
 		f[filter] = true
 	}
 	collectors := make(map[string]Collector)
-	initiatedCollectorsMtx.Lock()
-	defer initiatedCollectorsMtx.Unlock()
 	for key, enabled := range collectorState {
 		if !*enabled && len(f) > 0 && !f[key] {
 			continue
 		}
-		if collector, ok := initiatedCollectors[key]; ok {
-			collectors[key] = collector
-		} else {
-			collector, err := factories[key]()
-			if err != nil {
-				return nil, err
-			}
-			collectors[key] = collector
-			initiatedCollectors[key] = collector
+		collector, err := createCollector(key)
+		if err != nil {
+			return nil, err
 		}
+		collectors[key] = collector
 	}
 	nc.Collectors = collectors
 	nc.DebugMode = debugMode
 	return nc, nil
+}
+
+func createCollector(name string) (collector Collector, err error) {
+	factory, ok := factories[name]
+	if !ok {
+		return nil, fmt.Errorf("missing collector factory: %s", name)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			collector = nil
+			err = fmt.Errorf("collector %s factory panic: %v", name, r)
+		}
+	}()
+
+	return factory()
 }
 
 // Describe implements the prometheus.Collector interface.
