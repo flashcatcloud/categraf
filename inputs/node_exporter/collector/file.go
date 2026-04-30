@@ -34,11 +34,12 @@ func NewFileNotifyCollector() (Collector, error) {
 		),
 	}
 	for _, fileName := range strings.Split(*fileList, ",") {
-		if len(strings.TrimSpace(fileName)) == 0 {
+		fileName = strings.TrimSpace(fileName)
+		if len(fileName) == 0 {
 			continue
 		}
 		if data, err := f.readFile(fileName); err != nil {
-			return nil, fmt.Errorf("failed to read file %s for filenotify: %w", fileName, err)
+			return nil, fmt.Errorf("failed to read file %q for filenotify: %w", fileName, err)
 		} else {
 			fileMap[fileName] = fmt.Sprintf("%x", md5.Sum(data))
 		}
