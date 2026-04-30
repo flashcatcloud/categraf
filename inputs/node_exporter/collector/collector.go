@@ -136,7 +136,7 @@ func NewNodeCollector(debugMode bool, filters ...string) (*NodeCollector, error)
 		if !*enabled && len(f) > 0 && !f[key] {
 			continue
 		}
-		collector, err := factories[key]()
+		collector, err := createCollector(key)
 		if err != nil {
 			return nil, err
 		}
@@ -145,6 +145,22 @@ func NewNodeCollector(debugMode bool, filters ...string) (*NodeCollector, error)
 	nc.Collectors = collectors
 	nc.DebugMode = debugMode
 	return nc, nil
+}
+
+func createCollector(name string) (collector Collector, err error) {
+	factory, ok := factories[name]
+	if !ok {
+		return nil, fmt.Errorf("missing collector factory: %s", name)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			collector = nil
+			err = fmt.Errorf("collector %s factory panic: %v", name, r)
+		}
+	}()
+
+	return factory()
 }
 
 // Describe implements the prometheus.Collector interface.
