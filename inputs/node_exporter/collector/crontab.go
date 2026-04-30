@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -38,8 +38,9 @@ func NewCrontabCollector() (Collector, error) {
 		if file.IsDir() {
 			continue
 		}
-		if data, err := c.readFile(path.Join(*crontabDir, file.Name())); err != nil {
-			panic(err.Error())
+		fullPath := filepath.Join(*crontabDir, file.Name())
+		if data, err := c.readFile(fullPath); err != nil {
+			return nil, fmt.Errorf("failed to read crontab file %q: %w", fullPath, err)
 		} else {
 			crontabMap[file.Name()] = fmt.Sprintf("%x", md5.Sum(data))
 		}
@@ -78,11 +79,11 @@ func (c *crontabCollector) Update(ch chan<- prometheus.Metric) error {
 		var v float64 = 0
 		if data, ok := crontabMap[fileName]; !ok {
 			v = 1
-			filedata, _ := c.readFile(path.Join(*crontabDir, fileName))
+			filedata, _ := c.readFile(filepath.Join(*crontabDir, fileName))
 			crontabMap[fileName] = fmt.Sprintf("%x", md5.Sum(filedata))
 
 		} else {
-			data1, err := c.readFile(path.Join(*crontabDir, fileName))
+			data1, err := c.readFile(filepath.Join(*crontabDir, fileName))
 			if err != nil {
 				v = 1
 			}
