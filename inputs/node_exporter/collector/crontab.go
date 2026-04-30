@@ -79,11 +79,11 @@ func (c *crontabCollector) Update(ch chan<- prometheus.Metric) error {
 		var v float64 = 0
 		if data, ok := crontabMap[fileName]; !ok {
 			v = 1
-			filedata, _ := c.readFile(path.Join(*crontabDir, fileName))
+			filedata, _ := c.readFile(filepath.Join(*crontabDir, fileName))
 			crontabMap[fileName] = fmt.Sprintf("%x", md5.Sum(filedata))
 
 		} else {
-			data1, err := c.readFile(path.Join(*crontabDir, fileName))
+			data1, err := c.readFile(filepath.Join(*crontabDir, fileName))
 			if err != nil {
 				v = 1
 			}
