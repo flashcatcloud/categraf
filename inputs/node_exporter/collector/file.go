@@ -38,7 +38,7 @@ func NewFileNotifyCollector() (Collector, error) {
 			continue
 		}
 		if data, err := f.readFile(fileName); err != nil {
-			panic(err.Error())
+			return nil, err
 		} else {
 			fileMap[fileName] = fmt.Sprintf("%x", md5.Sum(data))
 		}

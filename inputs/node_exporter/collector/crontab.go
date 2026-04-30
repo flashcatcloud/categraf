@@ -39,7 +39,7 @@ func NewCrontabCollector() (Collector, error) {
 			continue
 		}
 		if data, err := c.readFile(path.Join(*crontabDir, file.Name())); err != nil {
-			panic(err.Error())
+			return nil, err
 		} else {
 			crontabMap[file.Name()] = fmt.Sprintf("%x", md5.Sum(data))
 		}
