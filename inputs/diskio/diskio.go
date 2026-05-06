@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v4/disk"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"

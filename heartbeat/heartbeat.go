@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	cpuUtil "github.com/shirou/gopsutil/v3/cpu"
+	cpuUtil "github.com/shirou/gopsutil/v4/cpu"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/system"

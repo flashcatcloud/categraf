@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/disk"
-	"github.com/shirou/gopsutil/v3/host"
-	"github.com/shirou/gopsutil/v3/mem"
-	"github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/disk"
+	"github.com/shirou/gopsutil/v4/mem"
+	"github.com/shirou/gopsutil/v4/net"
+	"github.com/shirou/gopsutil/v4/sensors"
 )
 
 type PS interface {
@@ -22,7 +22,7 @@ type PS interface {
 	VMStat() (*mem.VirtualMemoryStat, error)
 	SwapStat() (*mem.SwapMemoryStat, error)
 	NetConnections() ([]net.ConnectionStat, error)
-	Temperature() ([]host.TemperatureStat, error)
+	Temperature() ([]sensors.TemperatureStat, error)
 }
 
 type PSDiskDeps interface {
@@ -199,10 +199,10 @@ func (s *SystemPS) SwapStat() (*mem.SwapMemoryStat, error) {
 	return mem.SwapMemory()
 }
 
-func (s *SystemPS) Temperature() ([]host.TemperatureStat, error) {
-	temp, err := host.SensorsTemperatures()
+func (s *SystemPS) Temperature() ([]sensors.TemperatureStat, error) {
+	temp, err := sensors.SensorsTemperatures()
 	if err != nil {
-		_, ok := err.(*host.Warnings)
+		_, ok := err.(*sensors.Warnings)
 		if !ok {
 			return temp, err
 		}
