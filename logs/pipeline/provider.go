@@ -9,6 +9,7 @@ package pipeline
 
 import (
 	"context"
+	"log"
 	"sync/atomic"
 
 	"flashcat.cloud/categraf/logs/diagnostic"
@@ -74,7 +75,11 @@ func (p *provider) Start() {
 	p.outputChan = p.auditor.Channel()
 
 	for i := 0; i < p.numberOfPipelines; i++ {
-		pipeline := NewPipeline(p.outputChan, p.processingRules, p.endpoints, p.destinationsContext, p.diagnosticMessageReceiver, p.serverless)
+		pipeline, err := NewPipeline(p.outputChan, p.processingRules, p.endpoints, p.destinationsContext, p.diagnosticMessageReceiver, p.serverless)
+		if err != nil {
+			log.Printf("E! failed to create pipeline %d: %v", i, err)
+			continue
+		}
 		pipeline.Start()
 		p.pipelines = append(p.pipelines, pipeline)
 	}

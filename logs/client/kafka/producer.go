@@ -3,6 +3,7 @@ package kafka
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/IBM/sarama"
 
@@ -45,8 +46,8 @@ func New(typ string, brokers []string, config *sarama.Config) (Producer, error) 
 			asyncProducer: p,
 			stop:          stop,
 		}
-		go apw.errorWorker()
-		go apw.successWorker()
+		util.SafeGoWithRestart("logs/kafka/errorWorker", apw.errorWorker, 5*time.Second)
+		util.SafeGoWithRestart("logs/kafka/successWorker", apw.successWorker, 5*time.Second)
 		return apw, nil
 	case SyncProducer:
 		p, err := sarama.NewSyncProducer(brokers, config)

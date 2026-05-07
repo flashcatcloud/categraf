@@ -9,9 +9,11 @@ package sender
 
 import (
 	"context"
+	"time"
 
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/logs/message"
+	"flashcat.cloud/categraf/logs/util"
 )
 
 // Strategy should contain all logic to send logs to a remote destination
@@ -43,7 +45,7 @@ func NewSender(inputChan chan *message.Message, outputChan chan *message.Message
 
 // Start starts the sender.
 func (s *Sender) Start() {
-	go s.run()
+	util.SafeGoWithRestart("logs/sender", s.run, 5*time.Second)
 }
 
 // Stop stops the sender,

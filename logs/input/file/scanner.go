@@ -75,7 +75,7 @@ func NewScanner(sources *logsconfig.LogSources, tailingLimit int, pipelineProvid
 
 // Start starts the Scanner
 func (s *Scanner) Start() {
-	go s.run()
+	util.SafeGoWithRestart("logs/scanner", s.run, 5*time.Second)
 }
 
 // Stop stops the Scanner and its tailers in parallel,

@@ -11,6 +11,7 @@ import (
 	"context"
 	"log"
 	"sync"
+	"time"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
 	"flashcat.cloud/categraf/logs/diagnostic"
@@ -44,7 +45,7 @@ func New(inputChan, outputChan chan *message.Message, processingRules []*logscon
 
 // Start starts the Processor.
 func (p *Processor) Start() {
-	go p.run()
+	util.SafeGoWithRestart("logs/processor", p.run, 5*time.Second)
 }
 
 // Stop stops the Processor,
