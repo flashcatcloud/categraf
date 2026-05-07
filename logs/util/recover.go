@@ -40,12 +40,40 @@ func SafeGo(component string, fn func(), onPanic func()) {
 	}()
 }
 
-// SafeGoWithRestart runs fn in a goroutine with panic recovery and
+// SafeGoWithRestart runs fn in a new goroutine with panic recovery and
 // automatic restart after a backoff delay.
-func SafeGoWithRestart(component string, fn func(), backoff time.Duration) {
-	SafeGo(component, fn, func() {
-		log.Printf("W! [%s] restarting after %v backoff", component, backoff)
-		time.Sleep(backoff)
-		SafeGoWithRestart(component, fn, backoff)
-	})
+// If stopChan is not nil, it will abort restart if stopChan is closed.
+// onDone is called when fn exits naturally, or when restarts are aborted.
+func SafeGoWithRestart(component string, fn func(), backoff time.Duration, stopChan chan struct{}, onDone func()) {
+	go func() {
+		if onDone != nil {
+			defer onDone()
+		}
+		for {
+			panicked := true
+			ch := make(chan struct{})
+			SafeGo(component, func() {
+				defer close(ch)
+				fn()
+				panicked = false
+			}, nil)
+			<-ch // wait for fn to finish or panic
+
+			if !panicked {
+				return // exited naturally
+			}
+
+			log.Printf("W! [%s] restarting after %v backoff", component, backoff)
+			if stopChan != nil {
+				select {
+				case <-time.After(backoff):
+				case <-stopChan:
+					log.Printf("I! [%s] shutdown signal received, aborting restart", component)
+					return
+				}
+			} else {
+				time.Sleep(backoff)
+			}
+		}
+	}()
 }

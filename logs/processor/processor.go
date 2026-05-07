@@ -27,6 +27,7 @@ type Processor struct {
 	processingRules           []*logsconfig.ProcessingRule
 	encoder                   Encoder
 	done                      chan struct{}
+	stop                      chan struct{}
 	diagnosticMessageReceiver diagnostic.MessageReceiver
 	mu                        sync.Mutex
 }
@@ -38,19 +39,23 @@ func New(inputChan, outputChan chan *message.Message, processingRules []*logscon
 		outputChan:                outputChan,
 		processingRules:           processingRules,
 		encoder:                   encoder,
-		done:                      make(chan struct{}, 1),
+		done:                      make(chan struct{}),
+		stop:                      make(chan struct{}),
 		diagnosticMessageReceiver: diagnosticMessageReceiver,
 	}
 }
 
 // Start starts the Processor.
 func (p *Processor) Start() {
-	util.SafeGoWithRestart("logs/processor", p.run, 5*time.Second)
+	util.SafeGoWithRestart("logs/processor", p.run, 5*time.Second, p.stop, func() {
+		close(p.done)
+	})
 }
 
 // Stop stops the Processor,
 // this call blocks until inputChan is flushed
 func (p *Processor) Stop() {
+	close(p.stop)
 	close(p.inputChan)
 	<-p.done
 }
@@ -75,18 +80,11 @@ func (p *Processor) Flush(ctx context.Context) {
 
 // run starts the processing of the inputChan
 func (p *Processor) run() {
-	normalExit := false
-	defer func() {
-		if normalExit {
-			p.done <- struct{}{}
-		}
-	}()
 	for msg := range p.inputChan {
 		p.processMessage(msg)
 		p.mu.Lock() // block here if we're trying to flush synchronously
 		p.mu.Unlock()
 	}
-	normalExit = true
 }
 
 func (p *Processor) processMessage(msg *message.Message) {

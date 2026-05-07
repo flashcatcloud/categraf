@@ -30,6 +30,7 @@ type Sender struct {
 	destinations *client.Destinations
 	strategy     Strategy
 	done         chan struct{}
+	stop         chan struct{}
 }
 
 // NewSender returns a new sender.
@@ -45,12 +46,15 @@ func NewSender(inputChan chan *message.Message, outputChan chan *message.Message
 
 // Start starts the sender.
 func (s *Sender) Start() {
-	util.SafeGoWithRestart("logs/sender", s.run, 5*time.Second)
+	util.SafeGoWithRestart("logs/sender", s.run, 5*time.Second, s.stop, func() {
+		close(s.done)
+	})
 }
 
 // Stop stops the sender,
 // this call blocks until inputChan is flushed
 func (s *Sender) Stop() {
+	close(s.stop)
 	close(s.inputChan)
 	<-s.done
 	s.destinations.Close()
@@ -62,14 +66,7 @@ func (s *Sender) Flush(ctx context.Context) {
 }
 
 func (s *Sender) run() {
-	normalExit := false
-	defer func() {
-		if normalExit {
-			s.done <- struct{}{}
-		}
-	}()
 	s.strategy.Send(s.inputChan, s.outputChan, s.send)
-	normalExit = true
 }
 
 // send sends a payload to multiple destinations,

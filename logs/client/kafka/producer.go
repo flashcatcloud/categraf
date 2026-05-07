@@ -48,8 +48,8 @@ func New(typ string, brokers []string, config *sarama.Config) (Producer, error) 
 			asyncProducer: p,
 			stop:          stop,
 		}
-		util.SafeGoWithRestart("logs/kafka/errorWorker", apw.errorWorker, 5*time.Second)
-		util.SafeGoWithRestart("logs/kafka/successWorker", apw.successWorker, 5*time.Second)
+		util.SafeGoWithRestart("logs/kafka/errorWorker", apw.errorWorker, 5*time.Second, apw.stop, nil)
+		util.SafeGoWithRestart("logs/kafka/successWorker", apw.successWorker, 5*time.Second, apw.stop, nil)
 		return apw, nil
 	case SyncProducer:
 		p, err := sarama.NewSyncProducer(brokers, config)

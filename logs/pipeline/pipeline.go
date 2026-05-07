@@ -57,7 +57,7 @@ func NewPipeline(outputChan chan *message.Message, processingRules []*logsconfig
 		for _, endpoint := range endpoints.Additionals {
 			d, err := kafka.NewDestination(endpoint, http.JSONContentType, destinationsContext, endpoints.BatchMaxConcurrentSend)
 			if err != nil {
-				log.Printf("E! kafka additional destination: %v", err)
+				log.Printf("E! kafka additional destination: %v (topic: %s) failed to initialize: %v", endpoint.Addr, endpoint.Topic, err)
 				continue
 			}
 			additionals = append(additionals, d)

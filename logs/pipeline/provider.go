@@ -87,7 +87,7 @@ func (p *provider) Start() {
 	}
 	if len(p.pipelines) == 0 {
 		log.Printf("E! all %d pipelines failed to initialize, log collection is disabled", p.numberOfPipelines)
-		p.dropChan = make(chan *message.Message)
+		p.dropChan = make(chan *message.Message, 1000)
 		util.SafeGo("logs/provider/drop", func() {
 			for range p.dropChan {
 			}
