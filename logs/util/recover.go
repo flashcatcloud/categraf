@@ -32,7 +32,14 @@ func SafeGo(component string, fn func(), onPanic func()) {
 				logsPipelinePanicTotal.WithLabelValues(component).Inc()
 				log.Printf("E! [%s] panic recovered: %v\n%s", component, r, debug.Stack())
 				if onPanic != nil {
-					onPanic()
+					func() {
+						defer func() {
+							if onPanicErr := recover(); onPanicErr != nil {
+								log.Printf("E! [%s] panic in onPanic callback: %v\n%s", component, onPanicErr, debug.Stack())
+							}
+						}()
+						onPanic()
+					}()
 				}
 			}
 		}()
@@ -47,7 +54,15 @@ func SafeGo(component string, fn func(), onPanic func()) {
 func SafeGoWithRestart(component string, fn func(), backoff time.Duration, stopChan chan struct{}, onDone func()) {
 	go func() {
 		if onDone != nil {
-			defer onDone()
+			defer func() {
+				defer func() {
+					if r := recover(); r != nil {
+						logsPipelinePanicTotal.WithLabelValues(component).Inc()
+						log.Printf("E! [%s] onDone panic recovered: %v\n%s", component, r, debug.Stack())
+					}
+				}()
+				onDone()
+			}()
 		}
 		for {
 			panicked := true
