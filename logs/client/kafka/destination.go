@@ -276,8 +276,8 @@ func (d *Destination) sendInBackground(payloadChan chan []byte) {
 				}
 				d.climit <- struct{}{}
 				util.SafeGo("logs/kafka/asyncSend", func() {
+					defer func() { <-d.climit }()
 					d.unconditionalSend(payload) //nolint:errcheck
-					<-d.climit
 				}, nil)
 			case <-ctx.Done():
 				return
