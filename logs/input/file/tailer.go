@@ -26,6 +26,7 @@ import (
 	"flashcat.cloud/categraf/logs/message"
 	"flashcat.cloud/categraf/logs/parser"
 	"flashcat.cloud/categraf/logs/tag"
+	"flashcat.cloud/categraf/logs/util"
 )
 
 // DefaultSleepDuration represents the amount of time the tailer waits before reading new data when no data is received
@@ -159,9 +160,9 @@ func (t *Tailer) Start(offset int64, whence int) error {
 	t.file.Source.Status.Success()
 	t.file.Source.AddInput(t.file.Path)
 
-	go t.forwardMessages()
+	util.SafeGo("logs/tailer/forward", t.forwardMessages, nil)
 	t.decoder.Start()
-	go t.readForever()
+	util.SafeGo("logs/tailer/read", t.readForever, nil)
 
 	return nil
 }

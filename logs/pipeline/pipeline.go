@@ -9,6 +9,8 @@ package pipeline
 
 import (
 	"context"
+	"fmt"
+	"log"
 
 	coreconfig "flashcat.cloud/categraf/config"
 	logsconfig "flashcat.cloud/categraf/config/logs"
@@ -30,7 +32,7 @@ type Pipeline struct {
 }
 
 // NewPipeline returns a new Pipeline
-func NewPipeline(outputChan chan *message.Message, processingRules []*logsconfig.ProcessingRule, endpoints *logsconfig.Endpoints, destinationsContext *client.DestinationsContext, diagnosticMessageReceiver diagnostic.MessageReceiver, serverless bool) *Pipeline {
+func NewPipeline(outputChan chan *message.Message, processingRules []*logsconfig.ProcessingRule, endpoints *logsconfig.Endpoints, destinationsContext *client.DestinationsContext, diagnosticMessageReceiver diagnostic.MessageReceiver, serverless bool) (*Pipeline, error) {
 	var (
 		destinations *client.Destinations
 		strategy     sender.Strategy
@@ -47,10 +49,18 @@ func NewPipeline(outputChan chan *message.Message, processingRules []*logsconfig
 		strategy = sender.NewBatchStrategy(sender.ArraySerializer, endpoints.BatchWait, endpoints.BatchMaxConcurrentSend, endpoints.BatchMaxSize, endpoints.BatchMaxContentSize, "logs")
 		encoder = processor.JSONEncoder
 	case "kafka":
-		main := kafka.NewDestination(endpoints.Main, http.JSONContentType, destinationsContext, endpoints.BatchMaxConcurrentSend)
+		main, err := kafka.NewDestination(endpoints.Main, http.JSONContentType, destinationsContext, endpoints.BatchMaxConcurrentSend)
+		if err != nil {
+			return nil, fmt.Errorf("kafka main destination: %w", err)
+		}
 		additionals := []client.Destination{}
 		for _, endpoint := range endpoints.Additionals {
-			additionals = append(additionals, kafka.NewDestination(endpoint, http.JSONContentType, destinationsContext, endpoints.BatchMaxConcurrentSend))
+			d, err := kafka.NewDestination(endpoint, http.JSONContentType, destinationsContext, endpoints.BatchMaxConcurrentSend)
+			if err != nil {
+				log.Printf("E! kafka additional destination: %v (topic: %s) failed to initialize: %v", endpoint.Addr, endpoint.Topic, err)
+				continue
+			}
+			additionals = append(additionals, d)
 		}
 		destinations = client.NewDestinations(main, additionals)
 		strategy = sender.StreamStrategy
@@ -64,6 +74,8 @@ func NewPipeline(outputChan chan *message.Message, processingRules []*logsconfig
 		destinations = client.NewDestinations(main, additionals)
 		strategy = sender.StreamStrategy
 		encoder = processor.RawEncoder
+	default:
+		return nil, fmt.Errorf("unsupported endpoint type: %s", endpoints.Type)
 	}
 
 	senderChan := make(chan *message.Message, coreconfig.ChanSize())
@@ -80,7 +92,7 @@ func NewPipeline(outputChan chan *message.Message, processingRules []*logsconfig
 		InputChan: inputChan,
 		processor: processor,
 		sender:    sender,
-	}
+	}, nil
 }
 
 // Start launches the pipeline

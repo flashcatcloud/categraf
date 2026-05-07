@@ -9,9 +9,11 @@ package sender
 
 import (
 	"context"
+	"time"
 
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/logs/message"
+	"flashcat.cloud/categraf/logs/util"
 )
 
 // Strategy should contain all logic to send logs to a remote destination
@@ -28,6 +30,7 @@ type Sender struct {
 	destinations *client.Destinations
 	strategy     Strategy
 	done         chan struct{}
+	stop         chan struct{}
 }
 
 // NewSender returns a new sender.
@@ -38,17 +41,21 @@ func NewSender(inputChan chan *message.Message, outputChan chan *message.Message
 		destinations: destinations,
 		strategy:     strategy,
 		done:         make(chan struct{}),
+		stop:         make(chan struct{}),
 	}
 }
 
 // Start starts the sender.
 func (s *Sender) Start() {
-	go s.run()
+	util.SafeGoWithRestart("logs/sender", s.run, 5*time.Second, s.stop, func() {
+		close(s.done)
+	})
 }
 
 // Stop stops the sender,
 // this call blocks until inputChan is flushed
 func (s *Sender) Stop() {
+	close(s.stop)
 	close(s.inputChan)
 	<-s.done
 	s.destinations.Close()
@@ -60,9 +67,6 @@ func (s *Sender) Flush(ctx context.Context) {
 }
 
 func (s *Sender) run() {
-	defer func() {
-		s.done <- struct{}{}
-	}()
 	s.strategy.Send(s.inputChan, s.outputChan, s.send)
 }
 

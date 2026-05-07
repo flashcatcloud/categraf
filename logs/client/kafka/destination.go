@@ -5,6 +5,7 @@ package kafka
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -56,11 +57,11 @@ type Destination struct {
 // If `maxConcurrentBackgroundSends` > 0, then at most that many background payloads will be sent concurrently, else
 // there is no concurrency and the background sending pipeline will block while sending each payload.
 // TODO: add support for SOCKS5
-func NewDestination(endpoint logsconfig.Endpoint, contentType string, destinationsContext *client.DestinationsContext, maxConcurrentBackgroundSends int) *Destination {
+func NewDestination(endpoint logsconfig.Endpoint, contentType string, destinationsContext *client.DestinationsContext, maxConcurrentBackgroundSends int) (*Destination, error) {
 	return newDestination(endpoint, contentType, destinationsContext, time.Duration(coreconfig.ClientTimeout())*time.Second, maxConcurrentBackgroundSends)
 }
 
-func newDestination(endpoint logsconfig.Endpoint, contentType string, destinationsContext *client.DestinationsContext, timeout time.Duration, maxConcurrentBackgroundSends int) *Destination {
+func newDestination(endpoint logsconfig.Endpoint, contentType string, destinationsContext *client.DestinationsContext, timeout time.Duration, maxConcurrentBackgroundSends int) (*Destination, error) {
 	if maxConcurrentBackgroundSends < 0 {
 		maxConcurrentBackgroundSends = 0
 	}
@@ -129,7 +130,7 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		var err error
 		coreconfig.Config.Logs.Net.TLS.Config, err = coreconfig.Config.Logs.KafkaConfig.ClientConfig.TLSConfig()
 		if err != nil {
-			panic(err)
+			return nil, fmt.Errorf("kafka TLS config: %w", err)
 		}
 	}
 	if coreconfig.Config.Logs.SaslEnable {
@@ -166,7 +167,7 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 	brokers := strings.Split(endpoint.Addr, ",")
 	c, err := New(typ, brokers, coreconfig.Config.Logs.Config)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("kafka producer: %w", err)
 	}
 
 	d := &Destination{
@@ -182,7 +183,7 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 		protocol:            endpoint.Protocol,
 		origin:              endpoint.Origin,
 	}
-	return d
+	return d, nil
 }
 
 func (d *Destination) Close() {
@@ -274,10 +275,10 @@ func (d *Destination) sendInBackground(payloadChan chan []byte) {
 					break
 				}
 				d.climit <- struct{}{}
-				go func() {
+				util.SafeGo("logs/kafka/asyncSend", func() {
+					defer func() { <-d.climit }()
 					d.unconditionalSend(payload) //nolint:errcheck
-					<-d.climit
-				}()
+				}, nil)
 			case <-ctx.Done():
 				return
 			}

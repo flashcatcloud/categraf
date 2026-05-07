@@ -9,6 +9,7 @@ package pipeline
 
 import (
 	"context"
+	"log"
 	"sync/atomic"
 
 	"flashcat.cloud/categraf/logs/diagnostic"
@@ -18,6 +19,7 @@ import (
 	"flashcat.cloud/categraf/logs/client"
 	"flashcat.cloud/categraf/logs/message"
 	"flashcat.cloud/categraf/logs/restart"
+	"flashcat.cloud/categraf/logs/util"
 )
 
 // Provider provides message channels
@@ -43,6 +45,7 @@ type provider struct {
 	destinationsContext  *client.DestinationsContext
 
 	serverless bool
+	dropChan   chan *message.Message
 }
 
 // NewProvider returns a new Provider
@@ -74,9 +77,21 @@ func (p *provider) Start() {
 	p.outputChan = p.auditor.Channel()
 
 	for i := 0; i < p.numberOfPipelines; i++ {
-		pipeline := NewPipeline(p.outputChan, p.processingRules, p.endpoints, p.destinationsContext, p.diagnosticMessageReceiver, p.serverless)
+		pipeline, err := NewPipeline(p.outputChan, p.processingRules, p.endpoints, p.destinationsContext, p.diagnosticMessageReceiver, p.serverless)
+		if err != nil {
+			log.Printf("E! failed to create pipeline %d: %v", i, err)
+			continue
+		}
 		pipeline.Start()
 		p.pipelines = append(p.pipelines, pipeline)
+	}
+	if len(p.pipelines) == 0 {
+		log.Printf("E! all %d pipelines failed to initialize, log collection is disabled", p.numberOfPipelines)
+		p.dropChan = make(chan *message.Message, 1000)
+		util.SafeGo("logs/provider/drop", func() {
+			for range p.dropChan {
+			}
+		}, nil)
 	}
 }
 
@@ -90,13 +105,17 @@ func (p *provider) Stop() {
 	stopper.Stop()
 	p.pipelines = p.pipelines[:0]
 	p.outputChan = nil
+	if p.dropChan != nil {
+		close(p.dropChan)
+		p.dropChan = nil
+	}
 }
 
 // NextPipelineChan returns the next pipeline input channel
 func (p *provider) NextPipelineChan() chan *message.Message {
 	pipelinesLen := len(p.pipelines)
 	if pipelinesLen == 0 {
-		return nil
+		return p.dropChan
 	}
 	index := int(p.currentPipelineIndex+1) % pipelinesLen
 	defer atomic.StoreInt32(&p.currentPipelineIndex, int32(index))
