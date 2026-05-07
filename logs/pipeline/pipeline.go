@@ -74,6 +74,8 @@ func NewPipeline(outputChan chan *message.Message, processingRules []*logsconfig
 		destinations = client.NewDestinations(main, additionals)
 		strategy = sender.StreamStrategy
 		encoder = processor.RawEncoder
+	default:
+		return nil, fmt.Errorf("unsupported endpoint type: %s", endpoints.Type)
 	}
 
 	senderChan := make(chan *message.Message, coreconfig.ChanSize())

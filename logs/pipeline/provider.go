@@ -83,6 +83,9 @@ func (p *provider) Start() {
 		pipeline.Start()
 		p.pipelines = append(p.pipelines, pipeline)
 	}
+	if len(p.pipelines) == 0 {
+		log.Printf("E! all %d pipelines failed to initialize, log collection is disabled", p.numberOfPipelines)
+	}
 }
 
 // Stop stops all pipelines in parallel,

@@ -38,7 +38,7 @@ func New(inputChan, outputChan chan *message.Message, processingRules []*logscon
 		outputChan:                outputChan,
 		processingRules:           processingRules,
 		encoder:                   encoder,
-		done:                      make(chan struct{}),
+		done:                      make(chan struct{}, 1),
 		diagnosticMessageReceiver: diagnosticMessageReceiver,
 	}
 }
@@ -75,14 +75,18 @@ func (p *Processor) Flush(ctx context.Context) {
 
 // run starts the processing of the inputChan
 func (p *Processor) run() {
+	normalExit := false
 	defer func() {
-		p.done <- struct{}{}
+		if normalExit {
+			p.done <- struct{}{}
+		}
 	}()
 	for msg := range p.inputChan {
 		p.processMessage(msg)
 		p.mu.Lock() // block here if we're trying to flush synchronously
 		p.mu.Unlock()
 	}
+	normalExit = true
 }
 
 func (p *Processor) processMessage(msg *message.Message) {

@@ -39,7 +39,7 @@ func NewSender(inputChan chan *message.Message, outputChan chan *message.Message
 		outputChan:   outputChan,
 		destinations: destinations,
 		strategy:     strategy,
-		done:         make(chan struct{}),
+		done:         make(chan struct{}, 1),
 	}
 }
 
@@ -62,10 +62,14 @@ func (s *Sender) Flush(ctx context.Context) {
 }
 
 func (s *Sender) run() {
+	normalExit := false
 	defer func() {
-		s.done <- struct{}{}
+		if normalExit {
+			s.done <- struct{}{}
+		}
 	}()
 	s.strategy.Send(s.inputChan, s.outputChan, s.send)
+	normalExit = true
 }
 
 // send sends a payload to multiple destinations,
