@@ -40,7 +40,8 @@ func NewSender(inputChan chan *message.Message, outputChan chan *message.Message
 		outputChan:   outputChan,
 		destinations: destinations,
 		strategy:     strategy,
-		done:         make(chan struct{}, 1),
+		done:         make(chan struct{}),
+		stop:         make(chan struct{}),
 	}
 }
 
