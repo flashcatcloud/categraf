@@ -1,125 +1,125 @@
 package disk
 
 import (
-        "log"
-        "strings"
+	"log"
+	"strings"
 
-        "flashcat.cloud/categraf/config"
-        "flashcat.cloud/categraf/inputs"
-        "flashcat.cloud/categraf/inputs/system"
-        "flashcat.cloud/categraf/pkg/choice"
-        "flashcat.cloud/categraf/types"
+	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/inputs/system"
+	"flashcat.cloud/categraf/pkg/choice"
+	"flashcat.cloud/categraf/types"
 )
 
 const inputName = "disk"
 
 type DiskStats struct {
-        ps system.PS
+	ps system.PS
 
-        config.PluginConfig
-        MountPoints       []string `toml:"mount_points"`
-        IgnoreFS          []string `toml:"ignore_fs"`
-        IgnoreMountPoints []string `toml:"ignore_mount_points"`
+	config.PluginConfig
+	MountPoints       []string `toml:"mount_points"`
+	IgnoreFS          []string `toml:"ignore_fs"`
+	IgnoreMountPoints []string `toml:"ignore_mount_points"`
 }
 
 func init() {
-        inputs.Add(inputName, func() inputs.Input {
-                return &DiskStats{
-                        ps: system.NewSystemPS(),
-                }
-        })
+	inputs.Add(inputName, func() inputs.Input {
+		return &DiskStats{
+			ps: system.NewSystemPS(),
+		}
+	})
 }
 
 func (s *DiskStats) Clone() inputs.Input {
-        return &DiskStats{
-                ps: system.NewSystemPS(),
-        }
+	return &DiskStats{
+		ps: system.NewSystemPS(),
+	}
 }
 
 func (s *DiskStats) Name() string {
-        return inputName
+	return inputName
 }
 
 func (s *DiskStats) Gather(slist *types.SampleList) {
-        disks, partitions, err := s.ps.DiskUsage(s.MountPoints, s.IgnoreFS)
-        if err != nil {
-                log.Println("E! failed to get disk usage:", err)
-                return
-        }
+	disks, partitions, err := s.ps.DiskUsage(s.MountPoints, s.IgnoreFS)
+	if err != nil {
+		log.Println("E! failed to get disk usage:", err)
+		return
+	}
 
-        for i, du := range disks {
-                // Filter ignored mount points first (including when device_error=1).
-                if len(s.IgnoreMountPoints) > 0 {
-                        if choice.ContainsPrefix(du.Path, s.IgnoreMountPoints) {
-                                continue
-                        }
-                }
+	for i, du := range disks {
+		// Filter ignored mount points first (including when device_error=1).
+		if len(s.IgnoreMountPoints) > 0 {
+			if choice.ContainsPrefix(du.Path, s.IgnoreMountPoints) {
+				continue
+			}
+		}
 
-                // 处理设备错误
-                if du.DeviceError == 1 {
-                        tags := map[string]string{
-                                "path":   du.Path,
-                                "device": strings.Replace(partitions[i].Device, "/dev/", "", -1),
-                                "fstype": du.Fstype,
-                        }
-                        fields := map[string]interface{}{
-                                "device_error": du.DeviceError,
-                        }
-                        slist.PushSamples("disk", fields, tags)
-                        continue
-                }
+		// 处理设备错误
+		if du.DeviceError == 1 {
+			tags := map[string]string{
+				"path":   du.Path,
+				"device": strings.Replace(partitions[i].Device, "/dev/", "", -1),
+				"fstype": du.Fstype,
+			}
+			fields := map[string]interface{}{
+				"device_error": du.DeviceError,
+			}
+			slist.PushSamples("disk", fields, tags)
+			continue
+		}
 
-                // 跳过空文件系统
-                if du.Total == 0 {
-                        continue
-                }
+		// 跳过空文件系统
+		if du.Total == 0 {
+			continue
+		}
 
-                // 正常采集逻辑
-                mountOpts := MountOptions(partitions[i].Opts)
-                tags := map[string]string{
-                        "path":   du.Path,
-                        "device": strings.Replace(partitions[i].Device, "/dev/", "", -1),
-                        "fstype": du.Fstype,
-                        "mode":   mountOpts.Mode(),
-                }
-                var usedPercent float64
-                if du.Used+du.Free > 0 {
-                        usedPercent = float64(du.Used) /
-                                (float64(du.Used) + float64(du.Free)) * 100
-                }
+		// 正常采集逻辑
+		mountOpts := MountOptions(partitions[i].Opts)
+		tags := map[string]string{
+			"path":   du.Path,
+			"device": strings.Replace(partitions[i].Device, "/dev/", "", -1),
+			"fstype": du.Fstype,
+			"mode":   mountOpts.Mode(),
+		}
+		var usedPercent float64
+		if du.Used+du.Free > 0 {
+			usedPercent = float64(du.Used) /
+				(float64(du.Used) + float64(du.Free)) * 100
+		}
 
-                fields := map[string]interface{}{
-                        "total":        du.Total,
-                        "free":         du.Free,
-                        "used":         du.Used,
-                        "used_percent": usedPercent,
-                        "inodes_total": du.InodesTotal,
-                        "inodes_free":  du.InodesFree,
-                        "inodes_used":  du.InodesUsed,
-                        "device_error": du.DeviceError,
-                }
+		fields := map[string]interface{}{
+			"total":        du.Total,
+			"free":         du.Free,
+			"used":         du.Used,
+			"used_percent": usedPercent,
+			"inodes_total": du.InodesTotal,
+			"inodes_free":  du.InodesFree,
+			"inodes_used":  du.InodesUsed,
+			"device_error": du.DeviceError,
+		}
 
-                slist.PushSamples("disk", fields, tags)
-        }
+		slist.PushSamples("disk", fields, tags)
+	}
 }
 
 type MountOptions []string
 
 func (opts MountOptions) Mode() string {
-        if opts.exists("rw") {
-                return "rw"
-        } else if opts.exists("ro") {
-                return "ro"
-        } else {
-                return "unknown"
-        }
+	if opts.exists("rw") {
+		return "rw"
+	} else if opts.exists("ro") {
+		return "ro"
+	} else {
+		return "unknown"
+	}
 }
 
 func (opts MountOptions) exists(opt string) bool {
-        for _, o := range opts {
-                if o == opt {
-                        return true
-                }
-        }
-        return false
+	for _, o := range opts {
+		if o == opt {
+			return true
+		}
+	}
+	return false
 }
