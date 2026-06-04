@@ -48,9 +48,7 @@ func (s *DiskStats) Gather(slist *types.SampleList) {
         }
 
         for i, du := range disks {
-                // ==========================
-                // ✅ 【修复】最先过滤忽略路径！！！
-                // ==========================
+                // Filter ignored mount points first (including when device_error=1).
                 if len(s.IgnoreMountPoints) > 0 {
                         if choice.ContainsPrefix(du.Path, s.IgnoreMountPoints) {
                                 continue
