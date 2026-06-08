@@ -29,14 +29,15 @@ var envVarEscaper = strings.NewReplacer(
 )
 
 type Global struct {
-	PrintConfigs bool              `toml:"print_configs"`
-	Hostname     string            `toml:"hostname"`
-	OmitHostname bool              `toml:"omit_hostname"`
-	Labels       map[string]string `toml:"labels"`
-	Precision    string            `toml:"precision"`
-	Interval     Duration          `toml:"interval"`
-	Providers    []string          `toml:"providers"`
-	Concurrency  int               `toml:"concurrency"`
+	PrintConfigs   bool              `toml:"print_configs"`
+	ReloadOnChange bool              `toml:"reload_on_change"`
+	Hostname       string            `toml:"hostname"`
+	OmitHostname   bool              `toml:"omit_hostname"`
+	Labels         map[string]string `toml:"labels"`
+	Precision      string            `toml:"precision"`
+	Interval       Duration          `toml:"interval"`
+	Providers      []string          `toml:"providers"`
+	Concurrency    int               `toml:"concurrency"`
 }
 
 type Log struct {
@@ -128,13 +129,13 @@ type ConfigType struct {
 
 var Config *ConfigType
 
-func InitConfig(configDir string, debugLevel int, debugMode, testMode bool, interval int64, inputFilters string) error {
+func LoadConfig(configDir string, debugLevel int, debugMode, testMode bool, interval int64, inputFilters string) (*ConfigType, error) {
 	configFile := path.Join(configDir, "config.toml")
 	if !file.IsExist(configFile) {
-		return fmt.Errorf("configuration file(%s) not found", configFile)
+		return nil, fmt.Errorf("configuration file(%s) not found", configFile)
 	}
 
-	Config = &ConfigType{
+	conf := &ConfigType{
 		ConfigDir:    configDir,
 		DebugMode:    debugMode,
 		DebugLevel:   debugLevel,
@@ -142,30 +143,49 @@ func InitConfig(configDir string, debugLevel int, debugMode, testMode bool, inte
 		InputFilters: inputFilters,
 	}
 
-	if err := cfg.LoadConfigByDir(configDir, Config); err != nil {
-		return fmt.Errorf("failed to load configs of dir: %s err:%s", configDir, err)
+	if err := cfg.LoadConfigByDir(configDir, conf); err != nil {
+		return nil, fmt.Errorf("failed to load configs of dir: %s err:%s", configDir, err)
 	}
 
 	if interval > 0 {
-		Config.Global.Interval = Duration(time.Duration(interval) * time.Second)
+		conf.Global.Interval = Duration(time.Duration(interval) * time.Second)
 	}
 
-	if Config.Global.Precision == "" {
-		Config.Global.Precision = "ms"
+	if conf.Global.Precision == "" {
+		conf.Global.Precision = "ms"
 	}
 
-	if Config.WriterOpt.ChanSize <= 0 {
-		Config.WriterOpt.ChanSize = 1000000
+	if conf.WriterOpt.ChanSize <= 0 {
+		conf.WriterOpt.ChanSize = 1000000
 	}
 
-	if Config.WriterOpt.Batch <= 0 {
-		Config.WriterOpt.Batch = 1000
+	if conf.WriterOpt.Batch <= 0 {
+		conf.WriterOpt.Batch = 1000
 	}
 
-	Config.Global.Hostname = strings.TrimSpace(Config.Global.Hostname)
+	conf.Global.Hostname = strings.TrimSpace(conf.Global.Hostname)
 
-	if err := InitHostInfo(); err != nil {
+	// If using test mode, the logs are output to standard output for easy viewing
+	if testMode {
+		conf.Log.FileName = "stdout"
+	}
+
+	return conf, nil
+}
+
+func InitConfig(configDir string, debugLevel int, debugMode, testMode bool, interval int64, inputFilters string) error {
+	conf, err := LoadConfig(configDir, debugLevel, debugMode, testMode, interval, inputFilters)
+	if err != nil {
 		return err
+	}
+
+	oldConfig := Config
+	Config = conf
+	if HostInfo == nil {
+		if err := InitHostInfo(); err != nil {
+			Config = oldConfig
+			return err
+		}
 	}
 
 	if Config.Global.PrintConfigs {
@@ -176,11 +196,6 @@ func InitConfig(configDir string, debugLevel int, debugMode, testMode bool, inte
 		} else {
 			fmt.Println(string(bs))
 		}
-	}
-
-	// If using test mode, the logs are output to standard output for easy viewing
-	if testMode {
-		Config.Log.FileName = "stdout"
 	}
 
 	return nil
