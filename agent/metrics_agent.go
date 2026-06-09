@@ -42,6 +42,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/haproxy"
 	_ "flashcat.cloud/categraf/inputs/http_response"
 	_ "flashcat.cloud/categraf/inputs/huatuo"
+	_ "flashcat.cloud/categraf/inputs/hy_smi"
 	_ "flashcat.cloud/categraf/inputs/influxdb"
 	_ "flashcat.cloud/categraf/inputs/ipmi"
 	_ "flashcat.cloud/categraf/inputs/iptables"

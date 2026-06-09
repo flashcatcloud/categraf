@@ -1,0 +1,11 @@
+# # collect interval
+# interval = 15
+
+# exec local command
+# hy_smi_command = "/opt/hyhal/bin/hy-smi --showid --showvbios --showdriverversion --showuse --showmemuse --showvoltage --showtemp --json"
+
+# exec remote command
+# hy_smi_command = "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null SSH_USER@SSH_HOST hy-smi --showid --showvbios --showdriverversion --showuse --showmemuse --showvoltage --showtemp --json"
+
+# query_timeout is used to set the query timeout to avoid the delay of data collection.
+# query_timeout = "5s"
