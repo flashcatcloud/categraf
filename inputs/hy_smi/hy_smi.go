@@ -86,7 +86,7 @@ func (s *HySMI) Gather(slist *types.SampleList) {
 
 		for fieldKey, rawValue := range fields {
 			// Skip string fields that are already used as info labels
-			if fieldKey == "Device ID" || fieldKey == "VBIOS version" {
+			if fieldKey == "Device ID" || fieldKey == "VBIOS version" || fieldKey == "Driver version" {
 				continue
 			}
 
@@ -115,6 +115,10 @@ func (s *HySMI) Gather(slist *types.SampleList) {
 
 func (s *HySMI) scrape() (cardStats, error) {
 	cmdAndArgs := strings.Fields(s.HySmiCommand)
+
+	if len(cmdAndArgs) == 0 {
+		return nil, fmt.Errorf("hy_smi_command is empty")
+	}
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
