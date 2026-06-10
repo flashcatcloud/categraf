@@ -10,17 +10,16 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/pprof"
 )
 
-func runAgent(ag *agent.Agent) {
+func runAgent(rt *agentRuntime) {
 	initLog(config.Config.Log.FileName)
-	ag.Start()
+	rt.Start()
 	go profile()
 	go reapDaemon()
-	handleSignal(ag)
+	handleSignal(rt)
 }
 
 func doOSsvc() {

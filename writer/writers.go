@@ -36,14 +36,9 @@ type (
 var writers *Writers
 
 func InitWriters() error {
-	writerMap := map[string]Writer{}
-	opts := config.Config.Writers
-	for _, opt := range opts {
-		writer, err := newWriter(opt)
-		if err != nil {
-			return err
-		}
-		writerMap[opt.Url] = writer
+	writerMap, err := BuildWriters(config.Config.Writers)
+	if err != nil {
+		return err
 	}
 
 	writers = &Writers{
@@ -53,6 +48,42 @@ func InitWriters() error {
 
 	go writers.LoopRead()
 	return nil
+}
+
+func BuildWriters(opts []config.WriterOption) (map[string]Writer, error) {
+	writerMap := map[string]Writer{}
+	for _, opt := range opts {
+		writer, err := newWriter(opt)
+		if err != nil {
+			return nil, err
+		}
+		writerMap[opt.Url] = writer
+	}
+	return writerMap, nil
+}
+
+func ReloadWriters() error {
+	writerMap, err := BuildWriters(config.Config.Writers)
+	if err != nil {
+		return err
+	}
+	ApplyWriters(writerMap)
+	return nil
+}
+
+func ApplyWriters(writerMap map[string]Writer) {
+	if writers == nil {
+		writers = &Writers{
+			writerMap: writerMap,
+			queue:     types.NewSafeListLimited[*prompb.TimeSeries](config.Config.WriterOpt.ChanSize),
+		}
+		go writers.LoopRead()
+		return
+	}
+
+	writers.Lock()
+	defer writers.Unlock()
+	writers.writerMap = writerMap
 }
 
 func (ws *Writers) LoopRead() {
@@ -127,12 +158,19 @@ func WriteTimeSeries(timeSeries []prompb.TimeSeries) {
 
 	now := time.Now()
 	wg := sync.WaitGroup{}
+	writers.Lock()
+	writerList := make([]Writer, 0, len(writers.writerMap))
 	for key := range writers.writerMap {
+		writerList = append(writerList, writers.writerMap[key])
+	}
+	writers.Unlock()
+
+	for i := range writerList {
 		wg.Add(1)
-		go func(key string) {
+		go func(w Writer) {
 			defer wg.Done()
-			writers.writerMap[key].Write(timeSeries)
-		}(key)
+			w.Write(timeSeries)
+		}(writerList[i])
 	}
 	wg.Wait()
 	if config.Config.DebugMode {

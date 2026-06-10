@@ -2,6 +2,9 @@
 # whether print configs
 print_configs = false
 
+# reload config.toml and restart agent modules when config.toml changes
+reload_on_change = false
+
 # add label(agent_hostname) to series
 # "" -> auto detect hostname
 # "xx" -> use specified string xx
