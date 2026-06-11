@@ -84,6 +84,34 @@ details.
   # priv_protocol = ""
   ## Privacy password used for encrypted messages.
   # priv_password = ""
+
+  ## -----------------------------------------------------------------------
+  ## Metric Aggregation and Mapping
+  ## -----------------------------------------------------------------------
+
+  ## Global Varbind Mapping (Optional)
+  ## Replaces or renames varbinds matching the numeric OID prefix.
+  # [instances.varbind_mapping]
+  #   ".1.3.6.1.2.1.2.2.1.1" = "ifIndex"
+  #   ".1.3.6.1.2.1.2.2.1.7" = "ifAdminStatus"
+
+  ## Global Fields To Labels (Optional)
+  ## Promotes translated varbinds matching these names into labels for the core metric
+  ## and all dispersed metrics.
+  # fields_to_labels = ["ifIndex", "ifAdminStatus", "ifOperStatus"]
+
+  ## Trap Specific Mappings (Optional)
+  ## Defines rules for specific traps. Takes precedence over global
+  ## configurations for matched varbinds; unmatched varbinds still
+  ## fall back to varbind_mapping and fields_to_labels.
+  # [[instances.trap_mapping]]
+  #   oid = ".1.3.6.1.6.3.1.1.5.3"
+  #   name = "link_down"
+  #   value = ".1.3.6.1.2.1.1.3"
+  #
+  #   [[instances.trap_mapping.varbind]]
+  #     oid = ".1.3.6.1.2.1.2.2.1.1"
+  #     name = "ifIndex"
 ```
 
 ### Using a Privileged Port
@@ -122,7 +150,11 @@ On Mac OS, listening on privileged ports is unrestricted on versions
     - version (string, "1" or "2c" or "3")
     - context_name (string, value from v3 trap)
     - engine_id (string, value from v3 trap)
-    - community (string, value from 1 or 2c trap)
+
+> **Migration Note**: The `community` tag (SNMP v1/v2c community string)
+> has been removed from metric labels for security reasons. If your
+> existing dashboards or alerts reference this label, please update them
+> accordingly.
   - fields:
     - Fields are mapped from variables in the trap. Field names are
       the trap variable names after MIB lookup. Field values are trap
@@ -131,8 +163,87 @@ On Mac OS, listening on privileged ports is unrestricted on versions
 ## Example Output
 
 ```text
-snmp_trap,mib=SNMPv2-MIB,name=coldStart,oid=.1.3.6.1.6.3.1.1.5.1,source=192.168.122.102,version=2c,community=public snmpTrapEnterprise.0="linux",sysUpTimeInstance=1i 1574109187723429814
-snmp_trap,mib=NET-SNMP-AGENT-MIB,name=nsNotifyShutdown,oid=.1.3.6.1.4.1.8072.4.0.2,source=192.168.122.102,version=2c,community=public sysUpTimeInstance=5803i,snmpTrapEnterprise.0="netSnmpNotificationPrefix" 1574109186555115459
+snmp_trap,mib=SNMPv2-MIB,name=coldStart,oid=.1.3.6.1.6.3.1.1.5.1,source=192.168.122.102,version=2c snmpTrapEnterprise.0="linux",sysUpTimeInstance=1i 1574109187723429814
+snmp_trap,mib=NET-SNMP-AGENT-MIB,name=nsNotifyShutdown,oid=.1.3.6.1.4.1.8072.4.0.2,source=192.168.122.102,version=2c sysUpTimeInstance=5803i,snmpTrapEnterprise.0="netSnmpNotificationPrefix" 1574109186555115459
+```
+
+## Metric Aggregation and Context Inheritance Tutorial
+
+This section provides a concrete example to understand how to aggregate fragmented SNMP trap varbinds into unified, alert-friendly event metrics.
+
+### 1. The SNMP Trap Simulation Command
+We will use the following Linux `snmptrap` command to simulate a `linkDown` network event:
+
+```bash
+snmptrap -v 2c -c public 127.0.0.1:162 "" \
+  .1.3.6.1.6.3.1.1.5.3 \
+  .1.3.6.1.2.1.2.2.1.1.835 i 835 \
+  .1.3.6.1.2.1.2.2.1.7.835 i 1 \
+  .1.3.6.1.2.1.2.2.1.8.835 i 2
+```
+
+**Command breakdown:**
+- `-v 2c -c public 127.0.0.1:162`: Use SNMP v2c, community "public", sending to localhost on port 162.
+- `""`: The `sysUpTime` field. An empty string tells the CLI to automatically inject the current system uptime (e.g., `123456`).
+- `.1.3.6.1.6.3.1.1.5.3`: The main Trap OID (`snmpTrapOID.0`), which translates to `linkDown` in SNMPv2-MIB.
+- `.1.3.6.1.2.1.2.2.1.1.835 i 835`: Appended Varbind. OID translates to `ifIndex.835`. Type is `i` (Integer), Value is `835`.
+- `.1.3.6.1.2.1.2.2.1.7.835 i 1`: Appended Varbind. Translates to `ifAdminStatus.835`, Value `1`.
+- `.1.3.6.1.2.1.2.2.1.8.835 i 2`: Appended Varbind. Translates to `ifOperStatus.835`, Value `2`.
+
+### 2. Configuration Case A: Explicit Core Value Mapping
+
+In this configuration, we explicitly map the device's `sysUpTimeInstance` (`.1.3.6.1.2.1.1.3`) to act as the primary metric value.
+
+```toml
+[[instances]]
+  service_address = "udp://0.0.0.0:162"
+  fields_to_labels = ["ifIndex", "ifAdminStatus", "ifOperStatus"]
+
+  [[instances.trap_mapping]]
+    oid = ".1.3.6.1.6.3.1.1.5.3" 
+    name = "link_down" 
+    value = ".1.3.6.1.2.1.1.3"  # Maps sysUpTime as the core value
+    
+    [[instances.trap_mapping.varbind]]
+      oid = ".1.3.6.1.2.1.2.2.1.1" 
+      name = "ifIndex"
+```
+
+**Result:**
+Because all varbinds sent in the trap were either absorbed as Labels or used as the Core Value, exactly **1 pure metric** is generated:
+```text
+snmp_trap_link_down{source="127.0.0.1",version="2c",oid=".1.3.6.1.6.3.1.1.5.3",name="link_down",mib="SNMPv2-MIB",ifIndex="835",ifAdminStatus="1",ifOperStatus="2"} = 123456
+```
+
+### 3. Configuration Case B: Context Inheritance (Dispersed Fallback)
+
+In this configuration, we simply comment out the `value` specification, meaning the core metric value will default to `1`.
+
+```toml
+[[instances]]
+  service_address = "udp://0.0.0.0:162"
+  fields_to_labels = ["ifIndex", "ifAdminStatus", "ifOperStatus"]
+
+  [[instances.trap_mapping]]
+    oid = ".1.3.6.1.6.3.1.1.5.3" 
+    name = "link_down" 
+    # value = ".1.3.6.1.2.1.1.3"  <--- Commented Out
+    
+    [[instances.trap_mapping.varbind]]
+      oid = ".1.3.6.1.2.1.2.2.1.1" 
+      name = "ifIndex"
+```
+
+**Result:**
+The `sysUpTimeInstance` varbind is no longer consumed by the `value` field, and it is not in the whitelist. According to the fallback logic, it drops into a dispersed metric. **Crucially, it seamlessly inherits all context labels extracted from the trap!**
+
+Two metrics are generated:
+```text
+# 1. The Core Event Metric (perfect for '> 0' alerting)
+snmp_trap_link_down{source="127.0.0.1",version="2c",oid=".1.3.6.1.6.3.1.1.5.3",name="link_down",mib="SNMPv2-MIB",ifIndex="835",ifAdminStatus="1",ifOperStatus="2"} = 1
+
+# 2. The Dispersed Fallback Metric (inheriting the full context)
+snmp_trap_sysUpTimeInstance{source="127.0.0.1",version="2c",oid=".1.3.6.1.6.3.1.1.5.3",name="link_down",mib="SNMPv2-MIB",ifIndex="835",ifAdminStatus="1",ifOperStatus="2"} = 123456
 ```
 
 ## References

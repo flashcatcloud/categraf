@@ -32,14 +32,29 @@ type SnmpTrap struct {
 	Instances []*Instance `toml:"instances"`
 }
 
+type TrapVarbind struct {
+	Oid  string `toml:"oid"`
+	Name string `toml:"name"`
+}
+
+type TrapMapping struct {
+	Oid     string        `toml:"oid"`
+	Name    string        `toml:"name"`
+	Value   string        `toml:"value"`
+	Varbind []TrapVarbind `toml:"varbind"`
+}
+
 type Instance struct {
 	config.InstanceConfig
 
-	ServiceAddress string          `toml:"service_address"`
-	Timeout        config.Duration `toml:"timeout" deprecated:"1.20.0;unused option"`
-	Version        string          `toml:"version"`
-	Translator     string          `toml:"translator"`
-	Path           []string        `toml:"path"`
+	ServiceAddress string            `toml:"service_address"`
+	Timeout        config.Duration   `toml:"timeout" deprecated:"1.20.0;unused option"`
+	Version        string            `toml:"version"`
+	Translator     string            `toml:"translator"`
+	Path           []string          `toml:"path"`
+	FieldsToLabels []string          `toml:"fields_to_labels"`
+	VarbindMapping map[string]string `toml:"varbind_mapping"`
+	TrapMapping    []TrapMapping     `toml:"trap_mapping"`
 
 	// Settings for version 3
 	// Values: "noAuthNoPriv", "authNoPriv", "authPriv"
@@ -270,6 +285,16 @@ func setTrapOid(tags map[string]string, oid string, e snmp.MibEntry) {
 	tags["mib"] = e.MibName
 }
 
+// hasOIDPrefix checks if the oid starts with the given prefix at a valid segment boundary.
+// It guards against digit-boundary mismatches (e.g., prefix ".1.3" incorrectly matching ".1.30").
+func hasOIDPrefix(oid, prefix string) bool {
+	if prefix == "" {
+		return false
+	}
+	prefix = strings.TrimSuffix(prefix, ".")
+	return oid == prefix || strings.HasPrefix(oid, prefix+".")
+}
+
 func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFunc {
 	return func(packet *gosnmp.SnmpPacket, addr *net.UDPAddr) {
 		if s.DebugMod {
@@ -281,83 +306,167 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 		tags["version"] = packet.Version.String()
 		tags["source"] = addr.IP.String()
 
-		if packet.Version == gosnmp.Version1 {
-			// Follow the procedure described in RFC 2576 3.1 to
-			// translate a v1 trap to v2.
-			var trapOid string
+		var trapOid string
+		var trapName string
 
+		// 1. Identify trap OID
+		if packet.Version == gosnmp.Version1 {
+			// Follow the procedure described in RFC 2576 3.1 to translate a v1 trap to v2.
 			if packet.GenericTrap >= 0 && packet.GenericTrap < 6 {
 				trapOid = ".1.3.6.1.6.3.1.1.5." + strconv.Itoa(packet.GenericTrap+1)
 			} else if packet.GenericTrap == 6 {
 				trapOid = packet.Enterprise + ".0." + strconv.Itoa(packet.SpecificTrap)
 			}
 
-			if trapOid != "" {
-				e, err := s.transl.lookup(trapOid)
-				if err != nil {
-					log.Printf("Error resolving V1 OID, oid=%s, source=%s: %v", trapOid, tags["source"], err)
-					return
-				}
-				setTrapOid(tags, trapOid, e)
-			}
-
 			if packet.AgentAddress != "" {
 				tags["agent_address"] = packet.AgentAddress
 			}
-
+			// sysUpTime is implicit in v1 header, push to fields to act like a varbind
 			fields["sysUpTimeInstance"] = packet.Timestamp
+		} else {
+			for _, v := range packet.Variables {
+				if v.Name == ".1.3.6.1.6.3.1.1.4.1.0" {
+					if val, ok := v.Value.(string); ok {
+						trapOid = val
+					}
+					break
+				}
+			}
 		}
 
+		if trapOid != "" {
+			e, err := s.transl.lookup(trapOid)
+			if err == nil {
+				trapName = e.OidText
+				setTrapOid(tags, trapOid, e)
+			} else {
+				trapName = trapOid
+				tags["oid"] = trapOid
+				tags["name"] = trapName
+			}
+		}
+
+		// 2. Identify active TrapMapping (longest prefix wins)
+		var trapMatchedMapping *TrapMapping
+		bestMappingLen := 0
+		for i := range s.TrapMapping {
+			normalizedOid := strings.TrimSuffix(s.TrapMapping[i].Oid, ".")
+			if hasOIDPrefix(trapOid, normalizedOid) && len(normalizedOid) > bestMappingLen {
+				bestMappingLen = len(normalizedOid)
+				trapMatchedMapping = &s.TrapMapping[i]
+			}
+		}
+
+		isAggregated := false
+		if trapMatchedMapping != nil {
+			if trapMatchedMapping.Name != "" {
+				trapName = trapMatchedMapping.Name
+				tags["name"] = trapName
+			}
+			isAggregated = true
+		} else if len(s.FieldsToLabels) > 0 || len(s.VarbindMapping) > 0 {
+			isAggregated = true
+		}
+
+		var coreValue interface{}
+		// 3. Process Varbinds
 		for _, v := range packet.Variables {
-			// Use system mibs to resolve oids.  Don't fall back to
-			// numeric oid because it's not useful enough to the end
-			// user and can be difficult to translate or remove from
-			// the database later.
+			// Skip snmpTrapOID.0 only when it was already successfully extracted.
+			// If extraction failed (trapOid is empty), keep processing so the
+			// varbind is not silently dropped.
+			if v.Name == ".1.3.6.1.6.3.1.1.4.1.0" && trapOid != "" {
+				continue
+			}
 
 			var value interface{}
-
-			// todo: format the pdu value based on its snmp type and
-			// the mib's textual convention.  The snmp input plugin
-			// only handles textual convention for ip and mac
-			// addresses
-
 			switch v.Type {
 			case gosnmp.ObjectIdentifier:
 				val, ok := v.Value.(string)
 				if !ok {
-					log.Println("E! Error getting value OID")
-					return
-				}
-
-				var e snmp.MibEntry
-				var err error
-				e, err = s.transl.lookup(val)
-				if nil != err {
-					log.Printf("Error resolving value OID, oid=%s, source=%s: %v", val, tags["source"], err)
-					return
-				}
-
-				value = e.OidText
-
-				// 1.3.6.1.6.3.1.1.4.1.0 is SNMPv2-MIB::snmpTrapOID.0.
-				// If v.Name is this oid, set a tag of the trap name.
-				if v.Name == ".1.3.6.1.6.3.1.1.4.1.0" {
-					setTrapOid(tags, val, e)
 					continue
+				}
+				e, err := s.transl.lookup(val)
+				if err == nil {
+					value = e.OidText
+				} else {
+					value = val
 				}
 			default:
 				value = v.Value
 			}
 
+			varbindName := v.Name
 			e, err := s.transl.lookup(v.Name)
-			if nil != err {
-				log.Printf("Error resolving OID oid=%s, source=%s: %v", v.Name, tags["source"], err)
-				return
+			if err == nil {
+				varbindName = e.OidText
 			}
 
-			name := e.OidText
+			isLabel := false
+			labelName := ""
+			usedAsValue := false
 
-			fields[name] = value
+			// Step A: Check TrapMapping
+			if trapMatchedMapping != nil {
+				// Check if it's the core value
+				if trapMatchedMapping.Value != "" && hasOIDPrefix(v.Name, trapMatchedMapping.Value) {
+					coreValue = value
+					usedAsValue = true
+				} else {
+					// Check varbind labels (longest prefix wins)
+					bestVBLen := 0
+					for _, vbMapping := range trapMatchedMapping.Varbind {
+						normalizedOid := strings.TrimSuffix(vbMapping.Oid, ".")
+						if hasOIDPrefix(v.Name, normalizedOid) && len(normalizedOid) > bestVBLen {
+							bestVBLen = len(normalizedOid)
+							isLabel = true
+							labelName = vbMapping.Name
+						}
+					}
+				}
+			}
+
+			// Step B: Check Global configurations if not resolved yet
+			if !isLabel && !usedAsValue {
+				// 1. Rename via VarbindMapping (longest prefix wins)
+				bestPrefix := ""
+				bestMappedName := ""
+				for prefix, mappedName := range s.VarbindMapping {
+					normalizedPrefix := strings.TrimSuffix(prefix, ".")
+					if hasOIDPrefix(v.Name, normalizedPrefix) && len(normalizedPrefix) > len(bestPrefix) {
+						bestPrefix = normalizedPrefix
+						bestMappedName = mappedName
+					}
+				}
+				if bestPrefix != "" {
+					suffix := v.Name[len(bestPrefix):]
+					varbindName = bestMappedName + suffix
+				}
+
+				// 2. Check FieldsToLabels whitelist (against renamed name)
+				for _, allowedField := range s.FieldsToLabels {
+					if varbindName == allowedField || strings.HasPrefix(varbindName, allowedField+".") {
+						isLabel = true
+						labelName = allowedField // use the base name (no suffix)
+						break
+					}
+				}
+			}
+
+			if usedAsValue {
+				continue
+			} else if isLabel && labelName != "" {
+				tags[labelName] = fmt.Sprintf("%v", value)
+			} else {
+				fields[varbindName] = value
+			}
+		}
+
+		// Also check fields populated implicitly (like sysUpTimeInstance in v1)
+		if v1SysUpTime, exists := fields["sysUpTimeInstance"]; exists {
+			if trapMatchedMapping != nil && hasOIDPrefix(".1.3.6.1.2.1.1.3.0", trapMatchedMapping.Value) {
+				coreValue = v1SysUpTime
+				delete(fields, "sysUpTimeInstance")
+			}
 		}
 
 		if packet.Version == gosnmp.Version3 {
@@ -365,12 +474,33 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 				tags["context_name"] = packet.ContextName
 			}
 			if packet.ContextEngineID != "" {
-				// SNMP RFCs like 3411 and 5343 show engine ID as a hex string
 				tags["engine_id"] = fmt.Sprintf("%x", packet.ContextEngineID)
 			}
 		}
+
+		now := time.Now()
+		if s.timeFunc != nil {
+			now = s.timeFunc()
+		}
+
+		// 4. Generate Core Metric
+		if isAggregated {
+			if coreValue == nil {
+				coreValue = 1
+			}
+			if trapName == "" {
+				trapName = trapOid
+			}
+			if trapName != "" {
+				sanitizedTrapName := strings.ReplaceAll(strings.TrimPrefix(trapName, "."), ".", "_")
+				slist.PushFront(types.NewSample(inputName, sanitizedTrapName, coreValue, tags).SetTime(now))
+			}
+		}
+
+		// 5. Generate Dispersed Metrics
 		for k, v := range fields {
-			slist.PushFront(types.NewSample(inputName, k, v, tags).SetTime(time.Now()))
+			metricKey := strings.TrimPrefix(k, ".")
+			slist.PushFront(types.NewSample(inputName, metricKey, v, tags).SetTime(now))
 		}
 	}
 }
