@@ -12,7 +12,7 @@
 
 [[instances]]
 # XSKY 存储类型
-# dss_type = "xsky"
+# dss_type = "oss" # or gfs, eus
 
 # XSKY 管理节点 (XMS) 的 API 地址列表
 servers = ["http://10.10.10.10:8056"]
@@ -22,21 +22,18 @@ xms_auth_tokens = ["xxxxxxxxxxxxx"]
 
 # 请求超时时间
 # response_timeout = "5s"
-
-# (可选) 指定将哪些 JSON 字段转化为 Label (而非指标字段)
-# tag_keys = ["pool_id", "volume_id"]
 ```
 
 ## 采集指标
 
-插件默认会将从 `/api/v1/clusters`, `/api/v1/pools`, `/api/v1/volumes`, `/api/v1/hosts` 和 `/api/v1/disks` 等 API 获取到的状态码和计数值直接映射为指标。
+插件默认会将从 `/v1/os-users`, `/v1/os-buckets`, `/v1/dfs-quotas`, `/v1/fs-folders` 和 `/v1/block-volumes` 等 API 获取到的状态码和计数值直接映射为指标。
 所有的指标统一带有 `xskyapi_` 前缀。
 
 典型指标举例：
-- `xskyapi_cluster_status`: 集群整体健康状态。
-- `xskyapi_pool_allocated_capacity`: 存储池已分配容量。
-- `xskyapi_volume_iops` / `xskyapi_volume_bandwidth`: 卷的 IOPS 与吞吐性能数据（具体字段名依赖 API 实际返回）。
-- `xskyapi_disk_status`: 硬盘的在位与健康状态。
+- `xskyapi_oss_bucket_used_size`: OSS Bucket 已使用容量。
+- `xskyapi_dfs_quota`: DFS Quota 指标。
+- `xskyapi_block_volume_used_size`: 块存储卷（Block Volume）已使用容量。
+- `xskyapi_oss_user_quota`: OSS 用户配额指标。
 
 ## 监控大盘
 
