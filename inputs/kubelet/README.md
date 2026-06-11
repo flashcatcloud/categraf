@@ -4,7 +4,7 @@ This component is not an independent Go native input plugin. Instead, it leverag
 
 ## Configuration
 
-To scrape Kubelet metrics, you should configure the `prometheus` plugin. We have prepared a dedicated scraping template for Kubelet in the example configuration directory.
+To scrape Kubelet metrics, you should configure the `prometheus` plugin.
 
 Reference configuration: `prometheus.toml`
 

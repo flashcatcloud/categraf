@@ -4,7 +4,7 @@
 
 ## 配置说明
 
-要采集 Kubelet 的指标，请使用并修改 Categraf 的 `prometheus` 插件配置。我们在示例配置中已经准备好了一个专用于 Kubelet 的抓取模板。
+要采集 Kubelet 的指标，请使用并修改 Categraf 的 `prometheus` 插件配置。
 
 参考配置：`prometheus.toml`
 
