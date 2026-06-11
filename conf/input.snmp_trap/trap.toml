@@ -34,3 +34,31 @@
   # priv_protocol = ""
   ## Privacy password used for encrypted messages.
   # priv_password = ""
+
+  ## -----------------------------------------------------------------------
+  ## Metric Aggregation and Mapping
+  ## -----------------------------------------------------------------------
+
+  ## Global Fields To Labels (Optional)
+  ## Promotes translated varbinds matching these names into labels for the core metric
+  ## and all dispersed metrics.
+  # fields_to_labels = ["ifIndex", "ifAdminStatus", "ifOperStatus"]
+
+  ## Global Varbind Mapping (Optional)
+  ## Replaces or renames varbinds matching the numeric OID prefix.
+  # [instances.varbind_mapping]
+  #   ".1.3.6.1.2.1.2.2.1.1" = "ifIndex"
+  #   ".1.3.6.1.2.1.2.2.1.7" = "ifAdminStatus"
+
+  ## Trap Specific Mappings (Optional)
+  ## Defines rules for specific traps. Takes precedence over global
+  ## configurations for matched varbinds; unmatched varbinds still
+  ## fall back to varbind_mapping and fields_to_labels.
+  # [[instances.trap_mapping]]
+  #   oid = ".1.3.6.1.6.3.1.1.5.3"
+  #   name = "link_down"
+  #   value = ".1.3.6.1.2.1.1.3"
+  #
+  #   [[instances.trap_mapping.varbind]]
+  #     oid = ".1.3.6.1.2.1.2.2.1.1"
+  #     name = "ifIndex"

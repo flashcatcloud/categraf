@@ -89,16 +89,16 @@ details.
   ## Metric Aggregation and Mapping
   ## -----------------------------------------------------------------------
 
+  ## Global Fields To Labels (Optional)
+  ## Promotes translated varbinds matching these names into labels for the core metric
+  ## and all dispersed metrics.
+  # fields_to_labels = ["ifIndex", "ifAdminStatus", "ifOperStatus"]
+
   ## Global Varbind Mapping (Optional)
   ## Replaces or renames varbinds matching the numeric OID prefix.
   # [instances.varbind_mapping]
   #   ".1.3.6.1.2.1.2.2.1.1" = "ifIndex"
   #   ".1.3.6.1.2.1.2.2.1.7" = "ifAdminStatus"
-
-  ## Global Fields To Labels (Optional)
-  ## Promotes translated varbinds matching these names into labels for the core metric
-  ## and all dispersed metrics.
-  # fields_to_labels = ["ifIndex", "ifAdminStatus", "ifOperStatus"]
 
   ## Trap Specific Mappings (Optional)
   ## Defines rules for specific traps. Takes precedence over global
