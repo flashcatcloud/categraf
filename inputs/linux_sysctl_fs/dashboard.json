@@ -19,7 +19,7 @@
       "id": 1,
       "targets": [
         {
-          "expr": "linux_sysctl_fs_file\\-nr / linux_sysctl_fs_file\\-max * 100",
+          "expr": "linux_sysctl_fs_file_nr / linux_sysctl_fs_file_max * 100",
           "legendFormat": "{{agent_hostname}}",
           "refId": "A"
         }
@@ -37,12 +37,12 @@
       "id": 2,
       "targets": [
         {
-          "expr": "linux_sysctl_fs_file\\-nr",
+          "expr": "linux_sysctl_fs_file_nr",
           "legendFormat": "Allocated",
           "refId": "A"
         },
         {
-          "expr": "linux_sysctl_fs_file\\-max",
+          "expr": "linux_sysctl_fs_file_max",
           "legendFormat": "Max",
           "refId": "B"
         }
@@ -60,12 +60,12 @@
       "id": 3,
       "targets": [
         {
-          "expr": "linux_sysctl_fs_inode\\-nr",
+          "expr": "linux_sysctl_fs_inode_nr",
           "legendFormat": "Total Inodes",
           "refId": "A"
         },
         {
-          "expr": "linux_sysctl_fs_inode\\-free\\-nr",
+          "expr": "linux_sysctl_fs_inode_free_nr",
           "legendFormat": "Free Inodes",
           "refId": "B"
         }
@@ -83,12 +83,12 @@
       "id": 4,
       "targets": [
         {
-          "expr": "linux_sysctl_fs_aio\\-nr",
+          "expr": "linux_sysctl_fs_aio_nr",
           "legendFormat": "AIO Allocated",
           "refId": "A"
         },
         {
-          "expr": "linux_sysctl_fs_aio\\-max\\-nr",
+          "expr": "linux_sysctl_fs_aio_max_nr",
           "legendFormat": "AIO Max",
           "refId": "B"
         }

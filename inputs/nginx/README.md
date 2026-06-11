@@ -93,7 +93,7 @@ server {
 }
 
 浏览器访问https://nginx.domains.com出现：
-Active connections: 5 
+Active connections: 5
 server accepts handled requests
  90837 90837   79582
 Reading: 0 Writing: 1 Waiting: 4

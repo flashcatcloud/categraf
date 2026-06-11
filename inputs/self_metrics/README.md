@@ -18,16 +18,16 @@ Since it is a built-in plugin gathering its own state, the configuration is extr
 
 ## Metrics
 
-All relevant metrics are prefixed with `categraf_` or Go's default `go_` / `process_`. Core self-monitoring metrics include:
+All relevant metrics are prefixed with `categraf_` and Go's runtime metrics like `categraf_go_` / `categraf_process_`. Core self-monitoring metrics include:
 
 - `categraf_info`: Categraf version information (value is 1, carrying a `version` tag)
 - `categraf_metrics_enqueue_sum`: Total number of metrics enqueued to the sending queue
 - `categraf_metrics_enqueue_failed_sum`: Total number of metrics that failed to enqueue
 - `categraf_current_queue_size`: Current number of pending metrics in the memory queue (if this value keeps rising, it means the pushing rate to the backend is slower than the scraping rate, or the backend is failing)
-- `go_goroutines`: Current number of Goroutines
-- `go_memstats_alloc_bytes`: Memory allocated by the Go runtime
-- `process_cpu_seconds_total`: Total CPU time consumed by the Categraf process
-- `process_resident_memory_bytes`: Resident Set Size (RSS) physical memory used by the Categraf process
+- `categraf_go_goroutines`: Current number of Goroutines
+- `categraf_go_memstats_alloc_bytes`: Memory allocated by the Go runtime
+- `categraf_process_cpu_seconds_total`: Total CPU time consumed by the Categraf process
+- `categraf_process_resident_memory_bytes`: Resident Set Size (RSS) physical memory used by the Categraf process
 
 These metrics are automatically tagged with `version` and other environmental tags.
 

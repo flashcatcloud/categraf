@@ -12,7 +12,7 @@ You can configure multiple XSKY Management Server (XMS) API endpoints and their 
 
 [[instances]]
 # XSKY storage type
-# dss_type = "xsky"
+# dss_type = "oss" # or gfs, eus
 
 # List of XSKY XMS API endpoints
 servers = ["http://10.10.10.10:8056"]
@@ -23,20 +23,18 @@ xms_auth_tokens = ["xxxxxxxxxxxxx"]
 # Request timeout
 # response_timeout = "5s"
 
-# (Optional) Specify JSON keys to be converted into labels instead of metrics
-# tag_keys = ["pool_id", "volume_id"]
 ```
 
 ## Metrics
 
-By default, the plugin queries endpoints such as `/api/v1/clusters`, `/api/v1/pools`, `/api/v1/volumes`, `/api/v1/hosts`, and `/api/v1/disks`, mapping the returned status codes and counter values directly to metrics.
+By default, the plugin queries endpoints such as `/v1/os-users`, `/v1/os-buckets`, `/v1/dfs-quotas`, `/v1/fs-folders`, and `/v1/block-volumes`, mapping the returned status codes and counter values directly to metrics.
 All metrics are prefixed with `xskyapi_`.
 
 Typical metrics include:
-- `xskyapi_cluster_status`: Overall cluster health status.
-- `xskyapi_pool_allocated_capacity`: Allocated capacity of storage pools.
-- `xskyapi_volume_iops` / `xskyapi_volume_bandwidth`: IOPS and bandwidth performance data for volumes (exact names depend on API returns).
-- `xskyapi_disk_status`: Disk presence and health status.
+- `xskyapi_oss_bucket_used_size`: Used size of OSS buckets.
+- `xskyapi_dfs_quota`: DFS quota metrics.
+- `xskyapi_block_volume_used_size`: Used size of block volumes.
+- `xskyapi_oss_user_quota`: OSS user quota metrics.
 
 ## Dashboards
 

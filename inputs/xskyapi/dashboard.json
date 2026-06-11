@@ -19,8 +19,8 @@
       "id": 1,
       "targets": [
         {
-          "expr": "xskyapi_cluster_status",
-          "legendFormat": "{{server}}",
+          "expr": "xskyapi_oss_bucket_used_size",
+          "legendFormat": "{{name}} @ {{server}}",
           "refId": "A"
         }
       ]
@@ -37,8 +37,8 @@
       "id": 2,
       "targets": [
         {
-          "expr": "xskyapi_pool_allocated_capacity",
-          "legendFormat": "{{pool_id}} @ {{server}}",
+          "expr": "xskyapi_dfs_quota",
+          "legendFormat": "{{name}} @ {{server}}",
           "refId": "A"
         }
       ]
@@ -55,8 +55,8 @@
       "id": 3,
       "targets": [
         {
-          "expr": "xskyapi_disk_status",
-          "legendFormat": "{{disk_id}} @ {{server}}",
+          "expr": "xskyapi_block_volume_used_size",
+          "legendFormat": "{{name}} @ {{server}}",
           "refId": "A"
         }
       ]

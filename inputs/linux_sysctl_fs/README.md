@@ -18,14 +18,14 @@ It is highly recommended for monitoring system-wide file descriptor limits (file
 All collected metrics are prefixed with `linux_sysctl_fs_`.
 Key metrics include:
 
-- `linux_sysctl_fs_file-nr`: Number of allocated file handles
-- `linux_sysctl_fs_file-max`: Maximum number of allowed file handles
-- `linux_sysctl_fs_inode-nr`: Number of allocated inodes
-- `linux_sysctl_fs_inode-free-nr`: Number of free inodes
-- `linux_sysctl_fs_dentry-nr`: Number of dentry cache entries
-- `linux_sysctl_fs_dentry-unused-nr`: Number of unused dentry cache entries
-- `linux_sysctl_fs_aio-nr`: Current number of asynchronous I/O (AIO) requests
-- `linux_sysctl_fs_aio-max-nr`: Maximum allowed number of AIO requests
+- `linux_sysctl_fs_file_nr`: Number of allocated file handles
+- `linux_sysctl_fs_file_max`: Maximum number of allowed file handles
+- `linux_sysctl_fs_inode_nr`: Number of allocated inodes
+- `linux_sysctl_fs_inode_free_nr`: Number of free inodes
+- `linux_sysctl_fs_dentry_nr`: Number of dentry cache entries
+- `linux_sysctl_fs_dentry_unused_nr`: Number of unused dentry cache entries
+- `linux_sysctl_fs_aio_nr`: Current number of asynchronous I/O (AIO) requests
+- `linux_sysctl_fs_aio_max_nr`: Maximum allowed number of AIO requests
 
 ## Dashboards
 

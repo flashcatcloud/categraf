@@ -55,7 +55,7 @@
       "id": 3,
       "targets": [
         {
-          "expr": "process_resident_memory_bytes{job=~'.*categraf.*'}",
+          "expr": "categraf_process_resident_memory_bytes",
           "legendFormat": "{{agent_hostname}}",
           "refId": "A"
         }
@@ -73,7 +73,7 @@
       "id": 4,
       "targets": [
         {
-          "expr": "go_goroutines{job=~'.*categraf.*'}",
+          "expr": "categraf_go_goroutines",
           "legendFormat": "{{agent_hostname}}",
           "refId": "A"
         }

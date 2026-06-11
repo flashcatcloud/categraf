@@ -18,16 +18,16 @@
 
 ## 采集指标
 
-所有相关指标均以 `categraf_` 或 Go 默认的 `go_` / `process_` 为前缀。核心自监控指标包括：
+所有相关指标均以 `categraf_` 和 Go 运行时指标 `categraf_go_` / `categraf_process_` 为前缀。核心自监控指标包括：
 
 - `categraf_info`: Categraf 版本信息，值为 1，带有 `version` 标签
 - `categraf_metrics_enqueue_sum`: 指标入队总数 (推送到发送队列)
 - `categraf_metrics_enqueue_failed_sum`: 指标入队失败总数
 - `categraf_current_queue_size`: 当前待发送指标在内存队列中的堆积量 (如果此值持续上升，说明发送到服务端的速率跟不上采集速率，或服务端出现故障)
-- `go_goroutines`: 当前 Goroutine 的数量
-- `go_memstats_alloc_bytes`: Go 运行时分配的内存大小
-- `process_cpu_seconds_total`: Categraf 进程累计消耗的 CPU 时间
-- `process_resident_memory_bytes`: Categraf 进程占用的常驻物理内存大小 (RSS)
+- `categraf_go_goroutines`: 当前 Goroutine 的数量
+- `categraf_go_memstats_alloc_bytes`: Go 运行时分配的内存大小
+- `categraf_process_cpu_seconds_total`: Categraf 进程累计消耗的 CPU 时间
+- `categraf_process_resident_memory_bytes`: Categraf 进程占用的常驻物理内存大小 (RSS)
 
 这些指标都会自动打上 `version` 等标签。
 
