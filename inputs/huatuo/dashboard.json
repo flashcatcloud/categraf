@@ -1,0 +1,28 @@
+{
+  "title": "Huatuo eBPF Metrics",
+  "uid": "b758018e",
+  "tags": [
+    "huatuo ebpf metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Huatuo Agent Information",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "id": 1,
+      "targets": []
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

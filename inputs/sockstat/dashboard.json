@@ -1,0 +1,108 @@
+{
+  "title": "Sockstat Network Connections",
+  "uid": "4dc40a41",
+  "tags": [
+    "sockstat network connections"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Socket Connection States",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sockstat_tcp_inuse",
+          "legendFormat": "TCP Inuse",
+          "refId": "A"
+        },
+        {
+          "expr": "sockstat_tcp_tw",
+          "legendFormat": "TCP TIME_WAIT",
+          "refId": "B"
+        },
+        {
+          "expr": "sockstat_tcp_orphan",
+          "legendFormat": "TCP Orphan",
+          "refId": "C"
+        },
+        {
+          "expr": "sockstat_udp_inuse",
+          "legendFormat": "UDP Inuse",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "title": "Socket Memory (Pages)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sockstat_tcp_mem",
+          "legendFormat": "TCP Mem",
+          "refId": "A"
+        },
+        {
+          "expr": "sockstat_udp_mem",
+          "legendFormat": "UDP Mem",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Total Used Sockets",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sockstat_sockets_used",
+          "legendFormat": "Total Sockets Used",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Allocated TCP Sockets",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "sockstat_tcp_alloc",
+          "legendFormat": "TCP Allocated",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "title": "Redfish Hardware Metrics",
+  "uid": "39980085",
+  "tags": [
+    "redfish hardware metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Redfish Temperature (\u00b0C)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "redfish_thermal_temperature",
+          "legendFormat": "{{name}} ({{url}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Redfish Power Consumption (Watts)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "redfish_power_consumed_watts",
+          "legendFormat": "{{url}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

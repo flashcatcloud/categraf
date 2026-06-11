@@ -1,0 +1,98 @@
+{
+  "title": "Tengine Metrics Dashboard",
+  "uid": "b453a515",
+  "tags": [
+    "tengine metrics dashboard"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Tengine Requests (QPS)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "rate(tengine_req_total[5m])",
+          "legendFormat": "{{host}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Tengine Traffic Rate (Bytes/s)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "rate(tengine_bytes_in[5m])",
+          "legendFormat": "In - {{host}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(tengine_bytes_out[5m])",
+          "legendFormat": "Out - {{host}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Tengine Errors Rate (4xx, 5xx)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "rate(tengine_http_4xx[5m])",
+          "legendFormat": "4xx - {{host}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(tengine_http_5xx[5m])",
+          "legendFormat": "5xx - {{host}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Tengine Upstream Request Latency",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "rate(tengine_ups_rt[5m]) / rate(tengine_ups_req[5m])",
+          "legendFormat": "{{host}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

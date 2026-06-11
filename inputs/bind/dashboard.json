@@ -1,0 +1,124 @@
+{
+  "title": "BIND 9",
+  "uid": "6f9a94e0",
+  "tags": [
+    "bind 9"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "BIND Status",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "bind_up",
+          "legendFormat": "{{url}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Queries Total",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "bind_server_queries",
+          "legendFormat": "Queries",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Requests Total",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "bind_server_requests",
+          "legendFormat": "Requests",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Responses Total",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "bind_server_responses",
+          "legendFormat": "Responses",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Total Use Memory (Context)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "bind_memory_context_TotalUse",
+          "legendFormat": "Total Use",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "In Use Memory (Context)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "bind_memory_context_InUse",
+          "legendFormat": "In Use",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

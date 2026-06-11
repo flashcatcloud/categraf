@@ -1,0 +1,52 @@
+{
+  "title": "Greenplum Mirror Status",
+  "uid": "47a0c77f",
+  "tags": [
+    "greenplum mirror status"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Greenplum Mirror Status (1=Passive)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "greenplum_Status",
+          "legendFormat": "Mirror: {{Mirror}} on {{Datadir}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Greenplum Data Status (1=Synchronized)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "greenplum_Data_Status",
+          "legendFormat": "Mirror: {{Mirror}} on {{Datadir}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

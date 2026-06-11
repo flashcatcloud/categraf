@@ -1,25 +1,34 @@
-# whois
+# Whois Input Plugin
 
-域名探测插件，用于探测域名的注册时间和到期时间，值为UTC0时间戳
-
+This plugin acts as a domain probe, collecting domain registration and expiration information using the Whois protocol. All returned values are standard UTC0 Unix timestamps.
 
 ## Configuration
 
-最核心的配置就是 domain 配置，配置目标地址，比如想要监控一个地址：
-默认保持注释状态，注释状态下，插件默认不启用
+The core configuration involves setting the `domain` parameter for the target address you wish to monitor.
 
 ```toml
-# [[instances]]
-## Used to collect domain name information.
-# domain = "baidu.com"
+# Collect domain whois information
+# interval = 86400
+
+[[instances]]
+# Target domain name. Please note that this must be a domain (e.g., "baidu.com"), NOT a URL (like "https://baidu.com").
+domain = "baidu.com"
 ```
-请注意这里配置的是域名不是URL
 
-## 指标解释
+## Metrics
 
-whois_domain_createddate 域名创建时间戳
-whois_domain_updateddate 域名更新时间戳
-whois_domain_expirationdate 域名到期时间戳
+The plugin outputs the following timestamp metrics:
 
-## 注意事项
-请不要将interval设置过短，会导致频繁请求timeout，没太大必要性，请尽量放长请求周期
+- `whois_domain_createddate`: Domain creation timestamp (Unix epoch).
+- `whois_domain_updateddate`: Domain last update timestamp (Unix epoch).
+- `whois_domain_expirationdate`: Domain expiration timestamp (Unix epoch).
+
+All metrics include the `domain` tag for identification.
+
+## Important Note
+
+**Do NOT** set the `interval` too short (e.g., 10 seconds). Frequent Whois queries are unnecessary and will very likely lead to rate limiting, connection timeouts, or being IP banned by the Whois servers. Please keep the collection cycle long (e.g., once a day, `interval = 86400`).
+
+## Dashboards
+
+A companion basic Dashboard (`dashboard.json`) is provided in this directory. It visualizes the days remaining until domain expiration, enabling proactive alerts before crucial domains lapse.

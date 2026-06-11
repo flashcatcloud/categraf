@@ -1,0 +1,88 @@
+{
+  "title": "S.M.A.R.T. Disk Health",
+  "uid": "87f72283",
+  "tags": [
+    "s.m.a.r.t. disk health"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Disk Health Status (1=OK)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "smart_device_health_ok",
+          "legendFormat": "{{device}} ({{serial_no}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Disk Temperature (\u00b0C)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "smart_device_temp_c",
+          "legendFormat": "{{device}} ({{serial_no}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Power-On Hours",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "smart_device_power_on_hours",
+          "legendFormat": "{{device}} ({{serial_no}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Power Cycle Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "smart_device_power_cycle_count",
+          "legendFormat": "{{device}} ({{serial_no}})",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

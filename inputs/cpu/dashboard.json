@@ -1,0 +1,88 @@
+{
+  "title": "CPU Metrics",
+  "uid": "54db23f5",
+  "tags": [
+    "cpu metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "CPU Active Usage (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "cpu_usage_active{cpu=\"cpu-total\"}",
+          "legendFormat": "Total Active",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "CPU IOWait (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "cpu_usage_iowait{cpu=\"cpu-total\"}",
+          "legendFormat": "Total IOWait",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "CPU System Time (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "cpu_usage_system{cpu=\"cpu-total\"}",
+          "legendFormat": "Total System",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "CPU User Time (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "cpu_usage_user{cpu=\"cpu-total\"}",
+          "legendFormat": "Total User",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

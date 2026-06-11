@@ -1,0 +1,34 @@
+{
+  "title": "Whois Domain Expiry Tracker",
+  "uid": "ad10a5ca",
+  "tags": [
+    "whois domain expiry tracker"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Domain Days to Expiration",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "(whois_domain_expirationdate - time()) / 86400",
+          "legendFormat": "{{domain}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

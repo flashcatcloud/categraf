@@ -1,0 +1,52 @@
+{
+  "title": "ARP Packet",
+  "uid": "dadb7b1e",
+  "tags": [
+    "arp packet"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "ARP Packet Request Num",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "arp_packet_request_num",
+          "legendFormat": "{{sourceAddr}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "ARP Packet Response Num",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "arp_packet_response_num",
+          "legendFormat": "{{sourceAddr}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

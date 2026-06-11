@@ -1,0 +1,70 @@
+{
+  "title": "XSKY Storage Cluster",
+  "uid": "b710a0dc",
+  "tags": [
+    "xsky storage cluster"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Cluster Status (1=OK)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "xskyapi_cluster_status",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Pool Allocated Capacity",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "xskyapi_pool_allocated_capacity",
+          "legendFormat": "{{pool_id}} @ {{server}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Host Disk Status",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "xskyapi_disk_status",
+          "legendFormat": "{{disk_id}} @ {{server}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

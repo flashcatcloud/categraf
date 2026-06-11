@@ -1,0 +1,28 @@
+{
+  "title": "Exec Scrape Information",
+  "uid": "1023f3d1",
+  "tags": [
+    "exec scrape information"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Exec Plugin Information",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "id": 1,
+      "targets": []
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

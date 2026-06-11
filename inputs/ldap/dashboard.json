@@ -1,0 +1,106 @@
+{
+  "title": "LDAP Server Metrics",
+  "uid": "2c8ba34a",
+  "tags": [
+    "ldap server metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "OpenLDAP Current Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "openldap_current_connections",
+          "legendFormat": "{{server}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "OpenLDAP Bind Operations/s",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "rate(openldap_bind_operations_completed[5m])",
+          "legendFormat": "{{server}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "OpenLDAP Search Operations/s",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "rate(openldap_search_operations_completed[5m])",
+          "legendFormat": "{{server}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "389ds Current Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "389ds_current_connections",
+          "legendFormat": "{{server}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "389ds Errors/s",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "rate(389ds_errors[5m])",
+          "legendFormat": "{{server}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}
