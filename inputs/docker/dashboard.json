@@ -1,0 +1,88 @@
+{
+  "title": "Docker Containers",
+  "uid": "8fe1ab62",
+  "tags": [
+    "docker containers"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Docker CPU Usage (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "docker_container_cpu_usage_percent",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Docker Memory Usage (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "docker_container_mem_usage_percent",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Docker Net RX (Bytes)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "rate(docker_container_net_rx_bytes[5m])",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Docker Net TX (Bytes)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "rate(docker_container_net_tx_bytes[5m])",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "title": "OS Process Statistics",
+  "uid": "4165ad23",
+  "tags": [
+    "os process statistics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Total Processes",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "processes_total",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Total Threads",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "processes_total_threads",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Running vs Sleeping",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "processes_running",
+          "legendFormat": "Running",
+          "refId": "A"
+        },
+        {
+          "expr": "processes_sleeping",
+          "legendFormat": "Sleeping",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Zombie Processes",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "processes_zombies",
+          "legendFormat": "Zombies",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

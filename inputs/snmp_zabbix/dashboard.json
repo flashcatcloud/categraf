@@ -1,0 +1,70 @@
+{
+  "title": "Zabbix SNMP Template General",
+  "uid": "3d0440af",
+  "tags": [
+    "zabbix snmp template general"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Zabbix SNMP - Inbound Traffic",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "rate(net_if_in[5m]) * 8",
+          "legendFormat": "{{ifName}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Zabbix SNMP - Outbound Traffic",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "rate(net_if_out[5m]) * 8",
+          "legendFormat": "{{ifName}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Zabbix SNMP - CPU Utilization",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "system_cpu_util",
+          "legendFormat": "CPU {{cpu}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

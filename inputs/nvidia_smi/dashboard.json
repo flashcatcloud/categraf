@@ -1,0 +1,88 @@
+{
+  "title": "NVIDIA GPU Metrics",
+  "uid": "ea32322d",
+  "tags": [
+    "nvidia gpu metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "GPU Utilization (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "nvidia_smi_utilization_gpu_ratio * 100",
+          "legendFormat": "{{name}} ({{uuid}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "GPU Memory Utilization (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "nvidia_smi_utilization_memory_ratio * 100",
+          "legendFormat": "{{name}} ({{uuid}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "GPU Temperature (\u00b0C)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "nvidia_smi_temperature_gpu",
+          "legendFormat": "{{name}} ({{uuid}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "GPU Power Draw (Watts)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "nvidia_smi_power_draw_watts",
+          "legendFormat": "{{name}} ({{uuid}})",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

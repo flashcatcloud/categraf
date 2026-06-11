@@ -1,0 +1,88 @@
+{
+  "title": "SNMP Base Network Interfaces",
+  "uid": "59840654",
+  "tags": [
+    "snmp base network interfaces"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "SNMP Device Uptime (days)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "uptime / 8640000",
+          "legendFormat": "{{ident}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Interface Inbound Traffic (bps)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "rate(interface_ifInOctets[5m]) * 8",
+          "legendFormat": "{{ifDescr}} @ {{ident}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Interface Outbound Traffic (bps)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "rate(interface_ifOutOctets[5m]) * 8",
+          "legendFormat": "{{ifDescr}} @ {{ident}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Interface Errors",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "rate(interface_ifInErrors[5m]) + rate(interface_ifOutErrors[5m])",
+          "legendFormat": "{{ifDescr}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

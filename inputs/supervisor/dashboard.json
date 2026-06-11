@@ -1,0 +1,52 @@
+{
+  "title": "Supervisor Process Monitor",
+  "uid": "6a519a0c",
+  "tags": [
+    "supervisor process monitor"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Supervisor Process State (20=RUNNING)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "supervisor_state",
+          "legendFormat": "{{process}} @ {{server}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Supervisor Process Uptime",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "supervisor_uptime",
+          "legendFormat": "{{process}} @ {{server}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "title": "Consul",
+  "uid": "a3fd9a39",
+  "tags": [
+    "consul"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Consul Up",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 4
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "consul_up",
+          "legendFormat": "{{address}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Consul Catalog Services",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 4
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "consul_catalog_services",
+          "legendFormat": "{{address}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Consul LAN Members",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "consul_serf_lan_members",
+          "legendFormat": "{{address}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Consul Raft Peers",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "consul_raft_peers",
+          "legendFormat": "{{address}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Consul Health Service Status (Critical)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 8
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "consul_health_service_status{status=\"critical\"}",
+          "legendFormat": "{{service_name}} on {{node}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

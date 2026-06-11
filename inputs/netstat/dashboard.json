@@ -1,0 +1,88 @@
+{
+  "title": "System Netstat Metrics",
+  "uid": "b1e40208",
+  "tags": [
+    "system netstat metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "TCP Established Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "netstat_tcp_established",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "TCP Time-Wait Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "netstat_tcp_time_wait",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "TCP Close-Wait Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "netstat_tcp_close_wait",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "UDP Sockets",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "netstat_udp_socket",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

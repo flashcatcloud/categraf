@@ -1,3 +1,13 @@
-# bitbucket
+# Bitbucket
 
-bitbucket 当前可以使用 jolokia_agent 插件来监控，通过读取 jmx 数据的方式获取监控指标，配置文件可以参考：[bitbucket.toml](../../conf/input.jolokia_agent_misc/bitbucket.toml)
+Bitbucket can be monitored using the `jolokia_agent` plugin, which retrieves metrics by reading JMX data from Atlassian Bitbucket.
+
+For configuration details, please refer to: [bitbucket.toml](../../conf/input.jolokia_agent_misc/bitbucket.toml).
+
+## Metrics
+
+Once configured via the Jolokia Agent plugin, Categraf will export the following types of metrics:
+- **JVM Metrics**: e.g., `bitbucket_jvm_operatingsystem_*`, `bitbucket_jvm_memory_*`, `bitbucket_jvm_thread_*`
+- **Webhooks**: e.g., `bitbucket_webhooks_*`
+- **Atlassian Bitbucket Metrics**: e.g., `bitbucket_atlassian_*`
+- **Thread Pools**: e.g., `bitbucket_thread_pools_*`

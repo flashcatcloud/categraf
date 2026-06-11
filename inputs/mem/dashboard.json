@@ -1,0 +1,93 @@
+{
+  "title": "System Memory Metrics",
+  "uid": "c30cc572",
+  "tags": [
+    "system memory metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Memory Usage Percent",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "mem_used_percent",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Memory Available (Bytes)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "mem_available",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Memory Swap Usage Percent",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "mem_swap_used_percent",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Memory Cached/Buffers (Bytes)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "mem_cached",
+          "legendFormat": "Cached: {{agent_hostname}}",
+          "refId": "A"
+        },
+        {
+          "expr": "mem_buffers",
+          "legendFormat": "Buffers: {{agent_hostname}}",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

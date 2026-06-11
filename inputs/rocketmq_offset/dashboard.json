@@ -1,0 +1,70 @@
+{
+  "title": "RocketMQ Consumer Lag Dashboard",
+  "uid": "5fd1862e",
+  "tags": [
+    "rocketmq consumer lag dashboard"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "RocketMQ Consumer Lag",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum by (topic, consumerGroup) (rocketmq_offset_diff)",
+          "legendFormat": "{{topic}} - {{consumerGroup}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "RocketMQ Topic Total Broker Offset",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum by (topic) (rocketmq_offset_broker_offset)",
+          "legendFormat": "{{topic}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Consumer Lag by Broker",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum by (brokerName, consumerGroup) (rocketmq_offset_diff)",
+          "legendFormat": "{{brokerName}} - {{consumerGroup}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

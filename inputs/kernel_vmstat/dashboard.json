@@ -1,0 +1,57 @@
+{
+  "title": "Linux Kernel VMStat Metrics",
+  "uid": "edaa554c",
+  "tags": [
+    "linux kernel vmstat metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Kernel VMStat OOM Kills",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "kernel_vmstat_oom_kill",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Kernel VMStat Page Faults",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "rate(kernel_vmstat_pgfault[5m])",
+          "legendFormat": "Minor: {{agent_hostname}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(kernel_vmstat_pgmajfault[5m])",
+          "legendFormat": "Major: {{agent_hostname}}",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

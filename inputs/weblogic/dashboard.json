@@ -1,0 +1,52 @@
+{
+  "title": "WebLogic via Jolokia",
+  "uid": "a5a78c5a",
+  "tags": [
+    "weblogic via jolokia"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "WebLogic JVM Heap Usage",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "weblogic_jvm_memory_HeapMemoryUsage_used",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "WebLogic Execute Thread Total Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "weblogic_ThreadPoolRuntime_ExecuteThreadTotalCount",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "title": "NATS Message Server",
+  "uid": "fba3da61",
+  "tags": [
+    "nats message server"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "NATS Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "nats_connections",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "NATS Subscriptions",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "nats_subscriptions",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "NATS Message Throughput (Msgs/s)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "rate(nats_in_msgs[5m])",
+          "legendFormat": "In",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(nats_out_msgs[5m])",
+          "legendFormat": "Out",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "NATS Byte Throughput (Bytes/s)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "rate(nats_in_bytes[5m])",
+          "legendFormat": "In",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(nats_out_bytes[5m])",
+          "legendFormat": "Out",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "NATS Slow Consumers",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 8
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "nats_slow_consumers",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}
