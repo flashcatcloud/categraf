@@ -8,7 +8,7 @@
   "schemaVersion": 30,
   "panels": [
     {
-      "title": "Cluster Status (1=OK)",
+      "title": "OSS Bucket Used Size",
       "type": "timeseries",
       "gridPos": {
         "x": 0,
@@ -26,7 +26,7 @@
       ]
     },
     {
-      "title": "Pool Allocated Capacity",
+      "title": "DFS Quota",
       "type": "timeseries",
       "gridPos": {
         "x": 12,
@@ -44,7 +44,7 @@
       ]
     },
     {
-      "title": "Host Disk Status",
+      "title": "Block Volume Used Size",
       "type": "timeseries",
       "gridPos": {
         "x": 0,
