@@ -6,10 +6,10 @@
 
 要采集 Kube-Proxy 的指标，请使用并修改 Categraf 的 `prometheus` 插件配置。我们在示例配置中已经准备好了一个专用于 Kube-Proxy 的抓取模板。
 
-参考配置：[kube_proxy.toml](../../conf/input.prometheus/kube_proxy.toml)
+参考配置：`prometheus.toml`
 
 具体步骤：
-1. 将参考配置文件 `kube_proxy.toml` 复制到您的 Categraf `conf/input.prometheus/` 目录下。
+1. 在 `conf/input.prometheus/prometheus.toml` 中新增一个用于抓取 kube-proxy 的 `[[instances]]` 配置块。
 2. 确保您的 Kubernetes 集群中，kube-proxy 的 metrics 接口 (通常是 `127.0.0.1:10249/metrics` 或者节点 IP 的 `10249` 端口) 可以被 Categraf 访问到。如果在 DaemonSet 模式下，通常通过 Node IP 访问。
 3. 修改配置中的 `urls` 指向正确的地址。
 

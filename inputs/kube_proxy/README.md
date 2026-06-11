@@ -6,10 +6,10 @@ This component is not an independent Go native input plugin. Instead, it leverag
 
 To scrape Kube-Proxy metrics, you should configure the `prometheus` plugin. We have prepared a dedicated scraping template for Kube-Proxy in the example configuration directory.
 
-Reference configuration: [kube_proxy.toml](../../conf/input.prometheus/kube_proxy.toml)
+Reference configuration: `prometheus.toml`
 
 Steps:
-1. Copy the reference configuration `kube_proxy.toml` to your Categraf `conf/input.prometheus/` directory.
+1. Add a new `[[instances]]` block in your `conf/input.prometheus/prometheus.toml` for kube-proxy.
 2. Ensure that Categraf can access the kube-proxy metrics endpoint (typically `127.0.0.1:10249/metrics` or `NodeIP:10249`). When running as a DaemonSet, this is usually accessed via the Node IP.
 3. Modify the `urls` in the configuration to point to the correct address.
 

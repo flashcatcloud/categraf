@@ -6,10 +6,10 @@ Categraf does not require a dedicated, standalone native plugin to monitor Hadoo
 
 To monitor HDFS, please configure the `jolokia_agent` plugin directly. We have already prepared a template configuration suitable for Hadoop HDFS in the example configuration directory.
 
-Please refer to: [hadoop-hdfs.toml](../../conf/example.input.jolokia_agent/hadoop-hdfs.toml)
+Please refer to: [hadoop-hdfs.toml](../../conf/input.jolokia_agent_misc/hadoop-hdfs.toml)
 
 Steps:
-1. Copy the reference configuration above into your Categraf `conf/input.jolokia_agent/` directory.
+1. Copy the reference configuration above into your Categraf `conf/input.jolokia_agent_misc/` directory.
 2. Ensure that Jolokia Agent is enabled on your Hadoop NameNode or DataNode.
 3. Modify the `urls` in the configuration file to point to your real Jolokia JMX HTTP Endpoint (e.g., `http://localhost:8778/jolokia/`).
 

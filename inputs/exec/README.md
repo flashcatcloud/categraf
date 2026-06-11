@@ -9,7 +9,7 @@ The executed script must print the monitoring data to stdout in one of the follo
 
 ### 1. influx
 ```text
-mesurement,labelkey1=labelval1,labelkey2=labelval2 field1=1.2,field2=2.3
+measurement,labelkey1=labelval1,labelkey2=labelval2 field1=1.2,field2=2.3
 ```
 - Measurement and tags are separated by a comma.
 - Tags are separated by commas.

@@ -9,12 +9,12 @@ Exec 插件主要用于执行用户自定义的监控脚本或程序，并将脚
 
 ### 1. influx
 ```text
-mesurement,labelkey1=labelval1,labelkey2=labelval2 field1=1.2,field2=2.3
+measurement,labelkey1=labelval1,labelkey2=labelval2 field1=1.2,field2=2.3
 ```
-- 指标名 (mesurement) 和标签 (Tags) 之间用逗号分隔
+- 指标名 (measurement) 和标签 (Tags) 之间用逗号分隔
 - 标签之间用逗号分隔
 - 标签和属性字段 (Fields) 之间用**空格**分隔
-- 最终的指标名会根据 `mesurement` 和 `field` 组合生成
+- 最终的指标名会根据 `measurement` 和 `field` 组合生成
 
 ### 2. prometheus
 直接输出 Prometheus 的标准 Exposition 格式：

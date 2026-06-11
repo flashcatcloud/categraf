@@ -6,12 +6,12 @@
 
 要采集 Kubelet 的指标，请使用并修改 Categraf 的 `prometheus` 插件配置。我们在示例配置中已经准备好了一个专用于 Kubelet 的抓取模板。
 
-参考配置：[kubelet.toml](../../conf/input.prometheus/kubelet.toml)
+参考配置：`prometheus.toml`
 
 具体步骤：
-1. 将参考配置文件 `kubelet.toml` 复制到您的 Categraf `conf/input.prometheus/` 目录下。
+1. 在 `conf/input.prometheus/prometheus.toml` 中新增一个用于抓取 Kubelet 的 `[[instances]]` 配置块。
 2. 确保 Categraf 作为 DaemonSet 部署在每个 Node 上时，可以访问到当前节点的 Kubelet API（通常通过挂载 Node 的 IP 和相应的认证 Token 获取）。
-3. 根据您的 Kubernetes 集群的安全配置（如是否需要 TLS，Token 文件路径），在 `kubelet.toml` 中配置正确的认证信息。
+3. 根据您的 Kubernetes 集群的安全配置（如是否需要 TLS，Token 文件路径），在相应的配置块中配置正确的认证信息。
 
 ## 采集指标与监控大盘
 

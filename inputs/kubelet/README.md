@@ -6,12 +6,12 @@ This component is not an independent Go native input plugin. Instead, it leverag
 
 To scrape Kubelet metrics, you should configure the `prometheus` plugin. We have prepared a dedicated scraping template for Kubelet in the example configuration directory.
 
-Reference configuration: [kubelet.toml](../../conf/input.prometheus/kubelet.toml)
+Reference configuration: `prometheus.toml`
 
 Steps:
-1. Copy the reference configuration `kubelet.toml` to your Categraf `conf/input.prometheus/` directory.
+1. Add a new `[[instances]]` block in your `conf/input.prometheus/prometheus.toml` for Kubelet.
 2. Ensure that Categraf (usually deployed as a DaemonSet on each Node) can access the Kubelet API on the current node. This often involves using the Node IP and a service account token.
-3. Configure the correct authentication in `kubelet.toml` according to your Kubernetes cluster's security setup (e.g., TLS settings, token file paths).
+3. Configure the correct authentication in your prometheus configuration according to your Kubernetes cluster's security setup (e.g., TLS settings, token file paths).
 
 ## Metrics and Dashboards
 
