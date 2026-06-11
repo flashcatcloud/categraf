@@ -28,7 +28,6 @@
 - `processes_paging`: 处于 paging 状态的进程数
 - `processes_dead`: 处于 dead 状态的进程数
 - `processes_idle`: 处于 idle 状态的进程数
-- `processes_threads`: 系统中总的线程数
 - `processes_total_threads`: 同上，系统中总的线程数
 
 ## 监控大盘

@@ -37,7 +37,7 @@
       "id": 2,
       "targets": [
         {
-          "expr": "processes_threads",
+          "expr": "processes_total_threads",
           "legendFormat": "{{agent_hostname}}",
           "refId": "A"
         }

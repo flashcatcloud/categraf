@@ -28,7 +28,6 @@ All metrics are prefixed with `processes_`. Key metrics include but are not limi
 - `processes_paging`: Number of paging processes
 - `processes_dead`: Number of dead processes
 - `processes_idle`: Number of idle processes
-- `processes_threads`: Total number of threads in the system
 - `processes_total_threads`: Same as above, total number of threads
 
 ## Dashboards

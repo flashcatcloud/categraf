@@ -19,7 +19,7 @@
       "id": 1,
       "targets": [
         {
-          "expr": "appdynamics_up",
+          "expr": "up",
           "legendFormat": "{{metric_path}}",
           "refId": "A"
         }

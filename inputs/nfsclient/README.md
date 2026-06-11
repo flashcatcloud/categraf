@@ -29,7 +29,7 @@ fullstat = false
 The plugin supports NFSv3 and NFSv4. All metrics are tagged with `mountpoint`, `server` (NFS server address), and `export` (exported path).
 
 Key metric categories include:
-- **Bytes Statistics (`nfsclient_bytes_*)**: `read`, `write`, `direct_read`, `direct_write`
+- **Bytes Statistics (`nfsclient_bytes_*`)**: `read`, `write`, `direct_read`, `direct_write`
 - **Event Statistics (`nfsclient_events_*)**: `inoderevalidates`, `dentryrevalidates`, `datainvalidates`, etc.
 - **Operation Statistics (`nfsclient_ops_*`)**:
   - `ops`: Total number of requests for the operation
