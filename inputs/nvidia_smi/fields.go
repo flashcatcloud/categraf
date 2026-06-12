@@ -14,6 +14,7 @@ import (
 
 const (
 	uuidQField               qField = "uuid"
+	indexQField              qField = "index"
 	nameQField               qField = "name"
 	driverModelCurrentQField qField = "driver_model.current"
 	driverModelPendingQField qField = "driver_model.pending"

@@ -80,6 +80,7 @@ func (s *GPUStats) Gather(slist *types.SampleList) {
 
 	for _, currentRow := range currentTable.rows {
 		uuid := strings.TrimPrefix(strings.ToLower(currentRow.qFieldToCells[uuidQField].rawValue), "gpu-")
+		index := currentRow.qFieldToCells[indexQField].rawValue
 		name := currentRow.qFieldToCells[nameQField].rawValue
 		driverModelCurrent := currentRow.qFieldToCells[driverModelCurrentQField].rawValue
 		driverModelPending := currentRow.qFieldToCells[driverModelPendingQField].rawValue
@@ -88,6 +89,7 @@ func (s *GPUStats) Gather(slist *types.SampleList) {
 
 		slist.PushFront(types.NewSample(inputName, "gpu_info", 1, map[string]string{
 			"uuid":                 uuid,
+			"index":                index,
 			"name":                 name,
 			"driver_model_current": driverModelCurrent,
 			"driver_model_pending": driverModelPending,
@@ -106,7 +108,7 @@ func (s *GPUStats) Gather(slist *types.SampleList) {
 				continue
 			}
 
-			slist.PushFront(types.NewSample(inputName, metricInfo.metricName, num, map[string]string{"uuid": uuid}))
+			slist.PushFront(types.NewSample(inputName, metricInfo.metricName, num, map[string]string{"uuid": uuid, "index": index}))
 		}
 	}
 }
