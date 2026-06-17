@@ -165,7 +165,7 @@ func TestV2010ParseVRRPData(t *testing.T) {
 	}
 }
 
-func TestV215ParseVRRPScript(t *testing.T) {
+func TestV2010ParseVRRPScript(t *testing.T) {
 	t.Parallel()
 
 	f, err := os.Open("../test_files/v2.0.10/keepalived.data")
@@ -195,7 +195,7 @@ func TestV215ParseVRRPScript(t *testing.T) {
 	}
 }
 
-func TestV2010ParseVRRPScript(t *testing.T) {
+func TestV215ParseVRRPScript(t *testing.T) {
 	t.Parallel()
 
 	f, err := os.Open("../test_files/v2.1.5/keepalived.data")

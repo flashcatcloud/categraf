@@ -81,7 +81,7 @@ func (c *Component) GetData(requestURL string) (map[string]interface{}, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("get data from %s returned status %d", requestURL, resp.StatusCode)
+		return nil, fmt.Errorf("get data from %s returned status %s", requestURL, resp.Status)
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
@@ -230,8 +230,7 @@ func (e *Component) getDataWithSpnego(requestURL string) (map[string]interface{}
 	// Load the client krb5 config
 	krb5ConfData, err := os.Open(e.KerberosConfigPath)
 	if err != nil {
-		errInfo := fmt.Sprintf("could not open krb5.conf %s", err)
-		return nil, errors.New(errInfo)
+		return nil, fmt.Errorf("could not open krb5.conf %q: %w", e.KerberosConfigPath, err)
 	}
 	defer krb5ConfData.Close()
 
@@ -255,7 +254,8 @@ func (e *Component) getDataWithSpnego(requestURL string) (map[string]interface{}
 		return nil, errors.New(errInfo)
 	}
 
-	spnegoCl := spnego.NewClient(cl, nil, SaslUsername)
+	spnegoHTTPClient := &http.Client{Timeout: 5 * time.Second}
+	spnegoCl := spnego.NewClient(cl, spnegoHTTPClient, SaslUsername)
 	resp, err := spnegoCl.Do(r)
 	if err != nil {
 		errInfo := fmt.Sprintf("error making spnego request %s ,err is %s", requestURL, err)
@@ -264,8 +264,7 @@ func (e *Component) getDataWithSpnego(requestURL string) (map[string]interface{}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		errInfo := fmt.Sprintf("spnego request %s returned status %d", requestURL, resp.StatusCode)
-		return nil, errors.New(errInfo)
+		return nil, fmt.Errorf("spnego request %s returned status %s", requestURL, resp.Status)
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)

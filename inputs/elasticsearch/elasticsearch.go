@@ -465,7 +465,7 @@ func (ins *Instance) classifyDynamicIndexes(indicesInfo []IndicesInfo) []string 
 	if len(ins.DynamicIndexMatcherRegexp) == 0 {
 		//default matcher
 		ins.DynamicIndexMatcherRegexp = append(ins.DynamicIndexMatcherRegexp, `(?P<date>(?:\d{4}|\d{2})[.-]?(?:\d{2})[.-]?(?:\d{2})?[.-]?(?:\d{2})?)$`)
-		ins.DynamicIndexMatcherRegexp = append(ins.DynamicIndexMatcherRegexp, `[\.-._]\d+(\.\d+){0,2}$`)
+		ins.DynamicIndexMatcherRegexp = append(ins.DynamicIndexMatcherRegexp, `[._-]\d+(\.\d+){0,2}$`)
 	}
 
 	var patterns []*regexp.Regexp
