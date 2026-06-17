@@ -20,7 +20,7 @@ import (
 
 	"github.com/prometheus/prometheus/model/histogram"
 	"github.com/prometheus/prometheus/model/metadata"
-	"github.com/prometheus/prometheus/tsdb/wlog"
+	"github.com/prometheus/prometheus/util/compression"
 	"github.com/prometheus/prometheus/util/logging"
 	"github.com/prometheus/prometheus/util/notifications"
 
@@ -399,6 +399,16 @@ func (c *flagConfig) setFeatureListOptions(logger *slog.Logger) error {
 	return nil
 }
 
+func parseCompressionType(walCompression bool, walCompressionType string) compression.Type {
+	if !walCompression {
+		return compression.None
+	}
+	if walCompressionType == "" {
+		return compression.Snappy
+	}
+	return compression.Type(walCompressionType)
+}
+
 type tsdbOptions struct {
 	WALSegmentSize                 units.Base2Bytes
 	MaxBlockChunkSegmentSize       units.Base2Bytes
@@ -425,7 +435,7 @@ func (opts tsdbOptions) ToTSDBOptions() tsdb.Options {
 		MaxBytes:                 int64(opts.MaxBytes),
 		NoLockfile:               opts.NoLockfile,
 		//AllowOverlappingCompaction:     true,
-		WALCompression:                 wlog.ParseCompressionType(opts.WALCompression, opts.WALCompressionType),
+		WALCompression:                 parseCompressionType(opts.WALCompression, opts.WALCompressionType),
 		HeadChunksWriteQueueSize:       opts.HeadChunksWriteQueueSize,
 		StripeSize:                     opts.StripeSize,
 		MinBlockDuration:               int64(time.Duration(opts.MinBlockDuration) / time.Millisecond),
@@ -491,7 +501,7 @@ func computeExternalURL(u, listenAddr string) (*url.URL, error) {
 func (opts agentOptions) ToAgentOptions() agent.Options {
 	return agent.Options{
 		WALSegmentSize:    int(opts.WALSegmentSize),
-		WALCompression:    wlog.ParseCompressionType(opts.WALCompression, opts.WALCompressionType),
+		WALCompression:    parseCompressionType(opts.WALCompression, opts.WALCompressionType),
 		StripeSize:        opts.StripeSize,
 		TruncateFrequency: time.Duration(opts.TruncateFrequency),
 		MinWALTime:        durationToInt64Millis(time.Duration(opts.MinWALTime)),
@@ -525,7 +535,7 @@ func Start() {
 			Gatherer:   prometheus.DefaultGatherer,
 		},
 		promlogConfig: promlog.Config{
-			Level: &promlog.AllowedLevel{},
+			Level: promlog.NewLevel(),
 		},
 	}
 
@@ -633,7 +643,7 @@ func Start() {
 
 	remoteFlushDeadline := time.Duration(1 * time.Minute)
 	localStoragePath := cfg.agentStoragePath
-	remoteStorage := remote.NewStorage(logger.With(logger, "component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, time.Duration(remoteFlushDeadline), scraper, cfg.scrape.AppendMetadata)
+	remoteStorage := remote.NewStorage(logger.With(logger, "component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, time.Duration(remoteFlushDeadline), scraper)
 	fanoutStorage := storage.NewFanout(logger, localStorage, remoteStorage)
 
 	scrapeManager, err := scrape.NewManager(
