@@ -643,7 +643,7 @@ func Start() {
 
 	remoteFlushDeadline := time.Duration(1 * time.Minute)
 	localStoragePath := cfg.agentStoragePath
-	remoteStorage := remote.NewStorage(logger.With(logger, "component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, time.Duration(remoteFlushDeadline), scraper)
+	remoteStorage := remote.NewStorage(logger.With("component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, remoteFlushDeadline, scraper)
 	fanoutStorage := storage.NewFanout(logger, localStorage, remoteStorage)
 
 	scrapeManager, err := scrape.NewManager(
