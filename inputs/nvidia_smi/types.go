@@ -24,6 +24,7 @@ var (
 
 	requiredFields = []qField{
 		uuidQField,
+		indexQField,
 		nameQField,
 		driverModelCurrentQField,
 		driverModelPendingQField,
