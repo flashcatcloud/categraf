@@ -1,0 +1,12 @@
+ VRRP Instance = VI_1
+   State = MASTER
+   Wantstate = MASTER
+   Interface = ens192
+   Gratuitous ARP delay = 5
+   Virtual Router ID = 52
+   Virtual IP:
+     2.2.2.2/32 dev ens192 scope global
+Global definitions
+ VRRP Script = chk_service
+   Status = GOOD
+   State = idle

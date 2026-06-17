@@ -1,0 +1,57 @@
+VRRP Instance: VI_EXT_1
+  Advertisements:
+    Received: 11
+    Sent: 12
+  Became master: 2
+  Released master: 1
+  Packet Errors:
+    Length: 1
+    TTL: 1
+    Invalid Type: 1
+    Advertisement Interval: 1
+    Address List: 1
+  Authentication Errors:
+    Invalid Type: 2
+    Type Mismatch: 2
+    Failure: 2
+  Priority Zero:
+    Received: 1
+    Sent: 1
+VRRP Instance: VI_EXT_2
+  Advertisements:
+    Received: 10
+    Sent: 158
+  Became master: 2
+  Released master: 2
+  Packet Errors:
+    Length: 10
+    TTL: 10
+    Invalid Type: 10
+    Advertisement Interval: 10
+    Address List: 10
+  Authentication Errors:
+    Invalid Type: 20
+    Type Mismatch: 20
+    Failure: 20
+  Priority Zero:
+    Received: 12
+    Sent: 12
+VRRP Instance: VI_EXT_3
+  Advertisements:
+    Received: 23
+    Sent: 172
+  Became master: 4
+  Released master: 4
+  Packet Errors:
+    Length: 30
+    TTL: 30
+    Invalid Type: 30
+    Advertisement Interval: 30
+    Address List: 30
+  Authentication Errors:
+    Invalid Type: 10
+    Type Mismatch: 10
+    Failure: 2
+  Priority Zero:
+    Received: 1
+    Sent: 2

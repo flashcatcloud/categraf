@@ -132,6 +132,9 @@ func (ins *Instance) Init() error {
 	if len(ins.Servers) == 0 {
 		return types.ErrInstancesEmpty
 	}
+	for i, server := range ins.Servers {
+		ins.Servers[i] = config.Expand(server)
+	}
 	if ins.HTTPTimeout <= 0 {
 		ins.HTTPTimeout = config.Duration(5 * time.Second)
 	}
@@ -461,8 +464,8 @@ func (ins *Instance) classifyDynamicIndexes(indicesInfo []IndicesInfo) []string 
 
 	if len(ins.DynamicIndexMatcherRegexp) == 0 {
 		//default matcher
-		ins.DynamicIndexMatcherRegexp = append(ins.DynamicIndexMatcherRegexp, `(?P<date>(?:\\d{4}|\\d{2})[.-]?(?:\\d{2})[.-]?(?:\\d{2})?[.-]?(?:\\d{2})?)$`)
-		ins.DynamicIndexMatcherRegexp = append(ins.DynamicIndexMatcherRegexp, `[\\.-._]\\d+(\\.\\d+){0,2}$`)
+		ins.DynamicIndexMatcherRegexp = append(ins.DynamicIndexMatcherRegexp, `(?P<date>(?:\d{4}|\d{2})[.-]?(?:\d{2})[.-]?(?:\d{2})?[.-]?(?:\d{2})?)$`)
+		ins.DynamicIndexMatcherRegexp = append(ins.DynamicIndexMatcherRegexp, `[._-]\d+(\.\d+){0,2}$`)
 	}
 
 	var patterns []*regexp.Regexp
