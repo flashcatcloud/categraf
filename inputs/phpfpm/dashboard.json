@@ -1,0 +1,98 @@
+{
+  "title": "PHP-FPM Status",
+  "uid": "84b323a9",
+  "tags": [
+    "php-fpm status"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "PHP-FPM Active vs Idle Processes",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "phpfpm_active_processes",
+          "legendFormat": "Active: {{pool}}",
+          "refId": "A"
+        },
+        {
+          "expr": "phpfpm_idle_processes",
+          "legendFormat": "Idle: {{pool}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "PHP-FPM Listen Queue",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "phpfpm_listen_queue",
+          "legendFormat": "Current Queue: {{pool}}",
+          "refId": "A"
+        },
+        {
+          "expr": "phpfpm_max_listen_queue",
+          "legendFormat": "Max Queue: {{pool}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "PHP-FPM Requests Accepted/s",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "rate(phpfpm_accepted_conn[5m])",
+          "legendFormat": "{{pool}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "PHP-FPM Max Children Reached",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "increase(phpfpm_max_children_reached[5m])",
+          "legendFormat": "Limit Hit: {{pool}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

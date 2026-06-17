@@ -1,0 +1,32 @@
+{
+  "title": "gNMI Telemetry",
+  "uid": "b2faee7e",
+  "tags": [
+    "gnmi telemetry"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "gNMI Plugin Information",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "id": 1,
+      "options": {
+        "content": "gNMI metrics depend on the subscribed YANG paths and the subscription name configured in gnmi.toml. Build panels from the emitted measurement and field names.",
+        "mode": "markdown"
+      },
+      "targets": []
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

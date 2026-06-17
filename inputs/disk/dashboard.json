@@ -1,0 +1,88 @@
+{
+  "title": "Disk Usage Metrics",
+  "uid": "79722b25",
+  "tags": [
+    "disk usage metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Disk Space Used (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "disk_used_percent",
+          "legendFormat": "{{device}} on {{path}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Disk Inodes Used (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "disk_inodes_used_percent",
+          "legendFormat": "{{device}} on {{path}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Disk Space Used (Bytes)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "disk_used",
+          "legendFormat": "{{device}} on {{path}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Disk Space Total (Bytes)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "disk_total",
+          "legendFormat": "{{device}} on {{path}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

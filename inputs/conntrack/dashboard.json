@@ -1,0 +1,62 @@
+{
+  "title": "Conntrack",
+  "uid": "3fbb5bac",
+  "tags": [
+    "conntrack"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Conntrack Usage (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "conntrack_ip_conntrack_count / conntrack_ip_conntrack_max * 100",
+          "legendFormat": "ip_conntrack Usage %",
+          "refId": "A"
+        },
+        {
+          "expr": "conntrack_nf_conntrack_count / conntrack_nf_conntrack_max * 100",
+          "legendFormat": "nf_conntrack Usage %",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Conntrack Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "conntrack_ip_conntrack_count",
+          "legendFormat": "ip_conntrack Count",
+          "refId": "A"
+        },
+        {
+          "expr": "conntrack_nf_conntrack_count",
+          "legendFormat": "nf_conntrack Count",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

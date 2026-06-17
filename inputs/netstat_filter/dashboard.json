@@ -1,0 +1,88 @@
+{
+  "title": "Netstat Filter Quality",
+  "uid": "5fa8290a",
+  "tags": [
+    "netstat filter quality"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Filtered TCP Established",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "netstat_filter_tcp_established",
+          "legendFormat": "{{filter}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Filtered TCP Send Queue Bytes",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "netstat_filter_tcp_send_queue",
+          "legendFormat": "{{filter}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Filtered TCP Recv Queue Bytes",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "netstat_filter_tcp_recv_queue",
+          "legendFormat": "{{filter}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Filtered TCP Time Wait",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "netstat_filter_tcp_time_wait",
+          "legendFormat": "{{filter}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

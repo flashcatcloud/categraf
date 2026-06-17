@@ -1,0 +1,70 @@
+{
+  "title": "XSKY Storage Cluster",
+  "uid": "b710a0dc",
+  "tags": [
+    "xsky storage cluster"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "OSS Bucket Used Size",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "xskyapi_oss_bucket_used_size",
+          "legendFormat": "{{name}} @ {{server}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "DFS Quota",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "xskyapi_dfs_quota",
+          "legendFormat": "{{name}} @ {{server}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Block Volume Used Size",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "xskyapi_block_volume_used_size",
+          "legendFormat": "{{name}} @ {{server}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

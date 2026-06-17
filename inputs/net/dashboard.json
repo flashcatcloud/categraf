@@ -1,0 +1,108 @@
+{
+  "title": "System Network Metrics",
+  "uid": "13940004",
+  "tags": [
+    "system network metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Network Bandwidth (Bytes/s)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "rate(net_bytes_recv[5m])",
+          "legendFormat": "In: {{interface}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(net_bytes_sent[5m])",
+          "legendFormat": "Out: {{interface}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Network Packets (PPS)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "rate(net_packets_recv[5m])",
+          "legendFormat": "In: {{interface}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(net_packets_sent[5m])",
+          "legendFormat": "Out: {{interface}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Network Dropped Packets/s",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "rate(net_dropin[5m])",
+          "legendFormat": "In Drop: {{interface}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(net_dropout[5m])",
+          "legendFormat": "Out Drop: {{interface}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Network Errors/s",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "rate(net_errin[5m])",
+          "legendFormat": "In Err: {{interface}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(net_errout[5m])",
+          "legendFormat": "Out Err: {{interface}}",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

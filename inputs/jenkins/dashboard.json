@@ -1,0 +1,124 @@
+{
+  "title": "Jenkins CI/CD Metrics",
+  "uid": "409a0c3f",
+  "tags": [
+    "jenkins ci/cd metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Jenkins Up Status",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "jenkins_up",
+          "legendFormat": "Node: {{node_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Jenkins Job Result Code",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "jenkins_job_result_code",
+          "legendFormat": "Job: {{name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Jenkins Job Duration (ms)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "jenkins_job_duration",
+          "legendFormat": "Job: {{name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Jenkins Busy Executors",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "jenkins_busy_executors",
+          "legendFormat": "Busy",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Jenkins Node Disk Available (Bytes)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "jenkins_node_disk_available",
+          "legendFormat": "Node: {{node_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Jenkins Node Response Time (ms)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "jenkins_node_response_time",
+          "legendFormat": "Node: {{node_name}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

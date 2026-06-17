@@ -1,0 +1,160 @@
+{
+  "title": "AMD ROCm SMI",
+  "uid": "adadd6dc",
+  "tags": [
+    "amd rocm smi"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "GPU Utilization",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "amd_rocm_smi_utilization_gpu",
+          "legendFormat": "{{name}} ({{gpu_id}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Memory Utilization",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "amd_rocm_smi_utilization_memory",
+          "legendFormat": "{{name}} ({{gpu_id}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Memory Used (Bytes)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "amd_rocm_smi_memory_used",
+          "legendFormat": "{{name}} ({{gpu_id}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Memory Free (Bytes)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "amd_rocm_smi_memory_free",
+          "legendFormat": "{{name}} ({{gpu_id}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Power Draw (W)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "amd_rocm_smi_power_draw",
+          "legendFormat": "{{name}} ({{gpu_id}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Temperature (Edge)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "amd_rocm_smi_temperature_sensor_edge",
+          "legendFormat": "{{name}} ({{gpu_id}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Temperature (Junction)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "amd_rocm_smi_temperature_sensor_junction",
+          "legendFormat": "{{name}} ({{gpu_id}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Fan Speed (%)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 16,
+        "w": 8,
+        "h": 8
+      },
+      "id": 8,
+      "targets": [
+        {
+          "expr": "amd_rocm_smi_fan_speed",
+          "legendFormat": "{{name}} ({{gpu_id}})",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

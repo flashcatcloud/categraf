@@ -1,0 +1,52 @@
+{
+  "title": "DNS Query Quality",
+  "uid": "82f9567e",
+  "tags": [
+    "dns query quality"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "DNS Query Time (ms)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "dns_query_query_time_ms",
+          "legendFormat": "{{domain}} on {{server}} ({{record_type}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "DNS Result Code",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "dns_query_result_code",
+          "legendFormat": "{{domain}} on {{server}} ({{record_type}})",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

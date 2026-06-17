@@ -1,0 +1,52 @@
+{
+  "title": "Directory File Count",
+  "uid": "bb9176a4",
+  "tags": [
+    "directory file count"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "File Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "filecount_count",
+          "legendFormat": "{{directory}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Total File Size (Bytes)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "filecount_size_bytes",
+          "legendFormat": "{{directory}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

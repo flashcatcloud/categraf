@@ -1,0 +1,75 @@
+{
+  "title": "Bitbucket (Jolokia)",
+  "uid": "c29859b5",
+  "tags": [
+    "bitbucket (jolokia)"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "JVM Heap Memory Usage",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "bitbucket_jvm_memory_HeapMemoryUsage_used",
+          "legendFormat": "Used",
+          "refId": "A"
+        },
+        {
+          "expr": "bitbucket_jvm_memory_HeapMemoryUsage_max",
+          "legendFormat": "Max",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "JVM Thread Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "bitbucket_jvm_thread_ThreadCount",
+          "legendFormat": "Threads",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "System Load Average",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "bitbucket_jvm_operatingsystem_SystemLoadAverage",
+          "legendFormat": "Load",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

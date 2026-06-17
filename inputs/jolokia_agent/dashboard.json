@@ -1,0 +1,32 @@
+{
+  "title": "Jolokia Agent Custom Metrics",
+  "uid": "3866c107",
+  "tags": [
+    "jolokia agent custom metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Jolokia Agent Information",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "id": 1,
+      "options": {
+        "content": "Jolokia Agent metrics depend on the configured MBeans, paths, and metrics_name_prefix. Build panels from the emitted metric names in your jolokia_agent configuration.",
+        "mode": "markdown"
+      },
+      "targets": []
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

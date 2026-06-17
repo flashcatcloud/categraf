@@ -1,0 +1,70 @@
+{
+  "title": "SNMP Trap Event Dashboard",
+  "uid": "9571fd7d",
+  "tags": [
+    "snmp trap event dashboard"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "SNMP Traps Received",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum(snmp_trap)",
+          "legendFormat": "Total Traps",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Traps by Name / Event",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum by (name) (snmp_trap)",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Traps by Source IP",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum by (source) (snmp_trap)",
+          "legendFormat": "{{source}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

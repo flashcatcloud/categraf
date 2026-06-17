@@ -1,0 +1,93 @@
+{
+  "title": "NSQ Metrics",
+  "uid": "528538cb",
+  "tags": [
+    "nsq metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "NSQ Topic Message Depth",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "nsq_topic_depth",
+          "legendFormat": "Topic: {{topic}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "NSQ Channel Message Depth",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "nsq_channel_depth",
+          "legendFormat": "Channel: {{channel}} ({{topic}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "NSQ Topic Messages/s",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "rate(nsq_topic_message_count[5m])",
+          "legendFormat": "Topic: {{topic}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "NSQ Channel Inflight/Deferred",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "nsq_channel_inflight_count",
+          "legendFormat": "Inflight: {{channel}}",
+          "refId": "A"
+        },
+        {
+          "expr": "nsq_channel_deferred_count",
+          "legendFormat": "Deferred: {{channel}}",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

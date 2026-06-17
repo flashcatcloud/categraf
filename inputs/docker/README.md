@@ -1,42 +1,68 @@
-# docker
+# Docker Input Plugin
 
-forked from [telegraf/inputs.docker](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/docker)
+The Docker input plugin collects performance metrics (CPU, Memory, Network, Block I/O, state, etc.) from locally running Docker containers. This plugin is forked from `telegraf/inputs.docker`.
 
+## Differences from Telegraf
 
-## change
+1. The `container_id` is exposed as a Tag (Label) instead of a Field to enable granular querying and aggregation.
+2. Several less commonly used metrics have been removed to reduce storage pressure on the time-series database.
 
-1. Using `container_id` as label not field
-1. Some metrics have been deleted
+## Configuration
 
-## 容器ID标签
+```toml
+[[instances]]
+  # The API Endpoint for the Docker Daemon
+  # Supports unix:// or tcp:// protocols
+  endpoint = "unix:///var/run/docker.sock"
 
-通过下面两个配置来控制 container_id 这个标签：
+  # Timeout for metrics gathering
+  timeout = "5s"
 
-```ini
-container_id_label_enable = true
-container_id_label_short_style = false
+  # Whether to include the container_id as a tag
+  container_id_label_enable = true
+
+  # Whether to truncate the container_id to 12 characters
+  container_id_label_short_style = false
 ```
 
-默认 container_id_label_enable 设置为 true，表示启用，即会把容器ID放到标签里，container_id_label_short_style 是短格式，容器ID很长，如果把 short_style 设置为 true，就会只截取前面12位
+### Disabling the Plugin
 
-## 权限问题
+If you wish to disable this plugin, you can do so using either of the following methods:
+- **Method 1**: Rename the `conf/input.docker` directory so that it no longer starts with `input.`.
+- **Method 2**: Leave the `endpoint` configuration field empty.
 
-Categraf 最好是用 root 账号来运行，否则，请求 docker.sock 可能会遇到权限问题，需要把 Categraf 的运行账号，加到 docker group 中，假设 Categraf 使用 categraf 账号运行：
+## FAQ
 
-```
+### 1. Permission Issues
+
+Categraf requires permission to read the docker socket (`unix:///var/run/docker.sock`). It is recommended to run Categraf as `root`.
+If you prefer to run Categraf as a non-root user (e.g., `categraf`), you must add that user to the `docker` group:
+
+```bash
 sudo usermod -aG docker categraf
 ```
 
-## 运行在容器里
+### 2. Running Categraf Inside a Container
 
-如果 Categraf 运行在容器中，docker 的 unix socket 就需要挂到 Categraf 的容器里，比如通过 `-v /var/run/docker.sock:/var/run/docker.sock` 这样的参数来启动 Categraf 的容器。如果是在 compose 环境下，也可以在 docker compose 配置中加上 volume 的配置：
+If Categraf itself is running inside a Docker container, you must mount the host's docker socket into the Categraf container so it can access the Docker Daemon API.
 
+**Via Docker CLI:**
+```bash
+docker run -v /var/run/docker.sock:/var/run/docker.sock ...
+```
+
+**Via Docker Compose:**
 ```yaml
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock
 ```
 
-## 停用该插件
+## Metrics
 
-- 方法一：把 `input.docker` 目录改个别的名字，不用 `input.` 打头
-- 方法二：docker.toml 中的 endpoint 配置留空
+The plugin collects comprehensive container resource usage. Key metrics include:
+- `docker_container_cpu_usage_percent`: Container CPU usage percentage
+- `docker_container_mem_usage_percent`: Container Memory usage percentage
+- `docker_container_mem_limit`: Container Memory limit (Bytes)
+- `docker_container_net_rx_bytes`: Container network received bytes
+- `docker_container_net_tx_bytes`: Container network transmitted bytes
+- `docker_container_status_*`: Container state fields such as PID, exit code, restart count, and uptime. The current state is exposed as the `container_status` tag.

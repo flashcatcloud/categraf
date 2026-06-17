@@ -1,3 +1,15 @@
-# weblogic
+# WebLogic Input Plugin (via Jolokia)
 
-weblogic 当前可以使用 jolokia_agent 插件来监控，通过读取 jmx 数据的方式获取监控指标，配置文件可以参考：[weblogic.toml](../../conf/input.jolokia_agent_misc/weblogic.toml)
+Native monitoring data for WebLogic is typically exposed through JMX. In Categraf, instead of developing a dedicated native WebLogic Go plugin, we strongly recommend using the universal **Jolokia** approach.
+
+## How to Monitor
+
+WebLogic can be monitored using the `jolokia_agent` plugin. It fetches WebLogic metrics (such as JVM memory, thread pools, JDBC connection pools, etc.) by reading JMX data exposed over HTTP by the Jolokia agent.
+
+For specific configurations and pre-defined WebLogic JMX metrics collection items, please refer directly to our provided example configuration file:
+[weblogic.toml](../../conf/input.jolokia_agent_misc/weblogic.toml)
+
+## Dashboards
+
+Since the data is collected via `jolokia_agent`, all metrics and tagging systems will follow the Jolokia standards.
+A basic `dashboard.json` is provided in this directory for the bundled WebLogic Jolokia template. For broader JVM monitoring, you can also use the generic dashboards associated with `jolokia` or `jvm`.

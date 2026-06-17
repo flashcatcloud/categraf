@@ -1,0 +1,88 @@
+{
+  "title": "AppDynamics",
+  "uid": "56586b1c",
+  "tags": [
+    "appdynamics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "AppDynamics API Health",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "up",
+          "legendFormat": "{{metric_path}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "AppDynamics Calls per Minute",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "appdynamics_calls_per_minute_current",
+          "legendFormat": "{{metric_path}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Average Response Time (ms)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "appdynamics_average_response_time_ms_current",
+          "legendFormat": "{{metric_path}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Errors per Minute",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "appdynamics_errors_per_minute_current",
+          "legendFormat": "{{metric_path}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

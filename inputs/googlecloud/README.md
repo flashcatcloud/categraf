@@ -1,40 +1,57 @@
+# Google Cloud Monitoring Input Plugin
 
+This plugin pulls cloud resource monitoring metrics from the Google Cloud Platform (GCP) Cloud Monitoring API (formerly Stackdriver).
 
-# GCP 指标获取插件
-需要权限
+## Prerequisites
+
+Before using this plugin, ensure that the provided GCP Service Account credentials can read Cloud Monitoring time series. For OAuth scopes, use:
+- `https://www.googleapis.com/auth/monitoring.read`
+
+For IAM, grant a read-only monitoring role such as Monitoring Viewer.
+
+## Configuration
+
 ```toml
-https://www.googleapis.com/auth/monitoring.read
-```
+# Scrape interval. Since calling cloud provider APIs may incur costs and hit rate limits, it's recommended to set >= 60 seconds.
+interval = 60
 
-配置
-```toml
-#采集周期，建议 >= 1分钟
-interval=60
 [[instances]]
-#配置 project_id
-project_id="your-project-id"
-#配置认证的key文件
-credentials_file="/path/to/your/key.json"
-#或者配置认证的JSON
-credentials_json="xxx"
+# # Your GCP Project ID
+project_id = "your-project-id"
 
-# 指标的end time = now - delay
-#delay="2m"
-# 指标的start time = now - deley - period
-#period="1m"
-# 过滤器
-#filter="metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.labels.zone=\"asia-northeast1-a\""
-# 请求超时时间
-#timeout="5s"
-# 指标列表的缓存时长 ，filter为空时 启用
-#cache_ttl="1h"
+# # Absolute path to your service account credentials JSON file
+credentials_file = "/path/to/your/key.json"
 
-# 给gce的instance_name 取个别名,放到label中
-#gce_host_tag="xxx"
-# 每次最多有多少请求同时发起
-#request_inflight=30
+# # Or configure the JSON string directly here
+# credentials_json = "{...}"
 
-# request_inflight 取值(0,100]
-# 想配置更大的值 ,前提是你知道你在做什么
-force_request_inflight= 200
+# # Data delay time: Actual query End Time = Now - delay (prevents fetching empty data due to GCP write delays)
+# delay = "2m"
+
+# # Time window span for the query: Start Time = Now - delay - period
+# period = "1m"
+
+# # Metric filter (If left empty, it will default to fetching most metrics in the project, which can be very expensive)
+# filter = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.labels.zone=\"asia-northeast1-a\""
+
+# # HTTP request timeout
+# timeout = "5s"
+
+# # Cache TTL for GCP metric metadata (effective when filter is empty, avoids frequent metadata requests)
+# cache_ttl = "1h"
+
+# # Extract the GCE (Google Compute Engine) instance_name as an alias and append it as a new Tag to the metrics
+# gce_host_tag = "gce_host"
+
+# # Maximum concurrent requests (default is 30, valid range is 1 to 100)
+# request_inflight = 30
+
+# # Force setting a larger concurrent request limit (only if you know what you are doing and won't hit GCP quotas)
+# force_request_inflight = 200
 ```
+
+## Metrics and Dashboards
+
+Because this plugin is essentially a proxy for the Google Cloud Monitoring API, the collected metrics depend entirely on your `filter` rules and the GCP services you use. Therefore:
+- Metric names will be automatically mapped from GCP's Metric Types.
+- There is no single predefined dashboard. You will need to build custom dashboards in your monitoring system tailored to your specific workloads (e.g., GCE, Cloud SQL).

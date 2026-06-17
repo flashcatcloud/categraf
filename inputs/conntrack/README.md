@@ -1,16 +1,23 @@
-# conntrack
+# Conntrack Input Plugin
 
-运维老鸟应该会遇到 conntrack table full 的报错吧，这个插件就是用于监控 conntrack 的情况， forked from [telegraf/conntrack](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/conntrack)
+This plugin monitors the connection tracking (conntrack) table on Linux servers. It is forked from `telegraf/conntrack`.
 
-## Measurements & Fields
+System administrators often encounter the `nf_conntrack: table full, dropping packet` error. This plugin helps you monitor the usage of the conntrack table in real-time to prevent such issues.
 
-- conntrack
-  - ip_conntrack_count (int, count): the number of entries in the conntrack table
-  - ip_conntrack_max (int, size): the max capacity of the conntrack table
+## Metrics
 
-## 告警
+All metrics are recorded under the `conntrack` measurement:
 
-```
-100 * conntrack_ip_conntrack_count / conntrack_ip_conntrack_max > 0.8
-100 * conntrack_nf_conntrack_count / conntrack_nf_conntrack_max > 0.8
+- `conntrack_ip_conntrack_count`: The current number of entries in the conntrack table.
+- `conntrack_ip_conntrack_max`: The maximum capacity of the conntrack table.
+- `conntrack_nf_conntrack_count`: The current number of entries in the nf_conntrack table.
+- `conntrack_nf_conntrack_max`: The maximum capacity of the nf_conntrack table.
+
+## Alerting Recommendation
+
+You can configure an alerting rule in your monitoring system (like Prometheus or Nightingale) to trigger an alert when the conntrack table is close to being full:
+
+```promql
+conntrack_ip_conntrack_count / conntrack_ip_conntrack_max > 0.8
+conntrack_nf_conntrack_count / conntrack_nf_conntrack_max > 0.8
 ```

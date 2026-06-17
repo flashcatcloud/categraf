@@ -1,0 +1,32 @@
+{
+  "title": "Google Cloud Monitoring",
+  "uid": "0bc7b69a",
+  "tags": [
+    "google cloud monitoring"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Google Cloud Plugin Information",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "id": 1,
+      "options": {
+        "content": "Google Cloud Monitoring metrics depend on the configured filter and GCP services in use. Build panels from the metric names emitted by this plugin.",
+        "mode": "markdown"
+      },
+      "targets": []
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

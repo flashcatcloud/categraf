@@ -1,0 +1,88 @@
+{
+  "title": "AWS CloudWatch",
+  "uid": "3be5e187",
+  "tags": [
+    "aws cloudwatch"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "AWS ELB Latency Average",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "cloudwatch_aws_elb_latency_average",
+          "legendFormat": "{{load_balancer_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "AWS ELB Request Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "cloudwatch_aws_elb_request_count_sum",
+          "legendFormat": "{{load_balancer_name}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "AWS EC2 CPU Utilization Average",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "cloudwatch_aws_ec2_cpu_utilization_average",
+          "legendFormat": "{{instance_id}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "AWS RDS CPU Utilization Average",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "cloudwatch_aws_rds_cpu_utilization_average",
+          "legendFormat": "{{db_instance_identifier}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

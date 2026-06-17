@@ -1,0 +1,103 @@
+{
+  "title": "Linux Sysctl FS Limits",
+  "uid": "46858063",
+  "tags": [
+    "linux sysctl fs limits"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "File Descriptor Usage %",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "linux_sysctl_fs_file_nr / linux_sysctl_fs_file_max * 100",
+          "legendFormat": "{{agent_hostname}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "File Descriptors Allocated",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "linux_sysctl_fs_file_nr",
+          "legendFormat": "Allocated",
+          "refId": "A"
+        },
+        {
+          "expr": "linux_sysctl_fs_file_max",
+          "legendFormat": "Max",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Inode Cache",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "linux_sysctl_fs_inode_nr",
+          "legendFormat": "Total Inodes",
+          "refId": "A"
+        },
+        {
+          "expr": "linux_sysctl_fs_inode_free_nr",
+          "legendFormat": "Free Inodes",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "AIO Usage",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "linux_sysctl_fs_aio_nr",
+          "legendFormat": "AIO Allocated",
+          "refId": "A"
+        },
+        {
+          "expr": "linux_sysctl_fs_aio_max_nr",
+          "legendFormat": "AIO Max",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

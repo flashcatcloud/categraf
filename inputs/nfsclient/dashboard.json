@@ -1,0 +1,93 @@
+{
+  "title": "NFS Client Metrics",
+  "uid": "bd54ba2a",
+  "tags": [
+    "nfs client metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "NFS Client Read/Write Bytes/s",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "rate(nfsclient_nfsstat_bytes{nfsstat_operation=\"READ\"}[5m])",
+          "legendFormat": "Read: {{mountpoint}}",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(nfsclient_nfsstat_bytes{nfsstat_operation=\"WRITE\"}[5m])",
+          "legendFormat": "Write: {{mountpoint}}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "NFS Client Response Time (ms)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "rate(nfsclient_nfsstat_rtt[5m]) / rate(nfsclient_nfsstat_ops[5m])",
+          "legendFormat": "{{mountpoint}} ({{nfsstat_operation}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "NFS Client Operations/s",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "rate(nfsclient_nfsstat_ops[5m])",
+          "legendFormat": "{{mountpoint}} ({{nfsstat_operation}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "NFS Client Retransmits/s",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "rate(nfsclient_nfsstat_retrans[5m])",
+          "legendFormat": "{{mountpoint}} ({{nfsstat_operation}})",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "title": "Cassandra (Jolokia)",
+  "uid": "57a607e6",
+  "tags": [
+    "cassandra (jolokia)"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "JVM Heap Memory Usage",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "java_Memory_HeapMemoryUsage_used",
+          "legendFormat": "Used",
+          "refId": "A"
+        },
+        {
+          "expr": "java_Memory_HeapMemoryUsage_max",
+          "legendFormat": "Max",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Cassandra Compaction Tasks Pending",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "cassandra_Compaction_PendingTasks_Value",
+          "legendFormat": "Pending Tasks",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Cassandra Storage Load",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "cassandra_Storage_Load_Count",
+          "legendFormat": "Load",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Cassandra Active Clients",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "cassandra_Client_connectedNativeClients_Value",
+          "legendFormat": "Connected Native Clients",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

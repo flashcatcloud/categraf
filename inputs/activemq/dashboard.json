@@ -1,0 +1,142 @@
+{
+  "title": "ActiveMQ",
+  "uid": "16eab841",
+  "tags": [
+    "activemq"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Total Message Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "activemq_broker_TotalMessageCount",
+          "legendFormat": "{{brokerName}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Total Consumer Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "activemq_broker_TotalConsumerCount",
+          "legendFormat": "{{brokerName}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Memory Percent Usage",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "activemq_broker_MemoryPercentUsage",
+          "legendFormat": "{{brokerName}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Queue Size",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "activemq_queue_QueueSize",
+          "legendFormat": "{{destinationName}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Queue Consumer Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "activemq_queue_ConsumerCount",
+          "legendFormat": "{{destinationName}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Topic Enqueue Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "activemq_topic_EnqueueCount",
+          "legendFormat": "{{destinationName}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Topic Dequeue Count",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "activemq_topic_DequeueCount",
+          "legendFormat": "{{destinationName}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

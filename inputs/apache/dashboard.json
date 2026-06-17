@@ -1,0 +1,106 @@
+{
+  "title": "Apache",
+  "uid": "2f5c1438",
+  "tags": [
+    "apache"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Total Accesses",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "apache_accesses_total",
+          "legendFormat": "Total Accesses",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Uptime",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "apache_uptime_seconds_total",
+          "legendFormat": "Uptime",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Busy Workers",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "apache_workers{state=\"busy\"}",
+          "legendFormat": "Busy Workers",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Idle Workers",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "apache_workers{state=\"idle\"}",
+          "legendFormat": "Idle Workers",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Scoreboard",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 8,
+        "w": 8,
+        "h": 8
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "apache_scoreboard",
+          "legendFormat": "{{state}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

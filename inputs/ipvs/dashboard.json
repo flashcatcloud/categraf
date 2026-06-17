@@ -1,0 +1,88 @@
+{
+  "title": "Linux IPVS Metrics",
+  "uid": "653fa525",
+  "tags": [
+    "linux ipvs metrics"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "IPVS Real Server Active Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "ipvs_active_connections",
+          "legendFormat": "RS: {{address}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "IPVS Real Server Inactive Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "ipvs_inactive_connections",
+          "legendFormat": "RS: {{address}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "IPVS Connections",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "ipvs_connections",
+          "legendFormat": "{{address}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "IPVS CPS",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "ipvs_cps",
+          "legendFormat": "{{address}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

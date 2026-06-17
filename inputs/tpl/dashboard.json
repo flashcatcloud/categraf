@@ -1,0 +1,34 @@
+{
+  "title": "Custom Plugin Template",
+  "uid": "fdf9c02c",
+  "tags": [
+    "custom plugin template"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Placeholder Metric",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "your_custom_metric",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

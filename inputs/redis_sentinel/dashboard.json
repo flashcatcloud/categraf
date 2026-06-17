@@ -1,0 +1,88 @@
+{
+  "title": "Redis Sentinel Status",
+  "uid": "173f588c",
+  "tags": [
+    "redis sentinel status"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Sentinel Uptime (days)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "redis_sentinel_uptime_ns / 86400 / 1000000000",
+          "legendFormat": "{{source}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Sentinel Connected Clients",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "redis_sentinel_clients",
+          "legendFormat": "{{source}}:{{port}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Master Monitored Sentinels",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "redis_sentinel_masters_num_other_sentinels",
+          "legendFormat": "Master: {{master}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Master Attached Slaves",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "redis_sentinel_masters_num_slaves",
+          "legendFormat": "Master: {{master}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

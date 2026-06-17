@@ -1,0 +1,32 @@
+{
+  "title": "Kafka Connect Monitoring",
+  "uid": "fb2a0e76",
+  "tags": [
+    "kafka connect monitoring"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Kafka Connect Plugin Information",
+      "type": "text",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "id": 1,
+      "options": {
+        "content": "Kafka Connect metrics are collected through jolokia_agent. Configure kafka-connect.toml and build panels from metrics prefixed with kafka_connect_.",
+        "mode": "markdown"
+      },
+      "targets": []
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "title": "BIND 9",
+  "uid": "6f9a94e0",
+  "tags": [
+    "bind 9"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 30,
+  "panels": [
+    {
+      "title": "Memory Total Use",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "bind_memory_total_use",
+          "legendFormat": "{{url}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Query Counters",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 4,
+        "w": 8,
+        "h": 8
+      },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum by (__name__, url) ({__name__=~\"bind_counter_.*\", type=\"qtype\"})",
+          "legendFormat": "{{__name__}} {{url}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Request Counters",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 8,
+        "h": 8
+      },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum by (__name__, url) ({__name__=~\"bind_counter_.*\", type=\"opcode\"})",
+          "legendFormat": "{{__name__}} {{url}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Response Code Counters",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 8,
+        "h": 8
+      },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "sum by (__name__, url) ({__name__=~\"bind_counter_.*\", type=\"rcode\"})",
+          "legendFormat": "{{__name__}} {{url}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Total Use Memory (Context)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "bind_memory_context_total",
+          "legendFormat": "Total Use",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "In Use Memory (Context)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "bind_memory_context_in_use",
+          "legendFormat": "In Use",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  }
+}
