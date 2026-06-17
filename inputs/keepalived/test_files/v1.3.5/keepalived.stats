@@ -1,0 +1,19 @@
+VRRP Instance: VI_1
+  Advertisements:
+    Received: 1
+    Sent: 17
+  Became master: 1
+  Released master: 1
+  Packet Errors:
+    Length: 10
+    TTL: 1
+    Invalid Type: 5
+    Advertisement Interval: 4
+    Address List: 3
+  Authentication Errors:
+    Invalid Type: 3
+    Type Mismatch: 6
+    Failure: 7
+  Priority Zero:
+    Received: 9
+    Sent: 2

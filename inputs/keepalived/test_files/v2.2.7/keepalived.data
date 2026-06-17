@@ -1,0 +1,10 @@
+ VRRP Instance = VI_227_1
+   State = MASTER
+   Wantstate = MASTER
+   Interface = ens3
+   Gratuitous ARP delay = 5
+   Virtual Router ID = 52
+   Virtual IP:
+     10.1.0.1/24 dev ens3 scope global set
+   Virtual IP Excluded:
+     10.10.0.1 dev ens3 scope global set

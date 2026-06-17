@@ -1,0 +1,10 @@
+ VRRP Instance = VI_1
+   State = MASTER
+   Listening device = eth0
+   Gratuitous ARP delay = 5
+   Virtual Router ID = 51
+   Virtual IP:
+     10.32.75.200/32 dev eth0 scope global
+Global definitions
+ VRRP Script = check_haproxy
+   Status = BAD

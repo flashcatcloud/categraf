@@ -65,17 +65,15 @@ func TestVRRPDataStringToIntState(t *testing.T) {
 func TestV215ParseVRRPData(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("../../test_files/v2.1.5/keepalived.data")
+	f, err := os.Open("../test_files/v2.1.5/keepalived.data")
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("open fixture: %v", err)
 	}
 	defer f.Close() //nolint: errcheck
 
 	vrrpData, err := ParseVRRPData(f)
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("parse VRRP data: %v", err)
 	}
 
 	if len(vrrpData) != 3 {
@@ -131,17 +129,15 @@ func TestV215ParseVRRPData(t *testing.T) {
 func TestV2010ParseVRRPData(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("../../test_files/v2.0.10/keepalived.data")
+	f, err := os.Open("../test_files/v2.0.10/keepalived.data")
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("open fixture: %v", err)
 	}
 	defer f.Close() //nolint: errcheck
 
 	vrrpData, err := ParseVRRPData(f)
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("parse VRRP data: %v", err)
 	}
 
 	if len(vrrpData) != 1 {
@@ -172,10 +168,9 @@ func TestV2010ParseVRRPData(t *testing.T) {
 func TestV215ParseVRRPScript(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("../../test_files/v2.0.10/keepalived.data")
+	f, err := os.Open("../test_files/v2.0.10/keepalived.data")
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("open fixture: %v", err)
 	}
 	defer f.Close() //nolint: errcheck
 
@@ -203,10 +198,9 @@ func TestV215ParseVRRPScript(t *testing.T) {
 func TestV2010ParseVRRPScript(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("../../test_files/v2.1.5/keepalived.data")
+	f, err := os.Open("../test_files/v2.1.5/keepalived.data")
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("open fixture: %v", err)
 	}
 	defer f.Close() //nolint: errcheck
 
@@ -234,17 +228,15 @@ func TestV2010ParseVRRPScript(t *testing.T) {
 func TestV215ParseStats(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("../../test_files/v2.1.5/keepalived.stats")
+	f, err := os.Open("../test_files/v2.1.5/keepalived.stats")
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("open fixture: %v", err)
 	}
 	defer f.Close() //nolint: errcheck
 
 	stats, err := ParseStats(f)
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("parse stats: %v", err)
 	}
 
 	if len(stats) != 3 {
@@ -318,17 +310,15 @@ func TestV215ParseStats(t *testing.T) {
 func TestV135ParseVRRPData(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("../../test_files/v1.3.5/keepalived.data")
+	f, err := os.Open("../test_files/v1.3.5/keepalived.data")
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("open fixture: %v", err)
 	}
 	defer f.Close() //nolint: errcheck
 
 	vrrpData, err := ParseVRRPData(f)
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("parse VRRP data: %v", err)
 	}
 
 	if len(vrrpData) != 1 {
@@ -359,10 +349,9 @@ func TestV135ParseVRRPData(t *testing.T) {
 func TestV135ParseVRRPScript(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("../../test_files/v1.3.5/keepalived.data")
+	f, err := os.Open("../test_files/v1.3.5/keepalived.data")
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("open fixture: %v", err)
 	}
 	defer f.Close() //nolint: errcheck
 
@@ -390,17 +379,15 @@ func TestV135ParseVRRPScript(t *testing.T) {
 func TestV135ParseStats(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("../../test_files/v1.3.5/keepalived.stats")
+	f, err := os.Open("../test_files/v1.3.5/keepalived.stats")
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("open fixture: %v", err)
 	}
 	defer f.Close() //nolint: errcheck
 
 	stats, err := ParseStats(f)
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("parse stats: %v", err)
 	}
 
 	if len(stats) != 1 {
@@ -473,17 +460,15 @@ func TestIsKeyArray(t *testing.T) {
 func TestV227ParseVRRPData(t *testing.T) {
 	t.Parallel()
 
-	f, err := os.Open("../../test_files/v2.2.7/keepalived.data")
+	f, err := os.Open("../test_files/v2.2.7/keepalived.data")
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("open fixture: %v", err)
 	}
 	defer f.Close() //nolint: errcheck
 
 	vrrpData, err := ParseVRRPData(f)
 	if err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Fatalf("parse VRRP data: %v", err)
 	}
 
 	if len(vrrpData) != 1 {

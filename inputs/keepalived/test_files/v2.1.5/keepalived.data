@@ -1,0 +1,28 @@
+ VRRP Instance = VI_EXT_1
+   State = MASTER
+   Wantstate = MASTER
+   Interface = ens192
+   Gratuitous ARP delay = 5
+   Virtual Router ID = 10
+   Virtual IP:
+     192.168.2.1 dev ens192 scope global set
+ VRRP Instance = VI_EXT_2
+   State = BACKUP
+   Wantstate = BACKUP
+   Interface = ens192
+   Gratuitous ARP delay = 5
+   Virtual Router ID = 20
+   Virtual IP:
+     192.168.2.2 dev ens192 scope global
+ VRRP Instance = VI_EXT_3
+   State = BACKUP
+   Wantstate = BACKUP
+   Interface = ens192
+   Gratuitous ARP delay = 5
+   Virtual Router ID = 30
+   Virtual IP:
+     192.168.2.3 dev ens192 scope global
+Global definitions
+ VRRP Script = check_script
+   Status = GOOD
+   State = idle
