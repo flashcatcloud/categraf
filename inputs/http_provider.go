@@ -56,11 +56,18 @@ func newInnerCache() *innerCache {
 }
 
 func (ic *innerCache) get(inputName string) (map[string]cfg.ConfigWithFormat, bool) {
+	var ret map[string]cfg.ConfigWithFormat
 	ic.lock.RLock()
 	defer ic.lock.RUnlock()
 
-	m, has := ic.record[inputName]
-	return m, has
+	if m, has := ic.record[inputName]; has {
+		ret = make(map[string]cfg.ConfigWithFormat, len(m))
+		for ik, iv := range m {
+			ret[ik] = iv
+		}
+		return ret, true
+	}
+	return ret, false
 }
 
 func (ic innerCache) put(inputName string, config cfg.ConfigWithFormat) {
@@ -84,10 +91,18 @@ func (ic *innerCache) del(inputName string, sum string) {
 	}
 }
 
-func (ic *innerCache) iter() map[string]map[string]cfg.ConfigWithFormat {
+func (ic *innerCache) snapshot() map[string]map[string]cfg.ConfigWithFormat {
 	ic.lock.RLock()
 	defer ic.lock.RUnlock()
-	return ic.record
+	clone := make(map[string]map[string]cfg.ConfigWithFormat, len(ic.record))
+	for k, v := range ic.record {
+		innerClone := make(map[string]cfg.ConfigWithFormat, len(v))
+		for ik, iv := range v {
+			innerClone[ik] = iv
+		}
+		clone[k] = innerClone
+	}
+	return clone
 }
 
 func (ic *innerCache) len() int {
@@ -291,7 +306,7 @@ func (hrp *HTTPProvider) StartReloader() {
 				if changed {
 					if hrp.add.len() > 0 {
 						log.Println("I! http provider: new or updated inputs:", hrp.add)
-						for inputKey, cm := range hrp.add.iter() {
+						for inputKey, cm := range hrp.add.snapshot() {
 							hrp.preStop(inputKey)
 							for _, conf := range cm {
 								hrp.op.RegisterInput(FormatInputName(hrp.Name(), inputKey), []cfg.ConfigWithFormat{conf})
@@ -301,7 +316,7 @@ func (hrp *HTTPProvider) StartReloader() {
 
 					if hrp.del.len() > 0 {
 						log.Println("I! http provider: deleted inputs:", hrp.del)
-						for inputKey, cm := range hrp.del.iter() {
+						for inputKey, cm := range hrp.del.snapshot() {
 							if hrp.serviceInput(inputKey) {
 								continue
 							}
@@ -365,7 +380,7 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string]map[string]*cfg.Conf
 	// cache map[string]map[string]cfg.ConfigWithFormat
 	// the second string is config's checksum , compute by n9e server
 	// trust server compute result and agent only executes changes
-	for inputKey, configMap := range cache.iter() {
+	for inputKey, configMap := range cache.snapshot() {
 		if oldConfigMap, has := hrp.cache.get(inputKey); has {
 			newConfig := set.NewWithLoad[string, cfg.ConfigWithFormat](configMap)
 			oldConfig := set.NewWithLoad[string, cfg.ConfigWithFormat](oldConfigMap)
@@ -392,7 +407,7 @@ func (hrp *HTTPProvider) caculateDiff(newConfigs map[string]map[string]*cfg.Conf
 		}
 	}
 
-	for inputKey, configMap := range hrp.cache.iter() {
+	for inputKey, configMap := range hrp.cache.snapshot() {
 		if _, has := cache.get(inputKey); !has {
 			for _, inputConfig := range configMap {
 				if config.Config.DebugMode {
