@@ -12,7 +12,7 @@ You can configure single or multiple Sentinel nodes within an `instance`. If you
 # interval = 15
 
 [[instances]]
-# List of Sentinel node addresses, formatted as "tcp://host:port" or "host:port"
+# List of Sentinel node addresses, formatted as "tcp://host:port" or "unix:///path/to/socket"
 servers = ["tcp://localhost:26379"]
 
 # (Optional) Sentinel password
@@ -27,14 +27,14 @@ servers = ["tcp://localhost:26379"]
 All metrics are prefixed with `redis_sentinel_`. Depending on the data collected, they are mainly divided into two categories:
 
 ### Basic Sentinel Metrics (`redis_sentinel_*`)
-E.g., `redis_sentinel_uptime_in_seconds`, `redis_sentinel_connected_clients`, `redis_sentinel_mem_used`, etc., which reflect the Sentinel process's liveness and basic resource usage.
+E.g., `redis_sentinel_uptime_ns`, `redis_sentinel_clients`, `redis_sentinel_sentinel_masters`, etc., which reflect the Sentinel process's liveness and basic resource usage. The source Sentinel is identified by `source` and `port` labels for TCP endpoints, or the `socket` label for Unix sockets.
 
-### Master / Slave Status Metrics
+### Master / Replica Status Metrics
 These metrics carry labels such as `master` (the master's name) to reflect the cluster topology as seen by Sentinel:
-- `redis_sentinel_master_slaves`: Number of Slaves attached to the current Master
-- `redis_sentinel_master_sentinels`: Number of Sentinel nodes monitoring this Master
-- `redis_sentinel_master_status`: Master status (typically "ok" maps to 1, others map to 0 or specific error codes)
-- `redis_sentinel_master_failover_state`: Current state value of the failover process
+- `redis_sentinel_masters_num_slaves`: Number of replicas attached to the current master
+- `redis_sentinel_masters_num_other_sentinels`: Number of other Sentinel nodes monitoring this master
+- `redis_sentinel_masters_has_quorum`: Whether Sentinel reports quorum for the master
+- `redis_sentinel_replicas_slave_repl_offset`: Replica replication offset
 
 ## Dashboards
 

@@ -10,6 +10,8 @@ All metrics are recorded under the `conntrack` measurement:
 
 - `conntrack_ip_conntrack_count`: The current number of entries in the conntrack table.
 - `conntrack_ip_conntrack_max`: The maximum capacity of the conntrack table.
+- `conntrack_nf_conntrack_count`: The current number of entries in the nf_conntrack table.
+- `conntrack_nf_conntrack_max`: The maximum capacity of the nf_conntrack table.
 
 ## Alerting Recommendation
 
@@ -17,4 +19,5 @@ You can configure an alerting rule in your monitoring system (like Prometheus or
 
 ```promql
 conntrack_ip_conntrack_count / conntrack_ip_conntrack_max > 0.8
+conntrack_nf_conntrack_count / conntrack_nf_conntrack_max > 0.8
 ```

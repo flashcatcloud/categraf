@@ -8,7 +8,6 @@ This plugin collects host-level memory metrics, including total memory, availabl
 
 ```toml
 # Collect host physical memory metrics
-[[instances]]
 # Usually requires no specific configuration. Just leave it enabled.
 ```
 

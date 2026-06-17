@@ -12,6 +12,20 @@
 1. 在 `conf/input.prometheus/prometheus.toml` 中新增一个用于抓取 Kubelet 的 `[[instances]]` 配置块。
 2. 确保 Categraf 作为 DaemonSet 部署在每个 Node 上时，可以访问到当前节点的 Kubelet API（通常通过挂载 Node 的 IP 和相应的认证 Token 获取）。
 3. 根据您的 Kubernetes 集群的安全配置（如是否需要 TLS，Token 文件路径），在相应的配置块中配置正确的认证信息。
+4. 设置 `url_label_key = "ident"` 和 `labels = { job = "kubelet" }`，因为本目录下的 Dashboard 使用 `job` 过滤指标，并使用 `ident` 区分节点。
+
+示例：
+
+```toml
+[[instances]]
+urls = ["https://127.0.0.1:10250/metrics", "https://127.0.0.1:10250/metrics/cadvisor"]
+url_label_key = "ident"
+url_label_value = "{{.Host}}"
+labels = { job = "kubelet" }
+# bearer_token_file = "/run/secrets/kubernetes.io/serviceaccount/token"
+# use_tls = true
+# insecure_skip_verify = true
+```
 
 ## 采集指标与监控大盘
 

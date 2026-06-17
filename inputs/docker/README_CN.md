@@ -66,4 +66,4 @@ volumes:
 - `docker_container_mem_limit`: 容器内存限制配额 (Bytes)
 - `docker_container_net_rx_bytes`: 容器网络接收字节数 (Bytes)
 - `docker_container_net_tx_bytes`: 容器网络发送字节数 (Bytes)
-- `docker_container_status`: 容器运行状态 (通常以枚举值或 boolean 形式体现)
+- `docker_container_status_*`: 容器状态相关字段，如 PID、退出码、重启次数和运行时长。当前状态会通过 `container_status` 标签体现。

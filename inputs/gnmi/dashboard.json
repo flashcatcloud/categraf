@@ -17,6 +17,10 @@
         "h": 8
       },
       "id": 1,
+      "options": {
+        "content": "gNMI metrics depend on the subscribed YANG paths and the subscription name configured in gnmi.toml. Build panels from the emitted measurement and field names.",
+        "mode": "markdown"
+      },
       "targets": []
     }
   ],

@@ -8,7 +8,6 @@ This plugin monitors network connection states. It primarily collects statistics
 
 ```toml
 # Collect network TCP connection state statistics
-[[instances]]
 # Usually requires no specific configuration. Just leave it enabled.
 ```
 

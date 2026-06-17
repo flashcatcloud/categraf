@@ -15,4 +15,4 @@ Steps:
 
 ## Metrics and Dashboards
 
-Because the actual metric collection is handled by the Jolokia Agent, the metrics collected depend entirely on the `metrics` blocks defined in your configuration file. In your Grafana or Nightingale dashboards, simply query metrics starting with `jolokia_` or whatever `name_prefix` you defined in the configuration.
+Because the actual metric collection is handled by the Jolokia Agent, the metrics collected depend on the `[[instances.metric]]` blocks defined in your configuration file. The provided template uses `metrics_name_prefix`, so query metrics starting with `hadoop_hdfs_namenode_` or `hadoop_hdfs_datanode_`.

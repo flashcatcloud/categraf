@@ -14,7 +14,6 @@
 # 采集 Linux sockstat 状态
 # interval = 15
 
-[[instances]]
 # 无需任何特定配置参数
 ```
 

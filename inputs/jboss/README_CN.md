@@ -15,5 +15,4 @@ Categraf 监控 JBoss (WildFly) 时，不需要专门的独立原生插件。JBo
 
 ## 采集指标与大盘
 
-由于实际上使用的是 Jolokia Agent，采集到的指标完全取决于配置文件中配置的 `metrics`。常见的指标包括 JVM 内存、线程数、JBoss Web 连接数、会话数等。
-请在您的 Grafana 或夜莺监控大盘中直接使用 `jolokia_` 或者配置中指定的 `name_prefix` 作为前缀来查询指标。
+由于实际上使用的是 Jolokia Agent，采集到的指标取决于配置文件中的 `[[instances.metric]]`。当前模板使用 `metrics_name_prefix = "jboss_"`，请在 Grafana 或夜莺监控大盘中查询 `jboss_` 开头的指标。

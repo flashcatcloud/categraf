@@ -14,10 +14,7 @@ Greenplum 采集插件用于监控 Greenplum 数据库集群的镜像节点 (Mir
 # # 采集周期
 # interval = 15
 
-[[instances]]
 # 该插件没有实例级别的特殊配置。只需确保环境中有 gpstate 即可。
-# 可以加一些标签来区分不同集群
-# labels = { cluster="gp-cluster-1" }
 ```
 
 ## 采集指标

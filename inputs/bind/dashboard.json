@@ -8,7 +8,7 @@
   "schemaVersion": 30,
   "panels": [
     {
-      "title": "BIND Status",
+      "title": "Memory Total Use",
       "type": "timeseries",
       "gridPos": {
         "x": 0,
@@ -19,62 +19,62 @@
       "id": 1,
       "targets": [
         {
-          "expr": "bind_up",
+          "expr": "bind_memory_total_use",
           "legendFormat": "{{url}}",
           "refId": "A"
         }
       ]
     },
     {
-      "title": "Queries Total",
+      "title": "Query Counters",
       "type": "timeseries",
       "gridPos": {
         "x": 8,
-        "y": 0,
+        "y": 4,
         "w": 8,
         "h": 8
       },
       "id": 2,
       "targets": [
         {
-          "expr": "bind_server_queries",
-          "legendFormat": "Queries",
+          "expr": "sum by (__name__, url) ({__name__=~\"bind_counter_.*\", type=\"qtype\"})",
+          "legendFormat": "{{__name__}} {{url}}",
           "refId": "A"
         }
       ]
     },
     {
-      "title": "Requests Total",
+      "title": "Request Counters",
       "type": "timeseries",
       "gridPos": {
         "x": 16,
-        "y": 0,
+        "y": 4,
         "w": 8,
         "h": 8
       },
       "id": 3,
       "targets": [
         {
-          "expr": "bind_server_requests",
-          "legendFormat": "Requests",
+          "expr": "sum by (__name__, url) ({__name__=~\"bind_counter_.*\", type=\"opcode\"})",
+          "legendFormat": "{{__name__}} {{url}}",
           "refId": "A"
         }
       ]
     },
     {
-      "title": "Responses Total",
+      "title": "Response Code Counters",
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 8,
+        "y": 4,
         "w": 8,
         "h": 8
       },
       "id": 4,
       "targets": [
         {
-          "expr": "bind_server_responses",
-          "legendFormat": "Responses",
+          "expr": "sum by (__name__, url) ({__name__=~\"bind_counter_.*\", type=\"rcode\"})",
+          "legendFormat": "{{__name__}} {{url}}",
           "refId": "A"
         }
       ]
@@ -84,14 +84,14 @@
       "type": "timeseries",
       "gridPos": {
         "x": 0,
-        "y": 16,
+        "y": 12,
         "w": 12,
         "h": 8
       },
       "id": 5,
       "targets": [
         {
-          "expr": "bind_memory_context_TotalUse",
+          "expr": "bind_memory_context_total",
           "legendFormat": "Total Use",
           "refId": "A"
         }
@@ -102,14 +102,14 @@
       "type": "timeseries",
       "gridPos": {
         "x": 12,
-        "y": 16,
+        "y": 12,
         "w": 12,
         "h": 8
       },
       "id": 6,
       "targets": [
         {
-          "expr": "bind_memory_context_InUse",
+          "expr": "bind_memory_context_in_use",
           "legendFormat": "In Use",
           "refId": "A"
         }

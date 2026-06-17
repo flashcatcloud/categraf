@@ -12,7 +12,6 @@ In most cases, no specific configuration is required; just leave it enabled.
 
 ```toml
 # Collect OS process state distributions
-[[instances]]
 # No specific configuration required
 ```
 

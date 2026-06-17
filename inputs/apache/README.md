@@ -17,6 +17,12 @@ scrape_uri = "http://localhost/server-status/?auto"
 
 # Optional: Skip TLS verification
 # insecure = false
+
+# Optional: Custom request headers
+# custom_headers = {}
+
+# Optional: Log level, one of debug, info, warn, error
+# log_level = "info"
 ```
 
 ### Apache mod_status Setup

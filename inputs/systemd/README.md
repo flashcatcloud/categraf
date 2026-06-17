@@ -13,7 +13,6 @@ You can enable and configure the systemd plugin in your Categraf configuration f
 # Collect systemd unit metrics
 # interval = 15
 
-[[instances]]
 # Regex: Used to match the unit names to be collected. Default is all (".+").
 # unit_include = ".+"
 

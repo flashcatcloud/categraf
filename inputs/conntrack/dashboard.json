@@ -20,8 +20,13 @@
       "targets": [
         {
           "expr": "conntrack_ip_conntrack_count / conntrack_ip_conntrack_max * 100",
-          "legendFormat": "Usage %",
+          "legendFormat": "ip_conntrack Usage %",
           "refId": "A"
+        },
+        {
+          "expr": "conntrack_nf_conntrack_count / conntrack_nf_conntrack_max * 100",
+          "legendFormat": "nf_conntrack Usage %",
+          "refId": "B"
         }
       ]
     },
@@ -38,8 +43,13 @@
       "targets": [
         {
           "expr": "conntrack_ip_conntrack_count",
-          "legendFormat": "Count",
+          "legendFormat": "ip_conntrack Count",
           "refId": "A"
+        },
+        {
+          "expr": "conntrack_nf_conntrack_count",
+          "legendFormat": "nf_conntrack Count",
+          "refId": "B"
         }
       ]
     }

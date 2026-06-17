@@ -10,7 +10,6 @@
 
 ```toml
 # 采集网络接口指标
-[[instances]]
 # interfaces = ["eth0", "enp*"]
 # ignore_interfaces = ["lo", "docker*", "veth*"]
 ```

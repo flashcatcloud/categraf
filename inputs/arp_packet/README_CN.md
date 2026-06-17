@@ -34,7 +34,7 @@ ip addr | grep '^[0-9]' | awk -F':' '{print $2}'
 ## 采集指标
 
 - `arp_packet_request_num`: 监听网卡上累计发出的 ARP 请求数
-- `arp_packet_response_num`: 监听网卡上累计收到的 ARP 响应数
+- `arp_packet_response_num`: 监听网卡上累计发出的 ARP 响应数
 
 所有指标会附带标签 `sourceAddr`，表示绑定的本地 IPv4 地址。
 

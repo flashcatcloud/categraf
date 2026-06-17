@@ -15,5 +15,5 @@ Categraf 监控 Kafka Connect 时，不需要专门的独立原生插件。Kafka
 
 ## 采集指标与大盘
 
-由于实际上使用的是 Jolokia Agent，采集到的指标完全取决于配置文件中配置的 `metrics`。常见的指标包括 Source/Sink Task 的运行状态、提交延迟、吞吐量等。
-请在您的 Grafana 或夜莺监控大盘中直接使用对应的 JMX 映射前缀查询指标。
+由于实际上使用的是 Jolokia Agent，采集到的指标完全取决于配置文件中的 `[[instances.metric]]`。常见的指标包括 Source/Sink Task 的运行状态、提交延迟、吞吐量等。
+当前模板使用 `metrics_name_prefix = "kafka_connect_"`，请在 Grafana 或夜莺中查询 `kafka_connect_` 开头的指标。

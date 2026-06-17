@@ -12,6 +12,17 @@
 1. 在 `conf/input.prometheus/prometheus.toml` 中新增一个用于抓取 kube-proxy 的 `[[instances]]` 配置块。
 2. 确保您的 Kubernetes 集群中，kube-proxy 的 metrics 接口 (通常是 `127.0.0.1:10249/metrics` 或者节点 IP 的 `10249` 端口) 可以被 Categraf 访问到。如果在 DaemonSet 模式下，通常通过 Node IP 访问。
 3. 修改配置中的 `urls` 指向正确的地址。
+4. 设置 `url_label_key = "ident"` 和 `labels = { job = "kube-proxy" }`，因为本目录下的 Dashboard 使用 `job` 过滤指标，并使用 `ident` 区分实例。
+
+示例：
+
+```toml
+[[instances]]
+urls = ["http://127.0.0.1:10249/metrics"]
+url_label_key = "ident"
+url_label_value = "{{.Host}}"
+labels = { job = "kube-proxy" }
+```
 
 ## 采集指标与监控大盘
 

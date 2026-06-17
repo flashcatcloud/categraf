@@ -17,6 +17,10 @@
         "h": 8
       },
       "id": 1,
+      "options": {
+        "content": "Kafka Connect metrics are collected through jolokia_agent. Configure kafka-connect.toml and build panels from metrics prefixed with kafka_connect_.",
+        "mode": "markdown"
+      },
       "targets": []
     }
   ],

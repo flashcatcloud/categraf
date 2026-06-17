@@ -4,8 +4,10 @@ This plugin pulls cloud resource monitoring metrics from the Google Cloud Platfo
 
 ## Prerequisites
 
-Before using this plugin, ensure that the provided GCP Service Account credentials have the following permission:
-- `monitoring.read` (Monitoring Viewer)
+Before using this plugin, ensure that the provided GCP Service Account credentials can read Cloud Monitoring time series. For OAuth scopes, use:
+- `https://www.googleapis.com/auth/monitoring.read`
+
+For IAM, grant a read-only monitoring role such as Monitoring Viewer.
 
 ## Configuration
 

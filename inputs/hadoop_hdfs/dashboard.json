@@ -17,6 +17,10 @@
         "h": 8
       },
       "id": 1,
+      "options": {
+        "content": "Hadoop HDFS metrics are collected through jolokia_agent. The provided template emits metrics prefixed with hadoop_hdfs_namenode_ and hadoop_hdfs_datanode_.",
+        "mode": "markdown"
+      },
       "targets": []
     }
   ],

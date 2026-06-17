@@ -17,6 +17,12 @@ scrape_uri = "http://localhost/server-status/?auto"
 
 # 可选: 跳过 TLS 证书校验
 # insecure = false
+
+# 可选: 自定义请求 Header
+# custom_headers = {}
+
+# 可选: 日志级别，可选值为 debug、info、warn、error
+# log_level = "info"
 ```
 
 ### Apache mod_status 模块配置

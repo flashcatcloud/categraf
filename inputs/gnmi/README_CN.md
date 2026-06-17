@@ -24,7 +24,7 @@
   redial = "10s"
 
   ## gRPC 的最大消息大小限制，默认 4MB
-  max_msg_size = "4194304"
+  max_msg_size = 4194304
 
   ## TLS 认证配置 (如果设备启用了 TLS)
   # enable_tls = false

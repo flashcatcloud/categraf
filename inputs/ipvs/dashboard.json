@@ -19,7 +19,7 @@
       "id": 1,
       "targets": [
         {
-          "expr": "ipvs_real_server_active_connections",
+          "expr": "ipvs_active_connections",
           "legendFormat": "RS: {{address}}:{{port}}",
           "refId": "A"
         }
@@ -37,14 +37,14 @@
       "id": 2,
       "targets": [
         {
-          "expr": "ipvs_real_server_inactive_connections",
+          "expr": "ipvs_inactive_connections",
           "legendFormat": "RS: {{address}}:{{port}}",
           "refId": "A"
         }
       ]
     },
     {
-      "title": "IPVS Virtual Server Connections",
+      "title": "IPVS Connections",
       "type": "timeseries",
       "gridPos": {
         "x": 0,
@@ -55,14 +55,14 @@
       "id": 3,
       "targets": [
         {
-          "expr": "ipvs_virtual_server_connections",
-          "legendFormat": "VS: {{address}}:{{port}}",
+          "expr": "ipvs_connections",
+          "legendFormat": "{{address}}:{{port}}",
           "refId": "A"
         }
       ]
     },
     {
-      "title": "IPVS Virtual Server CPS",
+      "title": "IPVS CPS",
       "type": "timeseries",
       "gridPos": {
         "x": 12,
@@ -73,8 +73,8 @@
       "id": 4,
       "targets": [
         {
-          "expr": "ipvs_virtual_server_cps",
-          "legendFormat": "VS: {{address}}:{{port}}",
+          "expr": "ipvs_cps",
+          "legendFormat": "{{address}}:{{port}}",
           "refId": "A"
         }
       ]

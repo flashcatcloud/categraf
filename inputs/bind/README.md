@@ -33,7 +33,8 @@ gather_views = true
 
 ## Metrics
 
-- `bind_server_*`: Global server metrics, such as total requests, queries, success, nxrrset, failure, recursion, etc.
-- `bind_memory_context_*`: Internal memory usage by various BIND modules (requires `gather_memory_contexts = true`).
-- `bind_view_*`: Per-view query metrics (requires `gather_views = true`).
-- `bind_up`: Whether the statistics channel was reachable.
+- `bind_counter_*`: Counters reported by BIND, with labels such as `type`, `url`, `source`, and `port`.
+- `bind_memory_*`: BIND memory summary metrics, such as `bind_memory_total_use` and `bind_memory_in_use`.
+- `bind_memory_context_*`: Internal memory usage by BIND modules, such as `bind_memory_context_total` and `bind_memory_context_in_use` (requires `gather_memory_contexts = true`).
+
+When `gather_views = true`, per-view counters are also exported as `bind_counter_*` with an additional `view` label.

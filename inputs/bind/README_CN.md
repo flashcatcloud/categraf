@@ -33,7 +33,8 @@ gather_views = true
 
 ## 采集指标
 
-- `bind_server_*`: BIND 服务器的全局请求数、查询数、成功/失败/拒绝的解析数等。
-- `bind_memory_context_*`: BIND 内部各模块的内存使用量（需开启 `gather_memory_contexts`）。
-- `bind_view_*`: 按 DNS View 统计的查询数据（需开启 `gather_views`）。
-- `bind_up`: 目标统计接口是否可达。
+- `bind_counter_*`: BIND 返回的各类计数器，会附带 `type`、`url`、`source`、`port` 等标签。
+- `bind_memory_*`: BIND 内存汇总指标，例如 `bind_memory_total_use`、`bind_memory_in_use`。
+- `bind_memory_context_*`: BIND 内部各模块的内存使用量，例如 `bind_memory_context_total`、`bind_memory_context_in_use`（需开启 `gather_memory_contexts`）。
+
+开启 `gather_views = true` 后，按 DNS View 统计的计数器也会以 `bind_counter_*` 上报，并额外附带 `view` 标签。

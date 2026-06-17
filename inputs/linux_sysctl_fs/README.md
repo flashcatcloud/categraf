@@ -9,7 +9,6 @@ It is highly recommended for monitoring system-wide file descriptor limits (file
 
 ```toml
 # Collect Linux system file descriptor and inode status limits
-[[instances]]
 # This plugin requires no special configuration. Just enable it.
 ```
 

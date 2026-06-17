@@ -12,7 +12,6 @@ The configuration file is located at `conf/input.nvidia_smi/nvidia_smi.toml`
 # Collect NVIDIA GPU status
 # interval = 15
 
-[[instances]]
 # The following option is critical. To collect nvidia-smi information, uncomment it and provide the absolute path to the nvidia-smi command.
 # This instructs Categraf to execute the local nvidia-smi command to get the GPU status.
 # nvidia_smi_command = "/usr/bin/nvidia-smi"

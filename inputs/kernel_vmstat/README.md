@@ -8,7 +8,6 @@ Since `/proc/vmstat` contains a large number of metrics, we use a whitelist mech
 
 ```toml
 # Collect kernel vmstat metrics from /proc/vmstat
-[[instances]]
 # No other settings are needed, the white_list below controls which fields are collected.
 
 [white_list]

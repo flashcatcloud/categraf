@@ -13,7 +13,6 @@
 
 ```toml
 # 采集 Linux IPVS 的虚拟和真实服务器指标
-[[instances]]
 # 无需任何特殊配置，只需启用即可
 ```
 
@@ -21,7 +20,7 @@
 
 采集的指标会自动打上标签，以标识虚拟服务器的配置方式（例如，使用 `address` + `port` + `protocol` 或者使用 `fwmark` 配置）。这与您平时使用 `ipvsadm` 配置虚拟服务器的方式一致。
 
-### 1. ipvs_virtual_server
+### 虚拟服务器样本
 表示虚拟服务器 (负载均衡前端)。
 - **Tags:**
   - `sched`: 使用的调度算法 (如 rr, wrr)
@@ -31,25 +30,25 @@
   - `port`: 端口
   - `protocol`: 协议 (tcp/udp)
   - `fwmark`: 防火墙标记
-- **Fields (指标):**
-  - `connections`: 总连接数
-  - `pkts_in` / `pkts_out`: 收发数据包总数
-  - `bytes_in` / `bytes_out`: 收发字节总数
-  - `pps_in` / `pps_out`: 每秒收发数据包速率
-  - `cps`: 每秒新建连接数
+- **Metrics (指标):**
+  - `ipvs_connections`: 总连接数
+  - `ipvs_pkts_in` / `ipvs_pkts_out`: 收发数据包总数
+  - `ipvs_bytes_in` / `ipvs_bytes_out`: 收发字节总数
+  - `ipvs_pps_in` / `ipvs_pps_out`: 每秒收发数据包速率
+  - `ipvs_cps`: 每秒新建连接数
 
-### 2. ipvs_real_server
+### 真实服务器样本
 表示真实服务器 (后端的真实节点)。
 - **Tags:**
   - `address`: Real Server IP
   - `port`: Real Server 端口
   - `address_family`: inet 或 inet6
   - `virtual_address` / `virtual_port` / `virtual_protocol` / `virtual_fwmark`: 其所属的虚拟服务器的信息
-- **Fields (指标):**
-  - `active_connections`: 活跃连接数
-  - `inactive_connections`: 非活跃连接数
-  - `connections`: 总连接数
-  - `pkts_in` / `pkts_out`: 收发数据包总数
-  - `bytes_in` / `bytes_out`: 收发字节总数
-  - `pps_in` / `pps_out`: 每秒收发数据包速率
-  - `cps`: 每秒新建连接数
+- **Metrics (指标):**
+  - `ipvs_active_connections`: 活跃连接数
+  - `ipvs_inactive_connections`: 非活跃连接数
+  - `ipvs_connections`: 总连接数
+  - `ipvs_pkts_in` / `ipvs_pkts_out`: 收发数据包总数
+  - `ipvs_bytes_in` / `ipvs_bytes_out`: 收发字节总数
+  - `ipvs_pps_in` / `ipvs_pps_out`: 每秒收发数据包速率
+  - `ipvs_cps`: 每秒新建连接数

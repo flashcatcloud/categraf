@@ -26,12 +26,6 @@
   # 可选：连接到远端的 hostengine
   # remote-hostengine-info = "localhost:5555"
 
-  # 直接在配置文件中内联声明 collector 文件内容
-  # [instances.collector_files]
-  # "/etc/categraf/dcgm/default-counters.csv" = """
-  # DCGM_FI_DEV_GPU_TEMP, gauge, GPU temperature (in C)
-  # DCGM_FI_DEV_POWER_USAGE, gauge, Power draw (in W).
-  # """
 ```
 
 ## 采集指标

@@ -17,6 +17,10 @@
         "h": 8
       },
       "id": 1,
+      "options": {
+        "content": "Jolokia Proxy metrics depend on the configured targets, MBeans, paths, and metrics_name_prefix. Build panels from the emitted metric names in your jolokia_proxy configuration.",
+        "mode": "markdown"
+      },
       "targets": []
     }
   ],

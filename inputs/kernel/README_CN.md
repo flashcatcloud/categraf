@@ -9,7 +9,6 @@
 
 ```toml
 # 采集 Linux 系统的 Kernel 指标
-[[instances]]
 # 无需任何特殊配置，只需启用即可
 ```
 

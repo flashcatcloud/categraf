@@ -11,7 +11,6 @@ Compared to Categraf's native plugins (like `cpu`, `mem`, `disk`), this plugin p
 # Collect Node Exporter compatible metrics
 # interval = 15
 
-[[instances]]
 # Typically, you just need to enable this plugin.
 # If you need to toggle specific collectors, you can pass arguments to categraf's startup command line.
 # Example: --collector.textfile.directory=/var/lib/node_exporter/textfile_collector

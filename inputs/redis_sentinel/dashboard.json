@@ -19,8 +19,8 @@
       "id": 1,
       "targets": [
         {
-          "expr": "redis_sentinel_uptime_in_seconds / 86400",
-          "legendFormat": "{{server}}",
+          "expr": "redis_sentinel_uptime_ns / 86400 / 1000000000",
+          "legendFormat": "{{source}}:{{port}}",
           "refId": "A"
         }
       ]
@@ -37,8 +37,8 @@
       "id": 2,
       "targets": [
         {
-          "expr": "redis_sentinel_connected_clients",
-          "legendFormat": "{{server}}",
+          "expr": "redis_sentinel_clients",
+          "legendFormat": "{{source}}:{{port}}",
           "refId": "A"
         }
       ]
@@ -55,7 +55,7 @@
       "id": 3,
       "targets": [
         {
-          "expr": "redis_sentinel_master_sentinels",
+          "expr": "redis_sentinel_masters_num_other_sentinels",
           "legendFormat": "Master: {{master}}",
           "refId": "A"
         }
@@ -73,7 +73,7 @@
       "id": 4,
       "targets": [
         {
-          "expr": "redis_sentinel_master_slaves",
+          "expr": "redis_sentinel_masters_num_slaves",
           "legendFormat": "Master: {{master}}",
           "refId": "A"
         }

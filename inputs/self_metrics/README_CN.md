@@ -12,7 +12,6 @@
 # 采集 Categraf 自身指标
 # interval = 15
 
-# [[instances]]
 # 无特殊配置项
 ```
 

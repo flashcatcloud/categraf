@@ -17,6 +17,10 @@
         "h": 8
       },
       "id": 1,
+      "options": {
+        "content": "Huatuo eBPF metrics depend on the enabled probes and runtime environment. Build panels from the emitted huatuo metrics.",
+        "mode": "markdown"
+      },
       "targets": []
     }
   ],

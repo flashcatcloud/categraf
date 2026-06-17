@@ -65,4 +65,4 @@ The plugin collects comprehensive container resource usage. Key metrics include:
 - `docker_container_mem_limit`: Container Memory limit (Bytes)
 - `docker_container_net_rx_bytes`: Container network received bytes
 - `docker_container_net_tx_bytes`: Container network transmitted bytes
-- `docker_container_status`: The running status of the container
+- `docker_container_status_*`: Container state fields such as PID, exit code, restart count, and uptime. The current state is exposed as the `container_status` tag.

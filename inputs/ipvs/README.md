@@ -12,7 +12,6 @@ In order for this plugin to communicate over netlink sockets, the Categraf proce
 
 ```toml
 # Collect virtual and real server stats from Linux IPVS
-[[instances]]
 # No specific configuration is required.
 ```
 
@@ -20,7 +19,7 @@ In order for this plugin to communicate over netlink sockets, the Categraf proce
 
 Servers will contain tags identifying how they were configured, using either `address` + `port` + `protocol` *OR* `fwmark`. This corresponds to how you would normally configure a virtual server using `ipvsadm`.
 
-### 1. ipvs_virtual_server
+### Virtual server samples
 - **Tags:**
     - `sched` (the scheduler in use)
     - `netmask` (the mask used for determining affinity)
@@ -29,14 +28,14 @@ Servers will contain tags identifying how they were configured, using either `ad
     - `port`
     - `protocol`
     - `fwmark`
-- **Fields:**
-    - `connections`
-    - `pkts_in` / `pkts_out`
-    - `bytes_in` / `bytes_out`
-    - `pps_in` / `pps_out`
-    - `cps`
+- **Metrics:**
+    - `ipvs_connections`
+    - `ipvs_pkts_in` / `ipvs_pkts_out`
+    - `ipvs_bytes_in` / `ipvs_bytes_out`
+    - `ipvs_pps_in` / `ipvs_pps_out`
+    - `ipvs_cps`
 
-### 2. ipvs_real_server
+### Real server samples
 - **Tags:**
     - `address`
     - `port`
@@ -45,11 +44,11 @@ Servers will contain tags identifying how they were configured, using either `ad
     - `virtual_port`
     - `virtual_protocol`
     - `virtual_fwmark`
-- **Fields:**
-    - `active_connections`
-    - `inactive_connections`
-    - `connections`
-    - `pkts_in` / `pkts_out`
-    - `bytes_in` / `bytes_out`
-    - `pps_in` / `pps_out`
-    - `cps`
+- **Metrics:**
+    - `ipvs_active_connections`
+    - `ipvs_inactive_connections`
+    - `ipvs_connections`
+    - `ipvs_pkts_in` / `ipvs_pkts_out`
+    - `ipvs_bytes_in` / `ipvs_bytes_out`
+    - `ipvs_pps_in` / `ipvs_pps_out`
+    - `ipvs_cps`

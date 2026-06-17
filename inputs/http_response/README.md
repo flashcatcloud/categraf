@@ -45,11 +45,12 @@ method = "POST"
 
 ## 指标说明
 
-- `http_response_dns_request` DNS 解析耗时，单位毫秒
-- `http_response_tcp_connect` TCP 建连耗时，单位毫秒
-- `http_response_tls_handshake` TLS 握手耗时，单位毫秒
-- `http_response_first_byte` 首包响应耗时，单位毫秒
-- `http_response_total_cost` 请求总耗时，单位毫秒
+- `http_response_dns_time` DNS 解析耗时，单位毫秒（需开启 `trace`）
+- `http_response_connect_time` TCP 建连耗时，单位毫秒（需开启 `trace`）
+- `http_response_tls_time` TLS 握手耗时，单位毫秒（需开启 `trace`）
+- `http_response_first_response_time` 首包响应耗时，单位毫秒（需开启 `trace`）
+- `http_response_end_response_time` 首包之后到请求结束的耗时，单位毫秒
+- `http_response_response_time_ms` 请求总耗时，单位毫秒
 - `http_response_response_time` 响应耗时，单位秒，保留为兼容旧指标
 - `http_response_response_code` HTTP 响应码
 - `http_response_result_code` 探测结果码
@@ -57,7 +58,7 @@ method = "POST"
 
 说明：
 
-- 使用 IP 直连或连接复用时（HTTP/HTTPS 均可能），部分阶段指标可能为 `-1`
+- 未开启 `trace`、使用 IP 直连或连接复用时（HTTP/HTTPS 均可能），部分阶段指标可能不存在
 - `http_response_cert_expire_timestamp` 仅在 HTTPS 目标且成功建立 TLS 连接时输出
 
 ## 监控大盘和告警规则

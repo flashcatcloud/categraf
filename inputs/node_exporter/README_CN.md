@@ -11,7 +11,6 @@
 # 采集 Node Exporter 兼容指标
 # interval = 15
 
-[[instances]]
 # 通常只需启用该插件即可。
 # 如果有特别的 collector 开启/关闭需求，您可以在 categraf 的命令行启动参数中传入
 # 例如：--collector.textfile.directory=/var/lib/node_exporter/textfile_collector

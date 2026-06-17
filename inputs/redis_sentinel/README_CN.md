@@ -12,7 +12,7 @@
 # interval = 15
 
 [[instances]]
-# Sentinel 节点地址列表，格式为 "tcp://host:port" 或 "host:port"
+# Sentinel 节点地址列表，格式为 "tcp://host:port" 或 "unix:///path/to/socket"
 servers = ["tcp://localhost:26379"]
 
 # (可选) Sentinel 密码
@@ -27,14 +27,14 @@ servers = ["tcp://localhost:26379"]
 所有的指标均以 `redis_sentinel_` 作为前缀。根据采集内容不同，主要包含两类数据：
 
 ### Sentinel 自身基础指标 (`redis_sentinel_*`)
-例如 `redis_sentinel_uptime_in_seconds`, `redis_sentinel_connected_clients`, `redis_sentinel_mem_used` 等，用于反映 Sentinel 进程的存活与基础资源开销。
+例如 `redis_sentinel_uptime_ns`, `redis_sentinel_clients`, `redis_sentinel_sentinel_masters` 等，用于反映 Sentinel 进程的存活与基础资源开销。TCP 地址会带有 `source` 和 `port` 标签，Unix Socket 地址会带有 `socket` 标签。
 
-### Master / Slave 状态指标
+### Master / Replica 状态指标
 这些指标携带 `master` (名字) 等标签，用于反映 Sentinel 眼中的集群拓扑：
-- `redis_sentinel_master_slaves`: 当前 Master 下挂载的 Slave 数量
-- `redis_sentinel_master_sentinels`: 监控该 Master 的 Sentinel 节点数
-- `redis_sentinel_master_status`: Master 状态 (通常 "ok" 映射为 1，其他映射为 0 或具体错误码)
-- `redis_sentinel_master_failover_state`: 故障转移(Failover)的当前状态值
+- `redis_sentinel_masters_num_slaves`: 当前 Master 下挂载的副本数量
+- `redis_sentinel_masters_num_other_sentinels`: 监控该 Master 的其他 Sentinel 节点数
+- `redis_sentinel_masters_has_quorum`: Sentinel 是否认为该 Master 满足 quorum
+- `redis_sentinel_replicas_slave_repl_offset`: 副本复制偏移量
 
 ## 监控大盘
 

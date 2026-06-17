@@ -14,10 +14,7 @@ The plugin periodically executes the `gpstate -m` command in the background and 
 # # Collect interval
 # interval = 15
 
-[[instances]]
 # There is no instance-specific configuration for this plugin. Just ensure gpstate is in the PATH.
-# You can append labels to distinguish different clusters:
-# labels = { cluster="gp-cluster-1" }
 ```
 
 ## Metrics

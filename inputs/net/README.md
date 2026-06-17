@@ -10,7 +10,6 @@ In most cases, you can leave the default configuration as is; the plugin will au
 
 ```toml
 # Collect network interface metrics
-[[instances]]
 # interfaces = ["eth0", "enp*"]
 # ignore_interfaces = ["lo", "docker*", "veth*"]
 ```

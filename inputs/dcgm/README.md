@@ -26,12 +26,6 @@ This plugin collects hardware monitoring metrics for NVIDIA GPUs by integrating 
   # Optional: Connect to a remote hostengine
   # remote-hostengine-info = "localhost:5555"
 
-  # You can declare the collector CSV file inline directly in the config
-  # [instances.collector_files]
-  # "/etc/categraf/dcgm/default-counters.csv" = """
-  # DCGM_FI_DEV_GPU_TEMP, gauge, GPU temperature (in C)
-  # DCGM_FI_DEV_POWER_USAGE, gauge, Power draw (in W).
-  # """
 ```
 
 ## Metrics

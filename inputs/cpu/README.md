@@ -7,7 +7,6 @@ By default, the plugin only collects global (total) CPU metrics. If you want to 
 ## Configuration
 
 ```toml
-[[instances]]
 # Whether to collect metrics for each individual CPU core
 collect_per_cpu = false
 ```

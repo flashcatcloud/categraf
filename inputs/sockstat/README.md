@@ -14,7 +14,6 @@ Generally, no special configuration is needed; just enable the plugin.
 # Collect Linux sockstat metrics
 # interval = 15
 
-[[instances]]
 # No specific configuration parameters required
 ```
 

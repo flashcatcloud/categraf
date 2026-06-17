@@ -17,6 +17,10 @@
         "h": 8
       },
       "id": 1,
+      "options": {
+        "content": "Jolokia Agent metrics depend on the configured MBeans, paths, and metrics_name_prefix. Build panels from the emitted metric names in your jolokia_agent configuration.",
+        "mode": "markdown"
+      },
       "targets": []
     }
   ],

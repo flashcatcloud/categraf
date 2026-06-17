@@ -12,6 +12,17 @@ Steps:
 1. Add a new `[[instances]]` block in your `conf/input.prometheus/prometheus.toml` for kube-proxy.
 2. Ensure that Categraf can access the kube-proxy metrics endpoint (typically `127.0.0.1:10249/metrics` or `NodeIP:10249`). When running as a DaemonSet, this is usually accessed via the Node IP.
 3. Modify the `urls` in the configuration to point to the correct address.
+4. Set `url_label_key = "ident"` and `labels = { job = "kube-proxy" }`, because the dashboard filters metrics by `job` and groups instances by `ident`.
+
+Example:
+
+```toml
+[[instances]]
+urls = ["http://127.0.0.1:10249/metrics"]
+url_label_key = "ident"
+url_label_value = "{{.Host}}"
+labels = { job = "kube-proxy" }
+```
 
 ## Metrics and Dashboards
 

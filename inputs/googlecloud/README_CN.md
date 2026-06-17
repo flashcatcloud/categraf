@@ -4,8 +4,10 @@
 
 ## 前置条件
 
-使用该插件前，您需要确保提供的 GCP 服务账号 (Service Account) 凭证拥有以下权限：
-- `monitoring.read` (监控查看者)
+使用该插件前，您需要确保提供的 GCP 服务账号 (Service Account) 凭证可以读取 Cloud Monitoring 时序数据。OAuth scope 使用：
+- `https://www.googleapis.com/auth/monitoring.read`
+
+IAM 侧请授予只读监控角色，例如 Monitoring Viewer。
 
 ## 配置说明
 

@@ -12,7 +12,6 @@ Since it is a built-in plugin gathering its own state, the configuration is extr
 # Collect Categraf's own metrics
 # interval = 15
 
-# [[instances]]
 # No specific configuration required
 ```
 

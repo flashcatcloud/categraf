@@ -55,7 +55,7 @@
       "id": 3,
       "targets": [
         {
-          "expr": "appdynamics_average_response_time__ms__current",
+          "expr": "appdynamics_average_response_time_ms_current",
           "legendFormat": "{{metric_path}}",
           "refId": "A"
         }

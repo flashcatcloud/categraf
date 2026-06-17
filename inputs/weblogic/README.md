@@ -12,4 +12,4 @@ For specific configurations and pre-defined WebLogic JMX metrics collection item
 ## Dashboards
 
 Since the data is collected via `jolokia_agent`, all metrics and tagging systems will follow the Jolokia standards.
-A placeholder `dashboard.json` is provided in this directory. For actual JVM monitoring dashboards, it is recommended to use the generic Dashboards associated with `jolokia` or `jvm`.
+A basic `dashboard.json` is provided in this directory for the bundled WebLogic Jolokia template. For broader JVM monitoring, you can also use the generic dashboards associated with `jolokia` or `jvm`.

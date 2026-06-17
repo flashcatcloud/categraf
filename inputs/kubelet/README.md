@@ -12,6 +12,20 @@ Steps:
 1. Add a new `[[instances]]` block in your `conf/input.prometheus/prometheus.toml` for Kubelet.
 2. Ensure that Categraf (usually deployed as a DaemonSet on each Node) can access the Kubelet API on the current node. This often involves using the Node IP and a service account token.
 3. Configure the correct authentication in your prometheus configuration according to your Kubernetes cluster's security setup (e.g., TLS settings, token file paths).
+4. Set `url_label_key = "ident"` and `labels = { job = "kubelet" }`, because the dashboard filters metrics by `job` and groups nodes by `ident`.
+
+Example:
+
+```toml
+[[instances]]
+urls = ["https://127.0.0.1:10250/metrics", "https://127.0.0.1:10250/metrics/cadvisor"]
+url_label_key = "ident"
+url_label_value = "{{.Host}}"
+labels = { job = "kubelet" }
+# bearer_token_file = "/run/secrets/kubernetes.io/serviceaccount/token"
+# use_tls = true
+# insecure_skip_verify = true
+```
 
 ## Metrics and Dashboards
 

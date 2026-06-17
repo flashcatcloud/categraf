@@ -1,6 +1,6 @@
 # kafka
 
-kafka 监控采集插件，由kafka-exporter（https://github.com/davidmparrott/kafka_exporter）封装而来。
+kafka 监控采集插件，由 [kafka-exporter](https://github.com/davidmparrott/kafka_exporter) 封装而来。
 
 ## Configuration
 

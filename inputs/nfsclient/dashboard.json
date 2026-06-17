@@ -19,12 +19,12 @@
       "id": 1,
       "targets": [
         {
-          "expr": "rate(nfsclient_bytes_read[5m])",
+          "expr": "rate(nfsclient_nfsstat_bytes{nfsstat_operation=\"READ\"}[5m])",
           "legendFormat": "Read: {{mountpoint}}",
           "refId": "A"
         },
         {
-          "expr": "rate(nfsclient_bytes_write[5m])",
+          "expr": "rate(nfsclient_nfsstat_bytes{nfsstat_operation=\"WRITE\"}[5m])",
           "legendFormat": "Write: {{mountpoint}}",
           "refId": "B"
         }
@@ -42,8 +42,8 @@
       "id": 2,
       "targets": [
         {
-          "expr": "rate(nfsclient_ops_response_time_ms[5m]) / rate(nfsclient_ops_ops[5m])",
-          "legendFormat": "{{mountpoint}} ({{operation}})",
+          "expr": "rate(nfsclient_nfsstat_rtt[5m]) / rate(nfsclient_nfsstat_ops[5m])",
+          "legendFormat": "{{mountpoint}} ({{nfsstat_operation}})",
           "refId": "A"
         }
       ]
@@ -60,14 +60,14 @@
       "id": 3,
       "targets": [
         {
-          "expr": "rate(nfsclient_ops_ops[5m])",
-          "legendFormat": "{{mountpoint}} ({{operation}})",
+          "expr": "rate(nfsclient_nfsstat_ops[5m])",
+          "legendFormat": "{{mountpoint}} ({{nfsstat_operation}})",
           "refId": "A"
         }
       ]
     },
     {
-      "title": "NFS Client Timeouts/s",
+      "title": "NFS Client Retransmits/s",
       "type": "timeseries",
       "gridPos": {
         "x": 12,
@@ -78,8 +78,8 @@
       "id": 4,
       "targets": [
         {
-          "expr": "rate(nfsclient_ops_timeouts[5m])",
-          "legendFormat": "{{mountpoint}} ({{operation}})",
+          "expr": "rate(nfsclient_nfsstat_retrans[5m])",
+          "legendFormat": "{{mountpoint}} ({{nfsstat_operation}})",
           "refId": "A"
         }
       ]

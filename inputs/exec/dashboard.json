@@ -17,6 +17,10 @@
         "h": 8
       },
       "id": 1,
+      "options": {
+        "content": "Exec metrics are defined by the commands configured in exec.toml. Build panels from the metric names emitted by your scripts.",
+        "mode": "markdown"
+      },
       "targets": []
     }
   ],

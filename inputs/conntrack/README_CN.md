@@ -10,6 +10,8 @@
 
 - `conntrack_ip_conntrack_count`: 当前 conntrack 表中的连接条目数 (count)。
 - `conntrack_ip_conntrack_max`: 当前 conntrack 表的最大容量限制 (size)。
+- `conntrack_nf_conntrack_count`: 当前 nf_conntrack 表中的连接条目数 (count)。
+- `conntrack_nf_conntrack_max`: 当前 nf_conntrack 表的最大容量限制 (size)。
 
 ## 告警配置建议
 
@@ -17,4 +19,5 @@
 
 ```promql
 conntrack_ip_conntrack_count / conntrack_ip_conntrack_max > 0.8
+conntrack_nf_conntrack_count / conntrack_nf_conntrack_max > 0.8
 ```

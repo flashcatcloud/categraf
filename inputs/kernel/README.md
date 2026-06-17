@@ -9,7 +9,6 @@ The data is typically sourced from `/proc/stat` and `/proc/vmstat`.
 
 ```toml
 # Collect Linux Kernel metrics
-[[instances]]
 # No specific configuration is required.
 ```
 

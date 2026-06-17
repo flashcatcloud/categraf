@@ -48,7 +48,7 @@
       "type": "timeseries",
       "gridPos": {
         "x": 16,
-        "y": 0,
+        "y": 8,
         "w": 8,
         "h": 8
       },

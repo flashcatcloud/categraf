@@ -33,6 +33,7 @@ bearer_token_file = "/path/to/token/file"
 ignore_label_keys = ["id","name", "container_label*"]
 # Label keys to explicitly choose. It is recommended to leave this empty to collect all labels.
 # This takes precedence over ignore_label_keys.
+# When this is not ["*"], include "pod" and "namespace" if you need pod labels or annotations.
 #choose_label_keys = ["*"]
 
 timeout = "3s"
@@ -73,6 +74,6 @@ The related variables are generated using the URL template fields:
 | `{{.Host}}` | 1.2.3.4:8080 |
 | `{{.Hostname}}` | 1.2.3.4 |
 | `{{.Port}}` | 8080 |
-| `{{.Path}}` | search |
+| `{{.Path}}` | /search |
 | `{{.Query}}` | q=keyword |
 | `{{.Fragment}}` | results |

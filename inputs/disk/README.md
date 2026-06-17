@@ -8,9 +8,14 @@ The default configuration is already the recommended setting for most environmen
 ## Configuration
 
 ```toml
-[[instances]]
-  # List of filesystem types to ignore
-  # ignore_fs = [...] 
+# Set mount_points to restrict collection to specific mount points.
+# mount_points = ["/"]
+
+# List of filesystem types to ignore.
+# ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs", "nsfs", "CDFS", "fuse.juicefs"]
+
+# List of mount point prefixes to ignore.
+# ignore_mount_points = ["/boot", "/var/lib/kubelet/pods"]
 ```
 
 ## Metrics

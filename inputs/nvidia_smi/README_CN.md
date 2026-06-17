@@ -12,7 +12,6 @@
 # 采集 NVIDIA GPU 状态
 # interval = 15
 
-[[instances]]
 # 下面的配置是最核心的配置。如果要采集 nvidia-smi 的信息，请取消注释并给出 nvidia-smi 命令的绝对路径。
 # 相当于让 Categraf 执行本机的 nvidia-smi 命令，获取本机 GPU 的状态信息
 # nvidia_smi_command = "/usr/bin/nvidia-smi"

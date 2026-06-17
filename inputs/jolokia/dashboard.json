@@ -17,6 +17,10 @@
         "h": 8
       },
       "id": 1,
+      "options": {
+        "content": "This directory contains the shared Jolokia library used by jolokia_agent and jolokia_proxy. Query metrics from the concrete Jolokia input configuration you enable.",
+        "mode": "markdown"
+      },
       "targets": []
     }
   ],

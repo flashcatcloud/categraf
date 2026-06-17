@@ -8,9 +8,14 @@ Disk 采集插件主要用于收集操作系统的磁盘分区使用情况。
 ## 配置说明
 
 ```toml
-[[instances]]
-  # 是否仅忽略在 ignore_fs 列表中明确配置的文件系统，设为 false 表示忽略常见的虚拟文件系统
-  # ignore_fs = [...] 
+# 设置 mount_points 后，仅采集指定挂载点。
+# mount_points = ["/"]
+
+# 按文件系统类型忽略挂载点。
+# ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs", "nsfs", "CDFS", "fuse.juicefs"]
+
+# 按挂载点路径前缀忽略。
+# ignore_mount_points = ["/boot", "/var/lib/kubelet/pods"]
 ```
 
 ## 采集指标

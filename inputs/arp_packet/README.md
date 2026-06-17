@@ -34,7 +34,7 @@ Select the appropriate interface (e.g., `eth0`) and set it in the `eth_device` p
 ## Metrics
 
 - `arp_packet_request_num`: Total number of ARP requests sent from the monitored interface.
-- `arp_packet_response_num`: Total number of ARP responses received on the monitored interface.
+- `arp_packet_response_num`: Total number of ARP responses sent from the monitored interface.
 
 All metrics include the `sourceAddr` tag, which contains the bound local IPv4 address.
 

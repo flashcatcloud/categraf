@@ -9,10 +9,10 @@ It is not necessary to enable this plugin on every machine. We recommend enablin
 
 ```toml
 [[instances]]
-  # Automatically use the DNS servers from the local machine's /etc/resolv.conf
+  # Automatically use DNS servers from /etc/resolv.conf when servers is empty
   auto_detect_local_dns_server = true
 
-  ## Manually specify external DNS servers to query
+  ## Manually specify DNS servers to query
   servers = ["223.5.5.5", "114.114.114.114", "119.29.29.29"]
 
   ## Network protocol to use, such as "udp" or "tcp"
@@ -21,7 +21,7 @@ It is not necessary to enable this plugin on every machine. We recommend enablin
   ## List of domains or subdomains to query
   domains = ["www.huaweicloud.com", "www.baidu.com", "api.yourcompany.com"]
 
-  ## Query record type (A, AAAA, CNAME, MX, NS, PTR, TXT, SOA, SPF, SRV)
+  ## Query record type (A, AAAA, ANY, CNAME, MX, NS, PTR, TXT, SOA, SPF, SRV)
   record_type = "A"
 
   ## DNS server port

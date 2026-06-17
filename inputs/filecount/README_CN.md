@@ -44,5 +44,5 @@ mtime = "0s"
 
 - `filecount_count`: 匹配到的文件总数
 - `filecount_size_bytes`: 匹配到的文件总大小 (Bytes)
-- `filecount_oldest_file_timestamp`: 最早创建/修改的文件的 Unix 时间戳 (纳秒)
-- `filecount_newest_file_timestamp`: 最新创建/修改的文件的 Unix 时间戳 (纳秒)
+- `filecount_oldest_file_timestamp`: 最早修改的文件的 Unix 时间戳 (纳秒)
+- `filecount_newest_file_timestamp`: 最新修改的文件的 Unix 时间戳 (纳秒)

@@ -17,6 +17,10 @@
         "h": 8
       },
       "id": 1,
+      "options": {
+        "content": "Google Cloud Monitoring metrics depend on the configured filter and GCP services in use. Build panels from the metric names emitted by this plugin.",
+        "mode": "markdown"
+      },
       "targets": []
     }
   ],

@@ -15,5 +15,5 @@ Steps:
 
 ## Metrics and Dashboards
 
-Because the actual metric collection is handled by the Jolokia Agent, the metrics collected depend entirely on the `metrics` blocks defined in your configuration file. Common metrics include Source/Sink Task status, commit latency, and throughput.
-In your Grafana or Nightingale dashboards, simply query the mapped JMX metrics prefix defined in your configuration.
+Because the actual metric collection is handled by the Jolokia Agent, the metrics collected depend entirely on the `[[instances.metric]]` blocks defined in your configuration file. Common metrics include Source/Sink Task status, commit latency, and throughput.
+The provided template uses `metrics_name_prefix = "kafka_connect_"`, so query metrics starting with `kafka_connect_` in Grafana or Nightingale.

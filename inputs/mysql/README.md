@@ -187,7 +187,7 @@ labels = { instance = "local-mysql.sock" }
 | `metric_fields` | []string | 空 | 作为数值指标导出的列名列表 |
 | `label_fields` | []string | 空 | 作为标签导出的列名列表 |
 | `field_to_append` | string | 空 | 将某一列的值追加到指标名中，适合动态分组 |
-| `timeout` | duration | 继承 `timeout_seconds`，再退化到 `3s` | 单条自定义 SQL 的超时 |
+| `timeout` | duration | `0` | 单条自定义 SQL 的超时；当前实现不会继承 `timeout_seconds`，建议显式配置，例如 `3s` |
 | `request` | string | 空 | 实际执行的 SQL |
 
 自定义 SQL 的使用规则：
@@ -657,7 +657,7 @@ parameters = "tls=custom"
 
 - `metric_fields` / `label_fields` / `field_to_append` 没与 SQL 结果里的小写列名或小写别名保持一致
 - `metric_fields` 对应列不是数值
-- 自定义 SQL 超时；当前默认会继承实例的 `timeout_seconds`，默认值是 3 秒
+- 自定义 SQL 超时；当前实现不会继承实例的 `timeout_seconds`，请在每条自定义 SQL 中显式配置 `timeout`
 
 ## 其他说明
 

@@ -2,7 +2,7 @@
 
 cadvisor 采集插件， 采集cadvisor 数据，如果是通过kubelet采集，可以附加pod的label和annotation
 
-## Configuration
+## 配置说明
 
 ```toml
 # # collect interval
@@ -30,6 +30,7 @@ bearer_token_file = "/path/to/token/file"
 # 需要忽略的label key
 ignore_label_keys = ["id","name", "container_label*"]
 # 只采集那些label key, 建议保持为空，采集所有的label。 优先级高于ignore_label_keys。
+# 放开 choose_label_keys 配置时，如果不使用 ["*"]，需要包含 "pod" 和 "namespace"，否则无法附加 pod 标签和 annotation。
 #choose_label_keys = ["*"]
 
 timeout = "3s"
@@ -97,6 +98,6 @@ func (ul *UrlLabel) GenerateLabel(u *url.URL) (string, string, error) {
 |{{.Host}} |1.2.3.4:8080|
 |{{.Hostname}}|1.2.3.4|
 |{{.Port}}|8080|
-|{{.Path}}|search|
+|{{.Path}}|/search|
 |{{.Query}}|q=keyword|
-|{{.Fragment}}| results|
+|{{.Fragment}}|results|

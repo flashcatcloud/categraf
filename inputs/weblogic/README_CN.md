@@ -12,4 +12,4 @@ WebLogic 当前可以使用 `jolokia_agent` 插件来监控，通过 HTTP 请求
 ## 监控大盘
 
 既然数据是通过 `jolokia_agent` 采集的，所有的指标和标签体系将遵循 Jolokia 规范。
-本目录下提供了一个占位用的 `dashboard.json`。如果你想查看真正的 JVM 监控大盘，建议直接使用 `jolokia` 或 `jvm` 相关的通用 Dashboard。
+本目录下提供了一个适配当前 WebLogic Jolokia 示例配置的基础 `dashboard.json`。如果你还需要更完整的 JVM 监控，也可以配合使用 `jolokia` 或 `jvm` 相关的通用 Dashboard。
