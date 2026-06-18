@@ -78,11 +78,10 @@ func NewDecoderFromSourceWithPattern(source *logsconfig.LogSource, multiLinePatt
 	case logsconfig.KubernetesSourceType:
 		if source.GetcontainerdFlg() == "Y" {
 			lineParser = kubernetes.Parser
-			matcher = &decoder.NewLineMatcher{}
 		} else {
 			lineParser = kubernetes.JSONParser
-			matcher = &decoder.NewLineMatcher{}
 		}
+		matcher = &decoder.NewLineMatcher{}
 	// case logsconfig.DockerSourceType:
 	//  lineParser = docker.JSONParser
 	//  matcher = &decoder.NewLineMatcher{}
@@ -236,7 +235,9 @@ func (t *Tailer) startStopTimer() {
 
 // onStop finishes to stop the tailer
 func (t *Tailer) onStop() {
-	t.osFile.Close()
+	if t.osFile != nil {
+		_ = t.osFile.Close()
+	}
 	t.decoder.Stop()
 	log.Println("Closed", t.file.Path, "for tailer key", t.file.GetScanKey(), "read", t.bytesRead, "bytes and", t.decoder.GetLineCount(), "lines")
 }

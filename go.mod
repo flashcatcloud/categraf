@@ -215,6 +215,7 @@ require (
 	github.com/bits-and-blooms/bitset v1.13.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/bmatcuk/doublestar/v3 v3.0.0
+	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/dennwc/btrfs v0.0.0-20230312211831-a1f570bd01a1

@@ -13,6 +13,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 
 	"flashcat.cloud/categraf/logs/decoder"
 )
@@ -33,9 +34,16 @@ func (t *Tailer) setup(offset int64, whence int) error {
 	if err != nil {
 		return err
 	}
-	filePos, _ := f.Seek(offset, whence)
-	f.Close()
+	filePos, err := f.Seek(offset, whence)
+	if err != nil {
+		f.Close()
+		return err
+	}
 
+	// Keep this handle open for rotation detection and to drain the old file
+	// after it has been renamed. Normal reads open the path briefly so they
+	// keep following the current file.
+	t.osFile = f
 	t.readOffset = filePos
 	t.decodedOffset = filePos
 
@@ -43,12 +51,20 @@ func (t *Tailer) setup(offset int64, whence int) error {
 }
 
 func (t *Tailer) readAvailable() (int, error) {
+	if atomic.LoadInt32(&t.didFileRotate) != 0 && t.osFile != nil {
+		return t.readFromFile(t.osFile, false)
+	}
+
 	f, err := openFile(t.fullpath)
 	if err != nil {
 		return 0, err
 	}
 	defer f.Close()
 
+	return t.readFromFile(f, true)
+}
+
+func (t *Tailer) readFromFile(f *os.File, resetOffsetOnTruncate bool) (int, error) {
 	st, err := f.Stat()
 	if err != nil {
 		log.Println("Error stat()ing file", err)
@@ -57,16 +73,19 @@ func (t *Tailer) readAvailable() (int, error) {
 
 	sz := st.Size()
 	offset := t.GetReadOffset()
-	if sz == 0 {
+	if resetOffsetOnTruncate && sz == 0 {
 		log.Println("File size now zero, resetting offset")
 		t.SetReadOffset(0)
 		t.SetDecodedOffset(0)
-	} else if sz < offset {
+	} else if resetOffsetOnTruncate && sz < offset {
 		log.Println("Offset off end of file, resetting")
 		t.SetReadOffset(0)
 		t.SetDecodedOffset(0)
 	}
-	f.Seek(t.GetReadOffset(), io.SeekStart)
+	if _, err := f.Seek(t.GetReadOffset(), io.SeekStart); err != nil {
+		log.Println("Error seeking file", err)
+		return 0, err
+	}
 	bytes := 0
 
 	for {

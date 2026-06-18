@@ -26,6 +26,8 @@ type (
 		BatchWait             int                          `json:"batch_wait" toml:"batch_wait"`
 		RunPath               string                       `json:"run_path" toml:"run_path"`
 		OpenFilesLimit        int                          `json:"open_files_limit" toml:"open_files_limit"`
+		MaxTraverseLimit      int                          `json:"max_traverse_limit" toml:"max_traverse_limit"`
+		MaxDepthLimit         int                          `json:"max_depth_limit" toml:"max_depth_limit"`
 		ScanPeriod            int                          `json:"scan_period" toml:"scan_period"`
 		FrameSize             int                          `json:"frame_size" toml:"frame_size"`
 		CollectContainerAll   bool                         `json:"collect_container_all" toml:"collect_container_all"`
@@ -89,6 +91,20 @@ func OpenLogsLimit() int {
 		Config.Logs.OpenFilesLimit = 100
 	}
 	return Config.Logs.OpenFilesLimit
+}
+
+func MaxTraverseLimit() int {
+	if Config.Logs.MaxTraverseLimit <= 0 {
+		return 100000
+	}
+	return Config.Logs.MaxTraverseLimit
+}
+
+func MaxDepthLimit() int {
+	if Config.Logs.MaxDepthLimit <= 0 {
+		return 15
+	}
+	return Config.Logs.MaxDepthLimit
 }
 
 func FileScanPeriod() int {

@@ -56,14 +56,14 @@ type Scanner struct {
 }
 
 // NewScanner returns a new scanner.
-func NewScanner(sources *logsconfig.LogSources, tailingLimit int, pipelineProvider pipeline.Provider, registry auditor.Registry,
+func NewScanner(sources *logsconfig.LogSources, tailingLimit int, maxTraverseLimit int, maxDepthLimit int, pipelineProvider pipeline.Provider, registry auditor.Registry,
 	tailerSleepDuration time.Duration, validatePodContainerID bool, scanPeriod time.Duration) *Scanner {
 	return &Scanner{
 		pipelineProvider:       pipelineProvider,
 		tailingLimit:           tailingLimit,
 		addedSources:           sources.GetAddedForType(logsconfig.FileType),
 		removedSources:         sources.GetRemovedForType(logsconfig.FileType),
-		fileProvider:           NewProvider(tailingLimit),
+		fileProvider:           NewProvider(tailingLimit, maxTraverseLimit, maxDepthLimit),
 		tailers:                make(map[string]*Tailer),
 		registry:               registry,
 		tailerSleepDuration:    tailerSleepDuration,

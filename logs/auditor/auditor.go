@@ -54,6 +54,7 @@ type Auditor interface {
 	Start()
 	Stop()
 	Channel() chan *message.Message
+	GetAllEntries() map[string]RegistryEntry
 }
 
 // A RegistryAuditor is storing the Auditor information using a registry.
@@ -238,6 +239,11 @@ func (a *RegistryAuditor) readOnlyRegistryCopy() map[string]RegistryEntry {
 		r[path] = *entry
 	}
 	return r
+}
+
+// GetAllEntries returns a read-only copy of all registry entries.
+func (a *RegistryAuditor) GetAllEntries() map[string]RegistryEntry {
+	return a.readOnlyRegistryCopy()
 }
 
 // flushRegistry writes on disk the registry at the given path

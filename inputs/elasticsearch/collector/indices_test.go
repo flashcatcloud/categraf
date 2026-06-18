@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -38,7 +39,7 @@ func TestIndices(t *testing.T) {
 		indicesIncluded := make([]string, 0)
 		maxIndicesIncludeCount := 80
 		i := NewIndices(http.DefaultClient, u, false, true, indicesIncluded, maxIndicesIncludeCount)
-		stats, err := i.fetchAndDecodeIndexStats()
+		stats, err := i.fetchAndDecodeIndexStats(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to fetch or decode indices stats: %s", err)
 		}
@@ -115,7 +116,7 @@ func TestAliases(t *testing.T) {
 		indicesIncluded := make([]string, 0)
 		maxIndicesIncludeCount := 80
 		i := NewIndices(http.DefaultClient, u, false, true, indicesIncluded, maxIndicesIncludeCount)
-		stats, err := i.fetchAndDecodeIndexStats()
+		stats, err := i.fetchAndDecodeIndexStats(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to fetch or decode indices stats: %s", err)
 		}
