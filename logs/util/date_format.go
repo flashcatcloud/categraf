@@ -108,9 +108,3 @@ func convertJodaToGoFormat(jodaFormat string) string {
 
 	return result
 }
-
-// parseDatePattern 解析并验证日期模式（用于调试和错误报告）
-func parseDatePattern(path string) []string {
-	matches := datePatternRegex.FindAllString(path, -1)
-	return matches
-}
