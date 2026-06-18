@@ -1,0 +1,98 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "datasource": null,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "panels": [],
+      "title": "Modbus Overview",
+      "type": "row"
+    },
+    {
+      "datasource": null,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "content": "# Categraf Modbus Dashboard \n\nWelcome to the Modbus plugin dashboard.\n\n**Why are there no default metric graphs?**\n\nThe Modbus protocol only provides access to raw registers (e.g. holding register 100, coil 1). It does not define what those registers represent (e.g. temperature, voltage, or pressure). Therefore, there is no generic \"Modbus metric\" that applies to all devices. \n\n**How to build your dashboard:**\n1. Check your device's Register Map manual.\n2. Configure `modbus.toml` to poll those specific registers and assign them a `name` (e.g., `name = \"temperature\"`).\n3. Edit this dashboard to add panels querying the metrics you just defined, such as `modbus_temperature` or `your_measurement_name_temperature`.\n\n*Note: Use the `agent_hostname` variable in the top left to filter by specific endpoints.*",
+        "mode": "markdown"
+      },
+      "pluginVersion": "8.0.0",
+      "title": "Instructions",
+      "type": "text"
+    }
+  ],
+  "schemaVersion": 30,
+  "style": "dark",
+  "tags": [
+    "categraf",
+    "modbus"
+  ],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": "${DS_PROMETHEUS}",
+        "definition": "label_values(agent_hostname)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": "Endpoint",
+        "multi": true,
+        "name": "agent_hostname",
+        "options": [],
+        "query": "label_values(agent_hostname)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Categraf - Modbus",
+  "uid": "categraf-modbus"
+}

@@ -112,6 +112,8 @@ require (
 	github.com/go-asn1-ber/asn1-ber v1.5.5 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
+	github.com/goburrow/modbus v0.1.0 // indirect
+	github.com/goburrow/serial v0.1.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
@@ -119,6 +121,7 @@ require (
 	github.com/google/pprof v0.0.0-20250607225305-033d6d78b36a // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/gophercloud/gophercloud/v2 v2.7.0 // indirect
+	github.com/grid-x/serial v0.0.0-20211107191517-583c7356b3aa // indirect
 	github.com/hetznercloud/hcloud-go/v2 v2.21.1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.3 // indirect
@@ -166,7 +169,6 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tjfoc/gmsm v1.3.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
-	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/collector/component v1.34.0 // indirect
@@ -225,6 +227,7 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.6
 	github.com/godbus/dbus/v5 v5.0.4
 	github.com/google/gnxi v0.0.0-20240912171544-ef18504847b0
+	github.com/grid-x/modbus v0.0.0-20260527064858-ef3bed576432
 	github.com/hashicorp/go-envparse v0.1.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hodgesds/perf-utils v0.7.0
@@ -250,8 +253,10 @@ require (
 	github.com/safchain/ethtool v0.3.0
 	github.com/sijms/go-ora/v2 v2.8.6
 	github.com/sleepinggenius2/gosmi v0.4.4
+	github.com/tbrandon/mbserver v0.0.0-20231208015628-36eb59221ac2
 	github.com/tidwall/gjson v1.14.4
 	github.com/vmware/govmomi v0.29.0
+	github.com/x448/float16 v0.8.4
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217
 	howett.net/plist v1.0.1
