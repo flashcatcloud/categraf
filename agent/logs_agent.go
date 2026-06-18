@@ -94,12 +94,34 @@ func NewLogsAgent() AgentModule {
 	if os.IsNotExist(err) {
 		os.MkdirAll(coreconfig.GetLogRunPath(), 0755)
 	}
-	auditor := auditor.New(coreconfig.GetLogRunPath(), auditor.DefaultRegistryFilename, auditorTTL)
+	auditorIns := auditor.New(coreconfig.GetLogRunPath(), auditor.DefaultRegistryFilename, auditorTTL)
+
+	auditor.RegisterCollector(auditorIns, func() []auditor.SourceMeta {
+		srcs := sources.GetSources()
+		meta := make([]auditor.SourceMeta, 0, len(srcs))
+		for _, s := range srcs {
+			if s.Config == nil {
+				continue
+			}
+			sm := auditor.SourceMeta{
+				ConfigPath: s.Config.Path,
+				SourceType: s.Config.Type,
+				Source:     s.Config.Source,
+				Service:    s.Config.Service,
+			}
+			if expandedTags := s.Config.Tags; len(expandedTags) > 0 {
+				sm.Tags = auditor.ParseTags(expandedTags)
+			}
+			meta = append(meta, sm)
+		}
+		return meta
+	})
+
 	destinationsCtx := client.NewDestinationsContext()
 	diagnosticMessageReceiver := diagnostic.NewBufferedMessageReceiver()
 
 	// setup the pipeline provider that provides pairs of processor and sender
-	pipelineProvider := pipeline.NewProvider(coreconfig.NumberOfPipelines(), auditor, diagnosticMessageReceiver, processingRules, endpoints, destinationsCtx)
+	pipelineProvider := pipeline.NewProvider(coreconfig.NumberOfPipelines(), auditorIns, diagnosticMessageReceiver, processingRules, endpoints, destinationsCtx)
 
 	validatePodContainerID := coreconfig.ValidatePodContainerID()
 	//
@@ -114,10 +136,10 @@ func NewLogsAgent() AgentModule {
 
 	// setup the inputs
 	inputs := []restart.Restartable{
-		file.NewScanner(sources, coreconfig.OpenLogsLimit(), pipelineProvider, auditor,
+		file.NewScanner(sources, coreconfig.OpenLogsLimit(), coreconfig.MaxTraverseLimit(), coreconfig.MaxDepthLimit(), pipelineProvider, auditorIns,
 			file.DefaultSleepDuration, validatePodContainerID, time.Duration(time.Duration(coreconfig.FileScanPeriod())*time.Second)),
 		listener.NewLauncher(sources, coreconfig.LogFrameSize(), pipelineProvider),
-		journald.NewLauncher(sources, pipelineProvider, auditor),
+		journald.NewLauncher(sources, pipelineProvider, auditorIns),
 	}
 	if coreconfig.EnableCollectContainer() {
 		log.Println("collect docker logs...")
@@ -129,7 +151,7 @@ func NewLogsAgent() AgentModule {
 		services:                  services,
 		processingRules:           processingRules,
 		endpoints:                 endpoints,
-		auditor:                   auditor,
+		auditor:                   auditorIns,
 		destinationsCtx:           destinationsCtx,
 		pipelineProvider:          pipelineProvider,
 		inputs:                    inputs,
@@ -188,6 +210,7 @@ func (a *LogsAgent) Flush(ctx context.Context) {
 // Stop stops all the elements of the data pipeline
 // in the right order to prevent data loss
 func (a *LogsAgent) Stop() error {
+	auditor.UnregisterCollector(a.auditor)
 	inputs := restart.NewParallelStopper()
 	for _, input := range a.inputs {
 		inputs.Add(input)

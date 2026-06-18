@@ -26,6 +26,9 @@ func NewNullAuditor() *NullAuditor {
 // GetOffset returns an empty string.
 func (a *NullAuditor) GetOffset(identifier string) string { return "" }
 
+// GetAllEntries returns nil for NullAuditor.
+func (a *NullAuditor) GetAllEntries() map[string]RegistryEntry { return nil }
+
 // GetTailingMode returns an empty string.
 func (a *NullAuditor) GetTailingMode(identifier string) string { return "" }
 

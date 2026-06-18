@@ -68,4 +68,6 @@ func (ins *Categraf) Gather(slist *types.SampleList) {
 			}
 		}
 	}
+
+	gatherLogMetrics(slist)
 }
