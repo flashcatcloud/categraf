@@ -14,7 +14,6 @@ import (
 
 	"github.com/chai2010/winsvc"
 
-	"flashcat.cloud/categraf/agent"
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/pkg/pprof"
 )
@@ -29,7 +28,7 @@ var (
 	flagWinSvcStop      = flag.Bool("win-service-stop", false, "Stop windows service")
 )
 
-func runAgent(ag *agent.Agent) {
+func runAgent(rt *agentRuntime) {
 	if !winsvc.IsAnInteractiveSession() {
 		if config.Config.Log.FileName == "stdout" || config.Config.Log.FileName == "stderr" ||
 			config.Config.Log.FileName == "" {
@@ -38,15 +37,15 @@ func runAgent(ag *agent.Agent) {
 			initLog(config.Config.Log.FileName)
 		}
 
-		if err := winsvc.RunAsService(*flagWinSvcName, ag.Start, ag.Stop, false); err != nil {
+		if err := winsvc.RunAsService(*flagWinSvcName, rt.Start, rt.Stop, false); err != nil {
 			log.Fatalln("F! failed to run windows service:", err)
 		}
 		return
 	}
 
-	ag.Start()
+	rt.Start()
 	go profile()
-	handleSignal(ag)
+	handleSignal(rt)
 }
 
 func doOSsvc() {

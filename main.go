@@ -111,7 +111,8 @@ func main() {
 		fmt.Println("F! failed to init agent:", err)
 		os.Exit(-1)
 	}
-	runAgent(ag)
+	rt := newDefaultAgentRuntime(ag, *configDir, *debugLevel, *debugMode, *testMode, *interval, *inputFilters)
+	runAgent(rt)
 }
 
 func initWriters() {
@@ -120,7 +121,7 @@ func initWriters() {
 	}
 }
 
-func handleSignal(ag *agent.Agent) {
+func handleSignal(rt *agentRuntime) {
 
 	sc := make(chan os.Signal, 1)
 	// syscall.SIGUSR2 == 0xc , not available on windows
@@ -135,14 +136,16 @@ EXIT:
 			break EXIT
 		case syscall.SIGHUP:
 			log.Println("I! received signal:", sig.String())
-			ag.Reload()
+			if err := rt.Reload(sig.String()); err != nil {
+				log.Println("E! reload failed:", err)
+			}
 		case syscall.SIGPIPE:
 			// https://pkg.go.dev/os/signal#hdr-SIGPIPE
 			// do nothing
 		}
 	}
 
-	ag.Stop()
+	rt.Stop()
 	log.Println("I! exited")
 }
 
