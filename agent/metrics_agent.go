@@ -59,6 +59,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/linux_sysctl_fs"
 	_ "flashcat.cloud/categraf/inputs/logstash"
 	_ "flashcat.cloud/categraf/inputs/mem"
+	_ "flashcat.cloud/categraf/inputs/modbus"
 	_ "flashcat.cloud/categraf/inputs/mongodb"
 	_ "flashcat.cloud/categraf/inputs/mtail"
 	_ "flashcat.cloud/categraf/inputs/mysql"

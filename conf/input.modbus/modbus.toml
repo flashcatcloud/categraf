@@ -1,0 +1,126 @@
+# # Categraf Modbus Plugin
+# # Ported from InfluxData Telegraf
+
+# interval = "15s"
+
+[[instances]]
+# ## Device name. Will be added as a "name" label to all metrics.
+name = "hvac_plc"
+
+# ## Controller URL. Examples:
+# ## "tcp://localhost:502"
+# ## "tcp://192.168.1.2:502"
+# ## "file:///dev/ttyUSB0"
+# ## "COM1"
+controller = "tcp://localhost:502"
+
+# ## Transmission mode. For TCP controllers, "TCP", "RTUoverTCP", or "ASCIIoverTCP"
+# ## For serial controllers, "RTU" or "ASCII".
+transmission_mode = "TCP"
+
+# ## Timeout for the modbus connection/requests.
+timeout = "1s"
+
+# ## Maximum retries when a device is busy.
+busy_retries = 0
+
+# ## Wait time between busy retries.
+busy_retries_wait = "100ms"
+
+# ## Modbus Configuration Style
+# ## Options: "register", "request", "metric". 
+# ## Note: Only one style can be used per instance.
+configuration_type = "metric"
+
+# ## Categraf Labels Override:
+# ## You can set custom instance labels here. The tag override hierarchy is strictly:
+# ## Built-in Labels (name/type/slave_id) < Modbus Custom Tags < Categraf Instance Labels
+# ## Categraf instance labels have the highest precedence. Global Labels and agent_hostname
+# ## are only supplemented if they do not exist.
+# ## To delete a tag, you can set its value to "-".
+# labels = { location = "building_1", name = "-" }
+
+# =================================================================================
+# ## METRIC CONFIGURATION STYLE
+# =================================================================================
+# ## The metric configuration style groups registers by metrics and handles 
+# ## optimization internally.
+
+[[instances.metric]]
+  slave_id = 1
+  byte_order = "ABCD"
+  measurement = "hvac"
+  
+  [[instances.metric.fields]]
+    name = "temperature"
+    address = 100
+    register = "holding"
+    type = "UINT16"
+    scale = 0.1
+
+  [[instances.metric.fields]]
+    name = "compressor_status"
+    address = 200
+    register = "coil"
+
+# =================================================================================
+# ## REQUEST CONFIGURATION STYLE
+# =================================================================================
+# ## The request configuration style allows for more granular control over the 
+# ## Modbus requests.
+#
+# [[instances]]
+#   configuration_type = "request"
+#   
+#   [[instances.request]]
+#     slave_id = 1
+#     byte_order = "ABCD"
+#     register = "holding"
+#     measurement = "hvac"
+#     optimization = "max_insert"
+#     optimization_max_register_fill = 50
+#   
+#     [[instances.request.fields]]
+#       name = "temperature"
+#       address = 100
+#       type = "UINT16"
+#       scale = 0.1
+#
+#     [[instances.request.fields]]
+#       name = "pressure"
+#       address = 102
+#       type = "UINT16"
+#
+# =================================================================================
+# ## REGISTER CONFIGURATION STYLE
+# =================================================================================
+# ## The register configuration style allows for direct mapping of Modbus registers
+# ## to metrics without optimization.
+#
+# [[instances]]
+#   configuration_type = "register"
+#   slave_id = 1
+#
+#   discrete_inputs = [
+#     { name = "start",          address = [0]},
+#     { name = "stop",           address = [1]},
+#   ]
+#   coils = [
+#     { name = "motor1_run",     address = [0]},
+#     { name = "motor1_jog",     address = [1]},
+#   ]
+#   holding_registers = [
+#     { name = "voltage",      byte_order = "AB",   data_type = "FIXED", scale=0.1,   address = [0]},
+#     { name = "current",      byte_order = "ABCD", data_type = "FIXED", scale=0.001, address = [1,2]},
+#   ]
+#   input_registers = [
+#     { name = "tank_level",   byte_order = "AB",   data_type = "INT16",   scale=1.0,     address = [0]},
+#   ]
+
+# =================================================================================
+# ## SERIAL CONTROLLER SETTINGS
+# =================================================================================
+# baud_rate = 9600
+# data_bits = 8
+# parity = "N"
+# stop_bits = 1
