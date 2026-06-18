@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
-	"github.com/prometheus/common/promslog"
 )
 
 func TestILM(t *testing.T) {
@@ -81,7 +80,7 @@ func TestILM(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c, err := NewILM(promslog.NewNopLogger(), u, http.DefaultClient)
+			c, err := NewILM(u, http.DefaultClient)
 			if err != nil {
 				t.Fatal(err)
 			}

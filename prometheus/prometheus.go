@@ -292,7 +292,7 @@ func (i *safePromQLNoStepSubqueryInterval) Get(int64) int64 {
 func reloadConfig(filename string, enableExemplarStorage bool, logger *slog.Logger, noStepSuqueryInterval *safePromQLNoStepSubqueryInterval, callback func(bool), rls ...reloader) (err error) {
 	start := time.Now()
 	timings := logger
-	logger.Info("msg", "Loading configuration file", "filename", filename)
+	logger.Info("Loading configuration file", "filename", filename)
 
 	conf, err := config.LoadFile(filename, true, logger)
 	if err != nil {
@@ -309,17 +309,17 @@ func reloadConfig(filename string, enableExemplarStorage bool, logger *slog.Logg
 	for _, rl := range rls {
 		rstart := time.Now()
 		if err := rl.reloader(conf); err != nil {
-			logger.Error("msg", "Failed to apply configuration", "err", err)
+			logger.Error("Failed to apply configuration", "err", err)
 			failed = true
 		}
-		timings.With((rl.name), time.Since(rstart))
+		timings = timings.With(rl.name, time.Since(rstart))
 	}
 	if failed {
 		return fmt.Errorf("one or more errors occurred while applying the new configuration (--config.file=%q)", filename)
 	}
 
 	noStepSuqueryInterval.Set(conf.GlobalConfig.EvaluationInterval)
-	timings.Info("msg", "Completed loading of configuration file", "filename", filename, "totalDuration", time.Since(start))
+	timings.Info("Completed loading of configuration file", "filename", filename, "totalDuration", time.Since(start))
 	return nil
 }
 
@@ -366,33 +366,33 @@ func (c *flagConfig) setFeatureListOptions(logger *slog.Logger) error {
 			switch o {
 			case "expand-external-labels":
 				c.enableExpandExternalLabels = true
-				logger.Info("msg", "Experimental expand-external-labels enabled")
+				logger.Info("Experimental expand-external-labels enabled")
 			case "exemplar-storage":
 				c.tsdb.EnableExemplarStorage = true
-				logger.Info("msg", "Experimental in-memory exemplar storage enabled")
+				logger.Info("Experimental in-memory exemplar storage enabled")
 			case "memory-snapshot-on-shutdown":
 				c.tsdb.EnableMemorySnapshotOnShutdown = true
-				logger.Info("msg", "Experimental memory snapshot on shutdown enabled")
+				logger.Info("Experimental memory snapshot on shutdown enabled")
 			case "extra-scrape-metrics":
 				c.scrape.ExtraMetrics = true
-				logger.Info("msg", "Experimental additional scrape metrics")
+				logger.Info("Experimental additional scrape metrics")
 			case "new-service-discovery-manager":
 				c.enableNewSDManager = true
-				logger.Info("msg", "Experimental service discovery manager")
+				logger.Info("Experimental service discovery manager")
 			case "agent":
-				logger.Info("msg", "Experimental agent mode enabled.")
+				logger.Info("Experimental agent mode enabled.")
 			case "promql-per-step-stats":
 				c.enablePerStepStats = true
-				logger.Info("msg", "Experimental per-step statistics reporting")
+				logger.Info("Experimental per-step statistics reporting")
 			case "auto-gomaxprocs":
 				c.enableAutoGOMAXPROCS = true
-				logger.Info("msg", "Automatically set GOMAXPROCS to match Linux container CPU quota")
+				logger.Info("Automatically set GOMAXPROCS to match Linux container CPU quota")
 			case "":
 				continue
 			case "promql-at-modifier", "promql-negative-offset":
-				logger.Warn("msg", "This option for --enable-feature is now permanently enabled and therefore a no-op.", "option", o)
+				logger.Warn("This option for --enable-feature is now permanently enabled and therefore a no-op.", "option", o)
 			default:
-				logger.Info("msg", "Unknown option for --enable-feature", "option", o)
+				logger.Info("Unknown option for --enable-feature", "option", o)
 			}
 		}
 	}
@@ -561,7 +561,7 @@ func Start() {
 		os.Exit(1)
 	}
 
-	notifierManager := notifier.NewManager(&cfg.notifier, logger.With(logger, "component", "notifier"))
+	notifierManager := notifier.NewManager(&cfg.notifier, logger.With("component", "notifier"))
 
 	ctxScrape, cancelScrape := context.WithCancel(context.Background())
 	ctxNotify, cancelNotify := context.WithCancel(context.Background())
@@ -648,7 +648,7 @@ func Start() {
 
 	scrapeManager, err := scrape.NewManager(
 		&cfg.scrape,
-		logger.With(logger, "component", "scrape manager"),
+		logger.With("component", "scrape manager"),
 		logging.NewJSONFileLogger,
 		fanoutStorage,
 		prometheus.DefaultRegisterer,
@@ -692,10 +692,10 @@ func Start() {
 	cfg.web.LookbackDelta = time.Duration(cfg.lookbackDelta)
 	cfg.web.IsAgent = true
 
-	webHandler := web.New(logger.With(logger, "component", "web"), &cfg.web)
+	webHandler := web.New(logger.With("component", "web"), &cfg.web)
 	listener, err := webHandler.Listeners()
 	if err != nil {
-		logger.Info("msg", "Unable to start web listener", "err", err)
+		logger.Info("Unable to start web listener", "err", err)
 		os.Exit(1)
 	}
 
@@ -762,10 +762,10 @@ func Start() {
 				// Don't forget to release the reloadReady channel so that waiting blocks can exit normally.
 				select {
 				case sig := <-term:
-					logger.Warn("msg", "Received "+sig.String()+" exiting gracefully...")
+					logger.Warn("Received " + sig.String() + " exiting gracefully...")
 					reloadReady.Close()
 				case <-webHandler.Quit():
-					logger.Warn("msg", "Received termination request via web service, exiting gracefully...")
+					logger.Warn("Received termination request via web service, exiting gracefully...")
 				case <-cancel:
 					reloadReady.Close()
 				case <-stop:
@@ -786,11 +786,11 @@ func Start() {
 		g.Add(
 			func() error {
 				err := discoveryManagerScrape.Run()
-				logger.Info("msg", "Scrape discovery manager stopped")
+				logger.Info("Scrape discovery manager stopped")
 				return err
 			},
 			func(err error) {
-				logger.Info("msg", "Stopping scrape discovery manager...")
+				logger.Info("Stopping scrape discovery manager...")
 				cancelScrape()
 			},
 		)
@@ -800,11 +800,11 @@ func Start() {
 		g.Add(
 			func() error {
 				err := discoveryManagerNotify.Run()
-				logger.Info("msg", "Notify discovery manager stopped")
+				logger.Info("Notify discovery manager stopped")
 				return err
 			},
 			func(err error) {
-				logger.Info("msg", "Stopping notify discovery manager...")
+				logger.Info("Stopping notify discovery manager...")
 				cancelNotify()
 			},
 		)
@@ -820,13 +820,13 @@ func Start() {
 				<-reloadReady.C
 
 				err := scrapeManager.Run(discoveryManagerScrape.SyncCh())
-				logger.Info("msg", "Scrape manager stopped")
+				logger.Info("Scrape manager stopped")
 				return err
 			},
 			func(err error) {
 				// Scrape manager needs to be stopped before closing the local TSDB
 				// so that it doesn't try to write samples to a closed storage.
-				logger.Info("msg", "Stopping scrape manager...")
+				logger.Info("Stopping scrape manager...")
 				scrapeManager.Stop()
 			},
 		)
@@ -858,11 +858,11 @@ func Start() {
 							continue
 						}
 						if err := reloadConfig(cfg.configFile, cfg.tsdb.EnableExemplarStorage, logger, noStepSubqueryInterval, callback, reloaders...); err != nil {
-							logger.Error("msg", "Error reloading config", "err", err)
+							logger.Error("Error reloading config", "err", err)
 						}
 					case rc := <-webHandler.Reload():
 						if err := reloadConfig(cfg.configFile, cfg.tsdb.EnableExemplarStorage, logger, noStepSubqueryInterval, callback, reloaders...); err != nil {
-							logger.Error("msg", "Error reloading config", "err", err)
+							logger.Error("Error reloading config", "err", err)
 							rc <- err
 						} else {
 							rc <- nil
@@ -900,7 +900,7 @@ func Start() {
 
 				webHandler.SetReady(web.Ready)
 				notifs.DeleteNotification(notifications.StartingUp)
-				logger.Info("msg", "server is ready.")
+				logger.Info("server is ready.")
 				<-cancel
 				return nil
 			},
@@ -915,7 +915,7 @@ func Start() {
 		cancel := make(chan struct{})
 		g.Add(
 			func() error {
-				logger.Info("msg", "Starting WAL storage ...")
+				logger.Info("Starting WAL storage ...")
 				if cfg.agent.WALSegmentSize != 0 {
 					if cfg.agent.WALSegmentSize < 10*1024*1024 || cfg.agent.WALSegmentSize > 256*1024*1024 {
 						return errors.New("flag 'storage.agent.wal-segment-size' must be set between 10MB and 256MB")
@@ -934,13 +934,13 @@ func Start() {
 
 				switch fsType := prom_runtime.Statfs(localStoragePath); fsType {
 				case "NFS_SUPER_MAGIC":
-					logger.Warn("fs_type", fsType, "msg", "This filesystem is not supported and may lead to data corruption and data loss. Please carefully read https://prometheus.io/docs/prometheus/latest/storage/ to learn more about supported filesystems.")
+					logger.Warn("This filesystem is not supported and may lead to data corruption and data loss. Please carefully read https://prometheus.io/docs/prometheus/latest/storage/ to learn more about supported filesystems.", "fs_type", fsType)
 				default:
-					logger.Info("fs_type", fsType)
+					logger.Info("Supported filesystem", "fs_type", fsType)
 				}
 
-				logger.Info("msg", "Agent WAL storage started")
-				logger.Info("msg", "Agent WAL storage options",
+				logger.Info("Agent WAL storage started")
+				logger.Info("Agent WAL storage options",
 					"WALSegmentSize", cfg.agent.WALSegmentSize,
 					"WALCompression", cfg.agent.WALCompression,
 					"StripeSize", cfg.agent.StripeSize,
@@ -956,7 +956,7 @@ func Start() {
 			},
 			func(e error) {
 				if err := fanoutStorage.Close(); err != nil {
-					logger.Error("msg", "Error stopping storage", "err", err)
+					logger.Error("Error stopping storage", "err", err)
 				}
 				close(cancel)
 			},
@@ -990,7 +990,7 @@ func Start() {
 				<-reloadReady.C
 
 				notifierManager.Run(discoveryManagerNotify.SyncCh())
-				logger.Info("msg", "Notifier manager stopped")
+				logger.Info("Notifier manager stopped")
 				return nil
 			},
 			func(err error) {
@@ -1000,10 +1000,10 @@ func Start() {
 	}
 	atomic.StoreInt32(&isRunning, 1)
 	if err := g.Run(); err != nil {
-		logger.Error("err", err)
+		logger.Error("run error", "err", err)
 		os.Exit(1)
 	}
-	logger.Info("msg", "See you next time!")
+	logger.Info("See you next time!")
 }
 
 func Stop() {

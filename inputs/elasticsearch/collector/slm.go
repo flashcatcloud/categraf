@@ -140,6 +140,22 @@ type SLMStatusResponse struct {
 	OperationMode string `json:"operation_mode"`
 }
 
+func (s *SLM) fetchAndDecodeSLMStats(ctx context.Context) (SLMStatsResponse, error) {
+	u := s.u.ResolveReference(&url.URL{Path: "/_slm/stats"})
+	var slmStatsResp SLMStatsResponse
+
+	resp, err := getURL(ctx, s.hc, u.String())
+	if err != nil {
+		return slmStatsResp, err
+	}
+
+	err = json.Unmarshal(resp, &slmStatsResp)
+	if err != nil {
+		return slmStatsResp, err
+	}
+	return slmStatsResp, nil
+}
+
 func (s *SLM) Update(ctx context.Context, ch chan<- prometheus.Metric) error {
 	u := s.u.ResolveReference(&url.URL{Path: "/_slm/status"})
 	var slmStatusResp SLMStatusResponse
@@ -154,15 +170,7 @@ func (s *SLM) Update(ctx context.Context, ch chan<- prometheus.Metric) error {
 		return err
 	}
 
-	u = s.u.ResolveReference(&url.URL{Path: "/_slm/stats"})
-	var slmStatsResp SLMStatsResponse
-
-	resp, err = getURL(ctx, s.hc, u.String())
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(resp, &slmStatsResp)
+	slmStatsResp, err := s.fetchAndDecodeSLMStats(ctx)
 	if err != nil {
 		return err
 	}

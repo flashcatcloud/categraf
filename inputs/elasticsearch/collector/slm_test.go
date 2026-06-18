@@ -14,6 +14,7 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -42,8 +43,12 @@ func TestSLM(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to parse URL: %s", err)
 		}
-		s := NewSLM(http.DefaultClient, u)
-		stats, err := s.fetchAndDecodeSLMStats()
+		c, err := NewSLM(u, http.DefaultClient)
+		if err != nil {
+			t.Fatalf("Failed to create SLM: %s", err)
+		}
+		s := c.(*SLM)
+		stats, err := s.fetchAndDecodeSLMStats(context.Background())
 		if err != nil {
 			t.Fatalf("Failed to fetch or decode snapshots stats: %s", err)
 		}

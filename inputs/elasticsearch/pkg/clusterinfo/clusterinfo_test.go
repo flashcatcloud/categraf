@@ -19,14 +19,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
+
 	"reflect"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/prometheus/common/promslog"
 )
 
 const (
@@ -118,7 +117,7 @@ func TestNew(t *testing.T) {
 	if err != nil {
 		t.Skipf("internal test error: %s", err)
 	}
-	r := New(promslog.NewNopLogger(), http.DefaultClient, u, 0)
+	r := New(http.DefaultClient, u, 0)
 	if r.url != u {
 		t.Errorf("new Retriever mal-constructed")
 	}
@@ -130,7 +129,7 @@ func TestRetriever_RegisterConsumer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("internal test error: %s", err)
 	}
-	retriever := New(promslog.NewNopLogger(), mockES.Client(), u, 0)
+	retriever := New(mockES.Client(), u, 0)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	consumerNames := []string{"consumer-1", "consumer-2"}
@@ -169,7 +168,7 @@ func TestRetriever_fetchAndDecodeClusterInfo(t *testing.T) {
 	if err != nil {
 		t.Skipf("internal test error: %s", err)
 	}
-	retriever := New(promslog.NewNopLogger(), mockES.Client(), u, 0)
+	retriever := New(mockES.Client(), u, 0)
 	ci, err := retriever.fetchAndDecodeClusterInfo()
 	if err != nil {
 		t.Fatalf("failed to retrieve cluster info: %s", err)
@@ -189,7 +188,7 @@ func TestRetriever_Run(t *testing.T) {
 	}
 
 	// setup cluster info retriever
-	retriever := New(promslog.New(&promslog.Config{Writer: os.Stdout}), mockES.Client(), u, 0)
+	retriever := New(mockES.Client(), u, 0)
 
 	// setup mock consumer
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
