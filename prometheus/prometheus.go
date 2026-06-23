@@ -169,11 +169,37 @@ func (s *readyStorage) Appender(ctx context.Context) storage.Appender {
 	return notReadyAppender{}
 }
 
+func (s *readyStorage) AppenderV2(ctx context.Context) storage.AppenderV2 {
+	if x := s.get(); x != nil {
+		if app2, ok := x.(storage.AppendableV2); ok {
+			return app2.AppenderV2(ctx)
+		}
+	}
+	return notReadyAppenderV2{}
+}
+
 type notReadyAppender struct{}
 
 func (n notReadyAppender) Append(_ storage.SeriesRef, _ labels.Labels, _ int64, _ float64) (storage.SeriesRef, error) {
 	return 0, tsdb.ErrNotReady
 }
+
+func (n notReadyAppender) AppendHistogramSTZeroSample(_ storage.SeriesRef, _ labels.Labels, _, _ int64, _ *histogram.Histogram, _ *histogram.FloatHistogram) (storage.SeriesRef, error) {
+	return 0, tsdb.ErrNotReady
+}
+
+func (n notReadyAppender) AppendSTZeroSample(_ storage.SeriesRef, _ labels.Labels, _, _ int64) (storage.SeriesRef, error) {
+	return 0, tsdb.ErrNotReady
+}
+
+type notReadyAppenderV2 struct{}
+
+func (n notReadyAppenderV2) Append(_ storage.SeriesRef, _ labels.Labels, _, _ int64, _ float64, _ *histogram.Histogram, _ *histogram.FloatHistogram, _ storage.AppendV2Options) (storage.SeriesRef, error) {
+	return 0, tsdb.ErrNotReady
+}
+
+func (n notReadyAppenderV2) Commit() error   { return tsdb.ErrNotReady }
+func (n notReadyAppenderV2) Rollback() error { return tsdb.ErrNotReady }
 
 func (n notReadyAppender) AppendExemplar(_ storage.SeriesRef, _ labels.Labels, _ exemplar.Exemplar) (storage.SeriesRef, error) {
 	return 0, tsdb.ErrNotReady
@@ -267,6 +293,20 @@ func (s *readyStorage) WALReplayStatus() (tsdb.WALReplayStatus, error) {
 		return x.Head.WALReplayStatus.GetWALReplayStatus(), nil
 	}
 	return tsdb.WALReplayStatus{}, tsdb.ErrNotReady
+}
+
+func (s *readyStorage) BlockMetas() ([]tsdb.BlockMeta, error) {
+	if x := s.get(); x != nil {
+		switch db := x.(type) {
+		case *tsdb.DB:
+			return db.BlockMetas(), nil
+		case *agent.DB:
+			return nil, agent.ErrUnsupported
+		default:
+			panic(fmt.Sprintf("unknown storage type %T", db))
+		}
+	}
+	return nil, tsdb.ErrNotReady
 }
 
 // ErrNotReady is returned if the underlying scrape manager is not ready yet.
@@ -374,8 +414,10 @@ func (c *flagConfig) setFeatureListOptions(logger *slog.Logger) error {
 				c.tsdb.EnableMemorySnapshotOnShutdown = true
 				logger.Info("Experimental memory snapshot on shutdown enabled")
 			case "extra-scrape-metrics":
-				c.scrape.ExtraMetrics = true
-				logger.Info("Experimental additional scrape metrics")
+				b := true
+				config.DefaultConfig.GlobalConfig.ExtraScrapeMetrics = &b
+				config.DefaultGlobalConfig.ExtraScrapeMetrics = &b
+				logger.Warn("Experimental additional scrape metrics feature flag is deprecated")
 			case "new-service-discovery-manager":
 				c.enableNewSDManager = true
 				logger.Info("Experimental service discovery manager")
@@ -561,7 +603,7 @@ func Start() {
 		os.Exit(1)
 	}
 
-	notifierManager := notifier.NewManager(&cfg.notifier, logger.With("component", "notifier"))
+	notifierManager := notifier.NewManager(&cfg.notifier, model.UTF8Validation, logger.With("component", "notifier"))
 
 	ctxScrape, cancelScrape := context.WithCancel(context.Background())
 	ctxNotify, cancelNotify := context.WithCancel(context.Background())
@@ -574,11 +616,6 @@ func Start() {
 
 	discoveryManagerScrape := discovery.NewManager(ctxScrape, logger.With("component", "discovery manager scrape"), prometheus.DefaultRegisterer, sdMetrics, discovery.Name("scrape"))
 	discoveryManagerNotify := discovery.NewManager(ctxNotify, logger.With("component", "discovery manager notify"), prometheus.DefaultRegisterer, sdMetrics, discovery.Name("notify"))
-
-	if cfg.scrape.ExtraMetrics {
-		// Experimental additional scrape metrics
-		// TODO scrapeopts configurable
-	}
 
 	noStepSubqueryInterval := &safePromQLNoStepSubqueryInterval{}
 	noStepSubqueryInterval.Set(config.DefaultGlobalConfig.EvaluationInterval)
@@ -643,13 +680,14 @@ func Start() {
 
 	remoteFlushDeadline := time.Duration(1 * time.Minute)
 	localStoragePath := cfg.agentStoragePath
-	remoteStorage := remote.NewStorage(logger.With("component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, remoteFlushDeadline, scraper)
+	remoteStorage := remote.NewStorage(logger.With("component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, remoteFlushDeadline, scraper, false)
 	fanoutStorage := storage.NewFanout(logger, localStorage, remoteStorage)
 
 	scrapeManager, err := scrape.NewManager(
 		&cfg.scrape,
 		logger.With("component", "scrape manager"),
 		logging.NewJSONFileLogger,
+		nil,
 		fanoutStorage,
 		prometheus.DefaultRegisterer,
 	)
@@ -932,7 +970,7 @@ func Start() {
 					return fmt.Errorf("opening storage failed %s", err)
 				}
 
-				switch fsType := prom_runtime.Statfs(localStoragePath); fsType {
+				switch fsType := prom_runtime.FsType(localStoragePath); fsType {
 				case "NFS_SUPER_MAGIC":
 					logger.Warn("This filesystem is not supported and may lead to data corruption and data loss. Please carefully read https://prometheus.io/docs/prometheus/latest/storage/ to learn more about supported filesystems.", "fs_type", fsType)
 				default:
