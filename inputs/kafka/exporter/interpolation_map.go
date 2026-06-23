@@ -39,13 +39,13 @@ func (i *interpolationMap) Prune(logger log.Logger, client sarama.Client, maxOff
 
 	groupsMap, err := admin.ListConsumerGroups()
 	groupKeys := make([]string, len(groupsMap))
-	for group, _ := range groupsMap {
+	for group := range groupsMap {
 		groupKeys = append(groupKeys, group)
 	}
 
 	topicsMap, err := admin.ListTopics()
 	topicKeys := make([]string, len(topicsMap))
-	for topic, _ := range topicsMap {
+	for topic := range topicsMap {
 		topicKeys = append(topicKeys, topic)
 	}
 
@@ -53,7 +53,7 @@ func (i *interpolationMap) Prune(logger log.Logger, client sarama.Client, maxOff
 	level.Debug(logger).Log("msg", "iMap locked for pruning")
 	start := time.Now()
 
-	for group, _ := range i.iMap {
+	for group := range i.iMap {
 		if !contains(groupKeys, group) {
 			delete(i.iMap, group)
 			continue
@@ -66,7 +66,7 @@ func (i *interpolationMap) Prune(logger log.Logger, client sarama.Client, maxOff
 			for partition, offsets := range partitions {
 				if len(offsets) > maxOffsets {
 					offsetKeys := make([]int64, len(offsets))
-					for offset, _ := range offsets {
+					for offset := range offsets {
 						offsetKeys = append(offsetKeys, offset)
 					}
 					sort.Slice(offsetKeys, func(i, j int) bool { return offsetKeys[i] < offsetKeys[j] })

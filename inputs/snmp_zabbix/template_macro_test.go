@@ -49,7 +49,7 @@ func TestExpandMacros_Robustness(t *testing.T) {
 			name: "Mixed Context Keys",
 			text: "IF.{#IFNAME}.IDX.{#IFINDEX}",
 			context: map[string]string{
-				"IFNAME":      "eth0",
+				"IFNAME":     "eth0",
 				"{#IFINDEX}": "10",
 			},
 			expected: "IF.eth0.IDX.10",

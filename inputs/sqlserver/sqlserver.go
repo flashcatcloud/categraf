@@ -212,7 +212,7 @@ func (s *Instance) Gather(slist *types.SampleList) {
 	defer func(begun time.Time) {
 		use := time.Since(begun).Seconds()
 		tags := map[string]string{}
-		for i, _ := range s.pools {
+		for i := range s.pools {
 			connectionString := s.Servers[i]
 			serverName, databaseName := getConnectionIdentifiers(connectionString)
 			tags["serverName"] = serverName

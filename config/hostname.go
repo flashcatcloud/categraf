@@ -106,7 +106,7 @@ func (c *HostInfoCache) update() {
 			HostInfo.SetHostname(name)
 		}
 		ip := os.Getenv("HOSTIP")
-		if ip == ""{
+		if ip == "" {
 			nip, err := GetOutboundIP()
 			if err != nil {
 				log.Println("E! failed to get ip:", err)

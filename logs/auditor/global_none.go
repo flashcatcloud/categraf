@@ -16,7 +16,7 @@ type LogFileEntry struct {
 	TailingMode string
 	Offset      string
 	Source      string
-	Service    string
+	Service     string
 	Tags        map[string]string
 }
 

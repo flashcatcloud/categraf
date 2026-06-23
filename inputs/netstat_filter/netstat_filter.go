@@ -12,7 +12,9 @@ import (
 )
 
 const inputName = "netstat_filter"
+
 var executed = false
+
 type NetStatFilter struct {
 	config.PluginConfig
 	Instances []*Instance `toml:"instances"`
