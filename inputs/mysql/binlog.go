@@ -47,7 +47,7 @@ func (ins *Instance) gatherBinlog(slist *types.SampleList, db *sql.DB, globalTag
 		filesize    uint64
 		encrypted   string
 		algorithm   string // 加密算法（在某些版本中可用）；Reserved for future use: currently unused
-		columnCount int    = len(columns)
+		columnCount = len(columns)
 	)
 
 	for rows.Next() {

@@ -17,7 +17,7 @@ type ThrottledExecutor struct {
 // number of concurrent jobs
 func NewThrottledExecutor(limit int) (*ThrottledExecutor, error) {
 	if limit == 0 {
-		return nil, fmt.Errorf("Limit must be > 0")
+		return nil, fmt.Errorf("%s", "Limit must be > 0")
 	}
 	return &ThrottledExecutor{limiter: make(chan struct{}, limit)}, nil
 }
