@@ -15,7 +15,7 @@ jobs:
         env:
           AGENT_URL: ${{ secrets.AGENT_WEBHOOK_URL }}
           PROXY_TOKEN: ${{ secrets.PROXY_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BOT_PAT }}
         run: |
           set -euo pipefail
 
@@ -24,7 +24,7 @@ jobs:
             exit 1
           fi
           if [ -z "${GH_TOKEN:-}" ]; then
-            echo "::error::GITHUB_TOKEN is not available"
+            echo "::error::BOT_PAT is not available"
             exit 1
           fi
           if [ -z "${PROXY_TOKEN:-}" ]; then
