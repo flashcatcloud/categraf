@@ -705,6 +705,7 @@ func ParseLLDLifetimes(rule DiscoveryRule) (time.Duration, time.Duration) {
 //   - "DELETE_AFTER", "DISABLE_AFTER"       -> 解析 durationStr，得到一个 >0 的延迟时长
 //   - "" (空字符串)                          -> 若 durationStr 非空，则按 *AFTER* 处理；否则返回 defaultValue
 //   - 其他未知值                             -> 返回 defaultValue
+//
 // durationStr: 期望为 Zabbix 风格的延迟字符串，例如 "7d", "1h", "30m" 等；当 typeStr 为 *_AFTER 或为空且 durationStr 非空时生效
 // defaultValue: 当无法从 typeStr 和 durationStr 推导策略时使用的默认时长。
 // 返回值含义：

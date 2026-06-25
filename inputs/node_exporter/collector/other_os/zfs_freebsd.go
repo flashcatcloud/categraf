@@ -330,7 +330,7 @@ func (c *zfsCollector) parseFreeBSDPoolObjsetStats() error {
 		return fmt.Errorf("couldn't get sysctl: %w", err)
 	}
 
-	for dataset, _ := range zfsDatasets {
+	for dataset := range zfsDatasets {
 		if strings.HasSuffix(dataset, ".dataset_name") {
 			zfsDatasetNames = append(zfsDatasetNames, strings.SplitAfter(dataset, ".")[3])
 		}

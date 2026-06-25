@@ -10,9 +10,9 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 
-	commontls "flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	commontls "flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 )
 

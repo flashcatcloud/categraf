@@ -65,20 +65,20 @@ func TestRealWorldDataAndJS(t *testing.T) {
 	// Base OID: 1.3.6.1.4.1.61167.1
 	// Full OID: .1.3.6.1.4.1.61167.1.102.11
 	// Expected Index: 102.11
-	
+
 	baseOID := "1.3.6.1.4.1.61167.1"
 	fullOID := ".1.3.6.1.4.1.61167.1.102.11"
-	
+
 	d := &DiscoveryEngine{}
 	index := d.extractIndexFromOID(fullOID, baseOID)
-	
+
 	t.Logf("Extracted Index: '%s'", index)
-	
+
 	if index != "102.11" {
 		t.Errorf("Index extraction failed. Expected '102.11', got '%s'", index)
 	}
 
-	// This assumes the user template JS logic. 
+	// This assumes the user template JS logic.
 	// Even if we didn't modify the JS in the template, we want to ensure it works for this valid index.
 	script := `
 value = JSON.parse(value);
@@ -114,18 +114,18 @@ return JSON.stringify(transformedArray);
 		"data": []map[string]string{inputItem},
 	}
 	jsonBytes, _ := json.Marshal(lldWrapper)
-	
+
 	res, err := applyJavaScript(string(jsonBytes), []string{script})
 	if err != nil {
 		t.Fatalf("JS Execution failed: %v", err)
 	}
-	
+
 	resStr := res.(string)
 	t.Logf("JS Output: %s", resStr)
-	
+
 	var output []map[string]interface{}
 	json.Unmarshal([]byte(resStr), &output)
-	
+
 	if len(output) > 0 {
 		t.Logf("Capture Success! SlotIndex: %v", output[0]["{#SLOTINDEX}"])
 		if output[0]["{#SLOTINDEX}"] != "11" {

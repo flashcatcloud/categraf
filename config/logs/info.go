@@ -15,6 +15,7 @@ import (
 // InfoProvider can be extended/implemented for more complex data.
 //
 // When implementing InfoProvider - be aware of the 2 ways it is used by the status page:
+//
 //  1. when a single message is returned, the statuspage will display a single line:
 //     InfoKey(): Info()[0]
 //

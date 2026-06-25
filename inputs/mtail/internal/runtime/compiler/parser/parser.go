@@ -172,7 +172,7 @@ const mtailInitialStackSize = 16
 
 //line parser.y:733
 
-//  tokenpos returns the position of the current token.
+// tokenpos returns the position of the current token.
 func tokenpos(mtaillex mtailLexer) position.Position {
 	return mtaillex.(*parser).t.Pos
 }
