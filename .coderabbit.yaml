@@ -1,0 +1,12 @@
+# .coderabbit.yaml
+language: "zh-CN"
+early_access: false
+reviews:
+  profile: "golang"
+  request_changes_workflow: false
+  high_level_summary: true
+  poetry_of_the_day: false
+  exclude:
+    - "vendor/**"
+    - "docs/**"
+    - "**/*.pb.go"
