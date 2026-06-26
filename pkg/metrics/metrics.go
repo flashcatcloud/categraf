@@ -14,6 +14,7 @@ import (
 	"github.com/matttproud/golang_protobuf_extensions/pbutil"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 
 	"flashcat.cloud/categraf/pkg/prom"
 	"flashcat.cloud/categraf/types"
@@ -125,7 +126,7 @@ func Parse(buf []byte, header http.Header) (map[string]*dto.MetricFamily, error)
 }
 
 func ParseReader(r io.Reader, header http.Header) (map[string]*dto.MetricFamily, error) {
-	var parser expfmt.TextParser
+	parser := expfmt.NewTextParser(model.UTF8Validation)
 
 	reader := bufio.NewReader(r)
 
