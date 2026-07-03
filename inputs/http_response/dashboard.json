@@ -1,19 +1,944 @@
-[
-  {
-    "name": "HTTP探测",
-    "tags": "",
-    "configs": "",
-    "chart_groups": [
-      {
-        "name": "Default chart group",
-        "weight": 0,
-        "charts": [
-          {
-            "configs": "{\"targets\":[{\"refId\":\"A\",\"expr\":\"max(http_response_result_code) by (target)\",\"legend\":\"UP?\"},{\"expr\":\"max(http_response_response_code) by (target)\",\"refId\":\"B\",\"legend\":\"status code\"},{\"expr\":\"max(http_response_response_time) by (target)\",\"refId\":\"C\",\"legend\":\"latency(s)\"},{\"expr\":\"max(http_response_cert_expire_timestamp) by (target) - time()\",\"refId\":\"D\",\"legend\":\"cert expire\"}],\"name\":\"URL Details\",\"custom\":{\"showHeader\":true,\"calc\":\"lastNotNull\",\"displayMode\":\"labelValuesToRows\",\"aggrDimension\":\"target\"},\"options\":{\"valueMappings\":[],\"standardOptions\":{}},\"overrides\":[{\"properties\":{\"valueMappings\":[{\"type\":\"special\",\"match\":{\"special\":0},\"result\":{\"text\":\"UP\",\"color\":\"#417505\"}},{\"type\":\"range\",\"match\":{\"special\":1,\"from\":1},\"result\":{\"text\":\"DOWN\",\"color\":\"#e90f0f\"}}],\"standardOptions\":{}},\"matcher\":{\"value\":\"A\"}},{\"type\":\"special\",\"matcher\":{\"value\":\"D\"},\"properties\":{\"standardOptions\":{\"util\":\"humantimeSeconds\"}}}],\"version\":\"2.0.0\",\"type\":\"table\",\"layout\":{\"h\":4,\"w\":24,\"x\":0,\"y\":0,\"i\":\"0\"}}",
-            "weight": 0
-          }
+{
+    "name": "HTTP Response 探测",
+    "tags": "categraf,http_response",
+    "note": "",
+    "ident": "",
+    "uuid": 1783063706576000,
+    "configs": {
+        "version": "3.0.0",
+        "var": [
+            {
+                "name": "datasource",
+                "type": "datasource",
+                "definition": "prometheus",
+                "defaultValue": 1,
+                "label": "Datasource",
+                "hide": false
+            },
+            {
+                "name": "target",
+                "type": "query",
+                "datasource": {
+                    "cate": "prometheus",
+                    "value": "${datasource}"
+                },
+                "definition": "label_values(http_response_result_code, target)",
+                "reg": "",
+                "multi": false,
+                "hide": false
+            }
+        ],
+        "panels": [
+            {
+                "name": "全局巡检",
+                "type": "row",
+                "layout": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 0,
+                    "i": "http-response-row-global",
+                    "isResizable": false
+                },
+                "id": "http-response-row-global",
+                "version": "3.4.0",
+                "overrides": []
+            },
+            {
+                "name": "所有 Target 健康状态",
+                "type": "hexbin",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(http_response_result_code) by (target)",
+                        "legend": "{{target}}"
+                    }
+                ],
+                "custom": {
+                    "textMode": "valueAndName",
+                    "calc": "lastNotNull",
+                    "valueField": "Value",
+                    "colorRange": [
+                        "#2c9d3d",
+                        "#f5a623",
+                        "#ce4f52"
+                    ],
+                    "reverseColorOrder": false,
+                    "colorDomainAuto": false,
+                    "colorDomain": [
+                        0,
+                        1
+                    ]
+                },
+                "options": {
+                    "valueMappings": [
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 0
+                            },
+                            "result": {
+                                "text": "UP",
+                                "color": "#2c9d3d"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 1
+                            },
+                            "result": {
+                                "text": "CONN_FAILED",
+                                "color": "#ce4f52"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 2
+                            },
+                            "result": {
+                                "text": "TIMEOUT",
+                                "color": "#ce4f52"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 3
+                            },
+                            "result": {
+                                "text": "DNS_ERROR",
+                                "color": "#f5a623"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 4
+                            },
+                            "result": {
+                                "text": "ADDR_ERROR",
+                                "color": "#f5a623"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 5
+                            },
+                            "result": {
+                                "text": "BODY_MISMATCH",
+                                "color": "#ce4f52"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 6
+                            },
+                            "result": {
+                                "text": "CODE_MISMATCH",
+                                "color": "#f5a623"
+                            }
+                        }
+                    ],
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#2c9d3d",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#ce4f52",
+                                "value": 1
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 1,
+                    "i": "http-response-global-health",
+                    "isResizable": true
+                },
+                "maxPerRow": 6,
+                "id": "http-response-global-health",
+                "overrides": [],
+                "datasourceValue": "${datasource}"
+            },
+            {
+                "name": "所有 Target 状态码",
+                "type": "barGauge",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(http_response_response_code) by (target)",
+                        "legend": "{{target}}"
+                    }
+                ],
+                "custom": {
+                    "calc": "lastNotNull",
+                    "baseColor": "#5794f2",
+                    "serieWidth": 20,
+                    "sortOrder": "desc"
+                },
+                "options": {
+                    "standardOptions": {
+                        "unit": "none"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#ce4f52",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#2c9d3d",
+                                "value": 200
+                            },
+                            {
+                                "color": "#5794f2",
+                                "value": 300
+                            },
+                            {
+                                "color": "#f5a623",
+                                "value": 400
+                            },
+                            {
+                                "color": "#ce4f52",
+                                "value": 500
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 8,
+                    "w": 6,
+                    "x": 12,
+                    "y": 1,
+                    "i": "http-response-global-code",
+                    "isResizable": true
+                },
+                "id": "http-response-global-code",
+                "overrides": [],
+                "datasourceValue": "${datasource}"
+            },
+            {
+                "type": "barGauge",
+                "id": "http-response-global-latency",
+                "layout": {
+                    "h": 8,
+                    "w": 6,
+                    "x": 18,
+                    "y": 1,
+                    "i": "http-response-global-latency",
+                    "isResizable": true
+                },
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
+                "name": "所有 Target 响应时间",
+                "maxPerRow": 4,
+                "custom": {
+                    "calc": "lastNotNull",
+                    "valueField": "Value",
+                    "serieWidth": 20,
+                    "sortOrder": "desc",
+                    "displayMode": "basic",
+                    "valueMode": "color",
+                    "otherPosition": "none"
+                },
+                "options": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "#2c9d3d",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#f5a623",
+                                "value": 500
+                            },
+                            {
+                                "color": "#ce4f52",
+                                "value": 1500
+                            }
+                        ]
+                    },
+                    "standardOptions": {
+                        "unit": "ms"
+                    }
+                },
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(http_response_response_time_ms) by (target)",
+                        "legend": "{{target}}"
+                    }
+                ]
+            },
+            {
+                "name": "HTTPS 证书剩余天数",
+                "type": "barGauge",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "(max(http_response_cert_expire_timestamp) by (target) - time()) / 86400",
+                        "legend": "{{target}}"
+                    }
+                ],
+                "custom": {
+                    "calc": "lastNotNull",
+                    "baseColor": "#73bf69",
+                    "serieWidth": 20,
+                    "sortOrder": "asc"
+                },
+                "options": {
+                    "standardOptions": {
+                        "unit": "none"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#ce4f52",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#f5a623",
+                                "value": 7
+                            },
+                            {
+                                "color": "#2c9d3d",
+                                "value": 30
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 0,
+                    "y": 9,
+                    "i": "http-response-global-cert",
+                    "isResizable": true
+                },
+                "id": "http-response-global-cert",
+                "overrides": [],
+                "datasourceValue": "${datasource}"
+            },
+            {
+                "name": "Target 当前明细",
+                "type": "table",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(http_response_result_code) by (target)",
+                        "legend": "result_code"
+                    },
+                    {
+                        "refId": "B",
+                        "expr": "max(http_response_response_code) by (target)",
+                        "legend": "status_code"
+                    },
+                    {
+                        "refId": "C",
+                        "expr": "max(http_response_response_time_ms) by (target)",
+                        "legend": "latency_ms"
+                    },
+                    {
+                        "refId": "D",
+                        "expr": "(max(http_response_cert_expire_timestamp) by (target) - time()) / 86400",
+                        "legend": "cert_expire_days"
+                    }
+                ],
+                "custom": {
+                    "showHeader": true,
+                    "calc": "lastNotNull",
+                    "displayMode": "labelValuesToRows",
+                    "aggrDimension": "target",
+                    "tableLayout": "fixed",
+                    "nowrap": false
+                },
+                "options": {
+                    "valueMappings": [],
+                    "standardOptions": {}
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "value": "A"
+                        },
+                        "properties": {
+                            "valueMappings": [
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 0
+                                    },
+                                    "result": {
+                                        "text": "UP",
+                                        "color": "#2c9d3d"
+                                    }
+                                },
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 1
+                                    },
+                                    "result": {
+                                        "text": "CONN_FAILED",
+                                        "color": "#ce4f52"
+                                    }
+                                },
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 2
+                                    },
+                                    "result": {
+                                        "text": "TIMEOUT",
+                                        "color": "#ce4f52"
+                                    }
+                                },
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 3
+                                    },
+                                    "result": {
+                                        "text": "DNS_ERROR",
+                                        "color": "#f5a623"
+                                    }
+                                },
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 4
+                                    },
+                                    "result": {
+                                        "text": "ADDR_ERROR",
+                                        "color": "#f5a623"
+                                    }
+                                },
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 5
+                                    },
+                                    "result": {
+                                        "text": "BODY_MISMATCH",
+                                        "color": "#ce4f52"
+                                    }
+                                },
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 6
+                                    },
+                                    "result": {
+                                        "text": "CODE_MISMATCH",
+                                        "color": "#f5a623"
+                                    }
+                                }
+                            ],
+                            "standardOptions": {}
+                        }
+                    },
+                    {
+                        "matcher": {
+                            "value": "C"
+                        },
+                        "properties": {
+                            "standardOptions": {
+                                "unit": "ms"
+                            }
+                        }
+                    }
+                ],
+                "layout": {
+                    "h": 5,
+                    "w": 12,
+                    "x": 12,
+                    "y": 9,
+                    "i": "http-response-global-table",
+                    "isResizable": true
+                },
+                "id": "http-response-global-table",
+                "datasourceValue": "${datasource}"
+            },
+            {
+                "name": "单 Target 详情",
+                "type": "row",
+                "layout": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 14,
+                    "i": "http-response-row-target",
+                    "isResizable": false
+                },
+                "id": "http-response-row-target",
+                "version": "3.4.0",
+                "overrides": []
+            },
+            {
+                "name": "当前健康状态",
+                "type": "stat",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(http_response_result_code{target=\"$target\"})",
+                        "legend": "result_code"
+                    }
+                ],
+                "custom": {
+                    "textMode": "value",
+                    "colorMode": "background",
+                    "calc": "lastNotNull",
+                    "valueField": "Value",
+                    "colSpan": 1,
+                    "textSize": {}
+                },
+                "options": {
+                    "valueMappings": [
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 0
+                            },
+                            "result": {
+                                "text": "UP",
+                                "color": "#2c9d3d"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 1
+                            },
+                            "result": {
+                                "text": "CONN_FAILED",
+                                "color": "#ce4f52"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 2
+                            },
+                            "result": {
+                                "text": "TIMEOUT",
+                                "color": "#ce4f52"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 3
+                            },
+                            "result": {
+                                "text": "DNS_ERROR",
+                                "color": "#f5a623"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 4
+                            },
+                            "result": {
+                                "text": "ADDR_ERROR",
+                                "color": "#f5a623"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 5
+                            },
+                            "result": {
+                                "text": "BODY_MISMATCH",
+                                "color": "#ce4f52"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 6
+                            },
+                            "result": {
+                                "text": "CODE_MISMATCH",
+                                "color": "#f5a623"
+                            }
+                        }
+                    ],
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#2c9d3d",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#ce4f52",
+                                "value": 1
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 0,
+                    "y": 15,
+                    "i": "http-response-target-health",
+                    "isResizable": true
+                },
+                "id": "http-response-target-health",
+                "overrides": [],
+                "datasourceValue": "${datasource}"
+            },
+            {
+                "name": "当前 HTTP 状态码",
+                "type": "stat",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(http_response_response_code{target=\"$target\"})",
+                        "legend": "status_code"
+                    }
+                ],
+                "custom": {
+                    "textMode": "valueAndName",
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "colSpan": 1,
+                    "textSize": {}
+                },
+                "options": {
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#ce4f52",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#2c9d3d",
+                                "value": 200
+                            },
+                            {
+                                "color": "#5794f2",
+                                "value": 300
+                            },
+                            {
+                                "color": "#f5a623",
+                                "value": 400
+                            },
+                            {
+                                "color": "#ce4f52",
+                                "value": 500
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 6,
+                    "y": 15,
+                    "i": "http-response-target-code",
+                    "isResizable": true
+                },
+                "id": "http-response-target-code",
+                "overrides": [],
+                "datasourceValue": "${datasource}"
+            },
+            {
+                "name": "当前响应时间",
+                "type": "stat",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(http_response_response_time_ms{target=\"$target\"})",
+                        "legend": "latency_ms"
+                    }
+                ],
+                "custom": {
+                    "textMode": "valueAndName",
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "colSpan": 1,
+                    "textSize": {}
+                },
+                "options": {
+                    "standardOptions": {
+                        "unit": "ms"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#2c9d3d",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#f5a623",
+                                "value": 500
+                            },
+                            {
+                                "color": "#ce4f52",
+                                "value": 1500
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 12,
+                    "y": 15,
+                    "i": "http-response-target-latency",
+                    "isResizable": true
+                },
+                "id": "http-response-target-latency",
+                "overrides": [],
+                "datasourceValue": "${datasource}"
+            },
+            {
+                "name": "证书剩余天数",
+                "type": "stat",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "(max(http_response_cert_expire_timestamp{target=\"$target\"}) - time()) / 86400",
+                        "legend": "cert_expire_days"
+                    }
+                ],
+                "custom": {
+                    "textMode": "valueAndName",
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "colSpan": 1,
+                    "textSize": {}
+                },
+                "options": {
+                    "standardOptions": {
+                        "unit": "none"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#ce4f52",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#f5a623",
+                                "value": 7
+                            },
+                            {
+                                "color": "#2c9d3d",
+                                "value": 30
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 4,
+                    "w": 6,
+                    "x": 18,
+                    "y": 15,
+                    "i": "http-response-target-cert",
+                    "isResizable": true
+                },
+                "id": "http-response-target-cert",
+                "overrides": [],
+                "datasourceValue": "${datasource}"
+            },
+            {
+                "name": "响应时间趋势",
+                "type": "timeseries",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "http_response_total_cost{target=\"$target\"}",
+                        "legend": "total"
+                    },
+                    {
+                        "refId": "B",
+                        "expr": "http_response_dns_request{target=\"$target\"}",
+                        "legend": "dns"
+                    },
+                    {
+                        "refId": "C",
+                        "expr": "http_response_tcp_connect{target=\"$target\"}",
+                        "legend": "tcp"
+                    },
+                    {
+                        "refId": "D",
+                        "expr": "http_response_tls_handshake{target=\"$target\"}",
+                        "legend": "tls"
+                    },
+                    {
+                        "refId": "E",
+                        "expr": "http_response_first_byte{target=\"$target\"}",
+                        "legend": "first_byte"
+                    }
+                ],
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 1,
+                    "fillOpacity": 0.15,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                },
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "unit": "ms"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#2c9d3d",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 7,
+                    "w": 12,
+                    "x": 0,
+                    "y": 19,
+                    "i": "http-response-target-latency-trend",
+                    "isResizable": true
+                },
+                "id": "http-response-target-latency-trend",
+                "overrides": [],
+                "datasourceValue": "${datasource}"
+            },
+            {
+                "type": "timeseries",
+                "id": "http-response-target-code-trend",
+                "layout": {
+                    "h": 7,
+                    "w": 12,
+                    "x": 12,
+                    "y": 19,
+                    "i": "http-response-target-code-trend",
+                    "isResizable": true
+                },
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
+                "name": "状态变化趋势",
+                "maxPerRow": 4,
+                "options": {
+                    "tooltip": {
+                        "mode": "single"
+                    },
+                    "legend": {
+                        "displayMode": "hidden",
+                        "placement": "bottom",
+                        "behaviour": "showItem",
+                        "selectMode": "single"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgb(44, 157, 61)",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    },
+                    "thresholdsStyle": {
+                        "mode": "dashed"
+                    }
+                },
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 2,
+                    "fillOpacity": 0.01,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    },
+                    "showPoints": "none",
+                    "pointSize": 5
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byFrameRefID"
+                        },
+                        "properties": {
+                            "rightYAxisDisplay": "off"
+                        }
+                    }
+                ],
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "http_response_result_code{target=\"$target\"}",
+                        "legend": "result_code"
+                    },
+                    {
+                        "refId": "B",
+                        "expr": "http_response_response_code{target=\"$target\"}",
+                        "legend": "status_code"
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
-]
+    }
+}

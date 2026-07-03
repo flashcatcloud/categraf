@@ -34,6 +34,76 @@ const (
 	CodeMismatch     uint64 = 6
 )
 
+type requestTiming struct {
+	reqStart     time.Time
+	dnsStart     time.Time
+	dnsEnd       time.Time
+	connStart    time.Time
+	connEnd      time.Time
+	tlsHandStart time.Time
+	tlsHandEnd   time.Time
+	gotFirstByte time.Time
+	reqEnd       time.Time
+	remoteAddr   string
+	connReused   bool
+}
+
+func (t *requestTiming) Trace() *httptrace.ClientTrace {
+	return &httptrace.ClientTrace{
+		DNSStart: func(httptrace.DNSStartInfo) {
+			t.dnsStart = time.Now()
+		},
+		DNSDone: func(httptrace.DNSDoneInfo) {
+			t.dnsEnd = time.Now()
+		},
+		ConnectStart: func(string, string) {
+			t.connStart = time.Now()
+		},
+		ConnectDone: func(_, addr string, _ error) {
+			t.connEnd = time.Now()
+			t.remoteAddr = addr
+		},
+		GotConn: func(info httptrace.GotConnInfo) {
+			t.connReused = info.Reused
+		},
+		TLSHandshakeStart: func() {
+			t.tlsHandStart = time.Now()
+		},
+		TLSHandshakeDone: func(tls.ConnectionState, error) {
+			t.tlsHandEnd = time.Now()
+		},
+		GotFirstResponseByte: func() {
+			t.gotFirstByte = time.Now()
+		},
+	}
+}
+
+func (t *requestTiming) PopulateFields(fields map[string]interface{}, end time.Time) {
+	dnsRequest := elapsedMilliseconds(t.dnsStart, t.dnsEnd)
+	tcpConnect := elapsedMilliseconds(t.connStart, t.connEnd)
+	tlsHandshake := elapsedMilliseconds(t.tlsHandStart, t.tlsHandEnd)
+	firstByte := elapsedMilliseconds(t.reqStart, t.gotFirstByte)
+
+	fields["dns_request"] = dnsRequest
+	fields["tcp_connect"] = tcpConnect
+	fields["tls_handshake"] = tlsHandshake
+	fields["first_byte"] = firstByte
+	fields["total_cost"] = elapsedMilliseconds(t.reqStart, end)
+
+	fields["dns_time"] = dnsRequest
+	fields["connect_time"] = tcpConnect
+	fields["tls_time"] = tlsHandshake
+	fields["first_response_time"] = firstByte
+	fields["end_response_time"] = elapsedMilliseconds(t.gotFirstByte, end)
+}
+
+func elapsedMilliseconds(start, end time.Time) int64 {
+	if start.IsZero() || end.IsZero() {
+		return -1
+	}
+	return end.Sub(start).Milliseconds()
+}
+
 type Instance struct {
 	config.InstanceConfig
 
@@ -46,7 +116,6 @@ type Instance struct {
 	ExpectResponseRegularExpression string          `toml:"expect_response_regular_expression"`
 	ExpectResponseStatusCode        *int            `toml:"expect_response_status_code"`
 	ExpectResponseStatusCodes       string          `toml:"expect_response_status_codes"`
-	Trace                           *bool           `toml:"trace"`
 	config.HTTPProxy
 
 	client httpClient
@@ -235,7 +304,20 @@ func (ins *Instance) gather(slist *types.SampleList, target string) {
 
 func (ins *Instance) httpGather(target string) (map[string]string, map[string]interface{}, error) {
 	// Prepare fields and tags
-	fields := make(map[string]interface{})
+	fields := map[string]interface{}{
+		"dns_request":         int64(-1),
+		"tcp_connect":         int64(-1),
+		"tls_handshake":       int64(-1),
+		"first_byte":          int64(-1),
+		"total_cost":          int64(-1),
+		"dns_time":            int64(-1),
+		"connect_time":        int64(-1),
+		"tls_time":            int64(-1),
+		"first_response_time": int64(-1),
+		"end_response_time":   int64(-1),
+		"response_time_ms":    int64(-1),
+		"response_code":       -1,
+	}
 	tags := map[string]string{"method": ins.Method}
 
 	var body io.Reader
@@ -249,46 +331,42 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	}
 	ins.SetHeaders(request)
 
+	if ins.DebugMod {
+		log.Printf("D! >>> %s %s", request.Method, target)
+		log.Printf("D! >>> Request Headers: %v", request.Header)
+		if ins.Body != "" {
+			log.Printf("D! >>> Request Body: %s", ins.Body)
+		}
+	}
+
+	timing := &requestTiming{}
+	request = request.WithContext(httptrace.WithClientTrace(request.Context(), timing.Trace()))
+
 	// Start Timer
 	start := time.Now()
-	dns_time := start
-	conn_time := start
-	tls_time := start
-	first_res_time := start
-
-	if ins.Trace != nil && *ins.Trace {
-		trace := &httptrace.ClientTrace{
-			// request
-			DNSDone: func(info httptrace.DNSDoneInfo) {
-				dns_time = time.Now()
-				fields["dns_time"] = time.Since(start).Milliseconds()
-			},
-			ConnectDone: func(network, addr string, err error) {
-				conn_time = time.Now()
-				tags["remote_addr"] = addr
-				fields["connect_time"] = time.Since(dns_time).Milliseconds()
-			},
-			TLSHandshakeDone: func(info tls.ConnectionState, err error) {
-				tls_time = time.Now()
-				fields["tls_time"] = time.Since(conn_time).Milliseconds()
-			},
-			GotFirstResponseByte: func() {
-				first_res_time = time.Now()
-				if tls_time == start {
-					fields["first_response_time"] = time.Since(conn_time).Milliseconds()
-				} else {
-					fields["first_response_time"] = time.Since(tls_time).Milliseconds()
+	timing.reqStart = start
+	if ins.DebugMod {
+		if cli, ok := ins.client.(*http.Client); ok {
+			if transport, ok := cli.Transport.(*http.Transport); ok {
+				if transport.MaxIdleConnsPerHost <= 2 {
+					log.Printf("D! MaxIdleConnsPerHost is only %d for %s",
+						transport.MaxIdleConnsPerHost, target)
 				}
-			},
+			}
 		}
-		request = request.WithContext(httptrace.WithClientTrace(request.Context(), trace))
 	}
+
 	resp, err := ins.client.Do(request)
 
 	// metric: response_time
-	fields["end_response_time"] = time.Since(first_res_time).Milliseconds()
-	fields["response_time"] = time.Since(start).Seconds()
-	fields["response_time_ms"] = time.Since(start).Milliseconds()
+	duration := time.Since(start)
+	fields["response_time"] = duration.Seconds()
+	fields["response_time_ms"] = duration.Milliseconds()
+	fields["total_cost"] = duration.Milliseconds()
+	timing.PopulateFields(fields, time.Now())
+	if timing.remoteAddr != "" {
+		tags["remote_addr"] = timing.remoteAddr
+	}
 
 	// If an error in returned, it means we are dealing with a network error, as
 	// HTTP error codes do not generate errors in the net/http library
@@ -323,6 +401,18 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	} else {
 		fields["result_code"] = Success
 	}
+	timing.reqEnd = time.Now()
+	timing.PopulateFields(fields, timing.reqEnd)
+	if timing.remoteAddr != "" {
+		tags["remote_addr"] = timing.remoteAddr
+	}
+
+	if ins.DebugMod {
+		if duration > 200*time.Millisecond {
+			log.Printf("D! SLOW: %s took %v, connection_reused=%v",
+				target, duration, timing.connReused)
+		}
+	}
 
 	// check tls cert
 	if strings.HasPrefix(target, "https://") && resp.TLS != nil {
@@ -335,19 +425,33 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	// metric: response_code
 	fields["response_code"] = resp.StatusCode
 
-	bs, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("E! failed to read response body:", err, "target:", target)
-		return tags, fields, nil
+	var bs []byte
+	if ins.DebugMod || len(ins.ExpectResponseSubstring) > 0 || ins.regularExpression != nil {
+		var err error
+		bs, err = io.ReadAll(resp.Body)
+		if err != nil {
+			log.Println("E! failed to read response body:", err)
+			return tags, fields, nil
+		}
+	} else {
+		// drain body to allow connection reuse
+		if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+			log.Println("E! failed to drain response body:", err)
+			return tags, fields, nil
+		}
 	}
 
-	if len(ins.ExpectResponseSubstring) > 0 && !strings.Contains(string(bs), ins.ExpectResponseSubstring) {
-		log.Println("E! body mismatch, response body:", string(bs))
-		fields["result_code"] = BodyMismatch
+	if ins.DebugMod {
+		log.Printf("D! <<< %s", resp.Status)
+		log.Printf("D! <<< Response Headers: %v", resp.Header)
+		if len(bs) > 0 {
+			log.Printf("D! <<< Response Body (%d bytes): %s", len(bs), responseBodySnippet(resp, bs))
+		}
 	}
 
-	if ins.regularExpression != nil && !ins.regularExpression.Match(bs) {
-		log.Println("E! body mismatch, response body:", string(bs))
+	if len(ins.ExpectResponseSubstring) > 0 && !strings.Contains(string(bs), ins.ExpectResponseSubstring) ||
+		ins.regularExpression != nil && !ins.regularExpression.Match(bs) {
+		log.Println("E! body mismatch, response body:", responseBodySnippet(resp, bs))
 		fields["result_code"] = BodyMismatch
 	}
 
@@ -358,4 +462,20 @@ func (ins *Instance) httpGather(target string) (map[string]string, map[string]in
 	}
 
 	return tags, fields, nil
+}
+
+func responseBodySnippet(resp *http.Response, bs []byte) string {
+	ct := strings.ToLower(resp.Header.Get("Content-Type"))
+	if ct != "" && !strings.HasPrefix(ct, "text/") &&
+		!strings.Contains(ct, "json") &&
+		!strings.Contains(ct, "xml") &&
+		!strings.Contains(ct, "javascript") {
+		return fmt.Sprintf("<binary response body, %d bytes>", len(bs))
+	}
+
+	const maxSnippetLen = 1024
+	if len(bs) <= maxSnippetLen {
+		return string(bs)
+	}
+	return string(bs[:maxSnippetLen]) + "...(truncated)"
 }
