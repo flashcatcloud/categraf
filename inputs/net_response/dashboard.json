@@ -1,19 +1,611 @@
-[
-    {
-      "name": "TCP探测",
-      "tags": "",
-      "configs": "",
-      "chart_groups": [
-        {
-          "name": "Default chart group",
-          "weight": 0,
-          "charts": [
+{
+    "name": "Net Response 探测",
+    "tags": "categraf,net_response",
+    "note": "",
+    "ident": "",
+    "uuid": 1783070010545000,
+    "configs": {
+        "version": "3.0.0",
+        "var": [
             {
-              "configs": "{\"targets\":[{\"refId\":\"A\",\"expr\":\"max(net_response_result_code) by (target)\",\"legend\":\"UP?\"},{\"expr\":\"max(net_response_response_time) by (target)\",\"refId\":\"C\",\"legend\":\"latency(s)\"}],\"name\":\"Targets\",\"custom\":{\"showHeader\":true,\"calc\":\"lastNotNull\",\"displayMode\":\"labelValuesToRows\",\"aggrDimension\":\"target\"},\"options\":{\"valueMappings\":[],\"standardOptions\":{}},\"overrides\":[{\"properties\":{\"valueMappings\":[{\"type\":\"special\",\"match\":{\"special\":0},\"result\":{\"text\":\"UP\",\"color\":\"#417505\"}},{\"type\":\"range\",\"match\":{\"special\":1,\"from\":1},\"result\":{\"text\":\"DOWN\",\"color\":\"#e90f0f\"}}],\"standardOptions\":{}},\"matcher\":{\"value\":\"A\"}}],\"version\":\"2.0.0\",\"type\":\"table\",\"layout\":{\"h\":4,\"w\":24,\"x\":0,\"y\":0,\"i\":\"0\"}}",
-              "weight": 0
+                "name": "datasource",
+                "type": "datasource",
+                "definition": "prometheus",
+                "defaultValue": 1,
+                "label": "Datasource",
+                "hide": false
+            },
+            {
+                "name": "target",
+                "type": "query",
+                "datasource": {
+                    "cate": "prometheus",
+                    "value": "${datasource}"
+                },
+                "definition": "label_values(net_response_result_code, target)",
+                "reg": "",
+                "multi": false,
+                "hide": false
             }
-          ]
-        }
-      ]
+        ],
+        "panels": [
+            {
+                "name": "全局巡检",
+                "type": "row",
+                "layout": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 0,
+                    "i": "net-response-row-global",
+                    "isResizable": true
+                },
+                "collapsed": false,
+                "panels": [],
+                "id": "net-response-row-global"
+            },
+            {
+                "name": "所有 Target 健康状态",
+                "type": "hexbin",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(net_response_result_code) by (target)",
+                        "legend": "{{target}}"
+                    }
+                ],
+                "custom": {
+                    "textMode": "valueAndName",
+                    "calc": "lastNotNull",
+                    "valueField": "Value",
+                    "colorRange": [
+                        "#2c9d3d",
+                        "#f5a623",
+                        "#ce4f52"
+                    ],
+                    "reverseColorOrder": false,
+                    "colorDomainAuto": false,
+                    "colorDomain": [
+                        0,
+                        1
+                    ]
+                },
+                "options": {
+                    "valueMappings": [
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 0
+                            },
+                            "result": {
+                                "text": "UP",
+                                "color": "#2c9d3d"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 1
+                            },
+                            "result": {
+                                "text": "TIMEOUT",
+                                "color": "#ce4f52"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 2
+                            },
+                            "result": {
+                                "text": "CONN_FAILED",
+                                "color": "#ce4f52"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 3
+                            },
+                            "result": {
+                                "text": "READ_FAILED",
+                                "color": "#f5a623"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 4
+                            },
+                            "result": {
+                                "text": "STRING_MISMATCH",
+                                "color": "#f5a623"
+                            }
+                        }
+                    ],
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#2c9d3d",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#ce4f52",
+                                "value": 1
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 0,
+                    "y": 1,
+                    "i": "net-response-global-health",
+                    "isResizable": true
+                },
+                "maxPerRow": 6,
+                "id": "net-response-global-health",
+                "overrides": []
+            },
+            {
+                "name": "所有 Target 响应时间",
+                "type": "barGauge",
+                "version": "3.4.0",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(net_response_response_time) by (target)",
+                        "legend": "{{target}}"
+                    }
+                ],
+                "custom": {
+                    "calc": "lastNotNull",
+                    "valueField": "Value",
+                    "serieWidth": 20,
+                    "sortOrder": "desc",
+                    "displayMode": "basic",
+                    "valueMode": "color",
+                    "otherPosition": "none"
+                },
+                "options": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "#2c9d3d",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#f5a623",
+                                "value": 0.1
+                            },
+                            {
+                                "color": "#ce4f52",
+                                "value": 0.5
+                            }
+                        ]
+                    },
+                    "standardOptions": {
+                        "unit": "s"
+                    }
+                },
+                "layout": {
+                    "h": 8,
+                    "w": 12,
+                    "x": 12,
+                    "y": 1,
+                    "i": "net-response-global-latency",
+                    "isResizable": true
+                },
+                "maxPerRow": 4,
+                "id": "net-response-global-latency",
+                "overrides": []
+            },
+            {
+                "name": "Target 当前明细",
+                "type": "table",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(net_response_result_code) by (target)",
+                        "legend": "result_code"
+                    },
+                    {
+                        "refId": "B",
+                        "expr": "max(net_response_response_time) by (target)",
+                        "legend": "latency_s"
+                    }
+                ],
+                "custom": {
+                    "showHeader": true,
+                    "calc": "lastNotNull",
+                    "displayMode": "labelValuesToRows",
+                    "aggrDimension": "target",
+                    "tableLayout": "fixed",
+                    "nowrap": false
+                },
+                "options": {
+                    "valueMappings": [],
+                    "standardOptions": {}
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "value": "A"
+                        },
+                        "properties": {
+                            "valueMappings": [
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 0
+                                    },
+                                    "result": {
+                                        "text": "UP",
+                                        "color": "#2c9d3d"
+                                    }
+                                },
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 1
+                                    },
+                                    "result": {
+                                        "text": "TIMEOUT",
+                                        "color": "#ce4f52"
+                                    }
+                                },
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 2
+                                    },
+                                    "result": {
+                                        "text": "CONN_FAILED",
+                                        "color": "#ce4f52"
+                                    }
+                                },
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 3
+                                    },
+                                    "result": {
+                                        "text": "READ_FAILED",
+                                        "color": "#f5a623"
+                                    }
+                                },
+                                {
+                                    "type": "special",
+                                    "match": {
+                                        "special": 4
+                                    },
+                                    "result": {
+                                        "text": "STRING_MISMATCH",
+                                        "color": "#f5a623"
+                                    }
+                                }
+                            ],
+                            "standardOptions": {}
+                        }
+                    },
+                    {
+                        "matcher": {
+                            "value": "B"
+                        },
+                        "properties": {
+                            "standardOptions": {
+                                "unit": "s"
+                            }
+                        }
+                    }
+                ],
+                "layout": {
+                    "h": 5,
+                    "w": 24,
+                    "x": 0,
+                    "y": 9,
+                    "i": "net-response-global-table",
+                    "isResizable": true
+                },
+                "id": "net-response-global-table"
+            },
+            {
+                "name": "单 Target 详情",
+                "type": "row",
+                "layout": {
+                    "h": 1,
+                    "w": 24,
+                    "x": 0,
+                    "y": 14,
+                    "i": "net-response-row-target",
+                    "isResizable": true
+                },
+                "collapsed": false,
+                "panels": [],
+                "id": "net-response-row-target"
+            },
+            {
+                "name": "当前健康状态",
+                "type": "stat",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(net_response_result_code{target=\"$target\"})",
+                        "legend": "result_code"
+                    }
+                ],
+                "custom": {
+                    "textMode": "value",
+                    "colorMode": "background",
+                    "calc": "lastNotNull",
+                    "valueField": "Value",
+                    "colSpan": 1,
+                    "textSize": {}
+                },
+                "options": {
+                    "valueMappings": [
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 0
+                            },
+                            "result": {
+                                "text": "UP",
+                                "color": "#2c9d3d"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 1
+                            },
+                            "result": {
+                                "text": "TIMEOUT",
+                                "color": "#ce4f52"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 2
+                            },
+                            "result": {
+                                "text": "CONN_FAILED",
+                                "color": "#ce4f52"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 3
+                            },
+                            "result": {
+                                "text": "READ_FAILED",
+                                "color": "#f5a623"
+                            }
+                        },
+                        {
+                            "type": "special",
+                            "match": {
+                                "special": 4
+                            },
+                            "result": {
+                                "text": "STRING_MISMATCH",
+                                "color": "#f5a623"
+                            }
+                        }
+                    ],
+                    "standardOptions": {},
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#2c9d3d",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#ce4f52",
+                                "value": 1
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 4,
+                    "w": 8,
+                    "x": 0,
+                    "y": 15,
+                    "i": "net-response-target-health",
+                    "isResizable": true
+                },
+                "id": "net-response-target-health",
+                "overrides": []
+            },
+            {
+                "name": "当前响应时间",
+                "type": "stat",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "max(net_response_response_time{target=\"$target\"})",
+                        "legend": "latency_s"
+                    }
+                ],
+                "custom": {
+                    "textMode": "valueAndName",
+                    "colorMode": "value",
+                    "calc": "lastNotNull",
+                    "colSpan": 1,
+                    "textSize": {}
+                },
+                "options": {
+                    "standardOptions": {
+                        "unit": "s"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#2c9d3d",
+                                "value": null,
+                                "type": "base"
+                            },
+                            {
+                                "color": "#f5a623",
+                                "value": 0.1
+                            },
+                            {
+                                "color": "#ce4f52",
+                                "value": 0.5
+                            }
+                        ]
+                    }
+                },
+                "layout": {
+                    "h": 4,
+                    "w": 8,
+                    "x": 8,
+                    "y": 15,
+                    "i": "net-response-target-latency",
+                    "isResizable": true
+                },
+                "id": "net-response-target-latency",
+                "overrides": []
+            },
+            {
+                "name": "响应时间趋势",
+                "type": "timeseries",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "net_response_response_time{target=\"$target\"}",
+                        "legend": "latency_s"
+                    }
+                ],
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "linear",
+                    "spanNulls": false,
+                    "lineWidth": 2,
+                    "fillOpacity": 0.15,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    }
+                },
+                "options": {
+                    "tooltip": {
+                        "mode": "all",
+                        "sort": "desc"
+                    },
+                    "legend": {
+                        "displayMode": "list",
+                        "placement": "bottom"
+                    },
+                    "standardOptions": {
+                        "unit": "s"
+                    },
+                    "thresholds": {
+                        "steps": [
+                            {
+                                "color": "#2c9d3d",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    }
+                },
+                "overrides": [],
+                "layout": {
+                    "h": 7,
+                    "w": 12,
+                    "x": 0,
+                    "y": 19,
+                    "i": "net-response-target-latency-trend",
+                    "isResizable": true
+                },
+                "id": "net-response-target-latency-trend"
+            },
+            {
+                "name": "状态变化趋势",
+                "type": "timeseries",
+                "datasourceCate": "prometheus",
+                "datasourceValue": "${datasource}",
+                "targets": [
+                    {
+                        "refId": "A",
+                        "expr": "net_response_result_code{target=\"$target\"}",
+                        "legend": "result_code"
+                    }
+                ],
+                "custom": {
+                    "drawStyle": "lines",
+                    "lineInterpolation": "smooth",
+                    "spanNulls": false,
+                    "lineWidth": 2,
+                    "fillOpacity": 0.01,
+                    "gradientMode": "none",
+                    "stack": "off",
+                    "scaleDistribution": {
+                        "type": "linear"
+                    },
+                    "showPoints": "none",
+                    "pointSize": 5
+                },
+                "options": {
+                    "tooltip": {
+                        "mode": "single"
+                    },
+                    "legend": {
+                        "displayMode": "hidden",
+                        "placement": "bottom",
+                        "behaviour": "showItem",
+                        "selectMode": "single"
+                    },
+                    "standardOptions": {},
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgb(44, 157, 61)",
+                                "value": null,
+                                "type": "base"
+                            }
+                        ]
+                    },
+                    "thresholdsStyle": {
+                        "mode": "dashed"
+                    }
+                },
+                "overrides": [],
+                "layout": {
+                    "h": 7,
+                    "w": 12,
+                    "x": 12,
+                    "y": 19,
+                    "i": "net-response-target-code-trend",
+                    "isResizable": true
+                },
+                "id": "net-response-target-code-trend"
+            }
+        ]
     }
-  ]
+}
