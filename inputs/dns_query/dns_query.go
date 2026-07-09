@@ -142,25 +142,6 @@ func diff(ips1, ips2 []string) (diff []string, match []string) {
 	return diff, match
 }
 
-func isEqual(ips1, ips2 []string) bool {
-	if len(ips1) != len(ips2) {
-		return false
-	}
-
-	ips1Set := make(map[string]bool)
-	for _, ip := range ips1 {
-		ips1Set[ip] = true
-	}
-
-	for _, ip := range ips2 {
-		if !ips1Set[ip] {
-			return false
-		}
-	}
-
-	return true
-}
-
 func (ins *Instance) Gather(slist *types.SampleList) {
 	var wg sync.WaitGroup
 
