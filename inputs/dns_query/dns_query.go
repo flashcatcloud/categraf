@@ -1,11 +1,14 @@
 package dns_query
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -73,6 +76,8 @@ type Instance struct {
 
 	// Dns query timeout in seconds. 0 means no timeout
 	Timeout int `toml:"timeout"`
+
+	ExpectQueryIps map[string][]string `toml:"expect_query_ips"`
 }
 
 func (ins *Instance) Init() error {
@@ -119,6 +124,43 @@ func (ins *Instance) Init() error {
 	return nil
 }
 
+// set(B) - set(A)
+func diff(ips1, ips2 []string) (diff []string, match []string) {
+	ips1Set := make(map[string]bool)
+	for _, ip := range ips1 {
+		ips1Set[ip] = true
+	}
+
+	for _, ip := range ips2 {
+		if !ips1Set[ip] {
+			diff = append(diff, ip)
+		} else {
+			match = append(match, ip)
+		}
+	}
+
+	return diff, match
+}
+
+func isEqual(ips1, ips2 []string) bool {
+	if len(ips1) != len(ips2) {
+		return false
+	}
+
+	ips1Set := make(map[string]bool)
+	for _, ip := range ips1 {
+		ips1Set[ip] = true
+	}
+
+	for _, ip := range ips2 {
+		if !ips1Set[ip] {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (ins *Instance) Gather(slist *types.SampleList) {
 	var wg sync.WaitGroup
 
@@ -133,9 +175,31 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					"record_type": ins.RecordType,
 				}
 
-				dnsQueryTime, rcode, err := ins.getDNSQueryTime(domain, server)
+				dnsQueryTime, rcode, ips, err := ins.getDNSQueryTime(domain, server)
 				if rcode >= 0 {
 					fields["rcode_value"] = rcode
+				}
+
+				if v, ok := ins.ExpectQueryIps[domain]; ok && v != nil {
+					sort.Slice(ips, func(i, j int) bool {
+						ip1 := net.ParseIP(ips[i])
+						ip2 := net.ParseIP(ips[j])
+						return bytes.Compare(ip1, ip2) < 0
+					})
+					minus, _ := diff(v, ips)
+					status := 0
+					if len(minus) > 0 {
+						status = 1
+
+						diffTags := make(map[string]string)
+						for k, v := range tags {
+							diffTags[k] = v
+						}
+						diffTags["diff"] = strings.Join(minus, ",")
+						diffTags["ips"] = strings.Join(ips, ",")
+						slist.PushSample(inputName, "status_change_detail", status, diffTags)
+					}
+					slist.PushSample(inputName, "status_change", status, tags)
 				}
 
 				if err == nil {
@@ -147,6 +211,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 					setResult(Error, fields)
 					log.Println("E!", err)
 				}
+				if len(ips) > 0 {
+					tags["ips"] = strings.Join(ips, ",")
+				}
 
 				slist.PushSamples("dns_query", fields, tags)
 				wg.Done()
@@ -157,7 +224,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	wg.Wait()
 }
 
-func (ins *Instance) getDNSQueryTime(domain string, server string) (float64, int, error) {
+func (ins *Instance) getDNSQueryTime(domain string, server string) (float64, int, []string, error) {
 	dnsQueryTime := float64(0)
 
 	c := new(dns.Client)
@@ -167,20 +234,36 @@ func (ins *Instance) getDNSQueryTime(domain string, server string) (float64, int
 	m := new(dns.Msg)
 	recordType, err := ins.parseRecordType()
 	if err != nil {
-		return dnsQueryTime, -1, err
+		return dnsQueryTime, -1, nil, err
 	}
 	m.SetQuestion(dns.Fqdn(domain), recordType)
 	m.RecursionDesired = true
 
 	r, rtt, err := c.Exchange(m, net.JoinHostPort(server, strconv.Itoa(ins.Port)))
 	if err != nil {
-		return dnsQueryTime, -1, err
+		return dnsQueryTime, -1, nil, err
 	}
 	if r.Rcode != dns.RcodeSuccess {
-		return dnsQueryTime, r.Rcode, fmt.Errorf("invalid answer (%s) from %s after %s query for %s", dns.RcodeToString[r.Rcode], server, ins.RecordType, domain)
+		return dnsQueryTime, r.Rcode, nil, fmt.Errorf("invalid answer (%s) from %s after %s query for %s", dns.RcodeToString[r.Rcode], server, ins.RecordType, domain)
 	}
 	dnsQueryTime = float64(rtt.Nanoseconds()) / 1e6
-	return dnsQueryTime, r.Rcode, nil
+	ips := make([]string, 0)
+	for _, record := range r.Answer {
+		if ip, found := extractIP(record); found {
+			ips = append(ips, ip)
+		}
+	}
+	return dnsQueryTime, r.Rcode, ips, nil
+}
+
+func extractIP(record dns.RR) (string, bool) {
+	if r, ok := record.(*dns.A); ok {
+		return r.A.String(), true
+	}
+	if r, ok := record.(*dns.AAAA); ok {
+		return r.AAAA.String(), true
+	}
+	return "", false
 }
 
 func (ins *Instance) parseRecordType() (uint16, error) {

@@ -1,52 +1,985 @@
 {
-  "title": "DNS Query Quality",
-  "uid": "82f9567e",
-  "tags": [
-    "dns query quality"
-  ],
-  "timezone": "browser",
-  "schemaVersion": 30,
-  "panels": [
+  "version": "3.0.0",
+  "var": [
     {
-      "title": "DNS Query Time (ms)",
-      "type": "timeseries",
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 12,
-        "h": 8
-      },
-      "id": 1,
-      "targets": [
-        {
-          "expr": "dns_query_query_time_ms",
-          "legendFormat": "{{domain}} on {{server}} ({{record_type}})",
-          "refId": "A"
-        }
-      ]
+      "name": "datasource",
+      "type": "datasource",
+      "definition": "prometheus",
+      "defaultValue": 1,
+      "label": "Datasource",
+      "hide": false
     },
     {
-      "title": "DNS Result Code",
-      "type": "timeseries",
-      "gridPos": {
-        "x": 12,
-        "y": 0,
-        "w": 12,
-        "h": 8
+      "name": "domain",
+      "type": "query",
+      "datasource": {
+        "cate": "prometheus",
+        "value": "${datasource}"
       },
-      "id": 2,
-      "targets": [
-        {
-          "expr": "dns_query_result_code",
-          "legendFormat": "{{domain}} on {{server}} ({{record_type}})",
-          "refId": "A"
-        }
-      ]
+      "definition": "label_values(dns_query_result_code, domain)",
+      "reg": "",
+      "multi": false,
+      "hide": false
+    },
+    {
+      "name": "server",
+      "type": "query",
+      "datasource": {
+        "cate": "prometheus",
+        "value": "${datasource}"
+      },
+      "definition": "label_values(dns_query_result_code{domain=\"$domain\"}, server)",
+      "reg": "",
+      "multi": false,
+      "hide": false
     }
   ],
-  "refresh": "1m",
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  }
+  "panels": [
+    {
+      "name": "全局巡检",
+      "type": "row",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0,
+        "i": "dns-query-row-global",
+        "isResizable": true
+      },
+      "id": "dns-query-row-global",
+      "version": "3.4.0",
+      "overrides": []
+    },
+    {
+      "name": "所有域名解析状态",
+      "type": "hexbin",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dns_query_result_code) by (domain, server, record_type)",
+          "legend": "{{domain}} on {{server}} ({{record_type}})",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "textMode": "valueAndName",
+        "calc": "lastNotNull",
+        "valueField": "Value",
+        "colorRange": [
+          "#2c9d3d",
+          "#f5a623",
+          "#ce4f52"
+        ],
+        "reverseColorOrder": false,
+        "colorDomainAuto": false,
+        "colorDomain": [
+          0,
+          1
+        ]
+      },
+      "options": {
+        "valueMappings": [
+          {
+            "type": "special",
+            "match": {
+              "special": 0
+            },
+            "result": {
+              "text": "UP",
+              "color": "#2c9d3d"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 1
+            },
+            "result": {
+              "text": "TIMEOUT",
+              "color": "#ce4f52"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 2
+            },
+            "result": {
+              "text": "ERROR",
+              "color": "#ce4f52"
+            }
+          }
+        ],
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#2c9d3d",
+              "value": null,
+              "type": "base"
+            },
+            {
+              "color": "#ce4f52",
+              "value": 1
+            }
+          ]
+        }
+      },
+      "layout": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 1,
+        "i": "dns-query-global-health",
+        "isResizable": true
+      },
+      "maxPerRow": 6,
+      "id": "dns-query-global-health",
+      "overrides": []
+    },
+    {
+      "name": "所有域名解析耗时",
+      "type": "barGauge",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dns_query_query_time_ms) by (domain, server, record_type)",
+          "legend": "{{domain}} on {{server}} ({{record_type}})",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "calc": "lastNotNull",
+        "valueField": "Value",
+        "serieWidth": 20,
+        "sortOrder": "desc",
+        "displayMode": "basic",
+        "valueMode": "color",
+        "otherPosition": "none"
+      },
+      "options": {
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "#2c9d3d",
+              "value": null,
+              "type": "base"
+            },
+            {
+              "color": "#f5a623",
+              "value": 200
+            },
+            {
+              "color": "#ce4f52",
+              "value": 1000
+            }
+          ]
+        },
+        "standardOptions": {
+          "unit": "ms"
+        }
+      },
+      "layout": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1,
+        "i": "dns-query-global-latency",
+        "isResizable": true
+      },
+      "maxPerRow": 4,
+      "id": "dns-query-global-latency",
+      "overrides": []
+    },
+    {
+      "name": "DNS 响应码",
+      "type": "barGauge",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dns_query_rcode_value) by (domain, server, record_type)",
+          "legend": "{{domain}} on {{server}} ({{record_type}})",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "calc": "lastNotNull",
+        "valueField": "Value",
+        "serieWidth": 20,
+        "sortOrder": "desc",
+        "displayMode": "basic",
+        "valueMode": "color",
+        "otherPosition": "none"
+      },
+      "options": {
+        "valueMappings": [
+          {
+            "type": "special",
+            "match": {
+              "special": 0
+            },
+            "result": {
+              "text": "NOERROR",
+              "color": "#2c9d3d"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 2
+            },
+            "result": {
+              "text": "SERVFAIL",
+              "color": "#ce4f52"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 3
+            },
+            "result": {
+              "text": "NXDOMAIN",
+              "color": "#f5a623"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 5
+            },
+            "result": {
+              "text": "REFUSED",
+              "color": "#f5a623"
+            }
+          }
+        ],
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "#2c9d3d",
+              "value": null,
+              "type": "base"
+            },
+            {
+              "color": "#f5a623",
+              "value": 1
+            },
+            {
+              "color": "#ce4f52",
+              "value": 2
+            }
+          ]
+        },
+        "standardOptions": {
+          "unit": "none"
+        }
+      },
+      "layout": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 9,
+        "i": "dns-query-global-rcode",
+        "isResizable": true
+      },
+      "id": "dns-query-global-rcode",
+      "overrides": []
+    },
+    {
+      "name": "当前 DNS 查询明细",
+      "type": "table",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dns_query_result_code) by (domain, server, record_type)",
+          "legend": "result_code",
+          "maxDataPoints": 480
+        },
+        {
+          "refId": "B",
+          "expr": "max(dns_query_rcode_value) by (domain, server, record_type)",
+          "legend": "rcode",
+          "maxDataPoints": 480
+        },
+        {
+          "refId": "C",
+          "expr": "max(dns_query_query_time_ms) by (domain, server, record_type)",
+          "legend": "latency_ms",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "showHeader": true,
+        "calc": "lastNotNull",
+        "displayMode": "labelValuesToRows",
+        "aggrDimension": "domain,server,record_type",
+        "tableLayout": "fixed",
+        "nowrap": false
+      },
+      "options": {
+        "valueMappings": [],
+        "standardOptions": {}
+      },
+      "overrides": [
+        {
+          "matcher": {
+            "value": "A"
+          },
+          "properties": {
+            "valueMappings": [
+              {
+                "type": "special",
+                "match": {
+                  "special": 0
+                },
+                "result": {
+                  "text": "UP",
+                  "color": "#2c9d3d"
+                }
+              },
+              {
+                "type": "special",
+                "match": {
+                  "special": 1
+                },
+                "result": {
+                  "text": "TIMEOUT",
+                  "color": "#ce4f52"
+                }
+              },
+              {
+                "type": "special",
+                "match": {
+                  "special": 2
+                },
+                "result": {
+                  "text": "ERROR",
+                  "color": "#ce4f52"
+                }
+              }
+            ],
+            "standardOptions": {}
+          }
+        },
+        {
+          "matcher": {
+            "value": "B"
+          },
+          "properties": {
+            "valueMappings": [
+              {
+                "type": "special",
+                "match": {
+                  "special": 0
+                },
+                "result": {
+                  "text": "NOERROR",
+                  "color": "#2c9d3d"
+                }
+              },
+              {
+                "type": "special",
+                "match": {
+                  "special": 2
+                },
+                "result": {
+                  "text": "SERVFAIL",
+                  "color": "#ce4f52"
+                }
+              },
+              {
+                "type": "special",
+                "match": {
+                  "special": 3
+                },
+                "result": {
+                  "text": "NXDOMAIN",
+                  "color": "#f5a623"
+                }
+              },
+              {
+                "type": "special",
+                "match": {
+                  "special": 5
+                },
+                "result": {
+                  "text": "REFUSED",
+                  "color": "#f5a623"
+                }
+              }
+            ],
+            "standardOptions": {}
+          }
+        },
+        {
+          "matcher": {
+            "value": "C"
+          },
+          "properties": {
+            "standardOptions": {
+              "unit": "ms"
+            }
+          }
+        }
+      ],
+      "layout": {
+        "h": 6,
+        "w": 16,
+        "x": 8,
+        "y": 9,
+        "i": "dns-query-global-table",
+        "isResizable": true
+      },
+      "id": "dns-query-global-table"
+    },
+    {
+      "name": "解析 IP 校验",
+      "type": "row",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15,
+        "i": "dns-query-row-expect",
+        "isResizable": true
+      },
+      "id": "dns-query-row-expect",
+      "version": "3.4.0",
+      "overrides": []
+    },
+    {
+      "name": "非预期 IP 状态",
+      "type": "hexbin",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dns_query_status_change) by (domain, server, record_type)",
+          "legend": "{{domain}} on {{server}} ({{record_type}})",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "textMode": "valueAndName",
+        "calc": "lastNotNull",
+        "valueField": "Value",
+        "colorRange": [
+          "#2c9d3d",
+          "#f5a623",
+          "#ce4f52"
+        ],
+        "reverseColorOrder": false,
+        "colorDomainAuto": false,
+        "colorDomain": [
+          0,
+          1
+        ]
+      },
+      "options": {
+        "valueMappings": [
+          {
+            "type": "special",
+            "match": {
+              "special": 0
+            },
+            "result": {
+              "text": "OK",
+              "color": "#2c9d3d"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 1
+            },
+            "result": {
+              "text": "UNEXPECTED",
+              "color": "#ce4f52"
+            }
+          }
+        ],
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#2c9d3d",
+              "value": null,
+              "type": "base"
+            },
+            {
+              "color": "#ce4f52",
+              "value": 1
+            }
+          ]
+        }
+      },
+      "layout": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 16,
+        "i": "dns-query-expect-status",
+        "isResizable": true
+      },
+      "maxPerRow": 6,
+      "id": "dns-query-expect-status",
+      "overrides": []
+    },
+    {
+      "name": "非预期 IP 明细",
+      "type": "table",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dns_query_status_change_detail) by (domain, server, record_type, diff, ips)",
+          "legend": "mismatch",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "showHeader": true,
+        "calc": "lastNotNull",
+        "displayMode": "labelValuesToRows",
+        "aggrDimension": "domain,server,record_type,diff,ips",
+        "tableLayout": "fixed",
+        "nowrap": false
+      },
+      "options": {
+        "valueMappings": [
+          {
+            "type": "special",
+            "match": {
+              "special": 0
+            },
+            "result": {
+              "text": "OK",
+              "color": "#2c9d3d"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 1
+            },
+            "result": {
+              "text": "UNEXPECTED",
+              "color": "#ce4f52"
+            }
+          }
+        ],
+        "standardOptions": {}
+      },
+      "layout": {
+        "h": 6,
+        "w": 16,
+        "x": 8,
+        "y": 16,
+        "i": "dns-query-expect-detail",
+        "isResizable": true
+      },
+      "id": "dns-query-expect-detail",
+      "overrides": []
+    },
+    {
+      "name": "单域名详情",
+      "type": "row",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22,
+        "i": "dns-query-row-domain",
+        "isResizable": true
+      },
+      "id": "dns-query-row-domain",
+      "version": "3.4.0",
+      "overrides": []
+    },
+    {
+      "name": "当前健康状态",
+      "type": "stat",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dns_query_result_code{domain=\"$domain\",server=\"$server\"})",
+          "legend": "result_code",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "textMode": "value",
+        "colorMode": "background",
+        "calc": "lastNotNull",
+        "valueField": "Value",
+        "colSpan": 1,
+        "textSize": {}
+      },
+      "options": {
+        "valueMappings": [
+          {
+            "type": "special",
+            "match": {
+              "special": 0
+            },
+            "result": {
+              "text": "UP",
+              "color": "#2c9d3d"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 1
+            },
+            "result": {
+              "text": "TIMEOUT",
+              "color": "#ce4f52"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 2
+            },
+            "result": {
+              "text": "ERROR",
+              "color": "#ce4f52"
+            }
+          }
+        ],
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#2c9d3d",
+              "value": null,
+              "type": "base"
+            },
+            {
+              "color": "#ce4f52",
+              "value": 1
+            }
+          ]
+        }
+      },
+      "layout": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 23,
+        "i": "dns-query-domain-health",
+        "isResizable": true
+      },
+      "id": "dns-query-domain-health",
+      "overrides": []
+    },
+    {
+      "name": "当前 DNS 响应码",
+      "type": "stat",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dns_query_rcode_value{domain=\"$domain\",server=\"$server\"})",
+          "legend": "rcode",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "textMode": "valueAndName",
+        "colorMode": "value",
+        "calc": "lastNotNull",
+        "valueField": "Value",
+        "colSpan": 1,
+        "textSize": {}
+      },
+      "options": {
+        "valueMappings": [
+          {
+            "type": "special",
+            "match": {
+              "special": 0
+            },
+            "result": {
+              "text": "NOERROR",
+              "color": "#2c9d3d"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 2
+            },
+            "result": {
+              "text": "SERVFAIL",
+              "color": "#ce4f52"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 3
+            },
+            "result": {
+              "text": "NXDOMAIN",
+              "color": "#f5a623"
+            }
+          },
+          {
+            "type": "special",
+            "match": {
+              "special": 5
+            },
+            "result": {
+              "text": "REFUSED",
+              "color": "#f5a623"
+            }
+          }
+        ],
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#2c9d3d",
+              "value": null,
+              "type": "base"
+            },
+            {
+              "color": "#f5a623",
+              "value": 1
+            },
+            {
+              "color": "#ce4f52",
+              "value": 2
+            }
+          ]
+        }
+      },
+      "layout": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 23,
+        "i": "dns-query-domain-rcode",
+        "isResizable": true
+      },
+      "id": "dns-query-domain-rcode",
+      "overrides": []
+    },
+    {
+      "name": "当前解析耗时",
+      "type": "stat",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(dns_query_query_time_ms{domain=\"$domain\",server=\"$server\"})",
+          "legend": "latency_ms",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "textMode": "valueAndName",
+        "colorMode": "value",
+        "calc": "lastNotNull",
+        "valueField": "Value",
+        "colSpan": 1,
+        "textSize": {}
+      },
+      "options": {
+        "standardOptions": {
+          "unit": "ms"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#2c9d3d",
+              "value": null,
+              "type": "base"
+            },
+            {
+              "color": "#f5a623",
+              "value": 200
+            },
+            {
+              "color": "#ce4f52",
+              "value": 1000
+            }
+          ]
+        }
+      },
+      "layout": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 23,
+        "i": "dns-query-domain-latency",
+        "isResizable": true
+      },
+      "id": "dns-query-domain-latency",
+      "overrides": []
+    },
+    {
+      "name": "解析耗时趋势",
+      "type": "timeseries",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dns_query_query_time_ms{domain=\"$domain\",server=\"$server\"}",
+          "legend": "{{record_type}} latency_ms",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "linear",
+        "spanNulls": false,
+        "lineWidth": 2,
+        "fillOpacity": 0.15,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "standardOptions": {
+          "unit": "ms"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#2c9d3d",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "layout": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 27,
+        "i": "dns-query-domain-latency-trend",
+        "isResizable": true
+      },
+      "id": "dns-query-domain-latency-trend",
+      "overrides": []
+    },
+    {
+      "name": "状态变化趋势",
+      "type": "timeseries",
+      "version": "3.4.0",
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "dns_query_result_code{domain=\"$domain\",server=\"$server\"}",
+          "legend": "result_code",
+          "maxDataPoints": 480
+        },
+        {
+          "refId": "B",
+          "expr": "dns_query_rcode_value{domain=\"$domain\",server=\"$server\"}",
+          "legend": "rcode",
+          "maxDataPoints": 480
+        },
+        {
+          "refId": "C",
+          "expr": "dns_query_status_change{domain=\"$domain\",server=\"$server\"}",
+          "legend": "expected_ip_change",
+          "maxDataPoints": 480
+        }
+      ],
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 2,
+        "fillOpacity": 0.01,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        },
+        "showPoints": "none",
+        "pointSize": 5
+      },
+      "options": {
+        "tooltip": {
+          "mode": "single"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "behaviour": "showItem",
+          "selectMode": "single"
+        },
+        "standardOptions": {},
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "rgb(44, 157, 61)",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        },
+        "thresholdsStyle": {
+          "mode": "dashed"
+        }
+      },
+      "layout": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 27,
+        "i": "dns-query-domain-status-trend",
+        "isResizable": true
+      },
+      "id": "dns-query-domain-status-trend",
+      "overrides": []
+    }
+  ]
 }

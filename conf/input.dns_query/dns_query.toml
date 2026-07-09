@@ -30,3 +30,11 @@ servers = []
 
 ## Query timeout in seconds.
 # timeout = 2
+
+## 监控域名劫持
+## record_type必须为A/AAA, expect_query_ips中必须包含对应的域名和IP列表(ip列表越全越好)
+## 对比响应中的IP与如下配置的IP，会生成两个新的指标 dns_query_status_change 与 dns_query_status_change_detail
+## 当diff 不为空的时候 dns_query_status_change 为1 ， diff 为空的时候 dns_query_status_change=0
+## dns_query_status_change_detail{ips="响应的IP列表", diff="响应IP列表-期望IP列表"} 
+## dns_query_status_change_detail 只有当dns_query_status_change为1 时才会有这个指标
+# expect_query_ips={"baidu.com"=["182.61.244.181","182.61.201.211"]}
