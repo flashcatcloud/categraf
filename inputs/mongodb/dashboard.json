@@ -58,11 +58,11 @@
         "targets": [
           {
             "refId": "A",
-            "expr": "mongodb_up{cluster=\"$cluster\", instance=~\"$instance\"}"
+            "expr": "sum(mongodb_up{cluster=\"$cluster\", instance=~\"$instance\"})"
           }
         ],
         "name": "Up",
-        "description": "实例数",
+        "description": "正常实例数",
         "custom": {
           "textMode": "value",
           "colorMode": "value",
@@ -72,19 +72,7 @@
           "textSize": {}
         },
         "options": {
-          "valueMappings": [
-            {
-              "type": "special",
-              "match": {
-                "from": 1,
-                "special": 1
-              },
-              "result": {
-                "color": "#53b503",
-                "text": "UP"
-              }
-            }
-          ],
+          "valueMappings": [],
           "standardOptions": {
             "util": "none"
           },

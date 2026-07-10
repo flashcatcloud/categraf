@@ -55,7 +55,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_up{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "expr": "sum(mongodb_up{cluster=\"$cluster\", instance=~\"$instance\"})",
           "legendFormat": "",
           "range": true,
           "refId": "A"
@@ -94,7 +94,7 @@
         },
         "textMode": "value"
       },
-      "description": "实例数"
+      "description": "正常实例数"
     },
     {
       "id": 3,
