@@ -92,7 +92,7 @@
         "targets": [
           {
             "refId": "A",
-            "expr": "mongodb_up{cluster=\"$cluster\", instance=\"$instance\"}"
+            "expr": "mongodb_up{cluster=\"$cluster\", instance=~\"$instance\"}"
           }
         ],
         "name": "Up",
@@ -156,7 +156,7 @@
         "targets": [
           {
             "refId": "A",
-            "expr": "mongodb_ss_uptime{cluster=\"$cluster\", instance=\"$instance\"}"
+            "expr": "mongodb_ss_uptime{cluster=\"$cluster\", instance=~\"$instance\"}"
           }
         ],
         "name": "Uptime",
@@ -1247,7 +1247,7 @@
         "targets": [
           {
             "refId": "A",
-            "expr": "time() - mongodb_mongod_replset_member_election_date{cluster=\"$cluster\", instance=\"$instance\"}"
+            "expr": "time() - mongodb_mongod_replset_member_election_date{cluster=\"$cluster\", instance=~\"$instance\"}"
           }
         ],
         "name": "Replset Election",
@@ -2439,7 +2439,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "mongodb_up{cluster=\"$cluster\", instance=\"$instance\"}"
+          "expr": "mongodb_up{cluster=\"$cluster\", instance=~\"$instance\"}"
         }
       ],
       "name": "Up",
@@ -2503,7 +2503,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "mongodb_ss_uptime{cluster=\"$cluster\", instance=\"$instance\"}"
+          "expr": "mongodb_ss_uptime{cluster=\"$cluster\", instance=~\"$instance\"}"
         }
       ],
       "name": "Uptime",
@@ -3594,7 +3594,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "time() - mongodb_mongod_replset_member_election_date{cluster=\"$cluster\", instance=\"$instance\"}"
+          "expr": "time() - mongodb_mongod_replset_member_election_date{cluster=\"$cluster\", instance=~\"$instance\"}"
         }
       ],
       "name": "Replset Election",

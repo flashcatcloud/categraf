@@ -55,7 +55,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_up{cluster=\"$cluster\", instance=\"$instance\"}",
+          "expr": "mongodb_up{cluster=\"$cluster\", instance=~\"$instance\"}",
           "legendFormat": "",
           "range": true,
           "refId": "A"
@@ -117,7 +117,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_ss_uptime{cluster=\"$cluster\", instance=\"$instance\"}",
+          "expr": "mongodb_ss_uptime{cluster=\"$cluster\", instance=~\"$instance\"}",
           "legendFormat": "",
           "range": true,
           "refId": "A"
@@ -1193,7 +1193,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "time() - mongodb_mongod_replset_member_election_date{cluster=\"$cluster\", instance=\"$instance\"}",
+          "expr": "time() - mongodb_mongod_replset_member_election_date{cluster=\"$cluster\", instance=~\"$instance\"}",
           "legendFormat": "",
           "range": true,
           "refId": "A"
