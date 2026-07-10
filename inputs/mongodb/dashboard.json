@@ -1264,7 +1264,7 @@
           {
             "refId": "A",
             "expr": "mongodb_members_health{cluster=\"$cluster\"}",
-            "legend": "{{set}} {{name}}"
+            "legend": "{{replset}} {{member_idx}} {{member_state}}"
           }
         ],
         "name": "Replset Member Health",

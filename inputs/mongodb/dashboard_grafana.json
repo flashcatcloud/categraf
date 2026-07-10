@@ -1388,7 +1388,7 @@
           },
           "editorMode": "code",
           "expr": "mongodb_members_health{cluster=\"$cluster\"}",
-          "legendFormat": "{{set}} {{name}}",
+          "legendFormat": "{{replset}} {{member_idx}} {{member_state}}",
           "range": true,
           "refId": "A"
         }
