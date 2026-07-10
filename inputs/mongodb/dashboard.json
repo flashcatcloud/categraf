@@ -12,19 +12,22 @@
         "name": "topology",
         "type": "query",
         "definition": "label_values(mongodb_up{cluster=~\"$cluster\"}, topology)",
-        "multi": true
+        "multi": true,
+        "allOption": true
       },
       {
         "name": "component",
         "type": "query",
         "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\"}, component)",
-        "multi": true
+        "multi": true,
+        "allOption": true
       },
       {
         "name": "instance",
         "type": "query",
         "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\", component=~\"$component\"}, instance)",
-        "multi": true
+        "multi": true,
+        "allOption": true
       }
     ],
     "version": "2.0.0",

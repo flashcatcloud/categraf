@@ -28,6 +28,7 @@
         "type": "query",
         "definition": "label_values(mongodb_up{cluster=~\"$cluster\"}, topology)",
         "multi": true,
+        "allOption": true,
         "datasource": {
           "cate": "prometheus",
           "value": "${datasource}"
@@ -40,6 +41,7 @@
         "type": "query",
         "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\"}, component)",
         "multi": true,
+        "allOption": true,
         "datasource": {
           "cate": "prometheus",
           "value": "${datasource}"
@@ -52,6 +54,7 @@
         "type": "query",
         "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\", component=~\"$component\"}, instance)",
         "multi": true,
+        "allOption": true,
         "datasource": {
           "cate": "prometheus",
           "value": "${datasource}"
@@ -2364,6 +2367,7 @@
       "type": "query",
       "definition": "label_values(mongodb_up{cluster=~\"$cluster\"}, topology)",
       "multi": true,
+      "allOption": true,
       "datasource": {
         "cate": "prometheus",
         "value": "${datasource}"
@@ -2376,6 +2380,7 @@
       "type": "query",
       "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\"}, component)",
       "multi": true,
+      "allOption": true,
       "datasource": {
         "cate": "prometheus",
         "value": "${datasource}"
@@ -2388,6 +2393,7 @@
       "type": "query",
       "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\", component=~\"$component\"}, instance)",
       "multi": true,
+      "allOption": true,
       "datasource": {
         "cate": "prometheus",
         "value": "${datasource}"
