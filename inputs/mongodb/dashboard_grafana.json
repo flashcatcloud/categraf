@@ -179,7 +179,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_ss_mem_resident{cluster='$cluster', cl_role=\"mongos\"} * 1024 * 1024",
+          "expr": "mongodb_ss_mem_resident{cluster=\"$cluster\", instance=~\"$instance\"} * 1024 * 1024",
           "legendFormat": "{{instance}}",
           "range": true,
           "refId": "A"
@@ -238,7 +238,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "rate(mongodb_ss_extra_info_page_faults{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
+          "expr": "rate(mongodb_ss_extra_info_page_faults{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
           "legendFormat": "page faults",
           "range": true,
           "refId": "A"
@@ -298,7 +298,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "rate(mongodb_ss_network_bytesOut{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
+          "expr": "rate(mongodb_ss_network_bytesOut{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
           "legendFormat": "bytesOut",
           "range": true,
           "refId": "A"
@@ -309,7 +309,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "rate(mongodb_ss_network_bytesIn{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
+          "expr": "rate(mongodb_ss_network_bytesIn{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
           "legendFormat": "bytesIn",
           "range": true,
           "refId": "B"
@@ -369,7 +369,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_ss_connections{cluster=\"$cluster\", conn_type=\"current\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+          "expr": "mongodb_ss_connections{cluster=\"$cluster\", conn_type=\"current\", instance=~\"$instance\"}",
           "legendFormat": "Connections",
           "range": true,
           "refId": "A"
@@ -428,7 +428,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "rate(mongodb_ss_asserts{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
+          "expr": "rate(mongodb_ss_asserts{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
           "legendFormat": "{{assert_type}}",
           "range": true,
           "refId": "A"
@@ -487,7 +487,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_ss_globalLock_currentQueue{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+          "expr": "mongodb_ss_globalLock_currentQueue{cluster=\"$cluster\", instance=~\"$instance\"}",
           "legendFormat": "{{count_type}}",
           "range": true,
           "refId": "A"
@@ -558,7 +558,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "rate(mongodb_ss_opcounters{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\", legacy_op_type!=\"command\"}[1m])",
+          "expr": "rate(mongodb_ss_opcounters{cluster=\"$cluster\", instance=~\"$instance\", legacy_op_type!=\"command\"}[1m])",
           "legendFormat": "{{legacy_op_type}}",
           "range": true,
           "refId": "A"
@@ -569,7 +569,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "rate(mongodb_ss_opcountersRepl{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\", legacy_op_type!~\"(command|query|getmore)\"}[1m])",
+          "expr": "rate(mongodb_ss_opcountersRepl{cluster=\"$cluster\", instance=~\"$instance\", legacy_op_type!~\"(command|query|getmore)\"}[1m])",
           "legendFormat": "repl_{{legacy_op_type}}",
           "range": true,
           "refId": "B"
@@ -580,7 +580,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "rate(mongodb_ss_metrics_ttl_deletedDocuments{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[1m])",
+          "expr": "rate(mongodb_ss_metrics_ttl_deletedDocuments{cluster=\"$cluster\", instance=~\"$instance\"}[1m])",
           "legendFormat": "ttl_delete",
           "range": true,
           "refId": "C"
@@ -639,7 +639,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "rate(mongodb_ss_metrics_document{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
+          "expr": "rate(mongodb_ss_metrics_document{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
           "legendFormat": "{{doc_op_type}}",
           "range": true,
           "refId": "A"
@@ -828,7 +828,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_ss_metrics_cursor_open{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+          "expr": "mongodb_ss_metrics_cursor_open{cluster=\"$cluster\", instance=~\"$instance\"}",
           "legendFormat": "{{csr_type}}",
           "range": true,
           "refId": "A"
@@ -899,7 +899,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_ss_wt_cache_bytes_currently_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+          "expr": "mongodb_ss_wt_cache_bytes_currently_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
           "legendFormat": "total",
           "range": true,
           "refId": "A"
@@ -910,7 +910,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_ss_wt_cache_tracked_dirty_bytes_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+          "expr": "mongodb_ss_wt_cache_tracked_dirty_bytes_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
           "legendFormat": "dirty",
           "range": true,
           "refId": "B"
@@ -921,7 +921,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_internal_pages_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+          "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_internal_pages_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
           "legendFormat": "internal_pages",
           "range": true,
           "refId": "C"
@@ -932,7 +932,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_leaf_pages_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}",
+          "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_leaf_pages_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
           "legendFormat": "leaf_pages",
           "range": true,
           "refId": "D"
@@ -1062,7 +1062,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "100 * sum(mongodb_ss_wt_cache_tracked_dirty_pages_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}) / sum(mongodb_ss_wt_cache_pages_currently_held_in_the_cache{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"})",
+          "expr": "100 * sum(mongodb_ss_wt_cache_tracked_dirty_pages_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}) / sum(mongodb_ss_wt_cache_pages_currently_held_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"})",
           "legendFormat": "dirty rate",
           "range": true,
           "refId": "A"
@@ -1294,6 +1294,973 @@
         }
       },
       "description": "副本集成员主从同步延迟"
+    },
+    {
+      "id": 24,
+      "title": "Replica Set Details",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "collapsed": false
+    },
+    {
+      "id": 25,
+      "title": "Replset Member State",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 47
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongod_replset_my_state{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "当前实例在副本集中的状态，1 表示 Primary，2 表示 Secondary。"
+    },
+    {
+      "id": 26,
+      "title": "Replset Member Health",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 47
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_members_health{cluster=\"$cluster\"}",
+          "legendFormat": "{{set}} {{name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "副本集成员健康状态，1 表示健康。"
+    },
+    {
+      "id": 27,
+      "title": "Oplog Window",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 47
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongod_replset_oplog_head_timestamp{cluster=\"$cluster\", instance=~\"$instance\"} - mongodb_mongod_replset_oplog_tail_timestamp{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "seconds",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "oplog 可保留的时间窗口，窗口太小会放大 Secondary 追不上后全量同步的风险。"
+    },
+    {
+      "id": 28,
+      "title": "Oplog Used Bytes",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 47
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_oplog_stats_storageStats_size{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} used",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_oplog_stats_storageStats_maxSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} max",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytesIEC",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "oplog 当前大小和最大容量。"
+    },
+    {
+      "id": 29,
+      "title": "Storage & Database",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 54
+      },
+      "collapsed": false
+    },
+    {
+      "id": 30,
+      "title": "Database Size",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 55
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_dbstats_dataSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{database}} data",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_dbstats_indexSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{database}} index",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_dbstats_storageSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{database}} storage",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytesIEC",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "库级数据、索引和存储占用。"
+    },
+    {
+      "id": 31,
+      "title": "Collections / Indexes",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 55
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_dbstats_collections{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{database}} collections",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_dbstats_indexes{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{database}} indexes",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "库级集合数和索引数，用于发现异常膨胀。"
+    },
+    {
+      "id": 32,
+      "title": "Index Access Rate",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 55
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "topk(10, rate(mongodb_indexstats_accesses_ops{cluster=\"$cluster\", instance=~\"$instance\"}[5m]))",
+          "legendFormat": "{{database}}.{{collection}} {{key_name}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "索引访问速率 Top 10，用于识别热点集合和索引。"
+    },
+    {
+      "id": 33,
+      "title": "WiredTiger Pressure",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 62
+      },
+      "collapsed": false
+    },
+    {
+      "id": 34,
+      "title": "WiredTiger Tickets Available",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 63
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongod_wiredtiger_concurrent_transactions_available_tickets{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} {{txn_rw}} available",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "WiredTiger 读写并发 ticket 可用数量，持续过低表示读写并发压力较高。"
+    },
+    {
+      "id": 35,
+      "title": "WiredTiger Tickets Out",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 63
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongod_wiredtiger_concurrent_transactions_out_tickets{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legendFormat": "{{instance}} {{txn_rw}} out",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "WiredTiger 正在占用的读写 ticket 数量。"
+    },
+    {
+      "id": 36,
+      "title": "WiredTiger Checkpoint Time",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 63
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "increase(mongodb_mongod_wiredtiger_transactions_checkpoint_milliseconds_total{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+          "legendFormat": "{{instance}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "WiredTiger checkpoint 耗时增量，异常升高通常与磁盘写入压力相关。"
+    },
+    {
+      "id": 37,
+      "title": "Sharded Cluster",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 70
+      },
+      "collapsed": false
+    },
+    {
+      "id": 38,
+      "title": "Shard / Collection Counts",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 71
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongos_sharding_shards_total{cluster=\"$cluster\"}",
+          "legendFormat": "shards",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongos_sharding_databases_total{cluster=\"$cluster\"}",
+          "legendFormat": "databases",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongos_sharding_collections_total{cluster=\"$cluster\"}",
+          "legendFormat": "collections",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "mongos 视角下的 shard、库和分片集合数量。"
+    },
+    {
+      "id": 39,
+      "title": "Chunk Distribution",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 71
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongos_sharding_shard_chunks_total{cluster=\"$cluster\"}",
+          "legendFormat": "{{shard}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "各 shard 的 chunk 分布，用于发现明显不均衡。"
+    },
+    {
+      "id": 40,
+      "title": "Balancer Status",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 71
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongos_sharding_balancer_enabled{cluster=\"$cluster\"}",
+          "legendFormat": "balancer enabled",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongos_sharding_chunks_is_balanced{cluster=\"$cluster\"}",
+          "legendFormat": "chunks balanced",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongos_sharding_shards_draining_total{cluster=\"$cluster\"}",
+          "legendFormat": "draining shards",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "Balancer 是否启用、chunk 是否均衡以及是否存在 draining shard。"
+    },
+    {
+      "id": 41,
+      "title": "Total Chunks",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 71
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "mongodb_mongos_sharding_chunks_total{cluster=\"$cluster\"}",
+          "legendFormat": "chunks",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "hidden",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "mongos 视角下的分片集群总 chunk 数。"
     }
   ],
   "refresh": "30s",
@@ -1335,21 +2302,21 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(mongodb_ss_uptime,cluster)",
+        "definition": "label_values(mongodb_up,cluster)",
         "query": {
-          "query": "label_values(mongodb_ss_uptime,cluster)",
+          "query": "label_values(mongodb_up,cluster)",
           "refId": "StandardVariableQuery"
         },
         "regex": "",
-        "sort": 0
+        "sort": 1
       },
       {
         "current": {},
         "hide": 0,
-        "includeAll": false,
-        "label": "cl_role",
-        "multi": false,
-        "name": "cl_role",
+        "includeAll": true,
+        "label": "topology",
+        "multi": true,
+        "name": "topology",
         "options": [],
         "refresh": 2,
         "skipUrlSync": false,
@@ -1358,20 +2325,43 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(mongodb_ss_uptime{cluster=~\"$cluster\", ident=~\"n9ecollector\"}, cl_role)",
+        "definition": "label_values(mongodb_up{cluster=~\"$cluster\"}, topology)",
         "query": {
-          "query": "label_values(mongodb_ss_uptime{cluster=~\"$cluster\", ident=~\"n9ecollector\"}, cl_role)",
+          "query": "label_values(mongodb_up{cluster=~\"$cluster\"}, topology)",
           "refId": "StandardVariableQuery"
         },
         "regex": "",
-        "sort": 0
+        "sort": 1
       },
       {
         "current": {},
         "hide": 0,
-        "includeAll": false,
+        "includeAll": true,
+        "label": "component",
+        "multi": true,
+        "name": "component",
+        "options": [],
+        "refresh": 2,
+        "skipUrlSync": false,
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\"}, component)",
+        "query": {
+          "query": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\"}, component)",
+          "refId": "StandardVariableQuery"
+        },
+        "regex": "",
+        "sort": 1
+      },
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": true,
         "label": "instance",
-        "multi": false,
+        "multi": true,
         "name": "instance",
         "options": [],
         "refresh": 2,
@@ -1381,13 +2371,13 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(mongodb_ss_uptime{cluster=~\"$cluster\", ident=~\"n9ecollector\", cl_role=~\"$cl_role\"}, instance)",
+        "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\", component=~\"$component\"}, instance)",
         "query": {
-          "query": "label_values(mongodb_ss_uptime{cluster=~\"$cluster\", ident=~\"n9ecollector\", cl_role=~\"$cl_role\"}, instance)",
+          "query": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\", component=~\"$component\"}, instance)",
           "refId": "StandardVariableQuery"
         },
         "regex": "",
-        "sort": 0
+        "sort": 1
       }
     ]
   },

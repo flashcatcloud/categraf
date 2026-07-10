@@ -1,1388 +1,4701 @@
 {
-    "name": "MongoDB",
-    "tags": "Prometheus MongoDB",
-    "ident": "",
-    "configs": {
-        "var": [
-            {
-                "name": "datasource",
-                "type": "datasource",
-                "definition": "prometheus",
-                "defaultValue": 2
-            },
-            {
-                "name": "cluster",
-                "type": "query",
-                "datasource": {
-                    "cate": "prometheus",
-                    "value": "${datasource}"
-                },
-                "definition": "label_values(mongodb_up,cluster)"
-            },
-            {
-                "name": "instance",
-                "type": "query",
-                "datasource": {
-                    "cate": "prometheus",
-                    "value": "${datasource}"
-                },
-                "definition": "label_values(mongodb_up{cluster=~\"$cluster\"}, instance)",
-                "multi": false
-            }
-        ],
+  "name": "MongoDB",
+  "tags": "Prometheus MongoDB Categraf",
+  "ident": "",
+  "configs": {
+    "var": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "definition": "prometheus",
+        "defaultValue": 1,
+        "label": "Datasource",
+        "hide": false
+      },
+      {
+        "name": "cluster",
+        "type": "query",
+        "definition": "label_values(mongodb_up,cluster)",
+        "datasource": {
+          "cate": "prometheus",
+          "value": "${datasource}"
+        },
+        "reg": "",
+        "hide": false
+      },
+      {
+        "name": "topology",
+        "type": "query",
+        "definition": "label_values(mongodb_up{cluster=~\"$cluster\"}, topology)",
+        "multi": true,
+        "datasource": {
+          "cate": "prometheus",
+          "value": "${datasource}"
+        },
+        "reg": "",
+        "hide": false
+      },
+      {
+        "name": "component",
+        "type": "query",
+        "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\"}, component)",
+        "multi": true,
+        "datasource": {
+          "cate": "prometheus",
+          "value": "${datasource}"
+        },
+        "reg": "",
+        "hide": false
+      },
+      {
+        "name": "instance",
+        "type": "query",
+        "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\", component=~\"$component\"}, instance)",
+        "multi": true,
+        "datasource": {
+          "cate": "prometheus",
+          "value": "${datasource}"
+        },
+        "reg": "",
+        "hide": false
+      }
+    ],
+    "version": "3.0.0",
+    "panels": [
+      {
+        "id": "939298f2-b21f-4e2f-9142-c10946cc4032",
+        "type": "row",
+        "name": "Basic Info",
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 0,
+          "i": "939298f2-b21f-4e2f-9142-c10946cc4032",
+          "isResizable": false
+        },
+        "collapsed": true,
+        "version": "3.0.0"
+      },
+      {
+        "type": "stat",
+        "id": "91970d24-3f04-4424-a1ed-73e7d28f5706",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 0,
+          "y": 1,
+          "i": "91970d24-3f04-4424-a1ed-73e7d28f5706",
+          "isResizable": true
+        },
         "version": "3.0.0",
-        "panels": [
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_up{cluster=\"$cluster\", instance=\"$instance\"}"
+          }
+        ],
+        "name": "Up",
+        "description": "实例数",
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "valueField": "Value",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [
             {
-                "id": "939298f2-b21f-4e2f-9142-c10946cc4032",
-                "type": "row",
-                "name": "Basic Info",
-                "layout": {
-                    "h": 1,
-                    "w": 24,
-                    "x": 0,
-                    "y": 0,
-                    "i": "939298f2-b21f-4e2f-9142-c10946cc4032",
-                    "isResizable": false
-                },
-                "collapsed": true
-            },
-            {
-                "type": "stat",
-                "id": "91970d24-3f04-4424-a1ed-73e7d28f5706",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 0,
-                    "y": 1,
-                    "i": "91970d24-3f04-4424-a1ed-73e7d28f5706",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "mongodb_up{cluster=\"$cluster\", instance=\"$instance\"}"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Up",
-                "description": "实例数",
-                "custom": {
-                    "textMode": "value",
-                    "colorMode": "value",
-                    "calc": "lastNotNull",
-                    "valueField": "Value",
-                    "colSpan": 1,
-                    "textSize": {}
-                },
-                "options": {
-                    "valueMappings": [
-                        {
-                            "type": "special",
-                            "match": {
-                                "from": 1,
-                                "special": 1
-                            },
-                            "result": {
-                                "color": "#53b503",
-                                "text": "UP"
-                            }
-                        }
-                    ],
-                    "standardOptions": {
-                        "util": "none"
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                }
-            },
-            {
-                "type": "stat",
-                "id": "c7b52e8e-b417-4c61-a15e-e2f186fccd67",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 6,
-                    "y": 1,
-                    "i": "c7b52e8e-b417-4c61-a15e-e2f186fccd67",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "mongodb_uptime_ns{cluster=\"$cluster\", instance=\"$instance\"}/10e9"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Uptime",
-                "description": "启用时长",
-                "custom": {
-                    "textMode": "value",
-                    "colorMode": "value",
-                    "calc": "lastNotNull",
-                    "valueField": "Value",
-                    "colSpan": 1,
-                    "textSize": {
-                        "title": null
-                    }
-                },
-                "options": {
-                    "valueMappings": [
-                        {
-                            "type": "range",
-                            "match": {
-                                "to": 1800
-                            },
-                            "result": {
-                                "color": "#ec7718"
-                            }
-                        },
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 1800
-                            },
-                            "result": {
-                                "color": "#53b503"
-                            }
-                        }
-                    ],
-                    "standardOptions": {
-                        "util": "humantimeSeconds"
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "8446dded-9e11-4ee9-bdad-769b193ddf3e",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 12,
-                    "y": 1,
-                    "i": "8446dded-9e11-4ee9-bdad-769b193ddf3e",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "mongodb_resident_megabytes{cluster='$cluster',instance=\"$instance\"} *1024*1024",
-                        "legend": "{{instance}}"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Memory",
-                "description": "内存占用（MiB）",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "desc"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {
-                        "util": "bytesIEC"
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "3eda28e7-2480-4ddc-b346-89ced1c33034",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 18,
-                    "y": 1,
-                    "i": "3eda28e7-2480-4ddc-b346-89ced1c33034",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "rate(mongodb_page_faults{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "legend": "page faults"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Page Faults",
-                "description": "页缺失中断次数 Page faults indicate that requests are processed from disk either because an index is missing or there is not enough memory for the data set. Consider increasing memory or sharding out.",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "desc"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {
-                        "util": "none",
-                        "decimals": null
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "528d0485-f947-470d-95f3-59eae157ebb6",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 0,
-                    "y": 8,
-                    "i": "528d0485-f947-470d-95f3-59eae157ebb6",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "rate(mongodb_network_bytes_out{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "legend": "bytesOut"
-                    },
-                    {
-                        "expr": "rate(mongodb_network_bytes_in{cluster=\"$cluster\", cl_role=~\"$cl_role\", instance=~\"$instance\"}[5m])",
-                        "refId": "B",
-                        "legend": "bytesIn"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Network I/O",
-                "description": "网络流量（byte）",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {
-                        "util": "bytesSI"
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "067e97c3-4e57-447f-a9dc-a49627b6ce18",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 6,
-                    "y": 8,
-                    "i": "067e97c3-4e57-447f-a9dc-a49627b6ce18",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "mongodb_connections_current{cluster=\"$cluster\", instance=~\"$instance\"}",
-                        "legend": "Connections"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Connections",
-                "description": "连接数 Keep in mind the hard limit on the maximum number of connections set by your distribution.",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {},
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "9e9b7356-cf0e-4e5f-95f5-00258c576bf4",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 12,
-                    "y": 8,
-                    "i": "9e9b7356-cf0e-4e5f-95f5-00258c576bf4",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "rate(mongodb_assert_warning{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "legend": "warning"
-                    },
-                    {
-                        "expr": "rate(mongodb_assert_rollovers{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "refId": "B",
-                        "legend": "rollovers"
-                    },
-                    {
-                        "expr": "rate(mongodb_assert_msg{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "refId": "C",
-                        "legend": "msg"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Assert Events",
-                "description": "断言次数统计 Asserts are not important by themselves, but you can correlate spikes with other graphs.",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {},
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "2698f0f8-a76a-499b-99cf-30504f0f4db6",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 18,
-                    "y": 8,
-                    "i": "2698f0f8-a76a-499b-99cf-30504f0f4db6",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "mongodb_global_lock_current_queue{cluster=\"$cluster\", instance=~\"$instance\"}",
-                        "legend": "lock queue"
-                    },
-                    {
-                        "expr": "mongodb_global_lock_total_time{cluster=\"$cluster\",instance=\"$instance\"}",
-                        "refId": "B",
-                        "legend": "lock_total_time"
-                    },
-                    {
-                        "expr": "mongodb_global_lock_active_clients_readers{cluster=\"$cluster\",instance=\"$instance\"}",
-                        "refId": "C",
-                        "legend": "active_readers"
-                    },
-                    {
-                        "expr": "mongodb_global_lock_active_clients_writers{cluster=\"$cluster\",instance=\"$instance\"}",
-                        "refId": "D",
-                        "legend": "active_writers"
-                    },
-                    {
-                        "expr": "mongodb_global_lock_active_clients_total{cluster=\"$cluster\",instance=\"$instance\"}",
-                        "refId": "E",
-                        "legend": "active_client_total"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Lock Queue",
-                "description": "等待获取锁操作数量 Any number of queued operations for long periods of time is an indication of possible issues. Find the cause and fix it before requests get stuck in the queue.",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {},
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "id": "2bdb8cc9-92f4-449e-8f70-a4c470a21604",
-                "type": "row",
-                "name": "Operation Info",
-                "layout": {
-                    "h": 1,
-                    "w": 24,
-                    "x": 0,
-                    "y": 15,
-                    "i": "2bdb8cc9-92f4-449e-8f70-a4c470a21604",
-                    "isResizable": false
-                },
-                "collapsed": true
-            },
-            {
-                "type": "timeseries",
-                "id": "c2819508-95e7-4c63-aeae-ce19f92469cd",
-                "layout": {
-                    "h": 7,
-                    "w": 12,
-                    "x": 0,
-                    "y": 16,
-                    "i": "c2819508-95e7-4c63-aeae-ce19f92469cd",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "rate(mongodb_queries{cluster=\"$cluster\",  instance=~\"$instance\"}[1m])",
-                        "legend": "queries"
-                    },
-                    {
-                        "expr": "rate(mongodb_repl_queries{cluster=\"$cluster\", instance=~\"$instance\"}[1m])",
-                        "refId": "B",
-                        "legend": "repl_queries"
-                    },
-                    {
-                        "expr": "rate(mongodb_ttl_deletes{cluster=\"$cluster\", instance=~\"$instance\"}[1m])",
-                        "refId": "C",
-                        "legend": "ttl_delete"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Command Operations",
-                "description": "接收请求数 Shows how many times a command is executed per second on average during the selected interval.",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "desc"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {},
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "7030d97a-d69f-4916-a415-ec57503ab1ed",
-                "layout": {
-                    "h": 7,
-                    "w": 12,
-                    "x": 12,
-                    "y": 16,
-                    "i": "7030d97a-d69f-4916-a415-ec57503ab1ed",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "rate(mongodb_document_inserted{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "legend": "inserted"
-                    },
-                    {
-                        "expr": "rate(mongodb_document_updated{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "refId": "B",
-                        "legend": "updated"
-                    },
-                    {
-                        "expr": "rate(mongodb_document_deleted{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "refId": "C",
-                        "legend": "deleted"
-                    },
-                    {
-                        "expr": "rate(mongodb_document_returned{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "refId": "D",
-                        "legend": "returned"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Document Operations",
-                "description": "文档操作数 When used in combination with 'Command Operations', this graph can help identify write amplification. For example, when one insert or update command actually inserts or updates hundreds, thousands, or even millions of documents.",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {},
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "1c3b73d5-c25c-449f-995d-26acc9c621e1",
-                "layout": {
-                    "h": 7,
-                    "w": 8,
-                    "x": 0,
-                    "y": 23,
-                    "i": "1c3b73d5-c25c-449f-995d-26acc9c621e1",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "rate(mongodb_latency_reads{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / rate(mongodb_latency_reads_count{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / 1000",
-                        "legend": "read latancy"
-                    },
-                    {
-                        "expr": "rate(mongodb_latency_writes{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / rate(mongodb_latency_writes_count{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / 1000",
-                        "refId": "B",
-                        "legend": "write"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Response Time",
-                "description": "操作详情耗时（毫秒）",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {
-                        "util": "milliseconds"
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "e642183c-8ba2-4f60-abc6-c65de49e7577",
-                "layout": {
-                    "h": 7,
-                    "w": 8,
-                    "x": 8,
-                    "y": 23,
-                    "i": "e642183c-8ba2-4f60-abc6-c65de49e7577",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "sum(increase(mongodb_ss_metrics_queryExecutor_scannedObjects{cluster=\"$cluster\"}[5m])) / sum(increase(mongodb_ss_metrics_document{cluster=\"$cluster\", doc_op_type=\"returned\"}[5m]))",
-                        "legend": "Document"
-                    },
-                    {
-                        "expr": "sum(increase(mongodb_ss_metrics_queryExecutor_scanned{cluster=\"$cluster\"}[5m])) / sum(increase(mongodb_ss_metrics_document{cluster=\"$cluster\", doc_op_type=\"returned\"}[5m]))",
-                        "refId": "B",
-                        "legend": "Index"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Query Efficiency",
-                "description": "查询效率",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {
-                        "util": "percentUnit"
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "8b5a4f44-3291-4822-ab73-f56be6c62674",
-                "layout": {
-                    "h": 7,
-                    "w": 8,
-                    "x": 16,
-                    "y": 23,
-                    "i": "8b5a4f44-3291-4822-ab73-f56be6c62674",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "mongodb_cursor_total{cluster=\"$cluster\", instance=~\"$instance\"}",
-                        "legend": ""
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Cursors",
-                "description": "游标数量 Helps identify why connections are increasing. Shows active cursors compared to cursors being automatically killed after 10 minutes due to an application not closing the connection.",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {},
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "id": "06946b19-94b4-4f72-bd87-70f87989257d",
-                "type": "row",
-                "name": "Cache Info",
-                "layout": {
-                    "h": 1,
-                    "w": 24,
-                    "x": 0,
-                    "y": 30,
-                    "i": "06946b19-94b4-4f72-bd87-70f87989257d",
-                    "isResizable": false
-                },
-                "collapsed": true,
-                "panels": []
-            },
-            {
-                "type": "timeseries",
-                "id": "bb0ae571-43a1-430b-8f63-256f6f1ebee6",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 0,
-                    "y": 31,
-                    "i": "bb0ae571-43a1-430b-8f63-256f6f1ebee6",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "mongodb_wtcache_current_bytes{cluster=\"$cluster\",  instance=~\"$instance\"}",
-                        "legend": "total"
-                    },
-                    {
-                        "expr": "mongodb_wtcache_modified_pages_evicted{cluster=\"$cluster\", instance=~\"$instance\"}",
-                        "refId": "B",
-                        "legend": "dirty"
-                    },
-                    {
-                        "expr": "mongodb_wtcache_internal_pages_evicted{cluster=\"$cluster\", instance=~\"$instance\"}",
-                        "refId": "C",
-                        "legend": "internal_pages"
-                    },
-                    {
-                        "expr": "mongodb_wtcache_server_evicting_pages{cluster=\"$cluster\", instance=~\"$instance\"}",
-                        "refId": "D",
-                        "legend": "leaf_pages"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Cache Size",
-                "description": "缓存大小（byte）",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {
-                        "util": "bytesIEC"
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "f1ffd169-2a1a-42bc-9647-0e6621be0fef",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 6,
-                    "y": 31,
-                    "i": "f1ffd169-2a1a-42bc-9647-0e6621be0fef",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "rate(mongodb_wtcache_bytes_read_into{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "legend": "read"
-                    },
-                    {
-                        "expr": "rate(mongodb_wtcache_bytes_written_from{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "refId": "B",
-                        "legend": "written"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Cache I/O",
-                "description": "写入或读取的缓存数据大小（byte）",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {
-                        "util": "bytesSI"
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "43ee140d-ae6d-474a-9892-fa4743d7f97e",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 12,
-                    "y": 31,
-                    "i": "43ee140d-ae6d-474a-9892-fa4743d7f97e",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "100 * sum(mongodb_wtcache_tracked_dirty_bytes{cluster=\"$cluster\", instance=~\"$instance\"}) / sum(mongodb_wtcache_current_bytes{cluster=\"$cluster\", instance=~\"$instance\"})",
-                        "legend": "dirty rate"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Cache Dirty Rate (bytes)",
-                "description": "缓存脏页占比",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {
-                        "util": "percent"
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "1a22c31a-859a-400c-af2a-ae83c308d0f2",
-                "layout": {
-                    "h": 7,
-                    "w": 6,
-                    "x": 18,
-                    "y": 31,
-                    "i": "1a22c31a-859a-400c-af2a-ae83c308d0f2",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "rate(mongodb_wtcache_modified_pages_evicted{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
-                        "legend": "evicted pages"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Cache Evicted Pages",
-                "description": "缓存剔除页数量",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {},
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
-            },
-            {
-                "id": "b0016f4a-c565-4276-a08d-bacdf94b6b5a",
-                "type": "row",
-                "name": "ReplSet Info",
-                "layout": {
-                    "h": 1,
-                    "w": 24,
-                    "x": 0,
-                    "y": 38,
-                    "i": "b0016f4a-c565-4276-a08d-bacdf94b6b5a",
-                    "isResizable": false
-                },
-                "collapsed": true
-            },
-            {
-                "type": "stat",
-                "id": "6187ceee-7c25-43f2-be1b-c44ad612ab52",
-                "layout": {
-                    "h": 7,
-                    "w": 12,
-                    "x": 0,
-                    "y": 39,
-                    "i": "6187ceee-7c25-43f2-be1b-c44ad612ab52",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "time() - mongodb_mongod_replset_member_election_date{cluster=\"$cluster\", instance=\"$instance\"}"
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Replset Election",
-                "description": "副本集选主时间",
-                "custom": {
-                    "textMode": "value",
-                    "colorMode": "value",
-                    "calc": "lastNotNull",
-                    "valueField": "Value",
-                    "colSpan": 1,
-                    "textSize": {}
-                },
-                "options": {
-                    "valueMappings": [
-                        {
-                            "type": "range",
-                            "match": {
-                                "to": 1800
-                            },
-                            "result": {
-                                "color": "#f24526"
-                            }
-                        },
-                        {
-                            "type": "range",
-                            "match": {
-                                "from": 1800
-                            },
-                            "result": {
-                                "color": "#53b503"
-                            }
-                        }
-                    ],
-                    "standardOptions": {
-                        "util": "seconds",
-                        "decimals": 1
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                }
-            },
-            {
-                "type": "timeseries",
-                "id": "f73fd0cd-ecbe-41f0-a2dc-4e02f7eaef1c",
-                "layout": {
-                    "h": 7,
-                    "w": 12,
-                    "x": 12,
-                    "y": 39,
-                    "i": "f73fd0cd-ecbe-41f0-a2dc-4e02f7eaef1c",
-                    "isResizable": true
-                },
-                "version": "3.0.0",
-                "datasourceCate": "prometheus",
-                "datasourceValue": "${datasource}",
-                "targets": [
-                    {
-                        "refId": "A",
-                        "expr": "mongodb_repl_lag{cluster=\"$cluster\"}",
-                        "legend": ""
-                    }
-                ],
-                "transformations": [
-                    {
-                        "id": "organize",
-                        "options": {}
-                    }
-                ],
-                "name": "Replset Lag Seconds",
-                "description": "副本集成员主从同步延迟",
-                "options": {
-                    "tooltip": {
-                        "mode": "all",
-                        "sort": "none"
-                    },
-                    "legend": {
-                        "displayMode": "hidden"
-                    },
-                    "standardOptions": {
-                        "util": "seconds"
-                    },
-                    "thresholds": {
-                        "steps": [
-                            {
-                                "color": "#634CD9",
-                                "value": null,
-                                "type": "base"
-                            }
-                        ]
-                    }
-                },
-                "custom": {
-                    "drawStyle": "lines",
-                    "lineInterpolation": "smooth",
-                    "spanNulls": false,
-                    "lineWidth": 1,
-                    "fillOpacity": 0.5,
-                    "gradientMode": "none",
-                    "stack": "off",
-                    "scaleDistribution": {
-                        "type": "linear"
-                    }
-                }
+              "type": "special",
+              "match": {
+                "from": 1,
+                "special": 1
+              },
+              "result": {
+                "color": "#53b503",
+                "text": "UP"
+              }
             }
+          ],
+          "standardOptions": {
+            "util": "none"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
         ]
+      },
+      {
+        "type": "stat",
+        "id": "c7b52e8e-b417-4c61-a15e-e2f186fccd67",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 6,
+          "y": 1,
+          "i": "c7b52e8e-b417-4c61-a15e-e2f186fccd67",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_ss_uptime{cluster=\"$cluster\", instance=\"$instance\"}"
+          }
+        ],
+        "name": "Uptime",
+        "description": "启用时长",
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "valueField": "Value",
+          "colSpan": 1,
+          "textSize": {
+            "title": null
+          }
+        },
+        "options": {
+          "valueMappings": [
+            {
+              "type": "range",
+              "match": {
+                "to": 1800
+              },
+              "result": {
+                "color": "#ec7718"
+              }
+            },
+            {
+              "type": "range",
+              "match": {
+                "from": 1800
+              },
+              "result": {
+                "color": "#53b503"
+              }
+            }
+          ],
+          "standardOptions": {
+            "util": "humantimeSeconds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "8446dded-9e11-4ee9-bdad-769b193ddf3e",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 1,
+          "i": "8446dded-9e11-4ee9-bdad-769b193ddf3e",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_ss_mem_resident{cluster=\"$cluster\", instance=~\"$instance\"} * 1024 * 1024",
+            "legend": "{{instance}}"
+          }
+        ],
+        "name": "Memory",
+        "description": "内存占用（MiB）",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "bytesIEC"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "3eda28e7-2480-4ddc-b346-89ced1c33034",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 1,
+          "i": "3eda28e7-2480-4ddc-b346-89ced1c33034",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "rate(mongodb_ss_extra_info_page_faults{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+            "legend": "page faults"
+          }
+        ],
+        "name": "Page Faults",
+        "description": "页缺失中断次数 Page faults indicate that requests are processed from disk either because an index is missing or there is not enough memory for the data set. Consider increasing memory or sharding out.",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "none",
+            "decimals": null
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "528d0485-f947-470d-95f3-59eae157ebb6",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 0,
+          "y": 8,
+          "i": "528d0485-f947-470d-95f3-59eae157ebb6",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "rate(mongodb_ss_network_bytesOut{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+            "legend": "bytesOut"
+          },
+          {
+            "expr": "rate(mongodb_ss_network_bytesIn{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+            "refId": "B",
+            "legend": "bytesIn"
+          }
+        ],
+        "name": "Network I/O",
+        "description": "网络流量（byte）",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "bytesSI"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "067e97c3-4e57-447f-a9dc-a49627b6ce18",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 6,
+          "y": 8,
+          "i": "067e97c3-4e57-447f-a9dc-a49627b6ce18",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_ss_connections{cluster=\"$cluster\", conn_type=\"current\", instance=~\"$instance\"}",
+            "legend": "Connections"
+          }
+        ],
+        "name": "Connections",
+        "description": "连接数 Keep in mind the hard limit on the maximum number of connections set by your distribution.",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "9e9b7356-cf0e-4e5f-95f5-00258c576bf4",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 8,
+          "i": "9e9b7356-cf0e-4e5f-95f5-00258c576bf4",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "rate(mongodb_ss_asserts{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+            "legend": "{{assert_type}}"
+          }
+        ],
+        "name": "Assert Events",
+        "description": "断言错误次数 Asserts are not important by themselves, but you can correlate spikes with other graphs.",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "2698f0f8-a76a-499b-99cf-30504f0f4db6",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 8,
+          "i": "2698f0f8-a76a-499b-99cf-30504f0f4db6",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_ss_globalLock_currentQueue{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{count_type}}"
+          }
+        ],
+        "name": "Lock Queue",
+        "description": "等待获取锁操作数量 Any number of queued operations for long periods of time is an indication of possible issues. Find the cause and fix it before requests get stuck in the queue.",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "id": "2bdb8cc9-92f4-449e-8f70-a4c470a21604",
+        "type": "row",
+        "name": "Operation Info",
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 15,
+          "i": "2bdb8cc9-92f4-449e-8f70-a4c470a21604",
+          "isResizable": false
+        },
+        "collapsed": true,
+        "version": "3.0.0"
+      },
+      {
+        "type": "timeseries",
+        "id": "c2819508-95e7-4c63-aeae-ce19f92469cd",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 16,
+          "i": "c2819508-95e7-4c63-aeae-ce19f92469cd",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "rate(mongodb_ss_opcounters{cluster=\"$cluster\", instance=~\"$instance\", legacy_op_type!=\"command\"}[1m])",
+            "legend": "{{legacy_op_type}}"
+          },
+          {
+            "expr": "rate(mongodb_ss_opcountersRepl{cluster=\"$cluster\", instance=~\"$instance\", legacy_op_type!~\"(command|query|getmore)\"}[1m])",
+            "refId": "B",
+            "legend": "repl_{{legacy_op_type}}"
+          },
+          {
+            "expr": "rate(mongodb_ss_metrics_ttl_deletedDocuments{cluster=\"$cluster\", instance=~\"$instance\"}[1m])",
+            "refId": "C",
+            "legend": "ttl_delete"
+          }
+        ],
+        "name": "Command Operations",
+        "description": "接收请求数 Shows how many times a command is executed per second on average during the selected interval.",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "7030d97a-d69f-4916-a415-ec57503ab1ed",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 16,
+          "i": "7030d97a-d69f-4916-a415-ec57503ab1ed",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "rate(mongodb_ss_metrics_document{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+            "legend": "{{doc_op_type}}"
+          }
+        ],
+        "name": "Document Operations",
+        "description": "文档操作数 When used in combination with 'Command Operations', this graph can help identify write amplification. For example, when one insert or update command actually inserts or updates hundreds, thousands, or even millions of documents.",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "1c3b73d5-c25c-449f-995d-26acc9c621e1",
+        "layout": {
+          "h": 7,
+          "w": 8,
+          "x": 0,
+          "y": 23,
+          "i": "1c3b73d5-c25c-449f-995d-26acc9c621e1",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "rate(mongodb_ss_opLatencies_latency{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / rate(mongodb_ss_opLatencies_ops{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / 1000",
+            "legend": "{{op_type}}"
+          }
+        ],
+        "name": "Response Time",
+        "description": "操作详情耗时（毫秒）",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "milliseconds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "e642183c-8ba2-4f60-abc6-c65de49e7577",
+        "layout": {
+          "h": 7,
+          "w": 8,
+          "x": 8,
+          "y": 23,
+          "i": "e642183c-8ba2-4f60-abc6-c65de49e7577",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "sum(increase(mongodb_ss_metrics_queryExecutor_scannedObjects{cluster=\"$cluster\"}[5m])) / sum(increase(mongodb_ss_metrics_document{cluster=\"$cluster\", doc_op_type=\"returned\"}[5m]))",
+            "legend": "Document"
+          },
+          {
+            "expr": "sum(increase(mongodb_ss_metrics_queryExecutor_scanned{cluster=\"$cluster\"}[5m])) / sum(increase(mongodb_ss_metrics_document{cluster=\"$cluster\", doc_op_type=\"returned\"}[5m]))",
+            "refId": "B",
+            "legend": "Index"
+          }
+        ],
+        "name": "Query Efficiency",
+        "description": "查询效率",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "percentUnit"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "8b5a4f44-3291-4822-ab73-f56be6c62674",
+        "layout": {
+          "h": 7,
+          "w": 8,
+          "x": 16,
+          "y": 23,
+          "i": "8b5a4f44-3291-4822-ab73-f56be6c62674",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_ss_metrics_cursor_open{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{csr_type}}"
+          }
+        ],
+        "name": "Cursors",
+        "description": "游标数量 Helps identify why connections are increasing. Shows active cursors compared to cursors being automatically killed after 10 minutes due to an application not closing the connection.",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "id": "06946b19-94b4-4f72-bd87-70f87989257d",
+        "type": "row",
+        "name": "Cache Info",
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 30,
+          "i": "06946b19-94b4-4f72-bd87-70f87989257d",
+          "isResizable": false
+        },
+        "collapsed": true,
+        "panels": [],
+        "version": "3.0.0"
+      },
+      {
+        "type": "timeseries",
+        "id": "bb0ae571-43a1-430b-8f63-256f6f1ebee6",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 0,
+          "y": 31,
+          "i": "bb0ae571-43a1-430b-8f63-256f6f1ebee6",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_ss_wt_cache_bytes_currently_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "total"
+          },
+          {
+            "expr": "mongodb_ss_wt_cache_tracked_dirty_bytes_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "refId": "B",
+            "legend": "dirty"
+          },
+          {
+            "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_internal_pages_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "refId": "C",
+            "legend": "internal_pages"
+          },
+          {
+            "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_leaf_pages_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "refId": "D",
+            "legend": "leaf_pages"
+          }
+        ],
+        "name": "Cache Size",
+        "description": "缓存大小（byte）",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "bytesIEC"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "f1ffd169-2a1a-42bc-9647-0e6621be0fef",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 6,
+          "y": 31,
+          "i": "f1ffd169-2a1a-42bc-9647-0e6621be0fef",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "rate(mongodb_ss_wt_cache_bytes_read_into_cache{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
+            "legend": "read"
+          },
+          {
+            "expr": "rate(mongodb_ss_wt_cache_bytes_written_from_cache{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
+            "refId": "B",
+            "legend": "written"
+          }
+        ],
+        "name": "Cache I/O",
+        "description": "写入或读取的缓存数据大小（byte）",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "bytesSI"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "43ee140d-ae6d-474a-9892-fa4743d7f97e",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 31,
+          "i": "43ee140d-ae6d-474a-9892-fa4743d7f97e",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "100 * sum(mongodb_ss_wt_cache_tracked_dirty_pages_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}) / sum(mongodb_ss_wt_cache_pages_currently_held_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"})",
+            "legend": "dirty rate"
+          }
+        ],
+        "name": "Cache Dirty Pages Rate",
+        "description": "缓存脏页占比",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "percent"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "1a22c31a-859a-400c-af2a-ae83c308d0f2",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 31,
+          "i": "1a22c31a-859a-400c-af2a-ae83c308d0f2",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "rate(mongodb_mongod_wiredtiger_cache_evicted_total{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
+            "legend": "evicted pages"
+          }
+        ],
+        "name": "Cache Evicted Pages",
+        "description": "缓存剔除页数量",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {},
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "id": "b0016f4a-c565-4276-a08d-bacdf94b6b5a",
+        "type": "row",
+        "name": "ReplSet Info",
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 38,
+          "i": "b0016f4a-c565-4276-a08d-bacdf94b6b5a",
+          "isResizable": false
+        },
+        "collapsed": true,
+        "version": "3.0.0"
+      },
+      {
+        "type": "stat",
+        "id": "6187ceee-7c25-43f2-be1b-c44ad612ab52",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 39,
+          "i": "6187ceee-7c25-43f2-be1b-c44ad612ab52",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "time() - mongodb_mongod_replset_member_election_date{cluster=\"$cluster\", instance=\"$instance\"}"
+          }
+        ],
+        "name": "Replset Election",
+        "description": "副本集选主时间",
+        "custom": {
+          "textMode": "value",
+          "colorMode": "value",
+          "calc": "lastNotNull",
+          "valueField": "Value",
+          "colSpan": 1,
+          "textSize": {}
+        },
+        "options": {
+          "valueMappings": [
+            {
+              "type": "range",
+              "match": {
+                "to": 1800
+              },
+              "result": {
+                "color": "#f24526"
+              }
+            },
+            {
+              "type": "range",
+              "match": {
+                "from": 1800
+              },
+              "result": {
+                "color": "#53b503"
+              }
+            }
+          ],
+          "standardOptions": {
+            "util": "seconds",
+            "decimals": 1
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "f73fd0cd-ecbe-41f0-a2dc-4e02f7eaef1c",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 39,
+          "i": "f73fd0cd-ecbe-41f0-a2dc-4e02f7eaef1c",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_mongod_replset_member_replication_lag{cluster=\"$cluster\"}",
+            "legend": "{{set}} {{name}}"
+          }
+        ],
+        "name": "Replset Lag Seconds",
+        "description": "副本集成员主从同步延迟",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "none"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "seconds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "id": "d5186520-d940-133c-e8bb-abaebd0b6083",
+        "type": "row",
+        "name": "Replica Set Details",
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 46,
+          "i": "d5186520-d940-133c-e8bb-abaebd0b6083",
+          "isResizable": false
+        },
+        "collapsed": true,
+        "version": "3.0.0"
+      },
+      {
+        "type": "timeseries",
+        "id": "3d57485b-7abf-4d9e-31c0-9699532a7e0e",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 0,
+          "y": 47,
+          "i": "3d57485b-7abf-4d9e-31c0-9699532a7e0e",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_mongod_replset_my_state{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{instance}}"
+          }
+        ],
+        "name": "Replset Member State",
+        "description": "当前实例在副本集中的状态，1 表示 Primary，2 表示 Secondary。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "none"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "64066067-72ce-41fd-3ccf-50e394aaa582",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 6,
+          "y": 47,
+          "i": "64066067-72ce-41fd-3ccf-50e394aaa582",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_members_health{cluster=\"$cluster\"}",
+            "legend": "{{set}} {{name}}"
+          }
+        ],
+        "name": "Replset Member Health",
+        "description": "副本集成员健康状态，1 表示健康。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "none"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "6de1cd91-b468-bb2d-264f-23228e1298d2",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 47,
+          "i": "6de1cd91-b468-bb2d-264f-23228e1298d2",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_mongod_replset_oplog_head_timestamp{cluster=\"$cluster\", instance=~\"$instance\"} - mongodb_mongod_replset_oplog_tail_timestamp{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{instance}}"
+          }
+        ],
+        "name": "Oplog Window",
+        "description": "oplog 可保留的时间窗口，窗口太小会放大 Secondary 追不上后全量同步的风险。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "seconds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "11662e21-7184-2c26-7c3c-4153e69fdabe",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 47,
+          "i": "11662e21-7184-2c26-7c3c-4153e69fdabe",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_oplog_stats_storageStats_size{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{instance}} used"
+          },
+          {
+            "refId": "B",
+            "expr": "mongodb_oplog_stats_storageStats_maxSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{instance}} max"
+          }
+        ],
+        "name": "Oplog Used Bytes",
+        "description": "oplog 当前大小和最大容量。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "bytesIEC"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "id": "4e2c877e-185b-345d-a162-2941cb58e9d3",
+        "type": "row",
+        "name": "Storage & Database",
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 54,
+          "i": "4e2c877e-185b-345d-a162-2941cb58e9d3",
+          "isResizable": false
+        },
+        "collapsed": true,
+        "version": "3.0.0"
+      },
+      {
+        "type": "timeseries",
+        "id": "49c3142f-aa96-d8d3-d336-7348807655ea",
+        "layout": {
+          "h": 7,
+          "w": 8,
+          "x": 0,
+          "y": 55,
+          "i": "49c3142f-aa96-d8d3-d336-7348807655ea",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_dbstats_dataSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{database}} data"
+          },
+          {
+            "refId": "B",
+            "expr": "mongodb_dbstats_indexSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{database}} index"
+          },
+          {
+            "refId": "C",
+            "expr": "mongodb_dbstats_storageSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{database}} storage"
+          }
+        ],
+        "name": "Database Size",
+        "description": "库级数据、索引和存储占用。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "bytesIEC"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "de7a6e36-68f2-626d-3146-d02d3bfb78f1",
+        "layout": {
+          "h": 7,
+          "w": 8,
+          "x": 8,
+          "y": 55,
+          "i": "de7a6e36-68f2-626d-3146-d02d3bfb78f1",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_dbstats_collections{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{database}} collections"
+          },
+          {
+            "refId": "B",
+            "expr": "mongodb_dbstats_indexes{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{database}} indexes"
+          }
+        ],
+        "name": "Collections / Indexes",
+        "description": "库级集合数和索引数，用于发现异常膨胀。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "none"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "fadc5b49-3d04-309d-00a2-5b9fcceb6771",
+        "layout": {
+          "h": 7,
+          "w": 8,
+          "x": 16,
+          "y": 55,
+          "i": "fadc5b49-3d04-309d-00a2-5b9fcceb6771",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "topk(10, rate(mongodb_indexstats_accesses_ops{cluster=\"$cluster\", instance=~\"$instance\"}[5m]))",
+            "legend": "{{database}}.{{collection}} {{key_name}}"
+          }
+        ],
+        "name": "Index Access Rate",
+        "description": "索引访问速率 Top 10，用于识别热点集合和索引。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "ops"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "id": "40b0ff89-1edc-e446-5a0d-b6e0686667a5",
+        "type": "row",
+        "name": "WiredTiger Pressure",
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 62,
+          "i": "40b0ff89-1edc-e446-5a0d-b6e0686667a5",
+          "isResizable": false
+        },
+        "collapsed": true,
+        "version": "3.0.0"
+      },
+      {
+        "type": "timeseries",
+        "id": "06f22cab-bafc-af29-b303-ec06c811faf3",
+        "layout": {
+          "h": 7,
+          "w": 8,
+          "x": 0,
+          "y": 63,
+          "i": "06f22cab-bafc-af29-b303-ec06c811faf3",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_mongod_wiredtiger_concurrent_transactions_available_tickets{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{instance}} {{txn_rw}} available"
+          }
+        ],
+        "name": "WiredTiger Tickets Available",
+        "description": "WiredTiger 读写并发 ticket 可用数量，持续过低表示读写并发压力较高。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "none"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "2625636d-aaa8-2eac-4f13-8f84ea457b19",
+        "layout": {
+          "h": 7,
+          "w": 8,
+          "x": 8,
+          "y": 63,
+          "i": "2625636d-aaa8-2eac-4f13-8f84ea457b19",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_mongod_wiredtiger_concurrent_transactions_out_tickets{cluster=\"$cluster\", instance=~\"$instance\"}",
+            "legend": "{{instance}} {{txn_rw}} out"
+          }
+        ],
+        "name": "WiredTiger Tickets Out",
+        "description": "WiredTiger 正在占用的读写 ticket 数量。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "none"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "4888f9eb-501b-1bfd-4cca-17fbc5e872da",
+        "layout": {
+          "h": 7,
+          "w": 8,
+          "x": 16,
+          "y": 63,
+          "i": "4888f9eb-501b-1bfd-4cca-17fbc5e872da",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "increase(mongodb_mongod_wiredtiger_transactions_checkpoint_milliseconds_total{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+            "legend": "{{instance}}"
+          }
+        ],
+        "name": "WiredTiger Checkpoint Time",
+        "description": "WiredTiger checkpoint 耗时增量，异常升高通常与磁盘写入压力相关。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "ms"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "id": "1dedd0fb-0605-5880-8d3a-eacd6004c235",
+        "type": "row",
+        "name": "Sharded Cluster",
+        "layout": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 70,
+          "i": "1dedd0fb-0605-5880-8d3a-eacd6004c235",
+          "isResizable": false
+        },
+        "collapsed": true,
+        "version": "3.0.0"
+      },
+      {
+        "type": "timeseries",
+        "id": "c14cd84a-e8a8-a6df-e7f2-b472c4d8d5b0",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 0,
+          "y": 71,
+          "i": "c14cd84a-e8a8-a6df-e7f2-b472c4d8d5b0",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_mongos_sharding_shards_total{cluster=\"$cluster\"}",
+            "legend": "shards"
+          },
+          {
+            "refId": "B",
+            "expr": "mongodb_mongos_sharding_databases_total{cluster=\"$cluster\"}",
+            "legend": "databases"
+          },
+          {
+            "refId": "C",
+            "expr": "mongodb_mongos_sharding_collections_total{cluster=\"$cluster\"}",
+            "legend": "collections"
+          }
+        ],
+        "name": "Shard / Collection Counts",
+        "description": "mongos 视角下的 shard、库和分片集合数量。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "none"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "50bd7496-5cbd-dae4-a427-4bb5af897026",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 6,
+          "y": 71,
+          "i": "50bd7496-5cbd-dae4-a427-4bb5af897026",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_mongos_sharding_shard_chunks_total{cluster=\"$cluster\"}",
+            "legend": "{{shard}}"
+          }
+        ],
+        "name": "Chunk Distribution",
+        "description": "各 shard 的 chunk 分布，用于发现明显不均衡。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "none"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "5da8289e-b4b4-ce3b-7e56-8e9e7209041e",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 12,
+          "y": 71,
+          "i": "5da8289e-b4b4-ce3b-7e56-8e9e7209041e",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_mongos_sharding_balancer_enabled{cluster=\"$cluster\"}",
+            "legend": "balancer enabled"
+          },
+          {
+            "refId": "B",
+            "expr": "mongodb_mongos_sharding_chunks_is_balanced{cluster=\"$cluster\"}",
+            "legend": "chunks balanced"
+          },
+          {
+            "refId": "C",
+            "expr": "mongodb_mongos_sharding_shards_draining_total{cluster=\"$cluster\"}",
+            "legend": "draining shards"
+          }
+        ],
+        "name": "Balancer Status",
+        "description": "Balancer 是否启用、chunk 是否均衡以及是否存在 draining shard。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "none"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "46a616bc-fb08-af56-a0a0-211789e97a53",
+        "layout": {
+          "h": 7,
+          "w": 6,
+          "x": 18,
+          "y": 71,
+          "i": "46a616bc-fb08-af56-a0a0-211789e97a53",
+          "isResizable": true
+        },
+        "version": "3.0.0",
+        "targets": [
+          {
+            "refId": "A",
+            "expr": "mongodb_mongos_sharding_chunks_total{cluster=\"$cluster\"}",
+            "legend": "chunks"
+          }
+        ],
+        "name": "Total Chunks",
+        "description": "mongos 视角下的分片集群总 chunk 数。",
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden"
+          },
+          "standardOptions": {
+            "util": "none"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "#634CD9",
+                "value": null,
+                "type": "base"
+              }
+            ]
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 1,
+          "fillOpacity": 0.5,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          }
+        },
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}",
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ]
+      }
+    ]
+  },
+  "var": [
+    {
+      "name": "datasource",
+      "type": "datasource",
+      "definition": "prometheus",
+      "defaultValue": 1,
+      "label": "Datasource",
+      "hide": false
+    },
+    {
+      "name": "cluster",
+      "type": "query",
+      "definition": "label_values(mongodb_up,cluster)",
+      "datasource": {
+        "cate": "prometheus",
+        "value": "${datasource}"
+      },
+      "reg": "",
+      "hide": false
+    },
+    {
+      "name": "topology",
+      "type": "query",
+      "definition": "label_values(mongodb_up{cluster=~\"$cluster\"}, topology)",
+      "multi": true,
+      "datasource": {
+        "cate": "prometheus",
+        "value": "${datasource}"
+      },
+      "reg": "",
+      "hide": false
+    },
+    {
+      "name": "component",
+      "type": "query",
+      "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\"}, component)",
+      "multi": true,
+      "datasource": {
+        "cate": "prometheus",
+        "value": "${datasource}"
+      },
+      "reg": "",
+      "hide": false
+    },
+    {
+      "name": "instance",
+      "type": "query",
+      "definition": "label_values(mongodb_up{cluster=~\"$cluster\", topology=~\"$topology\", component=~\"$component\"}, instance)",
+      "multi": true,
+      "datasource": {
+        "cate": "prometheus",
+        "value": "${datasource}"
+      },
+      "reg": "",
+      "hide": false
     }
+  ],
+  "panels": [
+    {
+      "id": "939298f2-b21f-4e2f-9142-c10946cc4032",
+      "type": "row",
+      "name": "Basic Info",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0,
+        "i": "939298f2-b21f-4e2f-9142-c10946cc4032",
+        "isResizable": false
+      },
+      "collapsed": true,
+      "version": "3.0.0"
+    },
+    {
+      "type": "stat",
+      "id": "91970d24-3f04-4424-a1ed-73e7d28f5706",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 1,
+        "i": "91970d24-3f04-4424-a1ed-73e7d28f5706",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_up{cluster=\"$cluster\", instance=\"$instance\"}"
+        }
+      ],
+      "name": "Up",
+      "description": "实例数",
+      "custom": {
+        "textMode": "value",
+        "colorMode": "value",
+        "calc": "lastNotNull",
+        "valueField": "Value",
+        "colSpan": 1,
+        "textSize": {}
+      },
+      "options": {
+        "valueMappings": [
+          {
+            "type": "special",
+            "match": {
+              "from": 1,
+              "special": 1
+            },
+            "result": {
+              "color": "#53b503",
+              "text": "UP"
+            }
+          }
+        ],
+        "standardOptions": {
+          "util": "none"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "id": "c7b52e8e-b417-4c61-a15e-e2f186fccd67",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 1,
+        "i": "c7b52e8e-b417-4c61-a15e-e2f186fccd67",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_ss_uptime{cluster=\"$cluster\", instance=\"$instance\"}"
+        }
+      ],
+      "name": "Uptime",
+      "description": "启用时长",
+      "custom": {
+        "textMode": "value",
+        "colorMode": "value",
+        "calc": "lastNotNull",
+        "valueField": "Value",
+        "colSpan": 1,
+        "textSize": {
+          "title": null
+        }
+      },
+      "options": {
+        "valueMappings": [
+          {
+            "type": "range",
+            "match": {
+              "to": 1800
+            },
+            "result": {
+              "color": "#ec7718"
+            }
+          },
+          {
+            "type": "range",
+            "match": {
+              "from": 1800
+            },
+            "result": {
+              "color": "#53b503"
+            }
+          }
+        ],
+        "standardOptions": {
+          "util": "humantimeSeconds"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "8446dded-9e11-4ee9-bdad-769b193ddf3e",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 1,
+        "i": "8446dded-9e11-4ee9-bdad-769b193ddf3e",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_ss_mem_resident{cluster=\"$cluster\", instance=~\"$instance\"} * 1024 * 1024",
+          "legend": "{{instance}}"
+        }
+      ],
+      "name": "Memory",
+      "description": "内存占用（MiB）",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "bytesIEC"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "3eda28e7-2480-4ddc-b346-89ced1c33034",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 1,
+        "i": "3eda28e7-2480-4ddc-b346-89ced1c33034",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mongodb_ss_extra_info_page_faults{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+          "legend": "page faults"
+        }
+      ],
+      "name": "Page Faults",
+      "description": "页缺失中断次数 Page faults indicate that requests are processed from disk either because an index is missing or there is not enough memory for the data set. Consider increasing memory or sharding out.",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "none",
+          "decimals": null
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "528d0485-f947-470d-95f3-59eae157ebb6",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 8,
+        "i": "528d0485-f947-470d-95f3-59eae157ebb6",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mongodb_ss_network_bytesOut{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+          "legend": "bytesOut"
+        },
+        {
+          "expr": "rate(mongodb_ss_network_bytesIn{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+          "refId": "B",
+          "legend": "bytesIn"
+        }
+      ],
+      "name": "Network I/O",
+      "description": "网络流量（byte）",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "bytesSI"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "067e97c3-4e57-447f-a9dc-a49627b6ce18",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 8,
+        "i": "067e97c3-4e57-447f-a9dc-a49627b6ce18",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_ss_connections{cluster=\"$cluster\", conn_type=\"current\", instance=~\"$instance\"}",
+          "legend": "Connections"
+        }
+      ],
+      "name": "Connections",
+      "description": "连接数 Keep in mind the hard limit on the maximum number of connections set by your distribution.",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "9e9b7356-cf0e-4e5f-95f5-00258c576bf4",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 8,
+        "i": "9e9b7356-cf0e-4e5f-95f5-00258c576bf4",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mongodb_ss_asserts{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+          "legend": "{{assert_type}}"
+        }
+      ],
+      "name": "Assert Events",
+      "description": "断言错误次数 Asserts are not important by themselves, but you can correlate spikes with other graphs.",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "2698f0f8-a76a-499b-99cf-30504f0f4db6",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 8,
+        "i": "2698f0f8-a76a-499b-99cf-30504f0f4db6",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_ss_globalLock_currentQueue{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{count_type}}"
+        }
+      ],
+      "name": "Lock Queue",
+      "description": "等待获取锁操作数量 Any number of queued operations for long periods of time is an indication of possible issues. Find the cause and fix it before requests get stuck in the queue.",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "id": "2bdb8cc9-92f4-449e-8f70-a4c470a21604",
+      "type": "row",
+      "name": "Operation Info",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15,
+        "i": "2bdb8cc9-92f4-449e-8f70-a4c470a21604",
+        "isResizable": false
+      },
+      "collapsed": true,
+      "version": "3.0.0"
+    },
+    {
+      "type": "timeseries",
+      "id": "c2819508-95e7-4c63-aeae-ce19f92469cd",
+      "layout": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 16,
+        "i": "c2819508-95e7-4c63-aeae-ce19f92469cd",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mongodb_ss_opcounters{cluster=\"$cluster\", instance=~\"$instance\", legacy_op_type!=\"command\"}[1m])",
+          "legend": "{{legacy_op_type}}"
+        },
+        {
+          "expr": "rate(mongodb_ss_opcountersRepl{cluster=\"$cluster\", instance=~\"$instance\", legacy_op_type!~\"(command|query|getmore)\"}[1m])",
+          "refId": "B",
+          "legend": "repl_{{legacy_op_type}}"
+        },
+        {
+          "expr": "rate(mongodb_ss_metrics_ttl_deletedDocuments{cluster=\"$cluster\", instance=~\"$instance\"}[1m])",
+          "refId": "C",
+          "legend": "ttl_delete"
+        }
+      ],
+      "name": "Command Operations",
+      "description": "接收请求数 Shows how many times a command is executed per second on average during the selected interval.",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "7030d97a-d69f-4916-a415-ec57503ab1ed",
+      "layout": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 16,
+        "i": "7030d97a-d69f-4916-a415-ec57503ab1ed",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mongodb_ss_metrics_document{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+          "legend": "{{doc_op_type}}"
+        }
+      ],
+      "name": "Document Operations",
+      "description": "文档操作数 When used in combination with 'Command Operations', this graph can help identify write amplification. For example, when one insert or update command actually inserts or updates hundreds, thousands, or even millions of documents.",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "1c3b73d5-c25c-449f-995d-26acc9c621e1",
+      "layout": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 23,
+        "i": "1c3b73d5-c25c-449f-995d-26acc9c621e1",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mongodb_ss_opLatencies_latency{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / rate(mongodb_ss_opLatencies_ops{cluster=~\"$cluster\", instance=~\"$instance\"}[1m]) / 1000",
+          "legend": "{{op_type}}"
+        }
+      ],
+      "name": "Response Time",
+      "description": "操作详情耗时（毫秒）",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "milliseconds"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "e642183c-8ba2-4f60-abc6-c65de49e7577",
+      "layout": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 23,
+        "i": "e642183c-8ba2-4f60-abc6-c65de49e7577",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(mongodb_ss_metrics_queryExecutor_scannedObjects{cluster=\"$cluster\"}[5m])) / sum(increase(mongodb_ss_metrics_document{cluster=\"$cluster\", doc_op_type=\"returned\"}[5m]))",
+          "legend": "Document"
+        },
+        {
+          "expr": "sum(increase(mongodb_ss_metrics_queryExecutor_scanned{cluster=\"$cluster\"}[5m])) / sum(increase(mongodb_ss_metrics_document{cluster=\"$cluster\", doc_op_type=\"returned\"}[5m]))",
+          "refId": "B",
+          "legend": "Index"
+        }
+      ],
+      "name": "Query Efficiency",
+      "description": "查询效率",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "percentUnit"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "8b5a4f44-3291-4822-ab73-f56be6c62674",
+      "layout": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 23,
+        "i": "8b5a4f44-3291-4822-ab73-f56be6c62674",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_ss_metrics_cursor_open{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{csr_type}}"
+        }
+      ],
+      "name": "Cursors",
+      "description": "游标数量 Helps identify why connections are increasing. Shows active cursors compared to cursors being automatically killed after 10 minutes due to an application not closing the connection.",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "id": "06946b19-94b4-4f72-bd87-70f87989257d",
+      "type": "row",
+      "name": "Cache Info",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 30,
+        "i": "06946b19-94b4-4f72-bd87-70f87989257d",
+        "isResizable": false
+      },
+      "collapsed": true,
+      "panels": [],
+      "version": "3.0.0"
+    },
+    {
+      "type": "timeseries",
+      "id": "bb0ae571-43a1-430b-8f63-256f6f1ebee6",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 31,
+        "i": "bb0ae571-43a1-430b-8f63-256f6f1ebee6",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_ss_wt_cache_bytes_currently_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "total"
+        },
+        {
+          "expr": "mongodb_ss_wt_cache_tracked_dirty_bytes_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "refId": "B",
+          "legend": "dirty"
+        },
+        {
+          "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_internal_pages_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "refId": "C",
+          "legend": "internal_pages"
+        },
+        {
+          "expr": "mongodb_ss_wt_cache_tracked_bytes_belonging_to_leaf_pages_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "refId": "D",
+          "legend": "leaf_pages"
+        }
+      ],
+      "name": "Cache Size",
+      "description": "缓存大小（byte）",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "bytesIEC"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "f1ffd169-2a1a-42bc-9647-0e6621be0fef",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 31,
+        "i": "f1ffd169-2a1a-42bc-9647-0e6621be0fef",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mongodb_ss_wt_cache_bytes_read_into_cache{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
+          "legend": "read"
+        },
+        {
+          "expr": "rate(mongodb_ss_wt_cache_bytes_written_from_cache{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
+          "refId": "B",
+          "legend": "written"
+        }
+      ],
+      "name": "Cache I/O",
+      "description": "写入或读取的缓存数据大小（byte）",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "bytesSI"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "43ee140d-ae6d-474a-9892-fa4743d7f97e",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 31,
+        "i": "43ee140d-ae6d-474a-9892-fa4743d7f97e",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * sum(mongodb_ss_wt_cache_tracked_dirty_pages_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"}) / sum(mongodb_ss_wt_cache_pages_currently_held_in_the_cache{cluster=\"$cluster\", instance=~\"$instance\"})",
+          "legend": "dirty rate"
+        }
+      ],
+      "name": "Cache Dirty Pages Rate",
+      "description": "缓存脏页占比",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "percent"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "1a22c31a-859a-400c-af2a-ae83c308d0f2",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 31,
+        "i": "1a22c31a-859a-400c-af2a-ae83c308d0f2",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(mongodb_mongod_wiredtiger_cache_evicted_total{cluster=~\"$cluster\", instance=~\"$instance\"}[5m])",
+          "legend": "evicted pages"
+        }
+      ],
+      "name": "Cache Evicted Pages",
+      "description": "缓存剔除页数量",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {},
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "id": "b0016f4a-c565-4276-a08d-bacdf94b6b5a",
+      "type": "row",
+      "name": "ReplSet Info",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 38,
+        "i": "b0016f4a-c565-4276-a08d-bacdf94b6b5a",
+        "isResizable": false
+      },
+      "collapsed": true,
+      "version": "3.0.0"
+    },
+    {
+      "type": "stat",
+      "id": "6187ceee-7c25-43f2-be1b-c44ad612ab52",
+      "layout": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 39,
+        "i": "6187ceee-7c25-43f2-be1b-c44ad612ab52",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - mongodb_mongod_replset_member_election_date{cluster=\"$cluster\", instance=\"$instance\"}"
+        }
+      ],
+      "name": "Replset Election",
+      "description": "副本集选主时间",
+      "custom": {
+        "textMode": "value",
+        "colorMode": "value",
+        "calc": "lastNotNull",
+        "valueField": "Value",
+        "colSpan": 1,
+        "textSize": {}
+      },
+      "options": {
+        "valueMappings": [
+          {
+            "type": "range",
+            "match": {
+              "to": 1800
+            },
+            "result": {
+              "color": "#f24526"
+            }
+          },
+          {
+            "type": "range",
+            "match": {
+              "from": 1800
+            },
+            "result": {
+              "color": "#53b503"
+            }
+          }
+        ],
+        "standardOptions": {
+          "util": "seconds",
+          "decimals": 1
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "f73fd0cd-ecbe-41f0-a2dc-4e02f7eaef1c",
+      "layout": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 39,
+        "i": "f73fd0cd-ecbe-41f0-a2dc-4e02f7eaef1c",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_mongod_replset_member_replication_lag{cluster=\"$cluster\"}",
+          "legend": "{{set}} {{name}}"
+        }
+      ],
+      "name": "Replset Lag Seconds",
+      "description": "副本集成员主从同步延迟",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "seconds"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "id": "d5186520-d940-133c-e8bb-abaebd0b6083",
+      "type": "row",
+      "name": "Replica Set Details",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 46,
+        "i": "d5186520-d940-133c-e8bb-abaebd0b6083",
+        "isResizable": false
+      },
+      "collapsed": true,
+      "version": "3.0.0"
+    },
+    {
+      "type": "timeseries",
+      "id": "3d57485b-7abf-4d9e-31c0-9699532a7e0e",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 47,
+        "i": "3d57485b-7abf-4d9e-31c0-9699532a7e0e",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_mongod_replset_my_state{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{instance}}"
+        }
+      ],
+      "name": "Replset Member State",
+      "description": "当前实例在副本集中的状态，1 表示 Primary，2 表示 Secondary。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "none"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "64066067-72ce-41fd-3ccf-50e394aaa582",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 47,
+        "i": "64066067-72ce-41fd-3ccf-50e394aaa582",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_members_health{cluster=\"$cluster\"}",
+          "legend": "{{set}} {{name}}"
+        }
+      ],
+      "name": "Replset Member Health",
+      "description": "副本集成员健康状态，1 表示健康。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "none"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "6de1cd91-b468-bb2d-264f-23228e1298d2",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 47,
+        "i": "6de1cd91-b468-bb2d-264f-23228e1298d2",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_mongod_replset_oplog_head_timestamp{cluster=\"$cluster\", instance=~\"$instance\"} - mongodb_mongod_replset_oplog_tail_timestamp{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{instance}}"
+        }
+      ],
+      "name": "Oplog Window",
+      "description": "oplog 可保留的时间窗口，窗口太小会放大 Secondary 追不上后全量同步的风险。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "seconds"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "11662e21-7184-2c26-7c3c-4153e69fdabe",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 47,
+        "i": "11662e21-7184-2c26-7c3c-4153e69fdabe",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_oplog_stats_storageStats_size{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{instance}} used"
+        },
+        {
+          "refId": "B",
+          "expr": "mongodb_oplog_stats_storageStats_maxSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{instance}} max"
+        }
+      ],
+      "name": "Oplog Used Bytes",
+      "description": "oplog 当前大小和最大容量。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "bytesIEC"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "id": "4e2c877e-185b-345d-a162-2941cb58e9d3",
+      "type": "row",
+      "name": "Storage & Database",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 54,
+        "i": "4e2c877e-185b-345d-a162-2941cb58e9d3",
+        "isResizable": false
+      },
+      "collapsed": true,
+      "version": "3.0.0"
+    },
+    {
+      "type": "timeseries",
+      "id": "49c3142f-aa96-d8d3-d336-7348807655ea",
+      "layout": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 55,
+        "i": "49c3142f-aa96-d8d3-d336-7348807655ea",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_dbstats_dataSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{database}} data"
+        },
+        {
+          "refId": "B",
+          "expr": "mongodb_dbstats_indexSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{database}} index"
+        },
+        {
+          "refId": "C",
+          "expr": "mongodb_dbstats_storageSize{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{database}} storage"
+        }
+      ],
+      "name": "Database Size",
+      "description": "库级数据、索引和存储占用。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "bytesIEC"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "de7a6e36-68f2-626d-3146-d02d3bfb78f1",
+      "layout": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 55,
+        "i": "de7a6e36-68f2-626d-3146-d02d3bfb78f1",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_dbstats_collections{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{database}} collections"
+        },
+        {
+          "refId": "B",
+          "expr": "mongodb_dbstats_indexes{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{database}} indexes"
+        }
+      ],
+      "name": "Collections / Indexes",
+      "description": "库级集合数和索引数，用于发现异常膨胀。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "none"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "fadc5b49-3d04-309d-00a2-5b9fcceb6771",
+      "layout": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 55,
+        "i": "fadc5b49-3d04-309d-00a2-5b9fcceb6771",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, rate(mongodb_indexstats_accesses_ops{cluster=\"$cluster\", instance=~\"$instance\"}[5m]))",
+          "legend": "{{database}}.{{collection}} {{key_name}}"
+        }
+      ],
+      "name": "Index Access Rate",
+      "description": "索引访问速率 Top 10，用于识别热点集合和索引。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "ops"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "id": "40b0ff89-1edc-e446-5a0d-b6e0686667a5",
+      "type": "row",
+      "name": "WiredTiger Pressure",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 62,
+        "i": "40b0ff89-1edc-e446-5a0d-b6e0686667a5",
+        "isResizable": false
+      },
+      "collapsed": true,
+      "version": "3.0.0"
+    },
+    {
+      "type": "timeseries",
+      "id": "06f22cab-bafc-af29-b303-ec06c811faf3",
+      "layout": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 63,
+        "i": "06f22cab-bafc-af29-b303-ec06c811faf3",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_mongod_wiredtiger_concurrent_transactions_available_tickets{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{instance}} {{txn_rw}} available"
+        }
+      ],
+      "name": "WiredTiger Tickets Available",
+      "description": "WiredTiger 读写并发 ticket 可用数量，持续过低表示读写并发压力较高。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "none"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "2625636d-aaa8-2eac-4f13-8f84ea457b19",
+      "layout": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 63,
+        "i": "2625636d-aaa8-2eac-4f13-8f84ea457b19",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_mongod_wiredtiger_concurrent_transactions_out_tickets{cluster=\"$cluster\", instance=~\"$instance\"}",
+          "legend": "{{instance}} {{txn_rw}} out"
+        }
+      ],
+      "name": "WiredTiger Tickets Out",
+      "description": "WiredTiger 正在占用的读写 ticket 数量。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "none"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "4888f9eb-501b-1bfd-4cca-17fbc5e872da",
+      "layout": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 63,
+        "i": "4888f9eb-501b-1bfd-4cca-17fbc5e872da",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "increase(mongodb_mongod_wiredtiger_transactions_checkpoint_milliseconds_total{cluster=\"$cluster\", instance=~\"$instance\"}[5m])",
+          "legend": "{{instance}}"
+        }
+      ],
+      "name": "WiredTiger Checkpoint Time",
+      "description": "WiredTiger checkpoint 耗时增量，异常升高通常与磁盘写入压力相关。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "ms"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "id": "1dedd0fb-0605-5880-8d3a-eacd6004c235",
+      "type": "row",
+      "name": "Sharded Cluster",
+      "layout": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 70,
+        "i": "1dedd0fb-0605-5880-8d3a-eacd6004c235",
+        "isResizable": false
+      },
+      "collapsed": true,
+      "version": "3.0.0"
+    },
+    {
+      "type": "timeseries",
+      "id": "c14cd84a-e8a8-a6df-e7f2-b472c4d8d5b0",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 71,
+        "i": "c14cd84a-e8a8-a6df-e7f2-b472c4d8d5b0",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_mongos_sharding_shards_total{cluster=\"$cluster\"}",
+          "legend": "shards"
+        },
+        {
+          "refId": "B",
+          "expr": "mongodb_mongos_sharding_databases_total{cluster=\"$cluster\"}",
+          "legend": "databases"
+        },
+        {
+          "refId": "C",
+          "expr": "mongodb_mongos_sharding_collections_total{cluster=\"$cluster\"}",
+          "legend": "collections"
+        }
+      ],
+      "name": "Shard / Collection Counts",
+      "description": "mongos 视角下的 shard、库和分片集合数量。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "none"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "50bd7496-5cbd-dae4-a427-4bb5af897026",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 71,
+        "i": "50bd7496-5cbd-dae4-a427-4bb5af897026",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_mongos_sharding_shard_chunks_total{cluster=\"$cluster\"}",
+          "legend": "{{shard}}"
+        }
+      ],
+      "name": "Chunk Distribution",
+      "description": "各 shard 的 chunk 分布，用于发现明显不均衡。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "none"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "5da8289e-b4b4-ce3b-7e56-8e9e7209041e",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 71,
+        "i": "5da8289e-b4b4-ce3b-7e56-8e9e7209041e",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_mongos_sharding_balancer_enabled{cluster=\"$cluster\"}",
+          "legend": "balancer enabled"
+        },
+        {
+          "refId": "B",
+          "expr": "mongodb_mongos_sharding_chunks_is_balanced{cluster=\"$cluster\"}",
+          "legend": "chunks balanced"
+        },
+        {
+          "refId": "C",
+          "expr": "mongodb_mongos_sharding_shards_draining_total{cluster=\"$cluster\"}",
+          "legend": "draining shards"
+        }
+      ],
+      "name": "Balancer Status",
+      "description": "Balancer 是否启用、chunk 是否均衡以及是否存在 draining shard。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "none"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "id": "46a616bc-fb08-af56-a0a0-211789e97a53",
+      "layout": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 71,
+        "i": "46a616bc-fb08-af56-a0a0-211789e97a53",
+        "isResizable": true
+      },
+      "version": "3.0.0",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mongodb_mongos_sharding_chunks_total{cluster=\"$cluster\"}",
+          "legend": "chunks"
+        }
+      ],
+      "name": "Total Chunks",
+      "description": "mongos 视角下的分片集群总 chunk 数。",
+      "options": {
+        "tooltip": {
+          "mode": "all",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "standardOptions": {
+          "util": "none"
+        },
+        "thresholds": {
+          "steps": [
+            {
+              "color": "#634CD9",
+              "value": null,
+              "type": "base"
+            }
+          ]
+        }
+      },
+      "custom": {
+        "drawStyle": "lines",
+        "lineInterpolation": "smooth",
+        "spanNulls": false,
+        "lineWidth": 1,
+        "fillOpacity": 0.5,
+        "gradientMode": "none",
+        "stack": "off",
+        "scaleDistribution": {
+          "type": "linear"
+        }
+      },
+      "datasourceCate": "prometheus",
+      "datasourceValue": "${datasource}",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {}
+        }
+      ]
+    }
+  ],
+  "version": "3.0.0"
 }
