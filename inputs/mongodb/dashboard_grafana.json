@@ -2377,7 +2377,8 @@
           "refId": "StandardVariableQuery"
         },
         "regex": "",
-        "sort": 1
+        "sort": 1,
+        "allValue": ".*"
       }
     ]
   },
