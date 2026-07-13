@@ -33,8 +33,10 @@ type SnmpTrap struct {
 }
 
 type TrapVarbind struct {
-	Oid  string `toml:"oid"`
-	Name string `toml:"name"`
+	Oid          string             `toml:"oid"`
+	Name         string             `toml:"name"`
+	Conversion   string             `toml:"conversion"`
+	ConvertRules []snmp.ConvertRule `toml:"convert_rule"`
 }
 
 type TrapMapping struct {
@@ -42,6 +44,14 @@ type TrapMapping struct {
 	Name    string        `toml:"name"`
 	Value   string        `toml:"value"`
 	Varbind []TrapVarbind `toml:"varbind"`
+}
+
+type VarbindConfig struct {
+	Oid          string             `toml:"oid"`
+	Name         string             `toml:"name"`
+	Conversion   string             `toml:"conversion"`
+	ConvertRules []snmp.ConvertRule `toml:"convert_rule"`
+	AsLabel      bool               `toml:"as_label"`
 }
 
 type Instance struct {
@@ -54,6 +64,7 @@ type Instance struct {
 	Path           []string          `toml:"path"`
 	FieldsToLabels []string          `toml:"fields_to_labels"`
 	VarbindMapping map[string]string `toml:"varbind_mapping"`
+	Varbind        []VarbindConfig   `toml:"varbind"`
 	TrapMapping    []TrapMapping     `toml:"trap_mapping"`
 
 	// Settings for version 3
@@ -105,6 +116,10 @@ func (s *Instance) SetTranslator(name string) {
 }
 
 func (s *Instance) Init() error {
+	if err := s.initConvertRules(); err != nil {
+		return err
+	}
+
 	var err error
 	switch s.Translator {
 	case "gosmi":
@@ -126,6 +141,22 @@ func (s *Instance) Init() error {
 	}
 	s.slist = types.NewSampleList()
 	return s.start()
+}
+
+func (s *Instance) initConvertRules() error {
+	for i := range s.Varbind {
+		if err := snmp.InitConvertRules(s.Varbind[i].ConvertRules); err != nil {
+			return fmt.Errorf("initializing varbind[%d]: %w", i, err)
+		}
+	}
+	for i := range s.TrapMapping {
+		for j := range s.TrapMapping[i].Varbind {
+			if err := snmp.InitConvertRules(s.TrapMapping[i].Varbind[j].ConvertRules); err != nil {
+				return fmt.Errorf("initializing trap_mapping[%d].varbind[%d]: %w", i, j, err)
+			}
+		}
+	}
+	return nil
 }
 
 func (s *Instance) start() error {
@@ -295,6 +326,74 @@ func hasOIDPrefix(oid, prefix string) bool {
 	return oid == prefix || strings.HasPrefix(oid, prefix+".")
 }
 
+func normalizeTrapValue(value interface{}) interface{} {
+	converted, err := snmp.ConvertValue("", value)
+	if err != nil {
+		return value
+	}
+	return converted
+}
+
+func findVarbindConfig(varbinds []VarbindConfig, oid string) (*VarbindConfig, string) {
+	var best *VarbindConfig
+	bestPrefix := ""
+	for i := range varbinds {
+		normalizedOid := strings.TrimSuffix(varbinds[i].Oid, ".")
+		if hasOIDPrefix(oid, normalizedOid) && len(normalizedOid) > len(bestPrefix) {
+			best = &varbinds[i]
+			bestPrefix = normalizedOid
+		}
+	}
+	return best, bestPrefix
+}
+
+func convertTrapValue(t translator, varbind gosnmp.SnmpPDU, conversion string, rules []snmp.ConvertRule) interface{} {
+	if len(rules) > 0 {
+		result := snmp.MatchConvertRule(rules, varbind.Value, conversion)
+		if result.Matched {
+			if result.FixedValue {
+				return result.Value
+			}
+			if result.Conversion == "" {
+				return result.Value
+			}
+			converted, err := snmp.ConvertValueStrict(result.Conversion, result.Value)
+			if err != nil {
+				log.Printf("W! failed to apply convert_rule to trap varbind %s value %v with conversion %q: %v", varbind.Name, result.Value, result.Conversion, err)
+				return normalizeTrapValue(varbind.Value)
+			}
+			return converted
+		}
+	}
+
+	if varbind.Type == gosnmp.ObjectIdentifier {
+		value, ok := varbind.Value.(string)
+		if !ok {
+			return nil
+		}
+		if conversion != "" {
+			converted, err := snmp.ConvertValue(conversion, value)
+			if err != nil {
+				log.Printf("W! failed to convert trap varbind %s value %q with conversion %q: %v", varbind.Name, value, conversion, err)
+				return value
+			}
+			return converted
+		}
+		entry, err := t.lookup(value)
+		if err == nil {
+			return entry.OidText
+		}
+		return value
+	}
+
+	converted, err := snmp.ConvertValue(conversion, varbind.Value)
+	if err != nil {
+		log.Printf("W! failed to convert trap varbind %s value %v with conversion %q: %v", varbind.Name, varbind.Value, conversion, err)
+		return normalizeTrapValue(varbind.Value)
+	}
+	return converted
+}
+
 func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFunc {
 	return func(packet *gosnmp.SnmpPacket, addr *net.UDPAddr) {
 		if s.DebugMod {
@@ -364,7 +463,7 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 				tags["name"] = trapName
 			}
 			isAggregated = true
-		} else if len(s.FieldsToLabels) > 0 || len(s.VarbindMapping) > 0 {
+		} else if len(s.FieldsToLabels) > 0 || len(s.VarbindMapping) > 0 || len(s.Varbind) > 0 {
 			isAggregated = true
 		}
 
@@ -378,23 +477,6 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 				continue
 			}
 
-			var value interface{}
-			switch v.Type {
-			case gosnmp.ObjectIdentifier:
-				val, ok := v.Value.(string)
-				if !ok {
-					continue
-				}
-				e, err := s.transl.lookup(val)
-				if err == nil {
-					value = e.OidText
-				} else {
-					value = val
-				}
-			default:
-				value = v.Value
-			}
-
 			varbindName := v.Name
 			e, err := s.transl.lookup(v.Name)
 			if err == nil {
@@ -404,20 +486,26 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 			isLabel := false
 			labelName := ""
 			usedAsValue := false
+			conversion := ""
+			var convertRules []snmp.ConvertRule
+			var trapVarbindMatched bool
+			var globalVarbindMatched bool
 
 			// Step A: Check TrapMapping
 			if trapMatchedMapping != nil {
-				// Check if it's the core value
-				if trapMatchedMapping.Value != "" && hasOIDPrefix(v.Name, trapMatchedMapping.Value) {
-					coreValue = value
-					usedAsValue = true
-				} else {
-					// Check varbind labels (longest prefix wins)
-					bestVBLen := 0
-					for _, vbMapping := range trapMatchedMapping.Varbind {
-						normalizedOid := strings.TrimSuffix(vbMapping.Oid, ".")
-						if hasOIDPrefix(v.Name, normalizedOid) && len(normalizedOid) > bestVBLen {
-							bestVBLen = len(normalizedOid)
+				usedAsValue = trapMatchedMapping.Value != "" && hasOIDPrefix(v.Name, trapMatchedMapping.Value)
+
+				// Trap-specific varbind settings take precedence over global settings.
+				bestVBLen := 0
+				for i := range trapMatchedMapping.Varbind {
+					vbMapping := &trapMatchedMapping.Varbind[i]
+					normalizedOid := strings.TrimSuffix(vbMapping.Oid, ".")
+					if hasOIDPrefix(v.Name, normalizedOid) && len(normalizedOid) > bestVBLen {
+						bestVBLen = len(normalizedOid)
+						trapVarbindMatched = true
+						conversion = vbMapping.Conversion
+						convertRules = vbMapping.ConvertRules
+						if !usedAsValue {
 							isLabel = true
 							labelName = vbMapping.Name
 						}
@@ -425,9 +513,25 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 				}
 			}
 
-			// Step B: Check Global configurations if not resolved yet
-			if !isLabel && !usedAsValue {
-				// 1. Rename via VarbindMapping (longest prefix wins)
+			// Step B: Check global structured varbind settings when no trap-specific one matched.
+			if !trapVarbindMatched {
+				if vbConfig, prefix := findVarbindConfig(s.Varbind, v.Name); vbConfig != nil {
+					globalVarbindMatched = true
+					conversion = vbConfig.Conversion
+					convertRules = vbConfig.ConvertRules
+					if !usedAsValue {
+						suffix := v.Name[len(prefix):]
+						varbindName = vbConfig.Name + suffix
+						if vbConfig.AsLabel {
+							isLabel = true
+							labelName = vbConfig.Name
+						}
+					}
+				}
+			}
+
+			// Step C: Apply legacy rename/label settings if no structured mapping resolved the role.
+			if !usedAsValue && !isLabel && !globalVarbindMatched && !trapVarbindMatched {
 				bestPrefix := ""
 				bestMappedName := ""
 				for prefix, mappedName := range s.VarbindMapping {
@@ -441,18 +545,22 @@ func makeTrapHandler(s *Instance, slist *types.SampleList) gosnmp.TrapHandlerFun
 					suffix := v.Name[len(bestPrefix):]
 					varbindName = bestMappedName + suffix
 				}
-
-				// 2. Check FieldsToLabels whitelist (against renamed name)
 				for _, allowedField := range s.FieldsToLabels {
 					if varbindName == allowedField || strings.HasPrefix(varbindName, allowedField+".") {
 						isLabel = true
-						labelName = allowedField // use the base name (no suffix)
+						labelName = allowedField
 						break
 					}
 				}
 			}
 
+			value := convertTrapValue(s.transl, v, conversion, convertRules)
+			if value == nil {
+				continue
+			}
+
 			if usedAsValue {
+				coreValue = value
 				continue
 			} else if isLabel && labelName != "" {
 				tags[labelName] = fmt.Sprintf("%v", value)

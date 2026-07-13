@@ -100,6 +100,19 @@ details.
   #   ".1.3.6.1.2.1.2.2.1.1" = "ifIndex"
   #   ".1.3.6.1.2.1.2.2.1.7" = "ifAdminStatus"
 
+  ## Structured Varbind Configuration (Optional)
+  ## Renames and converts matching varbinds. Rules run in order before
+  ## conversion; if no rule matches, conversion remains the fallback.
+  # [[instances.varbind]]
+  #   oid = ".1.3.6.1.4.1.19046.11.1.1.3.2.1.3"
+  #   name = "fan_speed"
+  #   conversion = "float"
+  #   as_label = false
+  #
+  #   [[instances.varbind.convert_rule]]
+  #     match = "offline"
+  #     value = -1
+
   ## Trap Specific Mappings (Optional)
   ## Defines rules for specific traps. Takes precedence over global
   ## configurations for matched varbinds; unmatched varbinds still
@@ -112,7 +125,14 @@ details.
   #   [[instances.trap_mapping.varbind]]
   #     oid = ".1.3.6.1.2.1.2.2.1.1"
   #     name = "ifIndex"
+  #     conversion = "int"
+  #
+  #     [[instances.trap_mapping.varbind.convert_rule]]
+  #       match = "offline"
+  #       value = -1
 ```
+
+Supported conversions include `string`, `int`, `float`, `float(N)`, `hwaddr`, `ipaddr`, `percent`, and `hextoint:Endian:uintN`. A varbind can contain ordered `convert_rule` entries with `match`, `regex`, `extract`, `value`, and rule-level `conversion`. The first matching rule wins; when no rule matches, the varbind's existing `conversion` is used. Trap-specific varbind settings take precedence over global settings and also apply when the varbind is selected as `trap_mapping.value`. A strict conversion failure after a rule match is logged and the raw value is retained so one malformed trap does not stop the listener.
 
 ### Using a Privileged Port
 

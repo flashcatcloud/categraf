@@ -60,7 +60,19 @@ inherit_tags = ["source"]
 oid = "IF-MIB::ifDescr"
 name = "ifDescr"
 is_tag = true
+
+# 同一个 OID 正常时返回 "34%"，异常时返回 "offline"
+[[instances.table.field]]
+oid = "1.3.6.1.4.1.19046.11.1.1.3.2.1.3"
+name = "fan_speed"
+conversion = "float"
+
+[[instances.table.field.convert_rule]]
+match = "offline"
+value = -1
 ```
+
+`convert_rule` 在字段原有 `conversion` 之前按配置顺序匹配，第一条命中的规则生效。规则支持精确匹配 `match`、Go 正则 `regex`、捕获组提取 `extract`、固定返回值 `value` 和规则级 `conversion`。所有规则均未命中时回退到字段原有 `conversion`，因此上述配置会将 `offline` 转为 `-1`，将 `34%` 按旧的 `conversion = "float"` 转为 `34`。顶层字段使用 `[[instances.field.convert_rule]]`。
 
 ## 采集指标
 

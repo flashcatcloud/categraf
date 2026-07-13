@@ -45,13 +45,35 @@ setcap cap_net_bind_service=+ep /usr/bin/categraf
 # [instances.varbind_mapping]
 #   ".1.3.6.1.2.1.2.2.1.1" = "ifIndex"
 
-# 3. 针对特定 Trap 的映射规则 (trap_mapping)
+# 3. 结构化 Varbind 配置，可重命名、转换并设置是否作为标签
+# [[instances.varbind]]
+#   oid = ".1.3.6.1.4.1.19046.11.1.1.3.2.1.3"
+#   name = "fan_speed"
+#   conversion = "float"
+#   as_label = false
+#
+#   [[instances.varbind.convert_rule]]
+#     match = "offline"
+#     value = -1
+
+# 4. 针对特定 Trap 的映射规则 (trap_mapping)
 # 可以针对特定的 Trap OID 设置核心指标名 (name) 及主值 (value) 的提取。
 # [[instances.trap_mapping]]
 #   oid = ".1.3.6.1.6.3.1.1.5.3"
 #   name = "link_down"
 #   value = ".1.3.6.1.2.1.1.3"  # 将 sysUpTime 提取为主指标的值
+#
+#   [[instances.trap_mapping.varbind]]
+#     oid = ".1.3.6.1.2.1.1.3"
+#     name = "sysUpTime"
+#     conversion = "float"
+#
+#     [[instances.trap_mapping.varbind.convert_rule]]
+#       match = "offline"
+#       value = -1
 ```
+
+`conversion` 支持 `string`、`int`、`float`、`float(N)`、`hwaddr`、`ipaddr`、`percent` 和 `hextoint:Endian:uintN`。`convert_rule` 按配置顺序在 `conversion` 之前匹配，第一条命中的规则生效；所有规则未命中时回退到原有 `conversion`。规则支持 `match`、`regex`、`extract`、`value` 和规则级 `conversion`。特定 Trap 的 varbind 配置优先于全局配置，核心 `value` 也会应用匹配到的转换配置。规则命中后的严格转换失败时会记录警告并保留原始值，监听器不会因单个异常 Trap 停止。
 
 ## 采集指标
 

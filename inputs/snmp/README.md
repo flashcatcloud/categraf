@@ -60,7 +60,19 @@ inherit_tags = ["source"]
 oid = "IF-MIB::ifDescr"
 name = "ifDescr"
 is_tag = true
+
+# The same OID returns "34%" normally and "offline" on failure
+[[instances.table.field]]
+oid = "1.3.6.1.4.1.19046.11.1.1.3.2.1.3"
+name = "fan_speed"
+conversion = "float"
+
+[[instances.table.field.convert_rule]]
+match = "offline"
+value = -1
 ```
+
+`convert_rule` entries are evaluated in configuration order before the field's existing `conversion`, and the first match wins. Rules support exact `match`, Go `regex`, capture expansion through `extract`, fixed `value`, and a rule-level `conversion`. If no rule matches, processing falls back to the field's existing `conversion`. The example maps `offline` to `-1`, while `34%` falls back to `conversion = "float"` and becomes `34`. For top-level fields, use `[[instances.field.convert_rule]]`.
 
 ## Metrics
 

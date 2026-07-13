@@ -14,6 +14,8 @@ import (
 
 	"github.com/Knetic/govaluate"
 	"github.com/gosnmp/gosnmp"
+
+	snmppkg "flashcat.cloud/categraf/pkg/snmp"
 )
 
 const (
@@ -199,6 +201,8 @@ type Field struct {
 	//  "hwaddr" will convert a 6-byte string to a MAC address.
 	//  "ipaddr" will convert the value to an IPv4 or IPv6 address.
 	Conversion string `toml:"conversion"`
+	// ConvertRules provides ordered mapping/extraction rules prior to type conversion.
+	ConvertRules []ConvertRule `toml:"convert_rule"`
 	// Translate tells if the value of the field should be snmptranslated
 	Translate bool `toml:"translate"`
 	// Secondary index table allows to merge data from two tables with different index
@@ -247,9 +251,50 @@ func (f *Field) init(tr Translator) error {
 	if !f.SecondaryIndexTable && !f.SecondaryIndexUse && f.SecondaryOuterJoin {
 		return fmt.Errorf("SecondaryOuterJoin set to true, but field is not being used in join")
 	}
+	if err := snmppkg.InitConvertRules(f.ConvertRules); err != nil {
+		return err
+	}
 
 	f.initialized = true
 	return nil
+}
+
+type ConvertRule = snmppkg.ConvertRule
+
+type convertRuleError struct {
+	err error
+}
+
+func (e *convertRuleError) Error() string {
+	return e.err.Error()
+}
+
+func (e *convertRuleError) Unwrap() error {
+	return e.err
+}
+
+func (f *Field) convertValue(tr Translator, ent gosnmp.SnmpPDU) (interface{}, error) {
+	if len(f.ConvertRules) == 0 {
+		return fieldConvert(tr, f.Conversion, ent)
+	}
+
+	result := snmppkg.MatchConvertRule(f.ConvertRules, ent.Value, f.Conversion)
+	if !result.Matched {
+		return fieldConvert(tr, f.Conversion, ent)
+	}
+	if result.FixedValue {
+		return result.Value, nil
+	}
+	if result.Conversion == "" {
+		return result.Value, nil
+	}
+
+	ent.Value = result.Value
+	converted, err := fieldConvertStrict(tr, result.Conversion, ent)
+	if err != nil {
+		return nil, &convertRuleError{err: fmt.Errorf("convert_rule failed to convert value %q to %s: %w", result.Value, result.Conversion, err)}
+	}
+	return converted, nil
 }
 
 // RTable is the resulting table built from a Table.
@@ -277,6 +322,9 @@ type walkError struct {
 }
 
 func (e *walkError) Error() string {
+	if e.err != nil {
+		return e.msg + ": " + e.err.Error()
+	}
 	return e.msg
 }
 
@@ -343,7 +391,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				pkt.Variables[0].Type != gosnmp.NoSuchObject &&
 				pkt.Variables[0].Type != gosnmp.NoSuchInstance {
 				ent := pkt.Variables[0]
-				fv, err := fieldConvert(tr, f.Conversion, ent)
+				fv, err := f.convertValue(tr, ent)
 				if err != nil {
 					return nil, fmt.Errorf("converting %q (OID %s) for field %s: %w", ent.Value, ent.Name, f.Name, err)
 				}
@@ -391,7 +439,7 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 					}
 				}
 
-				fv, err := fieldConvert(tr, f.Conversion, ent)
+				fv, err := f.convertValue(tr, ent)
 				if err != nil {
 					return &walkError{
 						msg: fmt.Sprintf("converting %q (OID %s) for field %s", ent.Value, ent.Name, f.Name),
@@ -409,9 +457,16 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				if !errors.As(err, &walkErr) {
 					log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
 					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
-				} else {
-					log.Printf("W! snmp walk error:%s(%s), oid:%s", err, walkErr.Unwrap(), oid)
 				}
+				if walkErr.err == nil {
+					continue
+				}
+				var ruleErr *convertRuleError
+				if errors.As(walkErr.err, &ruleErr) {
+					log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
+					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
+				}
+				log.Printf("W! snmp walk error:%s, oid:%s", err, oid)
 			}
 		}
 
@@ -555,8 +610,44 @@ func fieldNonStandardConvertInt64(v string) int64 {
 	}
 }
 
+func fieldNonStandardConvertInt64Strict(v string) (int64, error) {
+	lowerV := strings.ToLower(v)
+	multiplier := int64(1)
+	numeric := lowerV
+
+	for _, unit := range []struct {
+		suffix     string
+		multiplier int64
+	}{
+		{"gb", 1024 * 1024 * 1024}, {"g", 1024 * 1024 * 1024},
+		{"tb", 1024 * 1024 * 1024 * 1024}, {"t", 1024 * 1024 * 1024 * 1024},
+		{"mb", 1024 * 1024}, {"m", 1024 * 1024},
+		{"kb", 1024}, {"k", 1024},
+	} {
+		if strings.HasSuffix(lowerV, unit.suffix) {
+			numeric = strings.TrimSuffix(lowerV, unit.suffix)
+			multiplier = unit.multiplier
+			break
+		}
+	}
+
+	parsed, err := strconv.ParseInt(numeric, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return parsed * multiplier, nil
+}
+
 // fieldConvert converts from any type according to the conv specification
 func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}, err error) {
+	return fieldConvertMode(tr, conv, ent, false)
+}
+
+func fieldConvertStrict(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}, err error) {
+	return fieldConvertMode(tr, conv, ent, true)
+}
+
+func fieldConvertMode(tr Translator, conv string, ent gosnmp.SnmpPDU, strict bool) (v interface{}, err error) {
 	if conv == "" {
 		if bs, ok := ent.Value.([]byte); ok {
 			return string(bs), nil
@@ -566,20 +657,21 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 
 	var d int
 	if _, err := fmt.Sscanf(conv, "float(%d)", &d); err == nil || conv == "float" {
-		floatConv := func(vt string) float64 {
-			var ret float64
+		floatConv := func(vt string) (float64, error) {
 			floatVal, err := heuristicDataExtract(vt)
 			if err != nil {
+				if strict {
+					return 0, err
+				}
 				log.Printf("E! failed to extract float from string: %s, error: %v", vt, err)
 				vf, _ := strconv.ParseFloat(vt, 64)
-				ret = vf / math.Pow10(d)
-			} else {
-				ret = floatVal / math.Pow10(d)
+				return vf / math.Pow10(d), nil
 			}
-			return ret
+			return floatVal / math.Pow10(d), nil
 		}
 
 		v = ent.Value
+		var floatErr error
 		switch vt := v.(type) {
 		case float32:
 			v = float64(vt) / math.Pow10(d)
@@ -606,9 +698,12 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 		case uint64:
 			v = float64(vt) / math.Pow10(d)
 		case []byte:
-			v = floatConv(string(vt))
+			v, floatErr = floatConv(string(vt))
 		case string:
-			v = floatConv(vt)
+			v, floatErr = floatConv(vt)
+		}
+		if floatErr != nil {
+			return nil, floatErr
 		}
 		return v, nil
 	}
@@ -648,11 +743,25 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 		case uint32:
 			v = int64(vt)
 		case uint64:
+			if strict && vt > math.MaxInt64 {
+				return nil, fmt.Errorf("uint64 value %d overflows int64 conversion", vt)
+			}
 			v = int64(vt)
 		case []byte:
-			v = fieldNonStandardConvertInt64(string(vt))
+			if strict {
+				v, err = fieldNonStandardConvertInt64Strict(string(vt))
+			} else {
+				v = fieldNonStandardConvertInt64(string(vt))
+			}
 		case string:
-			v = fieldNonStandardConvertInt64(vt)
+			if strict {
+				v, err = fieldNonStandardConvertInt64Strict(vt)
+			} else {
+				v = fieldNonStandardConvertInt64(vt)
+			}
+		}
+		if err != nil {
+			return nil, err
 		}
 		return v, nil
 	}
@@ -677,6 +786,12 @@ func fieldConvert(tr Translator, conv string, ent gosnmp.SnmpPDU) (v interface{}
 		bv, ok := ent.Value.([]byte)
 		if !ok {
 			return ent.Value, nil
+		}
+		if strict {
+			width := map[string]int{"uint16": 2, "uint32": 4, "uint64": 8}[bit]
+			if width > 0 && len(bv) < width {
+				return nil, fmt.Errorf("invalid length (%d) for %s hex to int conversion; need at least %d bytes", len(bv), bit, width)
+			}
 		}
 
 		switch endian {
