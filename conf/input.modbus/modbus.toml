@@ -12,7 +12,7 @@ name = "hvac_plc"
 # ## "tcp://192.168.1.2:502"
 # ## "file:///dev/ttyUSB0"
 # ## "COM1"
-controller = "tcp://localhost:502"
+#controller = "tcp://localhost:502"
 
 # ## Transmission mode. For TCP controllers, "TCP", "RTUoverTCP", or "ASCIIoverTCP"
 # ## For serial controllers, "RTU" or "ASCII".

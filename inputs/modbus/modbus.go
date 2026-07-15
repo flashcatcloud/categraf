@@ -135,6 +135,9 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
+	if ins.Controller == "" {
+		return types.ErrInstancesEmpty
+	}
 	if ins.Name == "" {
 		return errors.New("device name is empty")
 	}
