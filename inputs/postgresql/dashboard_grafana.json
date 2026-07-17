@@ -673,7 +673,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "increase(postgresql_checkpoints_timed{server=\"$server\",db=\"$db\"}[5m])",
+          "expr": "increase(postgresql_checkpoints_timed{server=\"$server\"}[5m])",
           "legendFormat": "postgresql_checkpoints_timed",
           "range": true,
           "refId": "A"
@@ -684,7 +684,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "increase(postgresql_checkpoints_req{server=\"$server\",db=\"$db\"}[5m])",
+          "expr": "increase(postgresql_checkpoints_req{server=\"$server\"}[5m])",
           "legendFormat": "postgresql_checkpoints_req",
           "range": true,
           "refId": "B"
@@ -744,7 +744,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "increase(postgresql_checkpoint_write_time{server=\"$server\",db=\"$db\"}[5m])",
+          "expr": "increase(postgresql_checkpoint_write_time{server=\"$server\"}[5m])",
           "legendFormat": "checkpoint_write_time",
           "range": true,
           "refId": "A"
@@ -755,7 +755,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "increase(postgresql_checkpoint_sync_time{server=\"$server\",db=\"$db\"}[5m])",
+          "expr": "increase(postgresql_checkpoint_sync_time{server=\"$server\"}[5m])",
           "legendFormat": "checkpoint_sync_time",
           "range": true,
           "refId": "B"
@@ -815,7 +815,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "increase(postgresql_buffers_checkpoint{server=\"$server\",db=\"$db\"}[5m])",
+          "expr": "increase(postgresql_buffers_checkpoint{server=\"$server\"}[5m])",
           "legendFormat": "buffers_checkpoint",
           "range": true,
           "refId": "A"
@@ -826,7 +826,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "increase(postgresql_buffers_clean{server=\"$server\",db=\"$db\"}[5m])",
+          "expr": "increase(postgresql_buffers_clean{server=\"$server\"}[5m])",
           "legendFormat": "buffers_clean",
           "range": true,
           "refId": "B"
@@ -837,7 +837,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "increase(postgresql_buffers_backend{server=\"$server\",db=\"$db\"}[5m])",
+          "expr": "increase(postgresql_buffers_backend{server=\"$server\"}[5m])",
           "legendFormat": "buffers_backend",
           "range": true,
           "refId": "C"
@@ -848,7 +848,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "increase(postgresql_buffers_backend_fsync{server=\"$server\",db=\"$db\"}[5m])",
+          "expr": "increase(postgresql_buffers_backend_fsync{server=\"$server\"}[5m])",
           "legendFormat": "buffers_backend_fsync",
           "range": true,
           "refId": "D"

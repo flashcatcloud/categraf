@@ -1,17 +1,40 @@
 {
-  "name": "postgresql大盘",
-  "tags": "",
+  "name": "PostgreSQL By Categraf",
+  "tags": "categraf,postgresql",
+  "ident": "categraf-postgresql-lab",
   "configs": {
     "var": [
       {
+        "name": "datasource",
+        "type": "datasource",
+        "definition": "prometheus",
+        "defaultValue": 1,
+        "label": "Datasource",
+        "hide": false
+      },
+      {
         "name": "server",
         "type": "query",
-        "definition": "label_values(postgresql_datid,server)"
+        "datasource": {
+          "cate": "prometheus",
+          "value": "${datasource}"
+        },
+        "definition": "label_values(postgresql_datid,server)",
+        "reg": "",
+        "multi": false,
+        "hide": false
       },
       {
         "name": "db",
         "type": "query",
-        "definition": "label_values(postgresql_datid{server=\"$server\"},db)"
+        "datasource": {
+          "cate": "prometheus",
+          "value": "${datasource}"
+        },
+        "definition": "label_values(postgresql_datid{server=\"$server\"},db)",
+        "reg": "",
+        "multi": false,
+        "hide": false
       }
     ],
     "panels": [
@@ -73,7 +96,8 @@
               }
             ]
           }
-        }
+        },
+        "datasourceValue": "${datasource}"
       },
       {
         "type": "stat",
@@ -121,7 +145,8 @@
               }
             ]
           }
-        }
+        },
+        "datasourceValue": "${datasource}"
       },
       {
         "type": "stat",
@@ -169,7 +194,8 @@
               }
             ]
           }
-        }
+        },
+        "datasourceValue": "${datasource}"
       },
       {
         "type": "stat",
@@ -217,7 +243,8 @@
               }
             ]
           }
-        }
+        },
+        "datasourceValue": "${datasource}"
       },
       {
         "targets": [
@@ -271,7 +298,9 @@
           "i": "443aee8c-d1b8-485b-b74f-13fa58b6e7ae",
           "isResizable": true
         },
-        "id": "3dea2872-5904-4abf-b0f8-64afe82b617a"
+        "id": "3dea2872-5904-4abf-b0f8-64afe82b617a",
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}"
       },
       {
         "targets": [
@@ -325,7 +354,9 @@
           "i": "8b85bc95-091a-4868-9bec-b495609d7a04",
           "isResizable": true
         },
-        "id": "dec2c25d-ae70-4e47-bc4f-6dbaa9e72683"
+        "id": "dec2c25d-ae70-4e47-bc4f-6dbaa9e72683",
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}"
       },
       {
         "targets": [
@@ -384,7 +415,9 @@
           "i": "e08d94bb-1a72-4104-8ba0-11ab7317a192",
           "isResizable": true
         },
-        "id": "048d2652-40f1-42ab-a435-7e02d51c98c4"
+        "id": "048d2652-40f1-42ab-a435-7e02d51c98c4",
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}"
       },
       {
         "targets": [
@@ -438,7 +471,9 @@
           "i": "971c5838-7408-4ec7-ae5e-33dcd0f20210",
           "isResizable": true
         },
-        "id": "c89d1e4b-d8ad-402d-bee4-f6d362b4634a"
+        "id": "c89d1e4b-d8ad-402d-bee4-f6d362b4634a",
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}"
       },
       {
         "targets": [
@@ -494,7 +529,9 @@
           "i": "71e28edd-8961-4a7a-be78-3a9a526c89bb",
           "isResizable": true
         },
-        "id": "7ae2c26a-cc2b-435d-9a16-52722c37bedf"
+        "id": "7ae2c26a-cc2b-435d-9a16-52722c37bedf",
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}"
       },
       {
         "type": "row",
@@ -514,11 +551,11 @@
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_checkpoints_timed{server=\"$server\",db=\"$db\"}[5m])",
+            "expr": "increase(postgresql_checkpoints_timed{server=\"$server\"}[5m])",
             "legend": "postgresql_checkpoints_timed"
           },
           {
-            "expr": "increase(postgresql_checkpoints_req{server=\"$server\",db=\"$db\"}[5m])",
+            "expr": "increase(postgresql_checkpoints_req{server=\"$server\"}[5m])",
             "refId": "B",
             "legend": "postgresql_checkpoints_req"
           }
@@ -564,17 +601,19 @@
           "i": "c3d3ccee-719f-4280-8921-367ea5343849",
           "isResizable": true
         },
-        "id": "600a9687-0a1e-4531-b9bc-ccf8589566a2"
+        "id": "600a9687-0a1e-4531-b9bc-ccf8589566a2",
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}"
       },
       {
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_checkpoint_write_time{server=\"$server\",db=\"$db\"}[5m])",
+            "expr": "increase(postgresql_checkpoint_write_time{server=\"$server\"}[5m])",
             "legend": "checkpoint_write_time"
           },
           {
-            "expr": "increase(postgresql_checkpoint_sync_time{server=\"$server\",db=\"$db\"}[5m])",
+            "expr": "increase(postgresql_checkpoint_sync_time{server=\"$server\"}[5m])",
             "refId": "B",
             "legend": "checkpoint_sync_time"
           }
@@ -620,27 +659,29 @@
           "i": "178d8220-3c22-4ea3-909d-71c73fbb3a78",
           "isResizable": true
         },
-        "id": "561012f8-481a-482a-8504-4bdd8c62e8a6"
+        "id": "561012f8-481a-482a-8504-4bdd8c62e8a6",
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}"
       },
       {
         "targets": [
           {
             "refId": "A",
-            "expr": "increase(postgresql_buffers_checkpoint{server=\"$server\",db=\"$db\"}[5m])",
+            "expr": "increase(postgresql_buffers_checkpoint{server=\"$server\"}[5m])",
             "legend": "buffers_checkpoint"
           },
           {
-            "expr": "increase(postgresql_buffers_clean{server=\"$server\",db=\"$db\"}[5m])",
+            "expr": "increase(postgresql_buffers_clean{server=\"$server\"}[5m])",
             "refId": "B",
             "legend": "buffers_clean"
           },
           {
-            "expr": "increase(postgresql_buffers_backend{server=\"$server\",db=\"$db\"}[5m])",
+            "expr": "increase(postgresql_buffers_backend{server=\"$server\"}[5m])",
             "refId": "C",
             "legend": "buffers_backend"
           },
           {
-            "expr": "increase(postgresql_buffers_backend_fsync{server=\"$server\",db=\"$db\"}[5m])",
+            "expr": "increase(postgresql_buffers_backend_fsync{server=\"$server\"}[5m])",
             "refId": "D",
             "legend": "buffers_backend_fsync"
           }
@@ -686,7 +727,9 @@
           "i": "23b6fc64-1a19-422e-b28e-453570af339c",
           "isResizable": true
         },
-        "id": "af9e2a7f-ce09-4de2-8625-e779c770d46d"
+        "id": "af9e2a7f-ce09-4de2-8625-e779c770d46d",
+        "datasourceCate": "prometheus",
+        "datasourceValue": "${datasource}"
       }
     ],
     "version": "2.0.0"
