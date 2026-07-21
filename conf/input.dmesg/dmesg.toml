@@ -1,0 +1,17 @@
+# Collection interval in seconds. The global interval is used when omitted.
+# 采集间隔，单位为秒；不配置时使用全局采集间隔。
+# interval = 15
+
+# Dmesg is disabled by default. Uncomment [[instances]] to enable it.
+# Dmesg 默认不启动，取消下方 [[instances]] 的注释后启用。
+# [[instances]]
+  # Instance interval = global/plugin interval * interval_times.
+  # 实例采集间隔 = 全局/插件采集间隔 * interval_times。
+  # interval_times = 1
+
+  # Additional case-sensitive substrings to count. Built-in keywords are
+  # always enabled. Do not add an empty string because it matches every message.
+  # 需要额外统计的关键字，采用区分大小写的子串匹配。内置关键字始终启用。
+  # 请勿添加空字符串，否则每条消息都会匹配。
+  # external_keywords = []
+  # external_keywords = ["I/O error", "task blocked for more than"]
