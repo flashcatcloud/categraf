@@ -9,6 +9,18 @@
   # 实例采集间隔 = 全局/插件采集间隔 * interval_times。
   # interval_times = 1
 
+  # How many retained kernel messages to read on startup.
+  # "0s" means read only new messages after Categraf starts.
+  # A positive duration such as "1h" reads only retained messages newer than
+  # that duration, using /dev/kmsg's monotonic timestamps without timezone
+  # conversion. "-1" reads all retained messages in the current ring buffer.
+  # 启动时回看多长时间内的内核消息。
+  # "0s" 表示只读取 Categraf 启动后的新消息。
+  # 正数时间段（例如 "1h"）表示只读取 ring buffer 中最近这段时间内的消息，
+  # 过滤基于 /dev/kmsg 的 monotonic 时间戳，不涉及时区转换。
+  # "-1" 表示读取当前 ring buffer 中保留的全部消息。
+  # startup_lookback = "0s"
+
   # Additional case-sensitive substrings to count. Built-in keywords are
   # always enabled. Do not add an empty string because it matches every message.
   # 需要额外统计的关键字，采用区分大小写的子串匹配。内置关键字始终启用。

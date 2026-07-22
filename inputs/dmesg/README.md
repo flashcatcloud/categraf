@@ -34,6 +34,12 @@ To enable the plugin, uncomment `[[instances]]` and configure it as needed:
   # Instance interval = global/plugin interval * interval_times.
   # interval_times = 1
 
+  # How many retained kernel messages to read on startup.
+  # "0s" reads only new messages after Categraf starts.
+  # "1h" reads retained messages from the last hour, then new messages.
+  # "-1" reads all retained messages in the current ring buffer.
+  startup_lookback = "0s"
+
   # Additional case-sensitive substrings to count.
   # Do not configure an empty string because it matches every message.
   external_keywords = [
@@ -67,9 +73,26 @@ All metrics are prefixed with `dmesg_`:
 | `dmesg_hit_keyword` | `keyword` | Cumulative number of messages containing the keyword. One time series is emitted for every built-in and configured keyword, including keywords whose count is `0`. |
 
 `dmesg_hit_keyword` is accumulated in memory and resets when Categraf or the
-plugin instance restarts. On startup, the plugin consumes the kernel messages
-that are available through the newly opened `/dev/kmsg` reader, then counts new
-messages as they arrive.
+plugin instance restarts.
+
+By default, `startup_lookback = "0s"` seeks to the end of `/dev/kmsg` during
+startup and counts only messages generated after Categraf starts. This avoids
+counting old kernel errors again when Categraf restarts on a long-running host.
+
+If `startup_lookback` is set to a positive duration such as `"1h"`, the plugin
+reads the current kernel ring buffer from the beginning but only counts messages
+whose `/dev/kmsg` monotonic timestamp is within that lookback window. This is a
+relative duration filter and does not use wall-clock time or timezone
+conversion. A large lookback window can still count recent messages again after
+a Categraf restart.
+
+Set `startup_lookback = "-1"` only when you explicitly want to read all retained
+messages in the current kernel ring buffer.
+
+For alerting, prefer a range expression such as `increase(dmesg_hit_keyword[5m])
+> 0` to detect newly counted messages. A direct `dmesg_hit_keyword > 0` check is
+sticky for the life of the Categraf process once a matching message has been
+counted.
 
 ## Testing
 

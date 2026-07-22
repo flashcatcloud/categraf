@@ -15,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/types"
+	"golang.org/x/sys/unix"
 )
 
 const inputName = "dmesg"
@@ -54,11 +55,13 @@ type Instance struct {
 	config.InstanceConfig
 
 	ExternalKeywords []string `toml:"external_keywords"`
+	StartupLookback  string   `toml:"startup_lookback"`
 
 	conn syscall.RawConn
 	file *os.File
 
-	errorList map[string]int
+	errorList        map[string]int
+	startupMinTsUsec int64
 }
 
 func (ins *Instance) Init() error {
@@ -68,6 +71,13 @@ func (ins *Instance) Init() error {
 	f, err := os.OpenFile("/dev/kmsg", syscall.O_RDONLY|syscall.O_NONBLOCK, 0)
 	if err != nil {
 		log.Println("Error opening /dev/kmsg:", err)
+		return err
+	}
+
+	ins.startupMinTsUsec, err = setupStartupPosition(f, ins.StartupLookback, monotonicUsec)
+	if err != nil {
+		f.Close()
+		log.Println("Error setting /dev/kmsg read position:", err)
 		return err
 	}
 
@@ -167,6 +177,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 	slist.PushFront(types.NewSample(inputName, "up", 1, nil))
 	for _, d := range msgs {
+		if ins.startupMinTsUsec > 0 && d.TsUsec < ins.startupMinTsUsec {
+			continue
+		}
 		for keyword := range ins.errorList {
 			if strings.Contains(d.Text, keyword) {
 				ins.errorList[keyword]++
@@ -179,6 +192,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		}))
 	}
 
+}
+
+func monotonicUsec() (int64, error) {
+	var ts unix.Timespec
+	if err := unix.ClockGettime(unix.CLOCK_MONOTONIC, &ts); err != nil {
+		return 0, err
+	}
+	return ts.Sec*1e6 + ts.Nsec/1e3, nil
 }
 
 func (ins *Instance) Cleanup() {
