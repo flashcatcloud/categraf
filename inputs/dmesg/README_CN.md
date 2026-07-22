@@ -26,6 +26,12 @@ W! no instances for input:dmesg
   # 实例采集间隔 = 全局/插件采集间隔 * interval_times。
   # interval_times = 1
 
+  # 启动时回看多长时间内的内核消息。
+  # "0s" 表示只读取 Categraf 启动后的新消息。
+  # "1h" 表示读取最近 1 小时内的已保留消息，然后继续读取新消息。
+  # "-1" 表示读取当前 ring buffer 中保留的全部消息。
+  startup_lookback = "0s"
+
   # 需要额外统计的关键字，采用区分大小写的子串匹配。
   # 请勿配置空字符串，否则每条消息都会匹配。
   external_keywords = [
@@ -58,7 +64,15 @@ W! no instances for input:dmesg
 | `dmesg_up` | 无 | 本次读取成功时为 `1`，读取 `/dev/kmsg` 失败时为 `0`。打开 `/dev/kmsg` 失败发生在初始化阶段，错误会记录在 Categraf 日志中。 |
 | `dmesg_hit_keyword` | `keyword` | 包含对应关键字的内核消息累计数量。每个内置和自定义关键字都会产生一条时间序列，计数为 `0` 时也会上报。 |
 
-`dmesg_hit_keyword` 在内存中累计，Categraf 或插件实例重启后会重新计数。插件启动时会先消费新打开的 `/dev/kmsg` 读取器中可用的内核消息，之后继续统计新产生的消息。
+`dmesg_hit_keyword` 在内存中累计，Categraf 或插件实例重启后会重新计数。
+
+默认 `startup_lookback = "0s"` 会在启动时将 `/dev/kmsg` 定位到末尾，只统计 Categraf 启动后新产生的消息。这样可以避免长时间运行的机器上，Categraf 重启后再次统计很久以前的内核错误。
+
+如果将 `startup_lookback` 设置为正数时间段，例如 `"1h"`，插件会从当前 kernel ring buffer 的开头读取，但只统计 `/dev/kmsg` monotonic 时间戳落在该回看窗口内的消息。这个过滤基于相对时间段，不使用墙上时间，也不涉及时区转换。较大的回看窗口在 Categraf 重启后仍可能再次统计窗口内的近期消息。
+
+仅当明确需要读取当前 kernel ring buffer 中保留的全部消息时，才设置 `startup_lookback = "-1"`。
+
+告警规则建议使用 `increase(dmesg_hit_keyword[5m]) > 0` 这类范围表达式判断新增命中。直接判断 `dmesg_hit_keyword > 0` 会在本次 Categraf 进程生命周期内保持粘性：只要曾经命中过一次，就会持续大于 0。
 
 ## 测试
 
