@@ -211,14 +211,12 @@ require (
 	go.opentelemetry.io/collector/processor v1.54.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.67.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.43.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260311181403-84a4fc48630c // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
@@ -290,7 +288,7 @@ require (
 	github.com/vmware/govmomi v0.29.0
 	github.com/x448/float16 v0.8.4
 	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
-	google.golang.org/genproto/googleapis/api v0.0.0-20260319201613-d00831a3d3e7
+	google.golang.org/genproto/googleapis/api v0.0.0-20260414002931-afd174a4e478
 	howett.net/plist v1.0.1
 	k8s.io/kubelet v0.29.2
 )
@@ -298,14 +296,14 @@ require (
 replace gopkg.in/yaml.v2 => github.com/rfratto/go-yaml v0.0.0-20211119180816-77389c3526dc
 
 require (
-	github.com/BurntSushi/toml v1.4.0 // indirect
+	github.com/BurntSushi/toml v1.4.0
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/alouca/gologger v0.0.0-20120904114645-7d4b7291de9c // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cespare/xxhash/v2 v2.3.0
-	github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 // indirect
+	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/denisenkom/go-mssqldb v0.12.2
 	github.com/dennwc/varint v1.0.0 // indirect
@@ -432,7 +430,7 @@ require (
 	golang.org/x/tools v0.44.0 // indirect
 	google.golang.org/api v0.272.0
 	google.golang.org/genproto v0.0.0-20260217215200-42d3e9bedb6d
-	google.golang.org/grpc v1.79.3
+	google.golang.org/grpc v1.82.1
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.1 // indirect
