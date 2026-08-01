@@ -277,7 +277,7 @@ require (
 	github.com/openconfig/gnmi v0.11.0
 	github.com/opencontainers/selinux v1.13.0
 	github.com/percona/percona-toolkit v0.0.0-20211210121818-b2860eee3152
-	github.com/pion/dtls/v3 v3.1.2
+	github.com/pion/dtls/v3 v3.1.4
 	github.com/prometheus-community/go-runit v0.1.0
 	github.com/prometheus-community/pro-bing v0.1.0
 	github.com/safchain/ethtool v0.3.0
