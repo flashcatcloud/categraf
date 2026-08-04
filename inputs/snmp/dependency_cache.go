@@ -103,15 +103,6 @@ func (c *dependencyCache) disable() {
 	c.clearLocked()
 }
 
-func (c *dependencyCache) clear() {
-	if c == nil {
-		return
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.clearLocked()
-}
-
 func (c *dependencyCache) clearLocked() {
 	c.tableFields = make(map[dependencyFieldKey]dependencySnapshot)
 	c.secondary = make(map[string]secondarySnapshot)

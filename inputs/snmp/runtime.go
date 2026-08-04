@@ -329,12 +329,6 @@ func (rt *agentRuntime) completeGather(maxFailCount int, recoveryInterval time.D
 	return stats
 }
 
-func (rt *agentRuntime) recordSuccess() {
-	rt.mu.Lock()
-	defer rt.mu.Unlock()
-	rt.recordSuccessLocked()
-}
-
 func (rt *agentRuntime) isHealthy() bool {
 	rt.mu.Lock()
 	defer rt.mu.Unlock()

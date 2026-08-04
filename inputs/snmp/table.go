@@ -107,7 +107,7 @@ func (t *Table) Init(tr Translator) error {
 		filterExpression := ""
 		for idx, filter := range t.Filters {
 			const escapeMarker = "##COLON##"
-			processedFilter := strings.Replace(filter, "\\:", escapeMarker, -1)
+			processedFilter := strings.ReplaceAll(filter, "\\:", escapeMarker)
 
 			fields := strings.Split(processedFilter, ":")
 			if t.filterFormat == 0 {
@@ -118,7 +118,7 @@ func (t *Table) Init(tr Translator) error {
 			}
 			switch t.filterFormat {
 			case commonFormat:
-				fields[1] = strings.Replace(fields[1], escapeMarker, ":", -1)
+				fields[1] = strings.ReplaceAll(fields[1], escapeMarker, ":")
 				re, err := regexp.Compile(fields[1])
 				if err != nil {
 					return fmt.Errorf("filters %q regexp compile error: %w", filter, err)
@@ -137,7 +137,7 @@ func (t *Table) Init(tr Translator) error {
 				}
 
 			case fullFormat:
-				fields[2] = strings.Replace(fields[2], escapeMarker, ":", -1)
+				fields[2] = strings.ReplaceAll(fields[2], escapeMarker, ":")
 				re, err := regexp.Compile(fields[2])
 				if err != nil {
 					return fmt.Errorf("filters %q regexp compile error: %w", filter, err)
@@ -617,18 +617,6 @@ func (t Table) isFilterDependency(f Field) bool {
 			continue
 		}
 		if f.Name == filter.fieldName {
-			return true
-		}
-	}
-	return false
-}
-
-func (t Table) hasAmbiguousFilterDependency() bool {
-	if len(t.filtersMap) == 0 {
-		return false
-	}
-	for _, filter := range t.filtersMap {
-		if filter == nil || filter.fieldName == "" {
 			return true
 		}
 	}
