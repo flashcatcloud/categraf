@@ -26,6 +26,19 @@ agents = [
 # 异常后隔多久再检查
 # recovery_interval="5m"
 
+## Table collection error policy.
+##   legacy:  default behavior. A field error fails the current table.
+##   partial: keep successfully collected value fields, but fail closed when
+##            tag, filter, secondary-index, or inherited-tag dependencies are unknown.
+# default_table_error_policy = "legacy"
+
+## Dependency cache for partial error policy.
+## The cache only stores dependency values such as tags, filter fields,
+## secondary-index mappings, and top-level inherited tags. A zero TTL disables it.
+# dependency_cache_ttl = "0s"
+## Maximum dependency cache entries per agent. A zero value uses the built-in default.
+# dependency_cache_max_entries = 0
+
 ## SNMP version; can be 1, 2, or 3.
 # version = 2
 
@@ -92,6 +105,7 @@ agents = [
 # filters = ["A:ifIndex:^2$","B:ifOperStatus:1", "C:ifDescr:^eno*"]
 # filters_expression = "(A && B) || C"
 # filters_mode = "strict"
+# error_policy = "partial"
 
 #[[instances.table.field]]
 #oid = "IF-MIB::ifDescr"
