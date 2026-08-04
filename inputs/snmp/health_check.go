@@ -1,157 +1,103 @@
 package snmp
 
 import (
+	"fmt"
 	"log"
 	"time"
 
 	coreconfig "flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/types"
 )
 
 func (ins *Instance) StartHealthMonitor() {
-	if ins.healthMonitorStarted {
-		return
-	}
-
-	ins.healthMonitorStarted = true
-
-	go func() {
-		ticker := time.NewTicker(time.Duration(ins.HealthCheckInterval))
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				for i, agent := range ins.Agents {
-					go ins.checkAgentHealth(i, agent)
-				}
-			case <-ins.stop:
-				return
-			}
-		}
-
-	}()
+	// Recovery-only health checks are driven by Gather. Keep this method as a
+	// compatibility no-op for callers and tests that still invoke it.
+	ins.healthMonitorStartOnce.Do(func() {})
 }
 
-func (ins *Instance) checkAgentHealth(i int, agent string) {
-	val, exists := ins.targetStatus.Load(agent)
-	if !exists {
-		newStatus := &TargetStatus{
-			healthy:  true,
-			lastSeen: time.Now(),
-		}
-		val, _ = ins.targetStatus.LoadOrStore(agent, newStatus)
+func (ins *Instance) runtime(i int) *agentRuntime {
+	if i >= 0 && i < len(ins.agentRuntimes) && ins.agentRuntimes[i] != nil {
+		return ins.agentRuntimes[i]
 	}
-	status := val.(*TargetStatus)
+	return newAgentRuntime(time.Now())
+}
 
-	// Don't check too frequently if already marked as unhealthy
-	status.mu.RLock()
-	healthy := status.healthy
-	timeSinceLastCheck := time.Since(status.lastSeen)
-	status.mu.RUnlock()
-
-	if !healthy && timeSinceLastCheck < time.Duration(ins.RecoveryInterval) {
-		return
+func (ins *Instance) prepareAgentForGather(slist *types.SampleList, i int, agent string, topTags map[string]string) (bool, *float64) {
+	rt := ins.runtime(i)
+	now := time.Now()
+	if rt.shouldCollect(now) {
+		return true, nil
 	}
 
-	// Create a connection with shorter timeout for health checking
+	if !rt.recoveryDue(now) {
+		log.Printf("Skipping unhealthy agent %s during collection", agent)
+		down := float64(0)
+		ins.up(slist, i, topTags, &down)
+		return false, nil
+	}
+
+	if !rt.beginRecovery(now) {
+		log.Printf("Skipping unhealthy agent %s during recovery probe", agent)
+		down := float64(0)
+		ins.up(slist, i, topTags, &down)
+		return false, nil
+	}
+
+	if err := ins.recoveryProbe(agent, rt); err != nil {
+		log.Printf("Recovery probe: agent %s failed: %s", agent, err)
+		ins.pushRecoveryProbeStats(slist, rt, agent, "failure")
+		rt.finishRecovery(false, time.Duration(ins.RecoveryInterval))
+		down := float64(0)
+		ins.up(slist, i, topTags, &down)
+		return false, nil
+	}
+
+	ins.pushRecoveryProbeStats(slist, rt, agent, "success")
+	rt.finishRecovery(true, time.Duration(ins.RecoveryInterval))
+	if old := rt.detachConnection(); old != nil {
+		_ = old.Close()
+	}
+	log.Printf("Agent %s recovered and marked healthy", agent)
+	up := float64(1)
+	return true, &up
+}
+
+func (ins *Instance) recoveryProbe(agent string, rt *agentRuntime) error {
+	if !rt.beginRequest() {
+		return fmt.Errorf("agent runtime is closed")
+	}
+	defer rt.endRequest()
+
 	clientConfig := ins.ClientConfig
 	clientConfig.Timeout = coreconfig.Duration(ins.HealthCheckTimeout)
 
 	gs, err := NewWrapper(clientConfig)
 	if err != nil {
-		log.Printf("Health check: agent %s connection creation error: %s", agent, err)
-		ins.markAgentUnhealthy(agent)
-		return
+		return fmt.Errorf("connection creation error: %w", err)
 	}
-
-	err = gs.SetAgent(agent)
-	if err != nil {
-		log.Printf("Health check: agent %s set agent error: %s", agent, err)
-		ins.markAgentUnhealthy(agent)
-		return
+	gs.setStats(&rt.stats)
+	if err := gs.SetAgent(agent); err != nil {
+		return fmt.Errorf("set agent error: %w", err)
 	}
-
+	if !rt.storeProbeConnection(gs) {
+		return fmt.Errorf("agent runtime is closed")
+	}
+	defer rt.clearProbeConnection(gs)
 	if err := gs.Connect(); err != nil {
-		log.Printf("Health check: agent %s connection error: %s", agent, err)
-		ins.markAgentUnhealthy(agent)
-		return
+		_ = gs.Close()
+		return fmt.Errorf("connection error: %w", err)
 	}
+	defer gs.Close()
 
-	defer gs.Conn.Close()
-
-	// Try a simple get of sysDescr OID to test connectivity
-	oid := ".1.3.6.1.2.1.1.1.0"
-	_, err = gs.Get([]string{oid})
-
-	status.mu.Lock()
-	defer status.mu.Unlock()
-
-	if err != nil {
-		// If already marked unhealthy, increment fail count
-		if status.healthy {
-			status.failCount = 1
-		} else {
-			status.failCount++
-		}
-
-		// Mark as unhealthy after reaching max fail count
-		if status.failCount >= ins.MaxFailCount {
-			if status.healthy {
-				log.Printf("Agent %s marked as unhealthy after %d consecutive failures", agent, status.failCount)
-				status.healthy = false
-			}
-		}
-	} else {
-		// If it was unhealthy before, log recovery
-		if !status.healthy {
-			log.Printf("Agent %s recovered and marked healthy", agent)
-		}
-		status.healthy = true
-		status.failCount = 0
+	rt.requestMu.Lock()
+	before := rt.stats.snapshot()
+	pkt, err := gs.Get([]string{".1.3.6.1.2.1.1.1.0"})
+	after := rt.stats.snapshot()
+	rt.requestMu.Unlock()
+	responsesObserved := after.finishes - before.finishes
+	if pkt != nil && responsesObserved == 0 {
+		responsesObserved = 1
 	}
-
-	status.lastSeen = time.Now()
-}
-
-func (ins *Instance) markAgentUnhealthy(agent string) {
-	val, exists := ins.targetStatus.Load(agent)
-	if !exists {
-		newStatus := &TargetStatus{
-			healthy:   false,
-			lastSeen:  time.Now(),
-			failCount: ins.MaxFailCount,
-		}
-		var loaded bool
-		val, loaded = ins.targetStatus.LoadOrStore(agent, newStatus)
-		if !loaded {
-			return
-		}
-	}
-
-	// Existing status found, update it
-	status := val.(*TargetStatus)
-	status.mu.Lock()
-	defer status.mu.Unlock()
-
-	status.failCount++
-	if status.failCount >= ins.MaxFailCount {
-		if status.healthy {
-			log.Printf("Agent %s marked as unhealthy after %d consecutive failures", agent, status.failCount)
-			status.healthy = false
-		}
-	}
-	status.lastSeen = time.Now()
-}
-
-func (ins *Instance) isAgentHealthy(agent string) bool {
-	val, exists := ins.targetStatus.Load(agent)
-	if !exists {
-		return true // Default to considering it healthy if no status exists
-	}
-
-	// Existing status found, update it
-	status := val.(*TargetStatus)
-	status.mu.RLock()
-	defer status.mu.RUnlock()
-	return status.healthy
+	rt.recordOperation("probe", after.sent-before.sent, after.recv-before.recv, responsesObserved, err)
+	return err
 }

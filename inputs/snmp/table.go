@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"log"
 	"math"
 	"net"
@@ -27,6 +28,11 @@ const (
 
 const (
 	StrictMode = "strict"
+)
+
+const (
+	ErrorPolicyLegacy  = "legacy"
+	ErrorPolicyPartial = "partial"
 )
 
 // Table holds the configuration for an SNMP table.
@@ -58,13 +64,26 @@ type Table struct {
 
 	filterFormat int                `toml:"-"`
 	filtersMap   map[string]*Filter `toml:"-"`
+	ErrorPolicy  string             `toml:"error_policy"`
+
+	dependencyPlan tableDependencyPlan `toml:"-"`
 
 	DebugMode bool
 }
 
 type Filter struct {
-	key string
-	re  *regexp.Regexp
+	key       string
+	fieldName string
+	re        *regexp.Regexp
+}
+
+type tableDependencyPlan struct {
+	Planned                bool
+	TagFields              []string
+	FilterFields           map[string]bool
+	SecondaryProviderIndex int
+	SecondaryConsumers     map[string]bool
+	InheritTags            []string
 }
 
 // Init builds & initializes the nested fields.
@@ -87,7 +106,10 @@ func (t *Table) Init(tr Translator) error {
 		t.filtersMap = make(map[string]*Filter)
 		filterExpression := ""
 		for idx, filter := range t.Filters {
-			fields := strings.Split(filter, ":")
+			const escapeMarker = "##COLON##"
+			processedFilter := strings.Replace(filter, "\\:", escapeMarker, -1)
+
+			fields := strings.Split(processedFilter, ":")
 			if t.filterFormat == 0 {
 				t.filterFormat = len(fields)
 			}
@@ -96,10 +118,15 @@ func (t *Table) Init(tr Translator) error {
 			}
 			switch t.filterFormat {
 			case commonFormat:
+				fields[1] = strings.Replace(fields[1], escapeMarker, ":", -1)
+				re, err := regexp.Compile(fields[1])
+				if err != nil {
+					return fmt.Errorf("filters %q regexp compile error: %w", filter, err)
+				}
 				exprKey := fmt.Sprintf("%s%d", defaultExprPrefix, idx)
 				t.filtersMap[exprKey] = &Filter{
 					key: fields[0],
-					re:  regexp.MustCompile(fields[1]),
+					re:  re,
 				}
 				if t.FilterExpression == "" {
 					if filterExpression == "" {
@@ -110,9 +137,14 @@ func (t *Table) Init(tr Translator) error {
 				}
 
 			case fullFormat:
+				fields[2] = strings.Replace(fields[2], escapeMarker, ":", -1)
+				re, err := regexp.Compile(fields[2])
+				if err != nil {
+					return fmt.Errorf("filters %q regexp compile error: %w", filter, err)
+				}
 				t.filtersMap[fields[0]] = &Filter{
 					key: fields[1],
-					re:  regexp.MustCompile(fields[2]),
+					re:  re,
 				}
 
 				if t.FilterExpression == "" {
@@ -144,9 +176,103 @@ func (t *Table) Init(tr Translator) error {
 			secondaryIndexTablePresent = true
 		}
 	}
+	if err := t.bindFilters(); err != nil {
+		return err
+	}
+	t.dependencyPlan = t.buildDependencyPlan()
 
 	t.initialized = true
 	return nil
+}
+
+func (t Table) buildDependencyPlan() tableDependencyPlan {
+	plan := tableDependencyPlan{
+		Planned:                true,
+		FilterFields:           map[string]bool{},
+		SecondaryProviderIndex: -1,
+		SecondaryConsumers:     map[string]bool{},
+		InheritTags:            append([]string(nil), t.InheritTags...),
+	}
+	for _, f := range t.Fields {
+		if f.IsTag {
+			plan.TagFields = append(plan.TagFields, f.Name)
+		}
+		if t.isFilterDependency(f) {
+			plan.FilterFields[f.Name] = true
+		}
+		if f.SecondaryIndexTable {
+			for i := range t.Fields {
+				if t.Fields[i].Name == f.Name {
+					plan.SecondaryProviderIndex = i
+					break
+				}
+			}
+		}
+		if f.SecondaryIndexUse {
+			plan.SecondaryConsumers[f.Name] = true
+		}
+	}
+	return plan
+}
+
+func (t Table) dependencyPlanForBuild() tableDependencyPlan {
+	if t.dependencyPlan.Planned {
+		return t.dependencyPlan
+	}
+	return t.buildDependencyPlan()
+}
+
+func (t *Table) bindFilters() error {
+	if len(t.filtersMap) == 0 {
+		return nil
+	}
+
+	for name, filter := range t.filtersMap {
+		if filter == nil {
+			return fmt.Errorf("filter %s is nil", name)
+		}
+		fieldName, err := t.bindFilterField(filter.key)
+		if err != nil {
+			return fmt.Errorf("filter %s key %q: %w", name, filter.key, err)
+		}
+		filter.fieldName = fieldName
+	}
+
+	if t.FilterExpression != "" {
+		expr, err := govaluate.NewEvaluableExpression(t.FilterExpression)
+		if err != nil {
+			return fmt.Errorf("filters_expression error: %w", err)
+		}
+		for _, v := range expr.Vars() {
+			if _, ok := t.filtersMap[v]; !ok {
+				return fmt.Errorf("filters_expression references undefined variable %q", v)
+			}
+		}
+	}
+	return nil
+}
+
+func (t *Table) bindFilterField(key string) (string, error) {
+	for _, f := range t.Fields {
+		if f.Name == key {
+			return f.Name, nil
+		}
+	}
+
+	matches := make([]string, 0, 1)
+	for _, f := range t.Fields {
+		if strings.HasPrefix(f.Name, key) {
+			matches = append(matches, f.Name)
+		}
+	}
+	switch len(matches) {
+	case 0:
+		return "", fmt.Errorf("no matching field")
+	case 1:
+		return matches[0], nil
+	default:
+		return "", fmt.Errorf("ambiguous prefix match %v", matches)
+	}
 }
 
 // initBuild initializes the table if it has an OID configured. If so, the
@@ -316,6 +442,156 @@ type RTableRow struct {
 	Fields map[string]interface{} `toml:"fields"`
 }
 
+type BuildResult struct {
+	Table        *RTable
+	Dependencies BuildDependencies
+	Stats        BuildStats
+}
+
+type BuildDependencies struct {
+	TopLevelTags map[string]string
+}
+
+type DependencyState string
+
+const (
+	DependencyStateCurrent     DependencyState = "current"
+	DependencyStateCached      DependencyState = "cached"
+	DependencyStateKnownAbsent DependencyState = "known_absent"
+	DependencyStateUnknown     DependencyState = "unknown"
+)
+
+type FieldError struct {
+	FieldName  string
+	OID        string
+	Operation  string
+	Reason     string
+	Err        error
+	Dependency bool
+	Fatal      bool
+}
+
+type DependencyStatus struct {
+	Type      string
+	FieldName string
+	State     DependencyState
+}
+
+type DependencyCacheEvent struct {
+	Type   string
+	Result string
+}
+
+type BuildStats struct {
+	TableName        string
+	SuccessfulFields int
+	FailedFields     int
+	FieldErrors      []FieldError
+	DependencyStates []DependencyStatus
+	CacheEvents      []DependencyCacheEvent
+	SkippedRows      map[string]int
+	Partial          bool
+	FatalClass       string
+}
+
+func (s *BuildStats) recordFieldSuccess() {
+	s.SuccessfulFields++
+}
+
+func (s *BuildStats) recordFieldError(field Field, oid, operation string, err error, dependency bool) {
+	s.FailedFields++
+	s.FieldErrors = append(s.FieldErrors, FieldError{
+		FieldName:  field.Name,
+		OID:        oid,
+		Operation:  operation,
+		Reason:     classifyFieldError(err),
+		Err:        err,
+		Dependency: dependency,
+		Fatal:      isFatalSNMPError(err),
+	})
+}
+
+func (s *BuildStats) recordFatalFieldError(field Field, oid, operation string, err error, dependency bool) {
+	s.recordFieldError(field, oid, operation, err, dependency)
+	if len(s.FieldErrors) > 0 {
+		s.FieldErrors[len(s.FieldErrors)-1].Fatal = true
+	}
+	s.FatalClass = classifyFatalError(err)
+}
+
+func (s *BuildStats) recordDependency(field Field, depType string, state DependencyState) {
+	s.DependencyStates = append(s.DependencyStates, DependencyStatus{
+		Type:      depType,
+		FieldName: field.Name,
+		State:     state,
+	})
+}
+
+func (s *BuildStats) recordCache(depType, result string) {
+	if result == "" {
+		return
+	}
+	s.CacheEvents = append(s.CacheEvents, DependencyCacheEvent{Type: depType, Result: result})
+}
+
+func (s *BuildStats) skip(reason string) {
+	if s.SkippedRows == nil {
+		s.SkippedRows = map[string]int{}
+	}
+	s.SkippedRows[reason]++
+}
+
+func (s BuildStats) isPartialResult() bool {
+	if !s.Partial {
+		return false
+	}
+	if s.FatalClass != "" {
+		return false
+	}
+	if s.FailedFields > 0 || len(s.CacheEvents) > 0 {
+		return true
+	}
+	for _, n := range s.SkippedRows {
+		if n > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func classifyFieldError(err error) string {
+	if err == nil {
+		return ""
+	}
+	if isFatalSNMPError(err) {
+		return "fatal"
+	}
+	var crErr *convertRuleError
+	if errors.As(err, &crErr) {
+		return "conversion"
+	}
+	if isPermanentSocketError(err) {
+		return "permanent_socket"
+	}
+	if isTransportFailure(err) {
+		return "transport"
+	}
+	return "error"
+}
+
+func classifyFatalError(err error) string {
+	switch {
+	case isFatalSNMPError(err):
+		return "snmp_fatal"
+	case isPermanentSocketError(err):
+		return "permanent_socket"
+	case isTransportFailure(err):
+		return "transport"
+	default:
+		return "fatal"
+	}
+}
+
 type walkError struct {
 	msg string
 	err error
@@ -332,31 +608,369 @@ func (e *walkError) Unwrap() error {
 	return e.err
 }
 
+func (t Table) isFilterDependency(f Field) bool {
+	if len(t.filtersMap) == 0 {
+		return false
+	}
+	for _, filter := range t.filtersMap {
+		if filter == nil {
+			continue
+		}
+		if f.Name == filter.fieldName {
+			return true
+		}
+	}
+	return false
+}
+
+func (t Table) hasAmbiguousFilterDependency() bool {
+	if len(t.filtersMap) == 0 {
+		return false
+	}
+	for _, filter := range t.filtersMap {
+		if filter == nil || filter.fieldName == "" {
+			return true
+		}
+	}
+	return false
+}
+
+type rowDependencyState struct {
+	hasCurrentOrdinaryValue bool
+	identityState           DependencyState
+	filterDecision          filterDecision
+}
+
+func rowIdentityState(row RTableRow, tagFieldNames []string, tagStates map[string]DependencyState) DependencyState {
+	state := DependencyStateCurrent
+	for _, name := range tagFieldNames {
+		if _, ok := row.Tags[name]; ok {
+			continue
+		}
+		switch tagStates[name] {
+		case DependencyStateCurrent, DependencyStateCached, DependencyStateKnownAbsent:
+			if state != DependencyStateUnknown {
+				state = DependencyStateKnownAbsent
+			}
+		default:
+			return DependencyStateUnknown
+		}
+	}
+	return state
+}
+
+type filterDecision int
+
+const (
+	filterDecisionNone filterDecision = iota
+	filterDecisionAllow
+	filterDecisionDeny
+	filterDecisionUnknown
+)
+
+func rowGate(partial bool, walk bool, state rowDependencyState) (bool, string) {
+	if partial {
+		switch state.identityState {
+		case DependencyStateUnknown:
+			return false, "identity_unknown"
+		case DependencyStateKnownAbsent:
+			return false, "identity_known_absent"
+		}
+	}
+	if partial && walk && !state.hasCurrentOrdinaryValue {
+		return false, "no_current_value"
+	}
+	switch state.filterDecision {
+	case filterDecisionDeny:
+		return false, "filter_deny"
+	case filterDecisionUnknown:
+		return false, "filter_unknown"
+	default:
+		return true, ""
+	}
+}
+
+type fatalSNMPError struct {
+	err error
+}
+
+func (e *fatalSNMPError) Error() string {
+	return e.err.Error()
+}
+
+func (e *fatalSNMPError) Unwrap() error {
+	return e.err
+}
+
+func newFatalSNMPError(err error) error {
+	return &fatalSNMPError{err: err}
+}
+
+func isFatalSNMPError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var fatalErr *fatalSNMPError
+	if errors.As(err, &fatalErr) {
+		return true
+	}
+	return errors.Is(err, gosnmp.ErrUnknownSecurityLevel) ||
+		errors.Is(err, gosnmp.ErrUnknownUsername) ||
+		errors.Is(err, gosnmp.ErrWrongDigest) ||
+		errors.Is(err, gosnmp.ErrDecryption) ||
+		errors.Is(err, gosnmp.ErrInvalidMsgs) ||
+		errors.Is(err, gosnmp.ErrUnknownSecurityModels) ||
+		errors.Is(err, gosnmp.ErrUnknownPDUHandlers) ||
+		errors.Is(err, gosnmp.ErrUnknownReportPDU)
+}
+
+type tableBuildOptions struct {
+	dependencyCache *dependencyCache
+	tableID         string
+	tableIndex      int
+	topLevel        bool
+	now             time.Time
+}
+
+func (t Table) cacheID(walk bool) string {
+	return t.cacheIDWithIndex(walk, -1)
+}
+
+func (t Table) cacheIDWithIndex(walk bool, tableIndex int) string {
+	hash := fnv.New64a()
+	_, _ = fmt.Fprintf(hash, "name=%s|oid=%s|walk=%t", t.Name, t.Oid, walk)
+	for _, f := range t.Fields {
+		_, _ = fmt.Fprintf(hash, "|field=%s,%s,%s,%d,%t,%t,%t,%t,%t",
+			f.Name, f.Oid, f.OidIndexSuffix, f.OidIndexLength,
+			f.IsTag, f.SecondaryIndexTable, f.SecondaryIndexUse,
+			f.SecondaryOuterJoin, t.isFilterDependency(f))
+	}
+	if !walk {
+		return fmt.Sprintf("top:%016x", hash.Sum64())
+	}
+	if tableIndex >= 0 {
+		return fmt.Sprintf("table:%d:%s:%016x", tableIndex, t.Name, hash.Sum64())
+	}
+	return fmt.Sprintf("table:%s:%016x", t.Name, hash.Sum64())
+}
+
+func dependencyTypeForField(opts tableBuildOptions, f Field, filterDependency bool) string {
+	switch {
+	case opts.topLevel && f.IsTag:
+		return "inherit_tag"
+	case f.IsTag:
+		return "tag"
+	case f.SecondaryIndexTable:
+		return "secondary"
+	case filterDependency:
+		return "filter"
+	default:
+		return "value"
+	}
+}
+
+func (t Table) applyCachedDependency(opts tableBuildOptions, f Field, filterDependency bool, ifv map[string]interface{}, cachedFilterValues map[string]map[string]interface{}, secIdxTab map[string]string, stats *BuildStats) bool {
+	if opts.dependencyCache == nil {
+		if stats != nil {
+			stats.recordCache(dependencyTypeForField(opts, f, filterDependency), dependencyCacheResultDisabled)
+		}
+		return false
+	}
+
+	cacheHit := false
+	depType := dependencyTypeForField(opts, f, filterDependency)
+	if opts.topLevel && f.IsTag {
+		v, ok, result := opts.dependencyCache.topTag(f.Name, opts.now)
+		if stats != nil {
+			stats.recordCache(depType, result)
+		}
+		if ok {
+			ifv[""] = v
+			cacheHit = true
+		}
+		return cacheHit
+	}
+
+	if f.IsTag {
+		values, ok, result := opts.dependencyCache.tableField(opts.tableID, f.Name, opts.now)
+		if stats != nil {
+			stats.recordCache("tag", result)
+		}
+		if ok {
+			for idx, v := range values {
+				ifv[idx] = v
+			}
+			cacheHit = true
+		}
+	}
+	if filterDependency && !f.IsTag {
+		values, ok, result := opts.dependencyCache.tableField(opts.tableID, f.Name, opts.now)
+		if stats != nil {
+			stats.recordCache("filter", result)
+		}
+		if ok {
+			addCachedFilterValues(cachedFilterValues, f.Name, values)
+			cacheHit = true
+		}
+	}
+	if f.SecondaryIndexTable {
+		mapping, ok, result := opts.dependencyCache.secondaryMapping(opts.tableID, opts.now)
+		if stats != nil {
+			stats.recordCache("secondary", result)
+		}
+		if ok {
+			replaceStringMap(secIdxTab, mapping)
+			cacheHit = true
+		}
+	}
+	return cacheHit
+}
+
+func (t Table) storeSuccessfulDependency(opts tableBuildOptions, f Field, filterDependency bool, ifv map[string]interface{}, secIdxTab map[string]string, secGlobalOuterJoin bool) {
+	if opts.dependencyCache == nil {
+		return
+	}
+
+	if opts.topLevel && f.IsTag {
+		if v, ok := ifv[""]; ok {
+			opts.dependencyCache.storeTopTag(f.Name, v, opts.now)
+		} else {
+			opts.dependencyCache.deleteTopTag(f.Name)
+		}
+		return
+	}
+
+	if f.IsTag || filterDependency {
+		opts.dependencyCache.replaceTableField(opts.tableID, f.Name, cacheSnapshotValues(f, ifv, secIdxTab, secGlobalOuterJoin), opts.now)
+	}
+	if f.SecondaryIndexTable {
+		opts.dependencyCache.replaceSecondary(opts.tableID, secIdxTab, opts.now)
+	}
+}
+
+func cacheSnapshotValues(f Field, values map[string]interface{}, secIdxTab map[string]string, secGlobalOuterJoin bool) map[string]interface{} {
+	if !f.SecondaryIndexUse || f.IsTag {
+		return values
+	}
+
+	out := make(map[string]interface{}, len(values))
+	for idx, value := range values {
+		if newidx, ok := secIdxTab[idx]; ok {
+			out[newidx] = value
+			continue
+		}
+		if secGlobalOuterJoin || f.SecondaryOuterJoin {
+			out[".Secondary"+idx] = value
+		}
+	}
+	return out
+}
+
+func addCachedFilterValues(dst map[string]map[string]interface{}, fieldName string, values map[string]interface{}) {
+	for idx, value := range values {
+		if _, ok := dst[idx]; !ok {
+			dst[idx] = map[string]interface{}{}
+		}
+		dst[idx][fieldName] = value
+	}
+}
+
+func replaceStringMap(dst map[string]string, src map[string]string) {
+	for k := range dst {
+		delete(dst, k)
+	}
+	for k, v := range src {
+		dst[k] = v
+	}
+}
+
+func dependencyTagString(v interface{}) (string, bool) {
+	if s, ok := v.(string); ok {
+		return s, s != ""
+	}
+	return fmt.Sprintf("%v", v), true
+}
+
 // Build retrieves all the fields specified in the table and constructs the RTable.
 func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, error) {
-	rows := map[string]RTableRow{}
+	return t.BuildWithCache(gs, walk, tr, tableBuildOptions{
+		tableID:    t.cacheID(walk),
+		tableIndex: -1,
+		now:        time.Now(),
+	})
+}
 
+func (t Table) BuildWithCache(gs snmpConnection, walk bool, tr Translator, opts tableBuildOptions) (*RTable, error) {
+	result, err := t.BuildResultWithCache(gs, walk, tr, opts)
+	if result == nil {
+		return nil, err
+	}
+	return result.Table, err
+}
+
+func (t Table) BuildResultWithCache(gs snmpConnection, walk bool, tr Translator, opts tableBuildOptions) (*BuildResult, error) {
+	if opts.now.IsZero() {
+		opts.now = time.Now()
+	}
+	if opts.tableID == "" {
+		opts.tableID = t.cacheIDWithIndex(walk, opts.tableIndex)
+	}
+	rows := map[string]RTableRow{}
+	rowStates := map[string]*rowDependencyState{}
+	cachedFilterValues := map[string]map[string]interface{}{}
+	dependencies := BuildDependencies{
+		TopLevelTags: map[string]string{},
+	}
+	partial := t.ErrorPolicy == ErrorPolicyPartial
+	stats := BuildStats{
+		TableName:   t.Name,
+		Partial:     partial,
+		SkippedRows: map[string]int{},
+	}
+	emptyResult := func() *BuildResult {
+		return &BuildResult{
+			Table: &RTable{
+				Name: t.Name,
+				Time: time.Now(),
+				Rows: nil,
+			},
+			Dependencies: dependencies,
+			Stats:        stats,
+		}
+	}
+	secondaryMappingUnknown := false
+	plan := t.dependencyPlanForBuild()
+	tagFieldStates := map[string]DependencyState{}
+	filterFieldStates := map[string]DependencyState{}
+	rowStateFor := func(idx string) *rowDependencyState {
+		state, ok := rowStates[idx]
+		if !ok {
+			state = &rowDependencyState{}
+			rowStates[idx] = state
+		}
+		return state
+	}
+
+	fields := append([]Field(nil), t.Fields...)
 	// translation table for secondary index (when preforming join on two tables)
 	secIdxTab := make(map[string]string)
 	secGlobalOuterJoin := false
-	for i, f := range t.Fields {
-		if f.SecondaryIndexTable {
-			secGlobalOuterJoin = f.SecondaryOuterJoin
-			if i != 0 {
-				t.Fields[0], t.Fields[i] = t.Fields[i], t.Fields[0]
-			}
-			break
+	if plan.SecondaryProviderIndex >= 0 && plan.SecondaryProviderIndex < len(fields) {
+		f := fields[plan.SecondaryProviderIndex]
+		secGlobalOuterJoin = f.SecondaryOuterJoin
+		if plan.SecondaryProviderIndex != 0 {
+			fields[0], fields[plan.SecondaryProviderIndex] = fields[plan.SecondaryProviderIndex], fields[0]
 		}
 	}
 
-	tagCount := 0
-	for _, f := range t.Fields {
-		if f.IsTag {
-			tagCount++
-		}
-
+	tagFieldNames := append([]string(nil), plan.TagFields...)
+	for _, f := range fields {
+		filterDependency := plan.FilterFields[f.Name]
+		dependencyField := f.IsTag || f.SecondaryIndexTable || filterDependency
 		if len(f.Oid) == 0 {
-			return nil, fmt.Errorf("cannot have empty OID on field %s", f.Name)
+			err := fmt.Errorf("cannot have empty OID on field %s", f.Name)
+			stats.recordFatalFieldError(f, "", "config", err, dependencyField)
+			return emptyResult(), err
 		}
 		var oid string
 		if f.Oid[0] == '.' {
@@ -368,6 +982,8 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 
 		// ifv contains a mapping of table OID index to field value
 		ifv := map[string]interface{}{}
+		fieldFetchSucceeded := false
+		dependencyState := DependencyState("")
 
 		if !walk {
 			// This is used when fetching non-table fields. Fields configured the top
@@ -376,16 +992,38 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 			// empty string. This results in all the non-table fields sharing the same
 			// index, and being added on the same row.
 			if pkt, err := gs.Get([]string{oid}); err != nil {
-				if errors.Is(err, gosnmp.ErrUnknownSecurityLevel) {
-					return nil, fmt.Errorf("unknown security level (sec_level)")
-				} else if errors.Is(err, gosnmp.ErrUnknownUsername) {
-					return nil, fmt.Errorf("unknown username (sec_name)")
-				} else if errors.Is(err, gosnmp.ErrWrongDigest) {
-					return nil, fmt.Errorf("wrong digest (auth_protocol, auth_password)")
-				} else if errors.Is(err, gosnmp.ErrDecryption) {
-					return nil, fmt.Errorf("decryption error (priv_protocol, priv_password)")
+				if isFatalSNMPError(err) {
+					err = newFatalSNMPError(fmt.Errorf("performing get for field %s(%s): %w", f.Name, oid, err))
+					stats.recordFatalFieldError(f, oid, "get", err, dependencyField)
+					return emptyResult(), err
+				} else if isPermanentSocketError(err) {
+					err = fmt.Errorf("performing get on field %s(%s): %w", f.Name, oid, err)
+					stats.recordFatalFieldError(f, oid, "get", err, dependencyField)
+					return emptyResult(), err
 				} else {
-					return nil, fmt.Errorf("performing get on field %s(%s): %w", f.Name, oid, err)
+					if partial {
+						stats.recordFieldError(f, oid, "get", err, dependencyField)
+						if dependencyField {
+							cacheHit := t.applyCachedDependency(opts, f, filterDependency, ifv, cachedFilterValues, secIdxTab, &stats)
+							if cacheHit {
+								dependencyState = DependencyStateCached
+							} else {
+								dependencyState = DependencyStateUnknown
+							}
+							if f.SecondaryIndexTable && !cacheHit {
+								secondaryMappingUnknown = true
+							}
+						}
+						log.Printf("W! snmp get field error:%s, oid:%s", err, oid)
+						if len(ifv) == 0 {
+							if dependencyField {
+								stats.recordDependency(f, dependencyTypeForField(opts, f, filterDependency), dependencyState)
+							}
+							continue
+						}
+					} else {
+						return emptyResult(), fmt.Errorf("performing get on field %s(%s): %w", f.Name, oid, err)
+					}
 				}
 			} else if pkt != nil && len(pkt.Variables) > 0 &&
 				pkt.Variables[0].Type != gosnmp.NoSuchObject &&
@@ -393,11 +1031,36 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				ent := pkt.Variables[0]
 				fv, err := f.convertValue(tr, ent)
 				if err != nil {
-					return nil, fmt.Errorf("converting %q (OID %s) for field %s: %w", ent.Value, ent.Name, f.Name, err)
+					if partial {
+						stats.recordFieldError(f, oid, "get", err, dependencyField)
+						if dependencyField {
+							cacheHit := t.applyCachedDependency(opts, f, filterDependency, ifv, cachedFilterValues, secIdxTab, &stats)
+							if cacheHit {
+								dependencyState = DependencyStateCached
+							} else {
+								dependencyState = DependencyStateUnknown
+							}
+							if f.SecondaryIndexTable && !cacheHit {
+								secondaryMappingUnknown = true
+							}
+						}
+						log.Printf("W! converting %q (OID %s) for field %s: %s", ent.Value, ent.Name, f.Name, err)
+						if len(ifv) == 0 {
+							if dependencyField {
+								stats.recordDependency(f, dependencyTypeForField(opts, f, filterDependency), dependencyState)
+							}
+							continue
+						}
+					} else {
+						return emptyResult(), fmt.Errorf("converting %q (OID %s) for field %s: %w", ent.Value, ent.Name, f.Name, err)
+					}
+				} else {
+					ifv[""] = fv
+					fieldFetchSucceeded = true
 				}
-				ifv[""] = fv
 			} else {
 				log.Println("W! no info for oid:", oid, "target:", gs.Host())
+				fieldFetchSucceeded = true
 			}
 		} else {
 			err := gs.Walk(oid, func(ent gosnmp.SnmpPDU) error {
@@ -449,29 +1112,101 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 				ifv[idx] = fv
 				return nil
 			})
+			fieldFetchSucceeded = err == nil
 			if err != nil {
 				// Our callback always wraps errors in a walkError.
-				// If this error isn't a walkError, we know it's not
-				// from the callback
 				var walkErr *walkError
 				if !errors.As(err, &walkErr) {
+					// Underlying SNMP walk error.
 					log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
-					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
+					if isFatalSNMPError(err) {
+						err = newFatalSNMPError(fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err))
+						stats.recordFatalFieldError(f, oid, "walk", err, dependencyField)
+						return emptyResult(), err
+					}
+					if isPermanentSocketError(err) {
+						err = fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
+						stats.recordFatalFieldError(f, oid, "walk", err, dependencyField)
+						return emptyResult(), err
+					}
+					if partial {
+						stats.recordFieldError(f, oid, "walk", err, dependencyField)
+						ifv = map[string]interface{}{}
+						if dependencyField {
+							cacheHit := t.applyCachedDependency(opts, f, filterDependency, ifv, cachedFilterValues, secIdxTab, &stats)
+							if cacheHit {
+								dependencyState = DependencyStateCached
+							} else {
+								dependencyState = DependencyStateUnknown
+							}
+							if f.SecondaryIndexTable && !cacheHit {
+								secondaryMappingUnknown = true
+							}
+						}
+						if len(ifv) == 0 {
+							if dependencyField {
+								stats.recordDependency(f, dependencyTypeForField(opts, f, filterDependency), dependencyState)
+							}
+							continue
+						}
+					} else {
+						return emptyResult(), fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
+					}
+				} else if walkErr.err == nil {
+					// Empty sentinel used to break the walk normally.
+					fieldFetchSucceeded = true
+				} else {
+					var ruleErr *convertRuleError
+					if errors.As(walkErr.err, &ruleErr) {
+						log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
+						if !partial {
+							return emptyResult(), fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
+						}
+					} else {
+						log.Printf("W! snmp walk error:%s, oid:%s", err, oid)
+					}
+					if partial {
+						stats.recordFieldError(f, oid, "walk", err, dependencyField)
+						ifv = map[string]interface{}{}
+						if dependencyField {
+							cacheHit := t.applyCachedDependency(opts, f, filterDependency, ifv, cachedFilterValues, secIdxTab, &stats)
+							if cacheHit {
+								dependencyState = DependencyStateCached
+							} else {
+								dependencyState = DependencyStateUnknown
+							}
+							if f.SecondaryIndexTable && !cacheHit {
+								secondaryMappingUnknown = true
+							}
+						}
+						if len(ifv) == 0 {
+							if dependencyField {
+								stats.recordDependency(f, dependencyTypeForField(opts, f, filterDependency), dependencyState)
+							}
+							continue
+						}
+					}
 				}
-				if walkErr.err == nil {
-					continue
-				}
-				var ruleErr *convertRuleError
-				if errors.As(walkErr.err, &ruleErr) {
-					log.Printf("E! snmp walk error:%s, oid:%s ", err, oid)
-					return nil, fmt.Errorf("performing bulk walk for field %s(%s): %w", f.Name, oid, err)
-				}
-				log.Printf("W! snmp walk error:%s, oid:%s", err, oid)
 			}
 		}
 
+		if opts.topLevel && f.IsTag {
+			for _, v := range ifv {
+				if tagValue, ok := dependencyTagString(v); ok {
+					dependencies.TopLevelTags[f.Name] = tagValue
+				}
+				break
+			}
+		}
+
+		fieldRows := map[string]RTableRow{}
+		fieldCurrentRows := map[string]bool{}
+		fieldSecIdxTab := map[string]string{}
 		for idx, v := range ifv {
 			if f.SecondaryIndexUse {
+				if partial && secondaryMappingUnknown {
+					continue
+				}
 				if newidx, ok := secIdxTab[idx]; ok {
 					idx = newidx
 				} else {
@@ -481,46 +1216,96 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 					idx = ".Secondary" + idx
 				}
 			}
-			rtr, ok := rows[idx]
-			if !ok {
-				rtr = RTableRow{}
+			rtr := fieldRows[idx]
+			if rtr.Tags == nil {
 				rtr.Tags = map[string]string{}
-				rtr.Fields = map[string]interface{}{}
-				rows[idx] = rtr
 			}
+			if rtr.Fields == nil {
+				rtr.Fields = map[string]interface{}{}
+			}
+			outputIdx := idx
 			if t.IndexAsTag && idx != "" {
-				if idx[0] == '.' {
-					idx = idx[1:]
+				tagIdx := idx
+				if tagIdx[0] == '.' {
+					tagIdx = tagIdx[1:]
 				}
-				rtr.Tags["index"] = idx
+				rtr.Tags["index"] = tagIdx
 			}
 
 			// don't add an empty string
-			if vs, ok := v.(string); !ok || vs != "" {
-				if f.IsTag {
-					if ok {
-						rtr.Tags[f.Name] = vs
-					} else {
-						rtr.Tags[f.Name] = fmt.Sprintf("%v", v)
-					}
+			vs, ok := v.(string)
+			if ok && vs == "" {
+				continue
+			}
+			if f.IsTag {
+				if ok {
+					rtr.Tags[f.Name] = vs
 				} else {
-					rtr.Fields[f.Name] = v
+					rtr.Tags[f.Name] = fmt.Sprintf("%v", v)
 				}
-				if f.SecondaryIndexTable {
-					// indexes are stored here with prepending "." so we need to add them if needed
-					var vss string
-					if ok {
-						vss = "." + vs
-					} else {
-						vss = fmt.Sprintf(".%v", v)
-					}
-					if idx[0] == '.' {
-						secIdxTab[vss] = idx
-					} else {
-						secIdxTab[vss] = "." + idx
-					}
+			} else {
+				rtr.Fields[f.Name] = v
+			}
+			if fieldFetchSucceeded && !f.IsTag && !f.SecondaryIndexTable {
+				fieldCurrentRows[outputIdx] = true
+			}
+			if f.SecondaryIndexTable {
+				// indexes are stored here with prepending "." so we need to add them if needed
+				var vss string
+				if ok {
+					vss = "." + vs
+				} else {
+					vss = fmt.Sprintf(".%v", v)
+				}
+				if idx[0] == '.' {
+					fieldSecIdxTab[vss] = idx
+				} else {
+					fieldSecIdxTab[vss] = "." + idx
 				}
 			}
+			fieldRows[outputIdx] = rtr
+		}
+		for idx, fieldRow := range fieldRows {
+			rtr, ok := rows[idx]
+			if !ok {
+				rtr = RTableRow{
+					Tags:   map[string]string{},
+					Fields: map[string]interface{}{},
+				}
+			}
+			for k, v := range fieldRow.Tags {
+				rtr.Tags[k] = v
+			}
+			for k, v := range fieldRow.Fields {
+				rtr.Fields[k] = v
+			}
+			rows[idx] = rtr
+		}
+		for k, v := range fieldSecIdxTab {
+			secIdxTab[k] = v
+		}
+		for idx := range fieldCurrentRows {
+			rowStateFor(idx).hasCurrentOrdinaryValue = true
+		}
+		if fieldFetchSucceeded {
+			stats.recordFieldSuccess()
+			if dependencyField {
+				if len(ifv) == 0 {
+					dependencyState = DependencyStateKnownAbsent
+				} else {
+					dependencyState = DependencyStateCurrent
+				}
+				stats.recordDependency(f, dependencyTypeForField(opts, f, filterDependency), dependencyState)
+			}
+			t.storeSuccessfulDependency(opts, f, filterDependency, ifv, secIdxTab, secGlobalOuterJoin)
+		} else if dependencyField && dependencyState != "" {
+			stats.recordDependency(f, dependencyTypeForField(opts, f, filterDependency), dependencyState)
+		}
+		if f.IsTag && dependencyState != "" {
+			tagFieldStates[f.Name] = dependencyState
+		}
+		if filterDependency && dependencyState != "" {
+			filterFieldStates[f.Name] = dependencyState
 		}
 	}
 
@@ -538,51 +1323,87 @@ func (t Table) Build(gs snmpConnection, walk bool, tr Translator) (*RTable, erro
 		expr, err = govaluate.NewEvaluableExpression(t.FilterExpression)
 		if err != nil {
 			log.Println("filters_expression err:", err)
+			if partial {
+				return &BuildResult{Table: &rt, Dependencies: dependencies, Stats: stats}, nil
+			}
 		}
 	}
 	strictMode := t.FilterMode == StrictMode
-	for _, r := range rows {
-		if expr == nil {
-			rt.Rows = append(rt.Rows, r)
-			continue
-		}
+	for idx, r := range rows {
+		decision := filterDecisionNone
 		params := make(map[string]interface{})
-		for rk, rv := range t.filtersMap {
-			if strictMode {
-				params[rk] = false
-			}
-			for k, v := range r.Tags {
-				if strings.HasPrefix(k, rv.key) {
-					if rv.re.MatchString(v) {
-						params[rk] = true
-					} else {
+		filterUnknown := false
+		if expr != nil {
+			for rk, rv := range t.filtersMap {
+				if strictMode && !partial {
+					params[rk] = false
+				}
+				if v, ok := r.Tags[rv.fieldName]; ok {
+					params[rk] = rv.re.MatchString(v)
+					if t.DebugMode {
+						log.Printf("D! snmp filter tags, k:%s, v:%v, rv.key:%s, express:%s, match:%t", rv.fieldName, v, rv.key, rv.re.String(), params[rk])
+					}
+				}
+
+				if v, ok := r.Fields[rv.fieldName]; ok {
+					params[rk] = rv.re.MatchString(fmt.Sprintf("%v", v))
+					if t.DebugMode {
+						log.Printf("D! snmp filter fields, metric:%s, value:%v, rv.key:%s, express:%+v, match:%t", rv.fieldName, v, rv.key, rv.re.String(), params[rk])
+					}
+				}
+				if _, ok := params[rk]; !ok {
+					if cachedFields, ok := cachedFilterValues[idx]; ok {
+						if v, ok := cachedFields[rv.fieldName]; ok {
+							params[rk] = rv.re.MatchString(fmt.Sprintf("%v", v))
+							if t.DebugMode {
+								log.Printf("D! snmp filter cache, metric:%s, value:%v, rv.key:%s, express:%+v, match:%t", rv.fieldName, v, rv.key, rv.re.String(), params[rk])
+							}
+						}
+					}
+				}
+				if _, ok := params[rk]; !ok {
+					switch filterFieldStates[rv.fieldName] {
+					case DependencyStateCurrent, DependencyStateCached, DependencyStateKnownAbsent:
 						params[rk] = false
+					default:
+						filterUnknown = true
 					}
 				}
 			}
-
-			for k, v := range r.Fields {
-				if strings.HasPrefix(k, rv.key) {
-					if rv.re.MatchString(fmt.Sprintf("%v", v)) {
-						params[rk] = true
-					} else {
-						params[rk] = false
+			if filterUnknown && partial {
+				decision = filterDecisionUnknown
+			} else {
+				result, err := expr.Evaluate(params)
+				if err != nil {
+					log.Println("filter expression err:", err)
+					if partial {
+						decision = filterDecisionUnknown
 					}
+				} else if match, ok := result.(bool); ok && match {
+					decision = filterDecisionAllow
+				} else {
+					if t.DebugMode {
+						log.Printf("D! snmp filter tables, params:%v, table:%+v", params, r)
+					}
+					decision = filterDecisionDeny
 				}
 			}
 		}
-		if len(params) != 0 {
-			result, err := expr.Evaluate(params)
-			if err != nil {
-				log.Println("filter expression err:", err)
-			}
-			if match, ok := result.(bool); ok && !match {
-				continue
-			}
+		state := rowDependencyState{
+			identityState:  rowIdentityState(r, tagFieldNames, tagFieldStates),
+			filterDecision: decision,
+		}
+		if rowState, ok := rowStates[idx]; ok {
+			state.hasCurrentOrdinaryValue = rowState.hasCurrentOrdinaryValue
+		}
+		allow, reason := rowGate(partial, walk, state)
+		if !allow {
+			stats.skip(reason)
+			continue
 		}
 		rt.Rows = append(rt.Rows, r)
 	}
-	return &rt, nil
+	return &BuildResult{Table: &rt, Dependencies: dependencies, Stats: stats}, nil
 }
 
 func fieldNonStandardConvertInt64(v string) int64 {

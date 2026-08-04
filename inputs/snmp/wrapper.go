@@ -24,6 +24,25 @@ func (gs GosnmpWrapper) Host() string {
 	return gs.Target
 }
 
+func (gs GosnmpWrapper) Close() error {
+	if gs.Conn == nil {
+		return nil
+	}
+	return gs.Conn.Close()
+}
+
+func (gs GosnmpWrapper) setStats(stats *snmpConnectionStats) {
+	gs.OnSent = func(*gosnmp.GoSNMP) {
+		stats.recordSent()
+	}
+	gs.OnRecv = func(*gosnmp.GoSNMP) {
+		stats.recordRecv()
+	}
+	gs.OnFinish = func(*gosnmp.GoSNMP) {
+		stats.recordFinish()
+	}
+}
+
 // Walk wraps GoSNMP.Walk() or GoSNMP.BulkWalk(), depending on whether the
 // connection is using SNMPv1 or newer.
 func (gs GosnmpWrapper) Walk(oid string, fn gosnmp.WalkFunc) error {
