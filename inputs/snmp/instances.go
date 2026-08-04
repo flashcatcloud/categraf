@@ -227,12 +227,14 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			}
 			topTags := map[string]string{}
 			extraTags := map[string]string{}
-			if m, ok := ins.Mappings[agent]; ok {
-				extraTags = m
-			}
 			for k, v := range insLabels {
 				topTags[k] = v
 				extraTags[k] = v
+			}
+			if m, ok := ins.Mappings[agent]; ok {
+				for k, v := range m {
+					extraTags[k] = v
+				}
 			}
 
 			rt := ins.runtime(i)

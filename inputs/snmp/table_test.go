@@ -1475,6 +1475,60 @@ func TestRuntimeConnectionPermanentSocketErrorClosesCachedConnection(t *testing.
 	assert.Nil(t, rt.cachedConnection())
 }
 
+func TestGatherDoesNotMutateMappingsAndMappingsOverrideLabels(t *testing.T) {
+	agent := "127.0.0.1"
+	mappings := map[string]map[string]string{
+		agent: {
+			"site": "mapped",
+			"rack": "r1",
+		},
+	}
+	rt := newAgentRuntime(time.Now())
+	conn := &mockSnmpConnection{
+		host: agent,
+		walk: func(oid string, fn gosnmp.WalkFunc) error {
+			return fn(gosnmp.SnmpPDU{Name: oid + ".1", Value: "10"})
+		},
+	}
+	require.NoError(t, rt.storeConnection(conn))
+	ins := &Instance{
+		InstanceConfig: config.InstanceConfig{
+			InternalConfig: config.InternalConfig{
+				Labels: map[string]string{
+					"site": "global",
+					"env":  "prod",
+				},
+			},
+		},
+		Agents:        []string{agent},
+		AgentHostTag:  "agent_host",
+		DisableUp:     true,
+		Mappings:      mappings,
+		translator:    mockTranslator{},
+		agentRuntimes: []*agentRuntime{rt},
+		Tables: []Table{
+			{
+				Name: "iface",
+				Fields: []Field{
+					{Name: "value", Oid: ".1.2.3.1", Conversion: "int"},
+				},
+			},
+		},
+	}
+
+	slist := types.NewSampleList()
+	ins.Gather(slist)
+
+	sample, ok := findSampleWithLabels(slist, "snmp_iface_value", map[string]string{
+		"site": "mapped",
+		"rack": "r1",
+		"env":  "prod",
+	})
+	require.True(t, ok)
+	assert.Equal(t, int64(10), sample.Value)
+	assert.Equal(t, map[string]string{"site": "mapped", "rack": "r1"}, mappings[agent])
+}
+
 type mockTranslator struct{}
 
 func (mockTranslator) SnmpTranslate(oid string) (string, string, string, string, error) {
