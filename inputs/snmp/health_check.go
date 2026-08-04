@@ -87,7 +87,9 @@ func (ins *Instance) recoveryProbe(agent string, rt *agentRuntime) error {
 		_ = gs.Close()
 		return fmt.Errorf("connection error: %w", err)
 	}
-	defer gs.Close()
+	defer func() {
+		_ = gs.Close()
+	}()
 
 	rt.requestMu.Lock()
 	before := rt.stats.snapshot()
