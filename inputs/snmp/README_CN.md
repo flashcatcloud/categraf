@@ -35,6 +35,18 @@ community = "public"
 # 自动将目标 agent 的 IP 注入到指定标签中
 agent_host_tag = "ident"
 
+# 表格采集错误策略。默认保持历史行为。
+# 支持的取值：
+#   legacy: 任一表字段失败时，当前表采集失败
+#   partial: 保留已成功采集的数值字段；但 tag、filter、secondary-index、
+#            inherited-tag 等依赖未知时仍然失败
+# default_table_error_policy = "legacy"
+
+# partial 策略使用的依赖缓存。缓存只保存 tag、filter 字段、
+# secondary-index 映射和顶层继承 tag 等依赖值。TTL 为 0 时禁用缓存。
+# dependency_cache_ttl = "0s"
+# dependency_cache_max_entries = 0
+
 # ================================
 # 标量字段 (Scalar Fields) 配置
 # ================================
@@ -55,6 +67,8 @@ oid = "IF-MIB::ifTable"
 name = "interface"
 # 从外层字段中继承指定的 Tag 到表内的所有行中
 inherit_tags = ["source"]
+# 可选的表级覆盖："legacy" 或 "partial"
+# error_policy = "partial"
 
 [[instances.table.field]]
 oid = "IF-MIB::ifDescr"
@@ -73,6 +87,16 @@ value = -1
 ```
 
 `convert_rule` 在字段原有 `conversion` 之前按配置顺序匹配，第一条命中的规则生效。规则支持精确匹配 `match`、Go 正则 `regex`、捕获组提取 `extract`、固定返回值 `value` 和规则级 `conversion`。所有规则均未命中时回退到字段原有 `conversion`，因此上述配置会将 `offline` 转为 `-1`，将 `34%` 按旧的 `conversion = "float"` 转为 `34`。顶层字段使用 `[[instances.field.convert_rule]]`。
+
+### 表格错误策略
+
+`default_table_error_policy` 控制表格采集遇到字段错误时的处理方式。默认值 `legacy` 保持历史行为：任一表字段失败会导致当前表采集失败。设置为 `partial` 后，Categraf 会保留同一张表中已成功采集的数值字段。
+
+`partial` 对会影响行身份或标签正确性的依赖仍然采用 fail-closed 处理，包括 tag 字段、filters、secondary indexes 和 inherited tags。这样可以避免上报标签缺失或标签错配的指标。
+
+`error_policy` 可以配置在单个 `[[instances.table]]` 下，只覆盖该表的策略。
+
+`dependency_cache_ttl` 用于开启 `partial` 模式下的按 agent 维度依赖缓存。缓存内容包括 tag 字段、filter 字段、secondary-index 映射和顶层继承 tag 等依赖值，用于在短暂依赖读取失败时复用最近一次成功值。默认 `0s` 表示禁用缓存。`dependency_cache_max_entries` 限制每个 agent 的缓存条目数；`0` 表示使用内置默认值。
 
 ## 采集指标
 
