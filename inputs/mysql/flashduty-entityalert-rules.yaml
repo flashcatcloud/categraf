@@ -1,0 +1,344 @@
+apiVersion: v1alpha1
+kind: EntityAlertRuleBundle
+requirements:
+  identityLabels:
+    - address
+rules:
+  - name: MySQL 实例不可用
+    labels:
+      service: mysql
+      category: availability
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 无法连接'
+      description: 'Categraf 无法连接或认证到该 MySQL 实例，mysql_up 当前值为 {{ $value }}。请检查实例进程、网络、监听地址及监控账号。'
+    promql: |
+      min by (address) (mysql_up) == 0
+    conditions:
+      Critical:
+        alertingCheckTimes: 3
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 2
+    cronPattern: '@every 30s'
+    delaySeconds: 0
+    repeatInterval: 1800
+    repeatTotal: 5
+
+  - name: MySQL 实例近期重启
+    labels:
+      service: mysql
+      category: availability
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 近期发生过重启'
+      description: '实例运行时长不足 5 分钟，当前 uptime 为 {{ $value }} 秒。请确认重启是否符合预期，并检查错误日志。'
+    promql: |
+      max by (address) (mysql_global_status_uptime) < ${threshold}
+    conditions:
+      Info:
+        alertingCheckTimes: 1
+        args:
+          threshold: "300"
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 1
+    cronPattern: '@every 1m'
+    delaySeconds: 0
+    repeatInterval: 3600
+    repeatTotal: 1
+
+  - name: MySQL 连接使用率过高
+    labels:
+      service: mysql
+      category: capacity
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 连接使用率过高'
+      description: '当前连接数占 max_connections 的 {{ $value }}%。请检查连接泄漏、连接池配置及突发流量。'
+    promql: |
+      100 * max by (address) (mysql_global_status_threads_connected)
+        / max by (address) (mysql_global_variables_max_connections)
+        > ${threshold}
+    conditions:
+      Critical:
+        alertingCheckTimes: 3
+        args:
+          threshold: "90"
+      Warning:
+        alertingCheckTimes: 5
+        args:
+          threshold: "80"
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 3
+    cronPattern: '@every 1m'
+    delaySeconds: 0
+    repeatInterval: 3600
+    repeatTotal: 3
+
+  - name: MySQL 活跃线程占比过高
+    labels:
+      service: mysql
+      category: saturation
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 活跃线程占比过高'
+      description: '当前运行中线程数占 max_connections 的 {{ $value }}%。请排查慢 SQL、锁等待和数据库资源瓶颈。'
+    promql: |
+      100 * max by (address) (mysql_global_status_threads_running)
+        / max by (address) (mysql_global_variables_max_connections)
+        > ${threshold}
+    conditions:
+      Critical:
+        alertingCheckTimes: 3
+        args:
+          threshold: "80"
+      Warning:
+        alertingCheckTimes: 5
+        args:
+          threshold: "60"
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 3
+    cronPattern: '@every 1m'
+    delaySeconds: 0
+    repeatInterval: 3600
+    repeatTotal: 3
+
+  - name: MySQL 文件句柄使用率过高
+    labels:
+      service: mysql
+      category: capacity
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 文件句柄使用率过高'
+      description: '当前打开文件数占 open_files_limit 的 {{ $value }}%。请检查表数量、table_open_cache 和操作系统文件句柄限制。'
+    promql: |
+      100 * max by (address) (mysql_global_status_open_files)
+        / max by (address) (mysql_global_variables_open_files_limit)
+        > ${threshold}
+    conditions:
+      Critical:
+        alertingCheckTimes: 3
+        args:
+          threshold: "90"
+      Warning:
+        alertingCheckTimes: 5
+        args:
+          threshold: "80"
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 3
+    cronPattern: '@every 1m'
+    delaySeconds: 0
+    repeatInterval: 3600
+    repeatTotal: 3
+
+  - name: MySQL 慢查询持续出现
+    labels:
+      service: mysql
+      category: performance
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 持续出现慢查询'
+      description: '最近 5 分钟新增慢查询数为 {{ $value }}。请结合 slow query log 定位高耗时 SQL，并确认 long_query_time 配置。'
+    promql: |
+      max by (address) (increase(mysql_global_status_slow_queries[5m])) > ${threshold}
+    conditions:
+      Critical:
+        alertingCheckTimes: 2
+        args:
+          threshold: "50"
+      Warning:
+        alertingCheckTimes: 2
+        args:
+          threshold: "10"
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 2
+    cronPattern: '@every 1m'
+    delaySeconds: 0
+    repeatInterval: 3600
+    repeatTotal: 3
+
+  - name: MySQL InnoDB 日志写入等待
+    labels:
+      service: mysql
+      category: performance
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 出现 InnoDB 日志写入等待'
+      description: '最近 5 分钟 InnoDB log waits 增量为 {{ $value }}，表示日志缓冲区写入受阻。请检查磁盘延迟、innodb_log_buffer_size 和写入压力。'
+    promql: |
+      max by (address) (increase(mysql_global_status_innodb_log_waits[5m])) > ${threshold}
+    conditions:
+      Critical:
+        alertingCheckTimes: 2
+        args:
+          threshold: "10"
+      Warning:
+        alertingCheckTimes: 2
+        args:
+          threshold: "0"
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 2
+    cronPattern: '@every 1m'
+    delaySeconds: 0
+    repeatInterval: 3600
+    repeatTotal: 3
+
+  - name: MySQL 客户端连接失败过多
+    labels:
+      service: mysql
+      category: connectivity
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 客户端连接失败过多'
+      description: '最近 5 分钟 aborted_connects 增量为 {{ $value }}。请检查账号认证、连接超时、网络质量及 max_connect_errors。'
+    promql: |
+      max by (address) (increase(mysql_global_status_aborted_connects[5m])) > ${threshold}
+    conditions:
+      Critical:
+        alertingCheckTimes: 2
+        args:
+          threshold: "50"
+      Warning:
+        alertingCheckTimes: 2
+        args:
+          threshold: "10"
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 2
+    cronPattern: '@every 1m'
+    delaySeconds: 0
+    repeatInterval: 3600
+    repeatTotal: 3
+
+  - name: MySQL 当前锁等待过多
+    labels:
+      service: mysql
+      category: contention
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 当前锁等待过多'
+      description: '当前 InnoDB row lock waits 为 {{ $value }}。请检查长事务、热点更新和阻塞会话。'
+    promql: |
+      max by (address) (mysql_global_status_innodb_row_lock_current_waits) > ${threshold}
+    conditions:
+      Critical:
+        alertingCheckTimes: 3
+        args:
+          threshold: "10"
+      Warning:
+        alertingCheckTimes: 3
+        args:
+          threshold: "0"
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 2
+    cronPattern: '@every 1m'
+    delaySeconds: 0
+    repeatInterval: 3600
+    repeatTotal: 3
+
+  - name: MySQL 采集耗时过长
+    labels:
+      service: mysql
+      category: monitoring
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 监控采集耗时过长'
+      description: 'Categraf 本次 MySQL 采集耗时为 {{ $value }} 秒。请检查数据库负载、网络延迟及已开启的高开销采集项。'
+    promql: |
+      max by (address) (mysql_scrape_use_seconds) > ${threshold}
+    conditions:
+      Critical:
+        alertingCheckTimes: 3
+        args:
+          threshold: "30"
+      Warning:
+        alertingCheckTimes: 5
+        args:
+          threshold: "10"
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 3
+    cronPattern: '@every 1m'
+    delaySeconds: 0
+    repeatInterval: 3600
+    repeatTotal: 3
+
+  # 以下复制规则需要在 Categraf MySQL 实例配置中开启 gather_slave_status。
+  - name: MySQL 复制 IO 线程未运行
+    labels:
+      service: mysql
+      category: replication
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 复制 IO 线程未运行'
+      description: '至少一个复制通道的 IO 线程未运行。请检查主库连通性、复制账号、错误日志和复制配置。'
+    promql: |
+      min by (address) (mysql_slave_status_slave_io_running) == 0
+    conditions:
+      Critical:
+        alertingCheckTimes: 3
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 2
+    cronPattern: '@every 30s'
+    delaySeconds: 0
+    repeatInterval: 1800
+    repeatTotal: 5
+
+  - name: MySQL 复制 SQL 线程未运行
+    labels:
+      service: mysql
+      category: replication
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 复制 SQL 线程未运行'
+      description: '至少一个复制通道的 SQL 线程未运行。请检查复制错误、数据冲突和 relay log 状态。'
+    promql: |
+      min by (address) (mysql_slave_status_slave_sql_running) == 0
+    conditions:
+      Critical:
+        alertingCheckTimes: 3
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 2
+    cronPattern: '@every 30s'
+    delaySeconds: 0
+    repeatInterval: 1800
+    repeatTotal: 5
+
+  - name: MySQL 复制延迟过高
+    labels:
+      service: mysql
+      category: replication
+      collector: categraf
+    annotations:
+      summary: 'MySQL 实例 {{ $labels.address }} 复制延迟过高'
+      description: '扣除 SQL_Delay 后的最大复制延迟为 {{ $value }} 秒。请检查主从网络、SQL 线程执行能力和大事务。'
+    promql: |
+      max by (address) (
+        mysql_slave_status_seconds_behind_master
+          - mysql_slave_status_sql_delay
+      ) > ${threshold}
+    conditions:
+      Critical:
+        alertingCheckTimes: 3
+        args:
+          threshold: "300"
+      Warning:
+        alertingCheckTimes: 5
+        args:
+          threshold: "30"
+    recovery:
+      mode: not_firing
+    recoveryCheckTimes: 3
+    cronPattern: '@every 1m'
+    delaySeconds: 0
+    repeatInterval: 3600
+    repeatTotal: 3
