@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
-	keyset "flashcat.cloud/categraf/set/key"
 	"io"
 	"log"
 	"net"
@@ -15,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	keyset "flashcat.cloud/categraf/set/key"
 
 	cpuUtil "github.com/shirou/gopsutil/v4/cpu"
 
@@ -82,6 +83,7 @@ func newHTTPClient() (*http.Client, error) {
 	}
 
 	if strings.HasPrefix(config.Config.Heartbeat.Url, "https:") {
+		config.Config.Heartbeat.UseTLS = true
 		tlsCfg, err := config.Config.Heartbeat.TLSConfig()
 		if err != nil {
 			log.Println("E! failed to init tls:", err)
