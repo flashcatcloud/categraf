@@ -49,6 +49,7 @@ import (
 	_ "flashcat.cloud/categraf/inputs/jenkins"
 	_ "flashcat.cloud/categraf/inputs/jolokia_agent"
 	_ "flashcat.cloud/categraf/inputs/jolokia_proxy"
+	_ "flashcat.cloud/categraf/inputs/json_exporter"
 	_ "flashcat.cloud/categraf/inputs/kafka"
 	_ "flashcat.cloud/categraf/inputs/keepalived"
 	_ "flashcat.cloud/categraf/inputs/kernel"
