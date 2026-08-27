@@ -139,6 +139,36 @@ func TestGatherExtractsValueAndObjectMetrics(t *testing.T) {
 	}
 }
 
+func TestCollectObjectMetricFlattensSingleSelectedArray(t *testing.T) {
+	t.Parallel()
+
+	data := []byte(`{
+		"values": [
+			{"id":"id-A","count":1},
+			{"id":"id-B","count":2}
+		]
+	}`)
+	metric := Metric{
+		Name: "value",
+		Type: ObjectScrape,
+		Path: "{.values}",
+		Labels: map[string]string{
+			"id": "{.id}",
+		},
+		Values: map[string]string{
+			"count": "{.count}",
+		},
+	}
+
+	slist := types.NewSampleList()
+	if err := collectMetric(slist, data, metric, nil); err != nil {
+		t.Fatalf("collectMetric() error = %v", err)
+	}
+	samples := indexSamples(slist.PopBackAll())
+	requireSample(t, samples, "json_exporter_value_count", 1, map[string]string{"id": "id-A"})
+	requireSample(t, samples, "json_exporter_value_count", 2, map[string]string{"id": "id-B"})
+}
+
 func TestGatherUsesHTTPConfiguration(t *testing.T) {
 	t.Parallel()
 
