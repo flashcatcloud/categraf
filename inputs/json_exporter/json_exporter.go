@@ -101,6 +101,9 @@ func (ins *Instance) Init() error {
 		if parsed.Scheme != "http" && parsed.Scheme != "https" {
 			return fmt.Errorf("target %q must use http or https", ins.Targets[i])
 		}
+		if parsed.Host == "" {
+			return fmt.Errorf("target %q must include a host", ins.Targets[i])
+		}
 	}
 
 	for i := range ins.Metrics {
@@ -113,7 +116,7 @@ func (ins *Instance) Init() error {
 	if ins.Headers == nil {
 		ins.Headers = make(map[string]string)
 	}
-	if _, ok := ins.Headers["Accept"]; !ok {
+	if !hasHeader(ins.Headers, "Accept") {
 		ins.Headers["Accept"] = "application/json"
 	}
 
@@ -135,6 +138,15 @@ func (ins *Instance) Init() error {
 	}
 	ins.client = client
 	return nil
+}
+
+func hasHeader(headers map[string]string, name string) bool {
+	for key := range headers {
+		if strings.EqualFold(key, name) {
+			return true
+		}
+	}
+	return false
 }
 
 func expandTarget(target string) string {
