@@ -41,6 +41,7 @@ path = "{.counter}"
 labels = { environment = "beta", location = "planet-{.location}" }
 
 ## Select objects, then emit one metric per entry in values for every object.
+## Selecting an array field directly (for example, path = "{.values}") is also supported.
 [[instances.metrics]]
 name = "example_value"
 type = "object"

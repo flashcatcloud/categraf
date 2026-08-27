@@ -50,7 +50,7 @@ json_exporter_value_boolean{id="id-A"} 1
 ## 指标规则
 
 - 未设置 `type` 时默认为 `value`，`path` 从整个 JSON 文档选择一个值。
-- `type = "object"` 时，`path` 先选择对象列表；`values` 中的每个键会生成 `<name>_<键>` 指标，并在每个对象内计算对应 JSONPath。
+- `type = "object"` 时，`path` 先选择对象列表；可以直接写 `{.values}` 选择数组字段，也可以使用 `{.values[*]}` 或 filter 表达式。唯一命中值是数组时，插件会自动展开数组元素。`values` 中的每个键会生成 `<name>_<键>` 指标，并在每个对象内计算对应 JSONPath。
 - `labels` 的值既可以是静态文本，也可以包含 JSONPath，例如 `"planet-{.location}"`。
 - 数字直接转为浮点值；布尔值转为 `true = 1`、`false = 0`。
 - `allow_missing_key = true` 会跳过不存在的路径。

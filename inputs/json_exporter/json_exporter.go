@@ -314,8 +314,8 @@ func collectMetric(slist *types.SampleList, data []byte, metric Metric, baseLabe
 		if err != nil || missing {
 			return err
 		}
-		var items []json.RawMessage
-		if err := json.Unmarshal([]byte(objects), &items); err != nil {
+		items, err := decodeObjectItems(objects)
+		if err != nil {
 			return fmt.Errorf("decode objects selected by %q: %w", metric.Path, err)
 		}
 		for _, item := range items {
@@ -330,6 +330,26 @@ func collectMetric(slist *types.SampleList, data []byte, metric Metric, baseLabe
 	default:
 		return fmt.Errorf("unknown metric type %q", metric.Type)
 	}
+}
+
+func decodeObjectItems(objects string) ([]json.RawMessage, error) {
+	var items []json.RawMessage
+	if err := json.Unmarshal([]byte(objects), &items); err != nil {
+		return nil, err
+	}
+
+	// JSONPath JSON output always wraps matches in an array. If the only match
+	// is itself an array (for example, {.values}), unwrap that result so object
+	// paths such as {.id} are evaluated against each element.
+	if len(items) == 1 && bytes.HasPrefix(bytes.TrimSpace(items[0]), []byte("[")) {
+		var nestedItems []json.RawMessage
+		if err := json.Unmarshal(items[0], &nestedItems); err != nil {
+			return nil, err
+		}
+		return nestedItems, nil
+	}
+
+	return items, nil
 }
 
 func collectValueMetric(slist *types.SampleList, data []byte, name, valuePath, timestampPath string, labelPaths map[string]string, allowMissingKey bool, baseLabels map[string]string) error {
