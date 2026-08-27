@@ -1,0 +1,62 @@
+## Collection interval in seconds. Uses the global interval when omitted.
+# interval = 15
+
+[[instances]]
+targets = [
+#     "http://localhost:8000/data.json",
+]
+
+## Add a label derived from each target URL.
+# url_label_key = "instance"
+# url_label_value = "{{.Host}}"
+
+## interval = global.interval * interval_times
+# interval_times = 1
+
+## HTTP request settings.
+# method = "GET"
+# timeout = "3s"
+# follow_redirects = false
+# disable_keepalives = true
+# valid_status_codes = [200]
+# headers = { "X-From" = "categraf" }
+# username = ""
+# password = ""
+# body = '''{"query":"health"}'''
+# http_proxy = "http://localhost:8888"
+
+## Optional TLS settings.
+# use_tls = false
+# tls_ca = "/etc/categraf/ca.pem"
+# tls_cert = "/etc/categraf/cert.pem"
+# tls_key = "/etc/categraf/key.pem"
+# insecure_skip_verify = false
+# tls_min_version = "1.2"
+# tls_max_version = "1.3"
+
+## A scalar value selected from the whole JSON document.
+[[instances.metrics]]
+name = "example_global_value"
+path = "{.counter}"
+labels = { environment = "beta", location = "planet-{.location}" }
+
+## Select objects, then emit one metric per entry in values for every object.
+## Selecting an array field directly (for example, path = "{.values}") is also supported.
+[[instances.metrics]]
+name = "example_value"
+type = "object"
+path = '''{.values[?(@.state == "ACTIVE")]}'''
+labels = { environment = "beta", id = "{.id}" }
+values = { active = "1", count = "{.count}", boolean = "{.some_boolean}" }
+
+## Missing paths can be ignored instead of logged as collection errors.
+[[instances.metrics]]
+name = "example_missing_key"
+path = "{.missing_key}"
+allow_missing_key = true
+
+## epoch_timestamp is interpreted as Unix milliseconds.
+# [[instances.metrics]]
+# name = "example_timestamped_value"
+# path = "{.counter}"
+# epoch_timestamp = "{.timestamp_ms}"
