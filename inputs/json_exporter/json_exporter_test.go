@@ -6,12 +6,52 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/types"
 )
+
+func TestPluginIsRegistered(t *testing.T) {
+	t.Parallel()
+
+	creator, ok := inputs.InputCreators[inputName]
+	if !ok {
+		t.Fatalf("input %q is not registered", inputName)
+	}
+	if got := creator().Name(); got != inputName {
+		t.Fatalf("registered input name = %q, want %q", got, inputName)
+	}
+}
+
+func TestExampleConfigurationLoads(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join("..", "..", "conf", "input.json_exporter", "json_exporter.toml")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("ReadFile(%q) error = %v", path, err)
+	}
+
+	var plugin JSONExporter
+	if err := cfg.LoadSingleConfig(cfg.ConfigWithFormat{Config: string(data), Format: cfg.TomlFormat}, &plugin); err != nil {
+		t.Fatalf("load example config: %v", err)
+	}
+	if len(plugin.Instances) != 1 {
+		t.Fatalf("instances = %d, want 1", len(plugin.Instances))
+	}
+	if len(plugin.Instances[0].Metrics) < 2 {
+		t.Fatalf("metrics = %d, want at least 2", len(plugin.Instances[0].Metrics))
+	}
+	if got := plugin.Instances[0].Metrics[1].Type; got != ObjectScrape {
+		t.Fatalf("second metric type = %q, want %q", got, ObjectScrape)
+	}
+}
 
 func TestGatherExtractsValueAndObjectMetrics(t *testing.T) {
 	t.Parallel()
