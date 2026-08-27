@@ -232,6 +232,7 @@ func TestInitRejectsInvalidConfiguration(t *testing.T) {
 		{name: "object values are required", ins: &Instance{Targets: []string{"http://example.com"}, Metrics: []Metric{{Name: "value", Path: "{.values[*]}", Type: ObjectScrape}}}},
 		{name: "jsonpath is validated", ins: &Instance{Targets: []string{"http://example.com"}, Metrics: []Metric{{Name: "value", Path: "{.value"}}}},
 		{name: "target scheme is validated", ins: &Instance{Targets: []string{"file:///tmp/data.json"}, Metrics: []Metric{{Name: "value", Path: "{.value}"}}}},
+		{name: "target host is required", ins: &Instance{Targets: []string{"http:///metrics"}, Metrics: []Metric{{Name: "value", Path: "{.value}"}}}},
 	}
 
 	for _, tt := range tests {
@@ -245,6 +246,24 @@ func TestInitRejectsInvalidConfiguration(t *testing.T) {
 	ins := &Instance{Metrics: []Metric{{Name: "value", Path: "{.value}"}}}
 	if err := ins.Init(); !errors.Is(err, types.ErrInstancesEmpty) {
 		t.Fatalf("Init() error = %v, want ErrInstancesEmpty", err)
+	}
+}
+
+func TestInitPreservesCaseInsensitiveAcceptHeader(t *testing.T) {
+	t.Parallel()
+
+	ins := &Instance{
+		Targets: []string{"http://example.com"},
+		Metrics: []Metric{{Name: "value", Path: "{.value}"}},
+		HTTPCommonConfig: config.HTTPCommonConfig{
+			Headers: map[string]string{"accept": "application/vnd.example+json"},
+		},
+	}
+	if err := ins.Init(); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	if len(ins.Headers) != 1 {
+		t.Fatalf("headers = %#v, want one configured Accept header", ins.Headers)
 	}
 }
 
