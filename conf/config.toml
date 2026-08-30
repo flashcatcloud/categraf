@@ -91,6 +91,8 @@ ignore_global_labels = false
 enable = false
 ## ibex flush interval
 interval = "1000ms"
+## maximum time to drain stdout/stderr after the main task process exits
+drain_grace = "5s"
 ## n9e ibex server rpc address
 servers = ["127.0.0.1:20090"]
 ## temp script dir

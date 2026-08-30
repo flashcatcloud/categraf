@@ -10,6 +10,9 @@ commands = [
 # # timeout for each command to complete
 # timeout = 5
 
+# # maximum time to drain stdout/stderr after the main command exits
+# drain_grace = "1s"
+
 # # interval = global.interval * interval_times
 # interval_times = 1
 

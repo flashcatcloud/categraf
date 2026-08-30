@@ -4,6 +4,7 @@ package agent
 
 import (
 	"log"
+	"time"
 
 	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/ibex"
@@ -22,12 +23,15 @@ func NewIbexAgent() AgentModule {
 	if coreconfig.Config.Ibex.MetaDir == "" {
 		coreconfig.Config.Ibex.MetaDir = "tasks.d"
 	}
+	if coreconfig.Config.Ibex.DrainGrace <= 0 {
+		coreconfig.Config.Ibex.DrainGrace = coreconfig.Duration(5 * time.Second)
+	}
 
 	return &IbexAgent{}
 }
 
 func (ia *IbexAgent) Start() error {
-	go ibex.Start()
+	ibex.Start()
 	return nil
 }
 

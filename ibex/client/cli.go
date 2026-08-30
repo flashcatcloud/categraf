@@ -11,22 +11,46 @@ import (
 	"net"
 	"net/rpc"
 	"reflect"
+	"sync"
 	"time"
 
-	"github.com/toolkits/pkg/net/gobrpc"
 	"github.com/ugorji/go/codec"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/ibex/types"
 )
 
-var cli *gobrpc.RPCClient
+var (
+	cliMu sync.RWMutex
+	cli   *rpcClient
+)
 
-func getCli() *gobrpc.RPCClient {
-	if cli != nil {
-		return cli
+type rpcClient struct {
+	client      *rpc.Client
+	callTimeout time.Duration
+}
+
+func (c *rpcClient) Call(method string, args interface{}, reply interface{}, callTimeout ...time.Duration) error {
+	timeout := c.callTimeout
+	if len(callTimeout) > 0 {
+		timeout = callTimeout[0]
 	}
+	call := c.client.Go(method, args, reply, make(chan *rpc.Call, 1))
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return fmt.Errorf("timeout")
+	case completed := <-call.Done:
+		return completed.Error
+	}
+}
 
+func (c *rpcClient) Close() error {
+	return c.client.Close()
+}
+
+func connect() *rpcClient {
 	// detect the fastest server
 	var (
 		address  string
@@ -77,6 +101,9 @@ func getCli() *gobrpc.RPCClient {
 	}
 
 	if address == "" {
+		for _, c := range acm {
+			_ = c.Close()
+		}
 		log.Println("E! no job server found")
 		return nil
 	}
@@ -90,26 +117,41 @@ func getCli() *gobrpc.RPCClient {
 		c.Close()
 	}
 
-	cli = gobrpc.NewRPCClient(address, client, 5*time.Second)
-	return cli
+	return &rpcClient{client: client, callTimeout: 5 * time.Second}
 }
 
-// GetCli 探测所有server端的延迟，自动选择最快的
-func GetCli() *gobrpc.RPCClient {
+// Call serializes client initialization and keeps CloseCli from closing the
+// selected connection while an RPC is in flight. net/rpc.Client itself permits
+// concurrent calls, so established connections use a shared read lock.
+func Call(method string, args interface{}, reply interface{}, callTimeout ...time.Duration) error {
 	for {
-		c := getCli()
+		cliMu.RLock()
+		c := cli
 		if c != nil {
-			return c
+			err := c.Call(method, args, reply, callTimeout...)
+			cliMu.RUnlock()
+			return err
 		}
+		cliMu.RUnlock()
 
-		time.Sleep(time.Second * 10)
+		cliMu.Lock()
+		if cli == nil {
+			cli = connect()
+		}
+		connected := cli != nil
+		cliMu.Unlock()
+		if !connected {
+			time.Sleep(time.Second * 10)
+		}
 	}
 }
 
 // CloseCli 关闭客户端连接
 func CloseCli() {
+	cliMu.Lock()
+	defer cliMu.Unlock()
 	if cli != nil {
-		cli.Close()
+		_ = cli.Close()
 		cli = nil
 	}
 }
@@ -117,7 +159,7 @@ func CloseCli() {
 // Meta 从Server端获取任务元信息
 func Meta(id int64) (script string, args string, account string, stdin string, err error) {
 	var resp types.TaskMetaResponse
-	err = GetCli().Call("Server.GetTaskMeta", id, &resp)
+	err = Call("Server.GetTaskMeta", id, &resp)
 	if err != nil {
 		log.Println("E! rpc call Server.GetTaskMeta:", err)
 		CloseCli()

@@ -25,6 +25,10 @@ func CmdKill(cmd *exec.Cmd) error {
 	return cmd.Process.Kill()
 }
 
+func terminationCausedExit(cmd *exec.Cmd) bool {
+	return cmd != nil && cmd.ProcessState != nil
+}
+
 func ansiToUtf8(mbcs []byte) (string, error) {
 	if mbcs == nil || len(mbcs) <= 0 {
 		return "", nil

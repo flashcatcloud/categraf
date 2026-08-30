@@ -16,6 +16,14 @@ func CmdKill(cmd *exec.Cmd) error {
 	return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 }
 
+func terminationCausedExit(cmd *exec.Cmd) bool {
+	if cmd == nil || cmd.ProcessState == nil {
+		return false
+	}
+	status, ok := cmd.ProcessState.Sys().(syscall.WaitStatus)
+	return ok && status.Signaled()
+}
+
 func ansiToUtf8(mbcs []byte) (string, error) {
 	// fake
 	return string(mbcs), nil

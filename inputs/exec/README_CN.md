@@ -52,6 +52,9 @@ commands = [
 # # 脚本执行的超时时间，必须设置以防止僵尸进程
 # timeout = 5
 
+# # 主进程退出后等待 stdout/stderr 管道关闭的最长时间
+# drain_grace = "1s"
+
 # # 解析脚本输出的格式，可选值: influx, prometheus, falcon
 data_format = "influx"
 ```

@@ -52,6 +52,9 @@ commands = [
 # # Timeout for script execution to prevent zombie processes.
 # timeout = 5
 
+# # maximum time to drain stdout/stderr after the main process exits
+# drain_grace = "1s"
+
 # # Format to parse the stdout data. Options: influx, prometheus, falcon
 data_format = "influx"
 ```
