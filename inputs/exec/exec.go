@@ -2,6 +2,7 @@ package exec
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -27,6 +28,8 @@ const inputName = "exec"
 
 const MaxStderrBytes int = 512
 
+const defaultDrainGrace = time.Second
+
 type Instance struct {
 	config.InstanceConfig
 
@@ -34,6 +37,7 @@ type Instance struct {
 
 	Commands   []string        `toml:"commands"`
 	Timeout    config.Duration `toml:"timeout"`
+	DrainGrace config.Duration `toml:"drain_grace"`
 	DataFormat string          `toml:"data_format"`
 	parser     parser.Parser
 }
@@ -97,6 +101,9 @@ func (ins *Instance) Init() error {
 	if ins.Timeout == 0 {
 		ins.Timeout = config.Duration(time.Second * 5)
 	}
+	if ins.DrainGrace <= 0 {
+		ins.DrainGrace = config.Duration(defaultDrainGrace)
+	}
 
 	return nil
 }
@@ -150,7 +157,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 func (ins *Instance) ProcessCommand(slist *types.SampleList, command string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	out, errbuf, runErr := commandRun(command, time.Duration(ins.Timeout))
+	out, errbuf, runErr := commandRun(command, time.Duration(ins.Timeout), time.Duration(ins.DrainGrace))
 	if runErr != nil || len(errbuf) > 0 {
 		log.Println("E! exec_command:", command, "error:", runErr, "stderr:", string(errbuf))
 		return
@@ -166,7 +173,7 @@ func (ins *Instance) ProcessCommand(slist *types.SampleList, command string, wg 
 	}
 }
 
-func commandRun(command string, timeout time.Duration) ([]byte, []byte, error) {
+func commandRun(command string, timeout, drainGrace time.Duration) ([]byte, []byte, error) {
 	splitCmd, err := QuoteSplit(command)
 	if err != nil || len(splitCmd) == 0 {
 		return nil, nil, fmt.Errorf("exec: unable to parse command, %s", err)
@@ -181,9 +188,14 @@ func commandRun(command string, timeout time.Duration) ([]byte, []byte, error) {
 	cmd.Stdout = &out
 	cmd.Stderr = &stderr
 
-	runError, runTimeout := cmdx.RunTimeout(cmd, timeout)
+	drainGrace = effectiveDrainGrace(timeout, drainGrace)
+	runError, runTimeout := cmdx.RunTimeoutWithDrain(cmd, timeout, drainGrace)
 	if runTimeout {
 		return nil, nil, fmt.Errorf("exec %s timeout", command)
+	}
+	if errors.Is(runError, osExec.ErrWaitDelay) {
+		log.Printf("W! exec_command: %s output drain exceeded %s; stdout/stderr may be truncated", command, drainGrace)
+		runError = nil
 	}
 
 	if stderr.Len() > 0 {
@@ -198,6 +210,16 @@ func commandRun(command string, timeout time.Duration) ([]byte, []byte, error) {
 	out = removeWindowsCarriageReturns(out)
 
 	return out.Bytes(), stderr.Bytes(), nil
+}
+
+func effectiveDrainGrace(timeout, drainGrace time.Duration) time.Duration {
+	if drainGrace <= 0 {
+		drainGrace = defaultDrainGrace
+	}
+	if timeout > 0 && drainGrace >= timeout {
+		drainGrace = timeout / 2
+	}
+	return drainGrace
 }
 
 func truncate(buf bytes.Buffer) bytes.Buffer {

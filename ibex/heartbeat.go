@@ -5,15 +5,21 @@ package ibex
 import (
 	"context"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
+	"sync"
 	"time"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/ibex/client"
 	"flashcat.cloud/categraf/ibex/types"
 )
+
+const shutdownTimeout = 10 * time.Second
+
+var lifecycle struct {
+	sync.Mutex
+	cancel context.CancelFunc
+	done   chan struct{}
+}
 
 func heartbeatCron(ctx context.Context, ib *config.IbexConfig) {
 	log.Println("I! ibex agent start rolling request Server.Report.")
@@ -23,12 +29,12 @@ func heartbeatCron(ctx context.Context, ib *config.IbexConfig) {
 		case <-ctx.Done():
 			return
 		case <-time.After(interval):
-			heartbeat()
+			heartbeat(ctx)
 		}
 	}
 }
 
-func heartbeat() {
+func heartbeat(ctx context.Context) {
 	ident := config.Config.GetHostname()
 	req := types.ReportRequest{
 		Ident:       ident,
@@ -37,7 +43,7 @@ func heartbeat() {
 
 	var resp types.ReportResponse
 
-	err := client.GetCli().Call("Server.Report", req, &resp)
+	err := client.Call("Server.Report", req, &resp)
 
 	if err != nil {
 		log.Println("E! rpc call Server.Report fail:", err)
@@ -47,6 +53,9 @@ func heartbeat() {
 
 	if resp.Message != "" {
 		log.Println("E! error from server:", resp.Message)
+		return
+	}
+	if ctx.Err() != nil {
 		return
 	}
 
@@ -77,27 +86,49 @@ func mapKeys(m map[int64]struct{}) []int64 {
 }
 
 func Start() {
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	ctx, cancel := context.WithCancel(context.Background())
-	go heartbeatCron(ctx, config.Config.Ibex)
-
-EXIT:
-	for {
-		sig := <-sc
-		log.Println("I! ibex agent received signal:", sig.String())
-		switch sig {
-		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
-			break EXIT
-		case syscall.SIGHUP:
-			break EXIT
-		default:
-			break EXIT
-		}
+	lifecycle.Lock()
+	if lifecycle.cancel != nil {
+		lifecycle.Unlock()
+		return
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	lifecycle.cancel = cancel
+	lifecycle.done = done
+	lifecycle.Unlock()
 
-	cancel()
+	Locals.StartAccepting()
+	go func() {
+		defer close(done)
+		heartbeatCron(ctx, config.Config.Ibex)
+	}()
 }
 
 func Stop() {
+	started := time.Now()
+	lifecycle.Lock()
+	cancel := lifecycle.cancel
+	done := lifecycle.done
+	lifecycle.cancel = nil
+	lifecycle.done = nil
+	lifecycle.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+
+	Locals.StopAll(shutdownTimeout)
+	if done == nil {
+		return
+	}
+	remaining := shutdownTimeout - time.Since(started)
+	if remaining <= 0 {
+		return
+	}
+	timer := time.NewTimer(remaining)
+	defer timer.Stop()
+	select {
+	case <-done:
+	case <-timer.C:
+		log.Println("W! timed out waiting for ibex heartbeat worker during shutdown")
+	}
 }

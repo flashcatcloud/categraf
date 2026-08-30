@@ -83,10 +83,11 @@ type HTTP struct {
 }
 
 type IbexConfig struct {
-	Enable   bool
-	Interval Duration `toml:"interval"`
-	MetaDir  string   `toml:"meta_dir"`
-	Servers  []string `toml:"servers"`
+	Enable     bool
+	Interval   Duration `toml:"interval"`
+	DrainGrace Duration `toml:"drain_grace"`
+	MetaDir    string   `toml:"meta_dir"`
+	Servers    []string `toml:"servers"`
 }
 
 type HeartbeatConfig struct {

@@ -3,10 +3,9 @@
 package ibex
 
 import (
-	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
-	"io"
 	"log"
 	"os/exec"
 	"os/user"
@@ -15,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/toolkits/pkg/file"
 	"github.com/toolkits/pkg/sys"
@@ -41,8 +41,38 @@ type Task struct {
 	Account  string
 	StdinStr string
 
-	outCh chan struct{}
-	errCh chan struct{}
+	done                chan struct{}
+	processStarted      bool
+	completing          bool
+	terminationRequests chan string
+
+	// Process hooks use the production implementations by default and are
+	// overridden only by lifecycle boundary tests.
+	startProcess func(*exec.Cmd) error
+	killProcess  func(*exec.Cmd) error
+	afterWait    func()
+}
+
+const defaultDrainGrace = 5 * time.Second
+
+var inactiveTaskDone = func() <-chan struct{} {
+	done := make(chan struct{})
+	close(done)
+	return done
+}()
+
+type taskOutputWriter struct {
+	task   *Task
+	stderr bool
+}
+
+func (w taskOutputWriter) Write(p []byte) (int, error) {
+	w.task.Lock()
+	defer w.task.Unlock()
+	if w.stderr {
+		return w.task.Stderr.Write(p)
+	}
+	return w.task.Stdout.Write(p)
 }
 
 func (t *Task) SetStatus(status string) {
@@ -125,6 +155,25 @@ func (t *Task) ResetBuff() {
 	t.Unlock()
 }
 
+func (t *Task) GetClock() int64 {
+	t.Lock()
+	defer t.Unlock()
+	return t.Clock
+}
+
+func (t *Task) GetAction() string {
+	t.Lock()
+	defer t.Unlock()
+	return t.Action
+}
+
+func (t *Task) SetAssignment(clock int64, action string) {
+	t.Lock()
+	t.Clock = clock
+	t.Action = action
+	t.Unlock()
+}
+
 func (t *Task) doneBefore() bool {
 	doneFlag := filepath.Join(config.Config.Ibex.MetaDir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
 	return file.IsExist(doneFlag)
@@ -139,7 +188,7 @@ func (t *Task) loadResult() {
 
 	var err error
 
-	t.Status, err = file.ReadStringTrim(doneFlag)
+	status, err := file.ReadStringTrim(doneFlag)
 	if err != nil {
 		log.Printf("E! read file %s fail %v", doneFlag, err)
 	}
@@ -152,8 +201,11 @@ func (t *Task) loadResult() {
 		log.Printf("E! read file %s fail %v", stderrFile, err)
 	}
 
+	t.Lock()
+	t.Status = status
 	t.Stdout = *bytes.NewBufferString(stdout)
 	t.Stderr = *bytes.NewBufferString(stderr)
+	t.Unlock()
 }
 
 func (t *Task) prepare() error {
@@ -161,8 +213,6 @@ func (t *Task) prepare() error {
 		// already prepared
 		return nil
 	}
-	t.pipeCreate()
-
 	IdDir := filepath.Join(config.Config.Ibex.MetaDir, fmt.Sprint(t.Id))
 	err := file.EnsureDir(IdDir)
 	if err != nil {
@@ -289,14 +339,32 @@ func (t *Task) prepare() error {
 	return nil
 }
 
+func (t *Task) beginRun() (int64, bool) {
+	t.Lock()
+	defer t.Unlock()
+	if t.alive {
+		return 0, false
+	}
+
+	t.alive = true
+	t.Status = "running"
+	t.Cmd = nil
+	t.done = make(chan struct{})
+	t.processStarted = false
+	t.completing = false
+	t.terminationRequests = make(chan string, 1)
+	return t.Clock, true
+}
+
 func (t *Task) start() {
-	if t.GetAlive() {
+	clock, ok := t.beginRun()
+	if !ok {
 		return
 	}
-	err := t.prepare()
-	if err != nil {
-		return
-	}
+	go t.run(clock)
+}
+
+func (t *Task) newCommand() (*exec.Cmd, error) {
 
 	args := t.Args
 	if args != "" {
@@ -311,8 +379,7 @@ func (t *Task) start() {
 
 	scriptFile, err := filepath.Abs(filepath.Join(config.Config.Ibex.MetaDir, fmt.Sprint(t.Id), scriptFileType))
 	if err != nil {
-		log.Println("E! cannot get current absolute path:", err)
-		return
+		return nil, fmt.Errorf("cannot get current absolute path: %w", err)
 	}
 
 	sh := fmt.Sprintf("%s %s", scriptFile, args)
@@ -320,8 +387,7 @@ func (t *Task) start() {
 
 	loginUser, err := user.Current()
 	if err != nil {
-		log.Println("E! cannot get current login user:", err)
-		return
+		return nil, fmt.Errorf("cannot get current login user: %w", err)
 	}
 
 	switch runtime.GOOS {
@@ -344,138 +410,192 @@ func (t *Task) start() {
 	}
 
 	cmd.Stdin = t.Stdin
-	t.Cmd = cmd
-
-	stdout, err := t.Cmd.StdoutPipe()
-	if err != nil {
-		log.Printf("E! cannot read ouput of task[%d]: %v", t.Id, err)
-	}
-
-	stderr, err := t.Cmd.StderrPipe()
-
-	if err != nil {
-		log.Printf("E! cannot read err of task[%d]: %v", t.Id, err)
-	}
-
-	err = CmdStart(cmd)
-
-	if err != nil {
-		log.Printf("E! cannot start cmd of task[%d]: %v", t.Id, err)
-		return
-	}
-
-	go runProcessRealtime(stdout, stderr, t)
+	cmd.Stdout = taskOutputWriter{task: t}
+	cmd.Stderr = taskOutputWriter{task: t, stderr: true}
+	cmd.WaitDelay = ibexDrainGrace()
+	return cmd, nil
 }
 
 func (t *Task) kill() {
-	go killProcess(t)
+	t.requestTermination("kill")
 }
 
-func (t *Task) pipeDrain() {
-	<-t.outCh
-	<-t.errCh
+func (t *Task) stop() <-chan struct{} {
+	return t.requestTermination("stop")
 }
 
-func (t *Task) pipeCreate() {
-	t.outCh = make(chan struct{})
-	t.errCh = make(chan struct{})
+func (t *Task) Done() <-chan struct{} {
+	t.Lock()
+	defer t.Unlock()
+	if !t.alive || t.done == nil {
+		return inactiveTaskDone
+	}
+	return t.done
 }
 
-func (t *Task) stdoutFlush() {
+func (t *Task) requestTermination(reason string) <-chan struct{} {
+	t.Lock()
+	if !t.alive {
+		t.Unlock()
+		return inactiveTaskDone
+	}
+	done := t.done
+	if t.completing || t.terminationRequests == nil {
+		t.Unlock()
+		return done
+	}
+	requests := t.terminationRequests
+	t.Unlock()
+
+	select {
+	case requests <- reason:
+	default:
+	}
+	return done
+}
+
+type terminationResult struct {
+	signaled bool
+}
+
+func (t *Task) handleTermination(cmd *exec.Cmd, stop <-chan struct{}, done chan<- terminationResult) {
+	result := terminationResult{}
+	defer func() { done <- result }()
+	for {
+		select {
+		case <-stop:
+			return
+		case reason := <-t.terminationRequests:
+			t.SetStatus("killing")
+			if err := t.killCommand(cmd); err != nil {
+				log.Printf("W! terminate process group of task[%d] for %s request failed: %v", t.Id, reason, err)
+				continue
+			}
+			result.signaled = true
+			return
+		}
+	}
+}
+
+func (t *Task) run(clock int64) {
+	status := "failed"
+	defer func() {
+		t.finalize(clock, status)
+	}()
+
+	if err := t.prepare(); err != nil {
+		log.Printf("E! prepare task[%d] failed: %v", t.Id, err)
+		return
+	}
+
+	cmd, err := t.newCommand()
+	if err != nil {
+		log.Printf("E! build command of task[%d] failed: %v", t.Id, err)
+		return
+	}
+	t.Lock()
+	t.Cmd = cmd
+	t.Unlock()
+
+	if err = t.startCommand(cmd); err != nil {
+		log.Printf("E! cannot start cmd of task[%d]: %v", t.Id, err)
+		return
+	}
+	t.Lock()
+	t.processStarted = true
+	t.Unlock()
+
+	stopTermination := make(chan struct{})
+	terminationDone := make(chan terminationResult, 1)
+	go t.handleTermination(cmd, stopTermination, terminationDone)
+	waitErr := cmd.Wait()
+	if t.afterWait != nil {
+		t.afterWait()
+	}
+	t.Lock()
+	t.completing = true
+	t.Unlock()
+	close(stopTermination)
+	termination := <-terminationDone
+	if errors.Is(waitErr, exec.ErrWaitDelay) {
+		log.Printf("W! task[%d] output drain exceeded %s; stdout/stderr may be truncated", t.Id, ibexDrainGrace())
+	}
+
+	// Ibex tasks are one-shot jobs. Clean up descendants that stayed in the
+	// task's process group after the main process exited. An error here usually
+	// means that the process group is already gone.
+	if err := t.killCommand(cmd); err == nil {
+		log.Printf("W! cleaned remaining process group of task[%d] after main process exit; stdout/stderr may be truncated", t.Id)
+	}
+
+	status = statusFor(waitErr, cmd, termination)
+	if status == "success" {
+		log.Printf("D! process of task[%d] done", t.Id)
+	} else if status == "killed" {
+		log.Printf("D! process of task[%d] killed", t.Id)
+	} else {
+		log.Printf("D! process of task[%d] return error: %v", t.Id, waitErr)
+	}
+}
+
+func statusFor(waitErr error, cmd *exec.Cmd, termination terminationResult) string {
+	if waitErr == nil || errors.Is(waitErr, exec.ErrWaitDelay) {
+		return "success"
+	}
+	if termination.signaled && terminationCausedExit(cmd) {
+		return "killed"
+	}
+	return "failed"
+}
+
+func (t *Task) finalize(clock int64, status string) {
+	t.SetStatus(status)
+	t.flushOutput()
+	persistResult(t, clock, status)
+
+	t.Lock()
+	t.alive = false
+	close(t.done)
+	t.Unlock()
+}
+
+func (t *Task) startCommand(cmd *exec.Cmd) error {
+	if t.startProcess != nil {
+		return t.startProcess(cmd)
+	}
+	return CmdStart(cmd)
+}
+
+func (t *Task) killCommand(cmd *exec.Cmd) error {
+	if t.killProcess != nil {
+		return t.killProcess(cmd)
+	}
+	return CmdKill(cmd)
+}
+
+func (t *Task) flushOutput() {
 	metaDir := config.Config.Ibex.MetaDir
 	stdoutFile := filepath.Join(metaDir, fmt.Sprint(t.Id), "stdout")
-	file.WriteString(stdoutFile, t.GetStdout())
-	close(t.outCh)
-}
-
-func (t *Task) stderrFlush() {
-	metaDir := config.Config.Ibex.MetaDir
 	stderrFile := filepath.Join(metaDir, fmt.Sprint(t.Id), "stderr")
-	file.WriteString(stderrFile, t.GetStderr())
-	close(t.errCh)
-}
-
-func runProcessRealtime(stdout io.ReadCloser, stderr io.ReadCloser, t *Task) {
-	t.SetAlive(true)
-	defer t.SetAlive(false)
-
-	reader := bufio.NewReader(stdout)
-
-	go func() {
-		defer t.stdoutFlush()
-		for {
-			line, err2 := reader.ReadString('\n')
-			if len(line) != 0 {
-				t.Stdout.WriteString(line)
-			}
-			if err2 != nil {
-				if err2 != io.EOF {
-					log.Println("W! read stdout fail:", err2)
-				}
-				break
-			}
-		}
-	}()
-
-	errReader := bufio.NewReader(stderr)
-
-	go func() {
-		defer t.stderrFlush()
-		for {
-			line, err2 := errReader.ReadString('\n')
-			if len(line) != 0 {
-				t.Stderr.WriteString(line)
-			}
-			if err2 != nil {
-				if err2 != io.EOF {
-					log.Println("W! read stdout fail:", err2)
-				}
-				break
-			}
-		}
-	}()
-	t.pipeDrain()
-	err := t.Cmd.Wait()
-	if err != nil {
-		if strings.Contains(err.Error(), "signal: killed") {
-			t.SetStatus("killed")
-			log.Printf("D! process of task[%d] killed", t.Id)
-		} else if strings.Contains(err.Error(), "signal: terminated") {
-			// kill children process manually
-			t.SetStatus("killed")
-			log.Printf("D! process of task[%d] terminated", t.Id)
-		} else {
-			t.SetStatus("failed")
-			log.Printf("D! process of task[%d] return error: %v", t.Id, err)
-		}
-	} else {
-		t.SetStatus("success")
-		log.Printf("D! process of task[%d] done", t.Id)
+	if _, err := file.WriteString(stdoutFile, t.GetStdout()); err != nil {
+		log.Printf("E! write task[%d] stdout failed: %v", t.Id, err)
 	}
-
-	persistResult(t)
+	if _, err := file.WriteString(stderrFile, t.GetStderr()); err != nil {
+		log.Printf("E! write task[%d] stderr failed: %v", t.Id, err)
+	}
 }
 
-func persistResult(t *Task) {
+func persistResult(t *Task, clock int64, status string) {
 	metadir := config.Config.Ibex.MetaDir
-	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", t.Clock))
-	file.WriteString(doneFlag, t.GetStatus())
+	doneFlag := filepath.Join(metadir, fmt.Sprint(t.Id), fmt.Sprintf("%d.done", clock))
+	if _, err := file.WriteString(doneFlag, status); err != nil {
+		log.Printf("E! persist result of task[%d] failed: %v", t.Id, err)
+	}
 }
 
-func killProcess(t *Task) {
-	t.SetAlive(true)
-	defer t.SetAlive(false)
-
-	log.Printf("D! begin kill process of task[%d]", t.Id)
-
-	err := CmdKill(t.Cmd)
-	if err != nil {
-		t.SetStatus("killfailed")
-		log.Printf("D! kill process of task[%d] fail: %v", t.Id, err)
-	} else {
-		t.SetStatus("killed")
-		log.Printf("D! process of task[%d] killed", t.Id)
+func ibexDrainGrace() time.Duration {
+	if config.Config != nil && config.Config.Ibex != nil && config.Config.Ibex.DrainGrace > 0 {
+		return time.Duration(config.Config.Ibex.DrainGrace)
 	}
-
-	persistResult(t)
+	return defaultDrainGrace
 }
