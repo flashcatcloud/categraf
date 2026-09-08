@@ -3,14 +3,18 @@ package types
 import (
 	"container/list"
 	"reflect"
+	"time"
 )
 
 type SampleList struct {
 	SafeList[*Sample]
+	// Timestamp is the default time for samples without an explicit timestamp.
+	// Periodic inputs set it to the scheduled collection time.
+	Timestamp time.Time
 }
 
 func NewSampleList() *SampleList {
-	return &SampleList{*NewSafeList[*Sample]()}
+	return &SampleList{SafeList: *NewSafeList[*Sample]()}
 }
 
 func (l *SampleList) PushSample(prefix, metric string, value interface{}, labels ...map[string]string) *list.Element {

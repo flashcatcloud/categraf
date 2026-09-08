@@ -50,6 +50,7 @@ func (r *InputReader) startInput() {
 	timer := time.NewTimer(0 * time.Second)
 	defer timer.Stop()
 	var start time.Time
+	var timestamp time.Time
 
 	for {
 		select {
@@ -58,17 +59,24 @@ func (r *InputReader) startInput() {
 			return
 		case <-timer.C:
 			start = time.Now()
+			// Keep a stable sampling phase across small scheduling delays.
+			// Resynchronize after a long pause instead of backdating samples.
+			drift := start.Sub(timestamp)
+			if timestamp.IsZero() || drift > interval/10 || drift < -interval/10 {
+				timestamp = start
+			}
 			if config.Config.DebugMode {
 				log.Println("D!", r.inputName, ": before gather once")
 			}
 
-			r.gatherOnce()
+			r.gatherOnce(timestamp)
 
 			if config.Config.DebugMode {
 				log.Println("D!", r.inputName, ": after gather once,", "duration:", time.Since(start))
 			}
 
-			next := interval - time.Since(start)
+			timestamp = timestamp.Add(interval)
+			next := time.Until(timestamp)
 			if next < 0 {
 				next = 0
 			}
@@ -77,7 +85,7 @@ func (r *InputReader) startInput() {
 	}
 }
 
-func (r *InputReader) gatherOnce() {
+func (r *InputReader) gatherOnce(timestamp time.Time) {
 	defer func() {
 		if rc := recover(); rc != nil {
 			log.Println("E!", r.inputName, ": gather metrics panic:", r, string(runtimex.Stack(3)))
@@ -86,6 +94,7 @@ func (r *InputReader) gatherOnce() {
 
 	// plugin level, for system plugins
 	slist := types.NewSampleList()
+	slist.Timestamp = timestamp
 	inputs.MayGather(r.input, slist)
 	r.forward(r.input.Process(slist))
 
@@ -120,6 +129,7 @@ func (r *InputReader) gatherOnce() {
 			}
 
 			insList := types.NewSampleList()
+			insList.Timestamp = timestamp
 			inputs.MayGather(ins, insList)
 			r.forward(ins.Process(insList))
 		}(instances[i])

@@ -140,7 +140,10 @@ func (ic *InternalConfig) Process(slist *types.SampleList) *types.SampleList {
 		return nlst
 	}
 
-	now := time.Now()
+	now := slist.Timestamp
+	if now.IsZero() {
+		now = time.Now()
+	}
 	ss := slist.PopBackAll()
 
 	for i := range ss {
