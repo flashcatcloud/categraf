@@ -200,6 +200,25 @@ func (pi *pathInfo) normalize() {
 	}
 }
 
+// normalizeGNMIPath extracts an inline "origin:" prefix (e.g.
+// "rg-interfaces:interfaces-state") from the first path element of a gNMI
+// Path into the dedicated Origin field, mirroring pathInfo.normalize().
+//
+// Device updates are normalized when turned into a pathInfo, but the paths
+// built from the configured subscriptions keep the raw xpath result whose
+// Origin is empty. Those subscription paths are later compared against the
+// normalized field paths (tag-subscription matching and disable_concatenation
+// handling), so they must be normalized in the same way.
+func normalizeGNMIPath(p *gnmiLib.Path) {
+	if p == nil || p.Origin != "" || len(p.Elem) == 0 {
+		return
+	}
+	if groups := originPattern.FindStringSubmatch(p.Elem[0].Name); len(groups) == 2 {
+		p.Origin = groups[1]
+		p.Elem[0].Name = p.Elem[0].Name[len(groups[1])+1:]
+	}
+}
+
 func (pi *pathInfo) equalsPathNoKeys(path *gnmiLib.Path) bool {
 	if len(pi.segments) != len(path.Elem) {
 		return false

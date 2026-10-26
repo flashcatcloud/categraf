@@ -263,18 +263,18 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 		}
 		value := field.value
 		disableConcatenating := false
-		base := field.path.String()
 		for _, sub := range h.subs {
-			subPath := sub.Path
-			if len(strings.Split(base, ":")) >= 2 {
-				// origin is not null
-				if sub.Origin != "" {
-					subPath = sub.Origin + ":" + sub.Path
-				}
+			// Compare the field against the normalized subscription path so
+			// a private-module prefix supplied inline in the configured path
+			// (e.g. /rg-interfaces:...) is handled the same as an explicit
+			// subscription origin. String prefix comparison on the raw path
+			// never matches because normalize() renders the field path as
+			// "rg-interfaces:/interfaces-state/...".
+			subPath := newInfoFromString(sub.Path)
+			if sub.Origin != "" {
+				subPath.origin = sub.Origin
 			}
-			if strings.HasPrefix(base, subPath) {
-				// field.path => origin:path
-				// sub.path => path
+			if subPath.isSubPathOf(field.path) {
 				disableConcatenating = sub.DisableConcatenation
 				switch sub.Conversion {
 				case "ieeefloat32":

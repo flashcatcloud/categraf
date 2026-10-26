@@ -398,6 +398,9 @@ func (s *Subscription) buildFullPath(c *Instance) error {
 			s.fullPath.Origin = c.Origin
 		}
 	}
+	// Extract an inline "module:" prefix (e.g. /rg-interfaces:...) so tag
+	// subscriptions match the normalized paths built from device updates.
+	normalizeGNMIPath(s.fullPath)
 	return nil
 }
 
