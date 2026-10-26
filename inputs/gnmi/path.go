@@ -142,6 +142,11 @@ func (pi *pathInfo) append(paths ...*gnmiLib.Path) *pathInfo {
 		}
 	}
 
+	// Some devices supply the origin as part of the first path element
+	// (e.g. private YANG modules using an inline "module:" prefix), so
+	// normalize the assembled path to extract it.
+	path.normalize()
+
 	return path
 }
 
@@ -172,6 +177,11 @@ func (pi *pathInfo) appendSegments(segments ...string) *pathInfo {
 		}
 		path.segments = append(path.segments, s)
 	}
+
+	// Some devices supply the origin as part of the first path element
+	// (e.g. private YANG modules using an inline "module:" prefix), so
+	// normalize the assembled path to extract it.
+	path.normalize()
 
 	return path
 }
