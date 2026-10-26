@@ -102,8 +102,7 @@ func (c *CPUStats) Gather(slist *types.SampleList) {
 }
 
 func totalCPUTime(t cpuUtil.TimesStat) float64 {
-	total := t.User + t.System + t.Nice + t.Iowait + t.Irq + t.Softirq + t.Steal + t.Idle
-	return total
+	return system.TotalCPUTime(t)
 }
 
 func activeCPUTime(t cpuUtil.TimesStat) float64 {
