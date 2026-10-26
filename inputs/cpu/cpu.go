@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"log"
+	"runtime"
 
 	cpuUtil "github.com/shirou/gopsutil/v4/cpu"
 
@@ -102,8 +103,13 @@ func (c *CPUStats) Gather(slist *types.SampleList) {
 }
 
 func totalCPUTime(t cpuUtil.TimesStat) float64 {
-	total := t.User + t.System + t.Nice + t.Iowait + t.Irq + t.Softirq + t.Steal + t.Idle
-	return total
+	irq := t.Irq
+	if runtime.GOOS == "windows" {
+		// Windows System already includes Irq. gopsutil v4.26.7 also
+		// reports Irq for cpu-total, so do not count it a second time.
+		irq = 0
+	}
+	return t.User + t.System + t.Nice + t.Iowait + irq + t.Softirq + t.Steal + t.Idle
 }
 
 func activeCPUTime(t cpuUtil.TimesStat) float64 {
