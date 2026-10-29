@@ -13,6 +13,8 @@ import (
 	gnmiLib "github.com/openconfig/gnmi/proto/gnmi"
 	"google.golang.org/grpc/metadata"
 
+	cryptotls "crypto/tls"
+
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/choice"
@@ -67,9 +69,16 @@ type (
 
 		// Internal state
 		internalAliases map[*pathInfo]string
-		cancel          context.CancelFunc
-		wg              sync.WaitGroup
-		slist           *types.SampleList
+		// tagStores are kept on the instance (not the per-connection handler)
+		// so tags learned on one connection survive reconnects. They are keyed
+		// by device address to avoid leaking tags between targets.
+		tagStores   map[string]*tagStore
+		storeInitMu sync.Mutex
+		request     *gnmiLib.SubscribeRequest
+		tlsConfig   *cryptotls.Config
+		cancel      context.CancelFunc
+		wg          sync.WaitGroup
+		slist       *types.SampleList
 
 		AgentHostTag string `toml:"agent_host_tag"`
 	}
@@ -82,6 +91,8 @@ type Subscription struct {
 	Path   string
 
 	fullPath *gnmiLib.Path
+	// Keep source metadata before fullPath normalization strips the module.
+	sourcePath *pathInfo
 
 	// Subscription mode and interval
 	SubscriptionMode string          `toml:"subscription_mode"`
@@ -116,6 +127,7 @@ func (c *Instance) Init() error {
 		c.AgentHostTag = "agent_host"
 	}
 	c.slist = types.NewSampleList()
+	c.tagStores = make(map[string]*tagStore)
 	// Check options
 	if time.Duration(c.Redial) <= 0 {
 		c.Redial = config.Duration(10 * time.Second)
@@ -185,6 +197,10 @@ func (c *Instance) Init() error {
 		}
 	}
 
+	if err := validateTagSubscriptions(c.TagSubscriptions); err != nil {
+		return err
+	}
+
 	// Invert explicit alias list and prefill subscription names
 	c.internalAliases = make(map[*pathInfo]string, len(c.Subscriptions)+len(c.Aliases)+len(c.TagSubscriptions))
 	for _, s := range c.Subscriptions {
@@ -202,23 +218,30 @@ func (c *Instance) Init() error {
 	}
 	log.Printf("D! Internal alias mapping: %+v", c.internalAliases)
 
-	go c.Start()
-	return nil
-}
-
-func (c *Instance) Start() error {
-	// Validate configuration
+	// Prepare the subscribe request and TLS configuration synchronously so
+	// configuration errors (invalid path/encoding/subscription mode/TLS) are
+	// reported at startup instead of being silently dropped by a goroutine.
 	request, err := c.newSubscribeRequest()
 	if err != nil {
 		return err
 	}
+	c.request = request
 
-	// Generate TLS config if enabled
-	tlscfg, err := c.ClientConfig.TLSConfig()
+	tlsCfg, err := c.ClientConfig.TLSConfig()
 	if err != nil {
 		return err
 	}
+	c.tlsConfig = tlsCfg
 
+	go c.run()
+	return nil
+}
+
+// run dials every configured device and keeps the gNMI subscriptions alive,
+// reconnecting until the instance is dropped. All configuration that can fail
+// is validated up-front in Init(), so here errors during the connection
+// lifecycle are only logged.
+func (c *Instance) run() {
 	// Prepare the context, optionally with credentials
 	var ctx context.Context
 	ctx, c.cancel = context.WithCancel(context.Background())
@@ -232,6 +255,10 @@ func (c *Instance) Start() error {
 		go func(addr string) {
 			defer c.wg.Done()
 
+			// Reuse one store per device address across reconnects so tags
+			// already learned are not wiped whenever the stream drops.
+			store := c.getTagStore(addr)
+
 			h := handler{
 				address:             addr,
 				aliases:             c.internalAliases,
@@ -239,7 +266,7 @@ func (c *Instance) Start() error {
 				subs:                c.Subscriptions,
 				maxMsgSize:          int(c.MaxMsgSize),
 				vendorExt:           c.VendorSpecific,
-				tagStore:            newTagStore(c.TagSubscriptions),
+				tagStore:            store,
 				trace:               c.Trace,
 				canonicalFieldNames: c.CanonicalFieldNames,
 				trimSlash:           c.TrimFieldNames,
@@ -247,7 +274,7 @@ func (c *Instance) Start() error {
 				sourceTag:           c.AgentHostTag,
 			}
 			for ctx.Err() == nil {
-				if err := h.subscribeGNMI(ctx, c.slist, tlscfg, request); err != nil && ctx.Err() == nil {
+				if err := h.subscribeGNMI(ctx, c.slist, c.tlsConfig, c.request); err != nil && ctx.Err() == nil {
 					log.Println("W! Error in gNMI subscription:", err)
 				}
 
@@ -258,7 +285,22 @@ func (c *Instance) Start() error {
 			}
 		}(addr)
 	}
-	return nil
+}
+
+// getTagStore returns the per-device tag store, creating it on first use.
+// Stores live on the Instance and are shared across the reconnect loop, so
+// learned labels survive stream drops, while the address key prevents
+// different targets from leaking labels into each other.
+func (c *Instance) getTagStore(address string) *tagStore {
+	c.storeInitMu.Lock()
+	defer c.storeInitMu.Unlock()
+	if store, ok := c.tagStores[address]; ok {
+		return store
+	}
+	store := newTagStore(c.TagSubscriptions)
+	store.address = address
+	c.tagStores[address] = store
+	return store
 }
 
 func (s *Subscription) buildSubscription() (*gnmiLib.Subscription, error) {
@@ -266,15 +308,36 @@ func (s *Subscription) buildSubscription() (*gnmiLib.Subscription, error) {
 	if err != nil {
 		return nil, err
 	}
-	mode, ok := gnmiLib.SubscriptionMode_value[strings.ToUpper(s.SubscriptionMode)]
-	if !ok {
-		return nil, fmt.Errorf("invalid subscription mode %s", s.SubscriptionMode)
+	// Default to SAMPLE when the mode is not configured, so a missing
+	// subscription_mode (whether omitted or "") does not silently fail and
+	// does not fall through to the protobuf zero value TARGET_DEFINED.
+	modeName := s.SubscriptionMode
+	if modeName == "" {
+		modeName = "SAMPLE"
 	}
+	modeValue, ok := gnmiLib.SubscriptionMode_value[strings.ToUpper(modeName)]
+	if !ok {
+		return nil, fmt.Errorf("invalid subscription mode %q for subscription %q", s.SubscriptionMode, s.Name)
+	}
+	mode := gnmiLib.SubscriptionMode(modeValue)
+
+	// A zero/missing sample_interval is passed through to the device as-is.
+	// Many targets accept it and apply their own default sampling cadence, so
+	// we do not reject it (that broke valid configs). The interval is only
+	// meaningful in SAMPLE mode; ON_CHANGE/TARGET_DEFINED ignore it.
+	sampleInterval := time.Duration(s.SampleInterval)
+
+	// Redundancy suppression only makes sense together with a heartbeat
+	// interval, otherwise an unchanged value may never be reported again.
+	if s.SuppressRedundant && time.Duration(s.HeartbeatInterval) <= 0 {
+		log.Printf("W! subscription %q has suppress_redundant=true without a positive heartbeat_interval; unchanged values may never be reported", s.Name)
+	}
+
 	return &gnmiLib.Subscription{
 		Path:              gnmiPath,
-		Mode:              gnmiLib.SubscriptionMode(mode),
+		Mode:              mode,
 		HeartbeatInterval: uint64(time.Duration(s.HeartbeatInterval).Nanoseconds()),
-		SampleInterval:    uint64(time.Duration(s.SampleInterval).Nanoseconds()),
+		SampleInterval:    uint64(sampleInterval.Nanoseconds()),
 		SuppressRedundant: s.SuppressRedundant,
 	}, nil
 }
@@ -340,7 +403,9 @@ func parsePath(origin string, pathToParse string, target string) (*gnmiLib.Path,
 
 // Stop listener and cleanup
 func (c *Instance) Drop() {
-	c.cancel()
+	if c.cancel != nil {
+		c.cancel()
+	}
 	c.wg.Wait()
 }
 
@@ -387,6 +452,9 @@ func (s *Subscription) buildFullPath(c *Instance) error {
 		return err
 	}
 	s.fullPath.Origin = s.Origin
+	if s.Origin == "" {
+		s.fullPath.Origin = c.Origin
+	}
 	s.fullPath.Target = c.Target
 	if c.Prefix != "" {
 		prefix, err := xpath.ToGNMIPath(c.Prefix)
@@ -394,12 +462,10 @@ func (s *Subscription) buildFullPath(c *Instance) error {
 			return err
 		}
 		s.fullPath.Elem = append(prefix.Elem, s.fullPath.Elem...)
-		if s.Origin == "" && c.Origin != "" {
-			s.fullPath.Origin = c.Origin
-		}
 	}
 	// Extract an inline "module:" prefix (e.g. /rg-interfaces:...) so tag
 	// subscriptions match the normalized paths built from device updates.
+	s.sourcePath = newInfoFromPath(s.fullPath)
 	normalizeGNMIPath(s.fullPath)
 	return nil
 }

@@ -17,10 +17,13 @@ type keySegment struct {
 }
 
 type pathInfo struct {
-	origin    string
-	target    string
-	segments  []string
-	keyValues []keySegment
+	origin string
+	// Source metadata is internal; origin may also be inferred from a module.
+	explicitOrigin bool
+	inlineModule   string
+	target         string
+	segments       []string
+	keyValues      []keySegment
 }
 
 func newInfoFromString(path string) *pathInfo {
@@ -41,8 +44,9 @@ func newInfoFromString(path string) *pathInfo {
 
 func newInfoFromPathWithoutKeys(path *gnmiLib.Path) *pathInfo {
 	info := &pathInfo{
-		origin:   path.Origin,
-		segments: make([]string, 0, len(path.Elem)),
+		origin:         path.Origin,
+		explicitOrigin: path.Origin != "",
+		segments:       make([]string, 0, len(path.Elem)),
 	}
 	for _, elem := range path.Elem {
 		if elem.Name == "" {
@@ -63,12 +67,17 @@ func newInfoFromPath(paths ...*gnmiLib.Path) *pathInfo {
 	info := &pathInfo{}
 	if paths[0] != nil {
 		info.origin = paths[0].Origin
+		info.explicitOrigin = paths[0].Origin != ""
 		info.target = paths[0].Target
 	}
 
 	for _, p := range paths {
 		if p == nil {
 			continue
+		}
+		if !info.explicitOrigin && p.Origin != "" {
+			info.origin = p.Origin
+			info.explicitOrigin = true
 		}
 		for _, elem := range p.Elem {
 			if elem.Name == "" {
@@ -102,10 +111,12 @@ func (pi *pathInfo) empty() bool {
 func (pi *pathInfo) append(paths ...*gnmiLib.Path) *pathInfo {
 	// Copy the existing info
 	path := &pathInfo{
-		origin:    pi.origin,
-		target:    pi.target,
-		segments:  append([]string{}, pi.segments...),
-		keyValues: make([]keySegment, 0, len(pi.keyValues)),
+		origin:         pi.origin,
+		explicitOrigin: pi.explicitOrigin,
+		inlineModule:   pi.inlineModule,
+		target:         pi.target,
+		segments:       append([]string{}, pi.segments...),
+		keyValues:      make([]keySegment, 0, len(pi.keyValues)),
 	}
 	for _, elem := range pi.keyValues {
 		keyInfo := keySegment{
@@ -121,6 +132,15 @@ func (pi *pathInfo) append(paths ...*gnmiLib.Path) *pathInfo {
 
 	// Add the new segments
 	for _, p := range paths {
+		// Inherit a standalone gNMI origin (set in Path.Origin rather than as
+		// an inline "module:" prefix) carried by an appended path, e.g. when the
+		// device places the origin on the update path instead of the prefix.
+		// An explicit prefix origin wins; an inferred module origin can be
+		// replaced by the update's explicit origin without losing its module.
+		if !path.explicitOrigin && p.Origin != "" {
+			path.origin = p.Origin
+			path.explicitOrigin = true
+		}
 		for _, elem := range p.Elem {
 			if elem.Name == "" {
 				continue
@@ -153,10 +173,12 @@ func (pi *pathInfo) append(paths ...*gnmiLib.Path) *pathInfo {
 func (pi *pathInfo) appendSegments(segments ...string) *pathInfo {
 	// Copy the existing info
 	path := &pathInfo{
-		origin:    pi.origin,
-		target:    pi.target,
-		segments:  append([]string{}, pi.segments...),
-		keyValues: make([]keySegment, 0, len(pi.keyValues)),
+		origin:         pi.origin,
+		explicitOrigin: pi.explicitOrigin,
+		inlineModule:   pi.inlineModule,
+		target:         pi.target,
+		segments:       append([]string{}, pi.segments...),
+		keyValues:      make([]keySegment, 0, len(pi.keyValues)),
 	}
 	for _, elem := range pi.keyValues {
 		keyInfo := keySegment{
@@ -195,62 +217,90 @@ func (pi *pathInfo) normalize() {
 	// so try to find and extract it there.
 	groups := originPattern.FindStringSubmatch(pi.segments[0])
 	if len(groups) == 2 {
-		pi.origin = groups[1]
+		firstNode := pi.segments[0]
+		pi.inlineModule = groups[1]
+		// Match normalizeGNMIPath: strip the inline module prefix even when
+		// an origin is already present, but never overwrite an explicit origin
+		// inherited from the subscription, notification prefix or update path.
+		if pi.origin == "" {
+			pi.origin = groups[1]
+		}
 		pi.segments[0] = pi.segments[0][len(groups[1])+1:]
+		// elements matching must see the same normalized first node name.
+		if len(pi.keyValues) > 0 && pi.keyValues[0].name == firstNode {
+			pi.keyValues[0].name = pi.segments[0]
+		}
 	}
 }
 
 // normalizeGNMIPath extracts an inline "origin:" prefix (e.g.
 // "rg-interfaces:interfaces-state") from the first path element of a gNMI
-// Path into the dedicated Origin field, mirroring pathInfo.normalize().
+// Path. Device updates are normalized the same way when turned into a
+// pathInfo, so subscription paths and update paths must agree.
 //
-// Device updates are normalized when turned into a pathInfo, but the paths
-// built from the configured subscriptions keep the raw xpath result whose
-// Origin is empty. Those subscription paths are later compared against the
-// normalized field paths (tag-subscription matching and disable_concatenation
-// handling), so they must be normalized in the same way.
+// Behavior:
+//   - when Origin is empty, the extracted module becomes the path origin
+//     (e.g. "/rg-interfaces:interfaces-state" -> origin "rg-interfaces");
+//   - when an explicit Origin is already set, the inline prefix is still
+//     stripped from the element so its name aligns with device updates, but
+//     the explicit origin wins and is left untouched. (Configuring both an
+//     explicit origin and an inline module is unusual, but without this the
+//     tag/value leaf names could never equal-match.)
 func normalizeGNMIPath(p *gnmiLib.Path) {
-	if p == nil || p.Origin != "" || len(p.Elem) == 0 {
+	if p == nil || len(p.Elem) == 0 {
 		return
 	}
-	if groups := originPattern.FindStringSubmatch(p.Elem[0].Name); len(groups) == 2 {
+	groups := originPattern.FindStringSubmatch(p.Elem[0].Name)
+	if len(groups) != 2 {
+		return
+	}
+	if p.Origin == "" {
 		p.Origin = groups[1]
-		p.Elem[0].Name = p.Elem[0].Name[len(groups[1])+1:]
 	}
-}
-
-func (pi *pathInfo) equalsPathNoKeys(path *gnmiLib.Path) bool {
-	if len(pi.segments) != len(path.Elem) {
-		return false
-	}
-	for i, s := range pi.segments {
-		if s != path.Elem[i].Name {
-			return false
-		}
-	}
-	return true
+	p.Elem[0].Name = p.Elem[0].Name[len(groups[1])+1:]
 }
 
 func (pi *pathInfo) isSubPathOf(path *pathInfo) bool {
-	// If both set an origin it has to match. Otherwise we ignore the origin
+	ok, _ := pi.subPathMatch(path)
+	return ok
+}
+
+// subPathMatch reports whether pi (the subscription/alias path) is a sub-path
+// of path (the device field path), and whether the match is "strong".
+//
+// Segment containment is required in every case. Origins follow:
+//   - both set and different -> no match at all;
+//   - the subscription declares an origin (explicit or extracted from an
+//     inline "module:" prefix), or neither side sets one -> strong match;
+//   - the subscription sets no origin while the field carries one -> the
+//     subscription only acts as a wildcard fallback -> weak match.
+//
+// A weak match must never override a strong one, otherwise an origin-less
+// catch-all subscription would hijack disable_concatenation/conversion/alias of
+// an explicit-origin subscription (double-concatenated metric names).
+func (pi *pathInfo) subPathMatch(path *pathInfo) (match, strong bool) {
+	// If both set an origin it has to match.
 	if pi.origin != "" && path.origin != "" && pi.origin != path.origin {
-		return false
+		return false, false
 	}
 
 	// The "parent" path should have the same length or be shorter than the
-	// sub-path to have a chance to match
+	// sub-path to have a chance to match.
 	if len(pi.segments) > len(path.segments) {
-		return false
+		return false, false
 	}
 
-	// Compare the elements and exit if we find a mismatch
+	// Compare the elements and exit if we find a mismatch.
 	for i, p := range pi.segments {
 		if p != path.segments[i] {
-			return false
+			return false, false
 		}
 	}
 
-	return true
+	// A subscription without an origin only weakly matches an origin-bearing
+	// field; every other containment match is strong.
+	strong = pi.origin != "" || path.origin == ""
+	return true, strong
 }
 
 func (pi *pathInfo) keepCommonPart(path *pathInfo) {
