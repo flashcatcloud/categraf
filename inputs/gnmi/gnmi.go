@@ -227,7 +227,7 @@ func (c *Instance) Init() error {
 	}
 	c.request = request
 
-	tlsCfg, err := c.ClientConfig.TLSConfig()
+	tlsCfg, err := c.TLSConfig()
 	if err != nil {
 		return err
 	}
