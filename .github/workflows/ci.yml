@@ -72,3 +72,14 @@ jobs:
         run: make build-linux && make build-linux-arm
       - name: go build windows
         run: make build-windows
+  WindowsNamedPipe:
+    name: "Windows Named Pipe Regression"
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+      - name: Test real Windows named-pipe transport
+        run: go test -mod=readonly -v -count=1 -run '^TestMobyNamedPipe$' -timeout=2m ./inputs/docker

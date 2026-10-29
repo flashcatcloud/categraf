@@ -83,6 +83,12 @@ repository root:
 go test -race ./inputs/docker ./logs/util/docker ./inputs/keepalived/types/container ./prometheus ./inputs/gnmi ./internal/gnmipath
 ```
 
+On Windows, `go test -v -run '^TestMobyNamedPipe$' ./inputs/docker` exercises a
+real Windows named pipe with the production client constructors, API calls and
+cancellation. The `Windows Named Pipe Regression` CI job runs this fixture on a
+Windows runner. It needs no Docker installation; it does not replace deployment
+validation against an actual Windows Docker daemon.
+
 Real Engine tests are opt-in. Create a disposable busy container, then run the
 same tests against its daemon:
 

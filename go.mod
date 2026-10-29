@@ -292,7 +292,7 @@ replace gopkg.in/yaml.v2 => github.com/rfratto/go-yaml v0.0.0-20211119180816-773
 
 require (
 	github.com/BurntSushi/toml v1.4.0
-	github.com/Microsoft/go-winio v0.6.2 // indirect
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/alouca/gologger v0.0.0-20120904114645-7d4b7291de9c // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

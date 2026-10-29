@@ -246,6 +246,14 @@ v5 不再消费 `prefer_simple_protocol`，直接将旧 DSN 交给 v5 可能把�
 
 单独运行 errcheck 时仍报告 `postgresql.go` 原有的 7 处未检查 Close 返回值，均不在本次修改行；新增生产代码未出现 errcheck 报错。尚未运行远程 PR CI。
 
+### 4.5 评审补充：旧读取缓冲区参数兼容
+
+`min_read_buffer_size` 是 v4 连接层的客户端选项，v5 不再消费它。兼容层现校验并移除该键，接受 `0..2147483647` 的十进制整数；非法、空、负数和溢出值在初始化时报错。v5 自行管理缓冲区，旧数值不再应用，但原有合法 `address`（键值/URI）及 service file 无需改写，参数不会进入 PostgreSQL 启动报文。
+
+先新增回归复现参数泄漏及非法值未被拒绝，再补实现。覆盖实际 TOML/Init、service file 与显式覆盖、默认/旧 simple/原生查询模式、原始连接串保持不变，以及真实启动报文。授权测试机重新运行 PostgreSQL 16.14/18.4、PgBouncer 1.25.2、`verify-full` TLS、Unix socket 的扩展矩阵，33 项实际执行通过，2 项明确跳过；临时资源已清理。
+
+扩展矩阵发现第 4.4 节原测试的一个限制：PgBouncer `pool_mode=transaction` 且 `max_prepared_statements=0` 时，多次创建缓存模式客户端可能出现 SQLSTATE 42P05（预备语句已存在）。原先单次默认模式通过不能证明该部署组合兼容。当前两项默认命名缓存用例明确跳过，simple protocol、描述缓存、无缓存模式实际执行；旧 `min_read_buffer_size` 与 `prefer_simple_protocol=true` 的组合也已通过。生产环境仍应按已有协议参数选择兼容模式，不自动更改用户查询模式来掩盖该限制。
+
 ## 5. 第二批实施细节：独立 Docker SDK 迁移
 
 ### 5.1 实施前置条件：完整依赖闭包和 Prometheus 版本路线
@@ -378,6 +386,31 @@ client.ContainerStatsOptions{
 - Prometheus v0.312.0 的 Outscale 提供方经 `osc-sdk-go/v2 v2.34.0` 新增 `aws-sdk-go v1.55.8`。模块扫描命中 S3 Crypto 的 GO-2022-0635 / GO-2022-0646（CVE-2020-8912 / CVE-2020-8911），均无旧模块原地修复版本；默认完整构建未导入 `service/s3/s3crypto`，源码扫描未给出相应可达调用。上游 Outscale v2.35.0 仍要求同一旧 AWS SDK，不能以无效升级宣称已消除。这两项作为新传递依赖的模块告警单独跟踪，不计入本次 6 条已迁移目标。
 
 远程 PR CI 与 GitHub 告警关闭状态尚待确认。Docker 主机补丁状态仍由第 6 节的独立部署流程确认。
+
+### 5.7 Copilot 评审：部署验证与剩余风险接受
+
+对应 [PR #1509](https://github.com/flashcatcloud/categraf/pull/1509)。技术验证与负责人接受是两件独立事项；当前没有将维护者验证或安全风险接受标记为完成，也没有关闭/忽略 AWS 告警。
+
+| 部署范围 | 验证证据与边界 |
+| --- | --- |
+| Linux Docker 20.10.24 / 28.4.0 / 29.5.2 | 第 5.6 节真实 daemon 回归通过；20.10/29.5 包含真实 Swarm 三角色发现 |
+| Docker API 1.40 | 协议夹具通过，未运行 Docker 19.03 daemon；新 SDK 支持下限需纳入发布说明 |
+| PostgreSQL 16.14 / 18.4、PgBouncer 1.25.2 | 第 4.5 节扩展矩阵通过；不支持的事务池命名缓存组合明确跳过 |
+| PostgreSQL 14/15 与更老部署 | pgx v5.9.2 上游声明支持 PostgreSQL 14+；本次没有实际运行 14/15，更老版本没有兼容性保证，维护者需确认项目支持范围 |
+| Windows amd64 named pipe | 新增 `TestMobyNamedPipe`：真实 Win32 pipe listener，经生产 ENV/显式端点构造器覆盖协商、Info/List/Inspect/Stats、前次 CPU 样本和请求超时；本地完成 Windows 测试二进制交叉编译；新增 Windows runner CI，实际结果待确认 |
+| Windows daemon / Windows arm64 | 前次完整交叉编译通过；上述 pipe 夹具不等同于真实 Windows Docker daemon 或 arm64 主机端到端验证，仍需维护者确认发布范围 |
+
+新增 Windows CI 不需要安装 Docker 或访问宿主机 daemon，只创建当前测试用户自己的临时命名管道，并关闭 listener/HTTP server/client。它用于验证原生传输路径，不能被描述为所有 Windows 部署均已验证。
+
+两条 AWS 告警的复核证据：
+
+- 引入链固定为 `prometheus v0.312.0 -> discovery/outscale -> osc-sdk-go/v2 v2.34.0 -> aws-sdk-go v1.55.8`。
+- Outscale 调用 `aws/credentials.NewStaticCredentials` 与 `aws/signer/v4.NewSigner` 进行请求签名。
+- [GO-2022-0635](https://pkg.go.dev/vuln/GO-2022-0635) / [GO-2022-0646](https://pkg.go.dev/vuln/GO-2022-0646) 的受影响包均为 `service/s3/s3crypto`，符号为 `NewEncryptionClient` / `NewDecryptionClient`，旧模块没有已知修复版本。
+- 本次重新核对默认 Linux 和 Windows amd64 完整构建的 `go list -deps`，均未导入该 S3 Crypto 包；重新执行源码 `govulncheck -json ./prometheus`，两条 finding 仅为模块级，未出现该包/符号调用链。这是当前版本的不可达性证据，不是风险接受决定。
+- 依赖升级或新增 S3 Crypto 调用会使当前证据失效；后续移除旧 AWS SDK 需要继续迁移 Outscale 客户端，不能通过隐藏模块扫描结果替代。
+
+待指定维护者确认实际支持的部署范围，待指定安全负责人决定是否接受当前两项剩余模块告警。确认记录应引用对应提交和适用发布范围，当前记录均为“待确认”；助手不代替负责人签署，也不从 Copilot 的建议或 CI 通过推断已经接受。
 
 ## 6. Docker daemon 部署侧说明
 
