@@ -13,12 +13,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"sort"
 	"strings"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
+	"github.com/moby/moby/api/types/container"
 
 	"flashcat.cloud/categraf/logs/util/containers"
 	"flashcat.cloud/categraf/logs/util/containers/providers"
@@ -47,7 +45,7 @@ const (
 	containerModePrefix    = "container:"
 )
 
-func findDockerNetworks(containerID string, pid int, container types.Container) []dockerNetwork {
+func findDockerNetworks(containerID string, pid int, container container.Summary) []dockerNetwork {
 	netMode := container.HostConfig.NetworkMode
 	// Check the known network modes that require specific handling.
 	// Other network modes will look at the docker NetworkSettings.
@@ -71,33 +69,19 @@ func findDockerNetworks(containerID string, pid int, container types.Container) 
 		return []dockerNetwork{hostNetwork}
 	}
 
-	var err error
 	interfaces := make(map[string]uint64)
 	for netName, netConf := range netSettings.Networks {
 		if netName == "host" {
-			log.Printf("Container %s is in network host mode, its network metrics are for the whole host", containerID)
 			return []dockerNetwork{hostNetwork}
 		}
-
-		ipString := netConf.IPAddress
-		// Check if this is a CIDR or just an IP
-		var ip net.IP
-		if strings.Contains(ipString, "/") {
-			ip, _, err = net.ParseCIDR(ipString)
-			if err != nil {
-				log.Printf("Malformed IP %s for container id %s: %s, skipping", ipString, containerID, err)
-				continue
-			}
-		} else {
-			ip = net.ParseIP(ipString)
-			if ip == nil {
-				log.Printf("Malformed IP %s for container id %s: %s, skipping", ipString, containerID, err)
-				continue
-			}
+		// Route masks used below are IPv4. Invalid or IPv6-only addresses
+		// cannot be converted to that representation.
+		ip := netConf.IPAddress.Unmap()
+		if !ip.Is4() {
+			continue
 		}
-
-		// Convert IP to little endian uint64 for comparison to network routes.
-		interfaces[netName] = uint64(binary.LittleEndian.Uint32(ip.To4()))
+		address := ip.As4()
+		interfaces[netName] = uint64(binary.LittleEndian.Uint32(address[:]))
 	}
 
 	destinations, err := providers.ContainerImpl().DetectNetworkDestinations(pid)

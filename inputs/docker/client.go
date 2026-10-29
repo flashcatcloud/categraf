@@ -5,11 +5,10 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/api/types/system"
-	dockerClient "github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/api/types/system"
+	dockerClient "github.com/moby/moby/client"
 )
 
 var (
@@ -18,21 +17,18 @@ var (
 
 type Client interface {
 	Info(ctx context.Context) (system.Info, error)
-	ContainerList(ctx context.Context, options container.ListOptions) ([]types.Container, error)
-	ContainerStats(ctx context.Context, containerID string, stream bool) (container.StatsResponseReader, error)
-	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
-	Ping(ctx context.Context) (types.Ping, error)
-	ServiceList(ctx context.Context, options types.ServiceListOptions) ([]swarm.Service, error)
-	TaskList(ctx context.Context, options types.TaskListOptions) ([]swarm.Task, error)
-	NodeList(ctx context.Context, options types.NodeListOptions) ([]swarm.Node, error)
+	ContainerList(ctx context.Context, options dockerClient.ContainerListOptions) ([]container.Summary, error)
+	ContainerStats(ctx context.Context, containerID string, stream bool) (dockerClient.ContainerStatsResult, error)
+	ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error)
+	Ping(ctx context.Context) (dockerClient.PingResult, error)
+	ServiceList(ctx context.Context, options dockerClient.ServiceListOptions) ([]swarm.Service, error)
+	TaskList(ctx context.Context, options dockerClient.TaskListOptions) ([]swarm.Task, error)
+	NodeList(ctx context.Context, options dockerClient.NodeListOptions) ([]swarm.Node, error)
 	Close() error
 }
 
 func NewEnvClient() (Client, error) {
-	client, err := dockerClient.NewClientWithOpts(
-		dockerClient.FromEnv,
-		dockerClient.WithAPIVersionNegotiation(),
-	)
+	client, err := dockerClient.New(dockerClient.FromEnv)
 	if err != nil {
 		return nil, err
 	}
@@ -41,17 +37,19 @@ func NewEnvClient() (Client, error) {
 
 func NewClient(host string, tlsConfig *tls.Config) (Client, error) {
 	transport := &http.Transport{}
+	scheme := "http"
 
 	if tlsConfig != nil {
 		transport.TLSClientConfig = tlsConfig
+		scheme = "https"
 	}
 
 	httpClient := &http.Client{Transport: transport}
 
-	client, err := dockerClient.NewClientWithOpts(
+	client, err := dockerClient.New(
+		dockerClient.WithScheme(scheme),
 		dockerClient.WithHTTPHeaders(defaultHeaders),
 		dockerClient.WithHTTPClient(httpClient),
-		dockerClient.WithAPIVersionNegotiation(),
 		dockerClient.WithHost(host))
 	if err != nil {
 		return nil, err
@@ -65,28 +63,35 @@ type SocketClient struct {
 }
 
 func (c *SocketClient) Info(ctx context.Context) (system.Info, error) {
-	return c.client.Info(ctx)
+	result, err := c.client.Info(ctx, dockerClient.InfoOptions{})
+	return result.Info, err
 }
-func (c *SocketClient) Ping(ctx context.Context) (types.Ping, error) {
-	return c.client.Ping(ctx)
+func (c *SocketClient) Ping(ctx context.Context) (dockerClient.PingResult, error) {
+	return c.client.Ping(ctx, dockerClient.PingOptions{NegotiateAPIVersion: true})
 }
-func (c *SocketClient) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
-	return c.client.ContainerList(ctx, options)
+func (c *SocketClient) ContainerList(ctx context.Context, options dockerClient.ContainerListOptions) ([]container.Summary, error) {
+	result, err := c.client.ContainerList(ctx, options)
+	return result.Items, err
 }
-func (c *SocketClient) ContainerStats(ctx context.Context, containerID string, stream bool) (container.StatsResponseReader, error) {
-	return c.client.ContainerStats(ctx, containerID, stream)
+func (c *SocketClient) ContainerStats(ctx context.Context, containerID string, stream bool) (dockerClient.ContainerStatsResult, error) {
+	// CPU usage is a delta between two samples, including in non-streaming mode.
+	return c.client.ContainerStats(ctx, containerID, dockerClient.ContainerStatsOptions{Stream: stream, IncludePreviousSample: true})
 }
-func (c *SocketClient) ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error) {
-	return c.client.ContainerInspect(ctx, containerID)
+func (c *SocketClient) ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error) {
+	result, err := c.client.ContainerInspect(ctx, containerID, dockerClient.ContainerInspectOptions{})
+	return result.Container, err
 }
-func (c *SocketClient) ServiceList(ctx context.Context, options types.ServiceListOptions) ([]swarm.Service, error) {
-	return c.client.ServiceList(ctx, options)
+func (c *SocketClient) ServiceList(ctx context.Context, options dockerClient.ServiceListOptions) ([]swarm.Service, error) {
+	result, err := c.client.ServiceList(ctx, options)
+	return result.Items, err
 }
-func (c *SocketClient) TaskList(ctx context.Context, options types.TaskListOptions) ([]swarm.Task, error) {
-	return c.client.TaskList(ctx, options)
+func (c *SocketClient) TaskList(ctx context.Context, options dockerClient.TaskListOptions) ([]swarm.Task, error) {
+	result, err := c.client.TaskList(ctx, options)
+	return result.Items, err
 }
-func (c *SocketClient) NodeList(ctx context.Context, options types.NodeListOptions) ([]swarm.Node, error) {
-	return c.client.NodeList(ctx, options)
+func (c *SocketClient) NodeList(ctx context.Context, options dockerClient.NodeListOptions) ([]swarm.Node, error) {
+	result, err := c.client.NodeList(ctx, options)
+	return result.Items, err
 }
 func (c *SocketClient) Close() error {
 	return c.client.Close()

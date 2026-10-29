@@ -10,7 +10,7 @@ package docker
 import (
 	"errors"
 	"fmt"
-	"github.com/docker/docker/api/types/system"
+	"github.com/moby/moby/api/types/system"
 	"log"
 	"math"
 	"regexp"

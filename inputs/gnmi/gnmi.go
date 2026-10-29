@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/gnxi/utils/xpath"
+	xpath "flashcat.cloud/categraf/internal/gnmipath"
 	gnmiLib "github.com/openconfig/gnmi/proto/gnmi"
 	"google.golang.org/grpc/metadata"
 

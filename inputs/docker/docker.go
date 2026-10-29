@@ -11,16 +11,15 @@ import (
 	"sync"
 	"time"
 
-	containerType "github.com/docker/docker/api/types/container"
+	containerType "github.com/moby/moby/api/types/container"
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/choice"
 	"flashcat.cloud/categraf/pkg/dock"
 	"flashcat.cloud/categraf/pkg/filter"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 
 	tlsx "flashcat.cloud/categraf/pkg/tls"
 	itypes "flashcat.cloud/categraf/types"
@@ -98,6 +97,7 @@ type Instance struct {
 
 	engineHost    string
 	serverVersion string
+	daemonOSType  string
 }
 
 func (ins *Instance) Init() error {
@@ -165,7 +165,7 @@ func (ins *Instance) Gather(slist *itypes.SampleList) {
 		ins.gatherSwarmInfo(slist)
 	}
 
-	filterArgs := filters.NewArgs()
+	filterArgs := make(client.Filters)
 	for _, state := range containerStates {
 		if ins.stateFilter.Match(state) {
 			filterArgs.Add("status", state)
@@ -173,12 +173,12 @@ func (ins *Instance) Gather(slist *itypes.SampleList) {
 	}
 
 	// All container states were excluded
-	if filterArgs.Len() == 0 {
+	if len(filterArgs) == 0 {
 		return
 	}
 
 	// List containers
-	opts := containerType.ListOptions{
+	opts := client.ContainerListOptions{
 		Filters: filterArgs,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
@@ -198,7 +198,7 @@ func (ins *Instance) Gather(slist *itypes.SampleList) {
 	var wg sync.WaitGroup
 	wg.Add(len(containers))
 	for _, container := range containers {
-		go func(c types.Container) {
+		go func(c containerType.Summary) {
 			defer wg.Done()
 			ins.gatherContainer(c, slist)
 		}(container)
@@ -206,7 +206,7 @@ func (ins *Instance) Gather(slist *itypes.SampleList) {
 	wg.Wait()
 }
 
-func (ins *Instance) gatherContainer(container types.Container, slist *itypes.SampleList) {
+func (ins *Instance) gatherContainer(container containerType.Summary, slist *itypes.SampleList) {
 	// Parse container name
 	var cname string
 	for _, name := range container.Names {
@@ -275,13 +275,13 @@ func (ins *Instance) gatherContainer(container types.Container, slist *itypes.Sa
 		}
 	}
 
-	err = ins.gatherContainerInspect(container, slist, tags, r.OSType, v)
+	err = ins.gatherContainerInspect(container, slist, tags, ins.daemonOSType, v)
 	if err != nil {
 		log.Println("E! failed to gather container inspect:", err)
 	}
 }
 
-func (ins *Instance) gatherContainerInspect(container types.Container, slist *itypes.SampleList, tags map[string]string, daemonOSType string, v *containerType.StatsResponse) error {
+func (ins *Instance) gatherContainerInspect(container containerType.Summary, slist *itypes.SampleList, tags map[string]string, daemonOSType string, v *containerType.StatsResponse) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
 	defer cancel()
 
@@ -307,7 +307,7 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *it
 	}
 
 	if info.State != nil {
-		tags["container_status"] = info.State.Status
+		tags["container_status"] = string(info.State.Status)
 		oomKilled := func() int {
 			if info.State.OOMKilled == true {
 				return 1
@@ -343,9 +343,9 @@ func (ins *Instance) gatherContainerInspect(container types.Container, slist *it
 		slist.PushSamples("docker_container", statefields, tags)
 
 		if info.State.Health != nil {
-			slist.PushSample("docker_container", "health_failing_streak", info.ContainerJSONBase.State.Health.FailingStreak, tags)
+			slist.PushSample("docker_container", "health_failing_streak", info.State.Health.FailingStreak, tags)
 			var containerHealthStatesNum int
-			switch info.ContainerJSONBase.State.Health.Status {
+			switch info.State.Health.Status {
 			case "healthy":
 				containerHealthStatesNum = 0
 			case "starting":
@@ -628,7 +628,7 @@ func (ins *Instance) gatherSwarmInfo(slist *itypes.SampleList) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
 	defer cancel()
 
-	services, err := ins.client.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := ins.client.ServiceList(ctx, client.ServiceListOptions{})
 	if err == context.DeadlineExceeded {
 		log.Println("E! failed to gather swarm info: timeout")
 		return
@@ -642,13 +642,13 @@ func (ins *Instance) gatherSwarmInfo(slist *itypes.SampleList) {
 		return
 	}
 
-	tasks, err := ins.client.TaskList(ctx, types.TaskListOptions{})
+	tasks, err := ins.client.TaskList(ctx, client.TaskListOptions{})
 	if err != nil {
 		log.Println("E! failed to gather swarm info:", err)
 		return
 	}
 
-	nodes, err := ins.client.NodeList(ctx, types.NodeListOptions{})
+	nodes, err := ins.client.NodeList(ctx, client.NodeListOptions{})
 	if err != nil {
 		log.Println("E! failed to gather swarm info:", err)
 		return
@@ -722,6 +722,7 @@ func (ins *Instance) gatherInfo(slist *itypes.SampleList) error {
 	}
 	ins.engineHost = info.Name
 	ins.serverVersion = info.ServerVersion
+	ins.daemonOSType = info.OSType
 
 	slist.PushSamples("", fields, map[string]string{
 		"engine_host":    ins.engineHost,
@@ -748,6 +749,7 @@ func (ins *Instance) getNewClient() (Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ins.Timeout))
 	defer cancel()
 	if _, err := c.Ping(ctx); err != nil {
+		_ = c.Close()
 		return nil, err
 	}
 	return c, nil

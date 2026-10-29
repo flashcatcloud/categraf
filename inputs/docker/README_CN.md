@@ -1,5 +1,13 @@
 # Docker 采集插件
 
+插件使用独立的 Moby client/API 模块，最低要求为 Engine API 1.40（Docker Engine
+19.03+），默认自动协商 API 版本。`endpoint = "ENV"` 继续读取 `DOCKER_HOST`、
+`DOCKER_TLS_VERIFY`、`DOCKER_CERT_PATH` 和 `DOCKER_API_VERSION`；固定 endpoint
+使用插件自身的 TLS 配置。Stats 显式请求前一次样本，保持 CPU 差值计算。
+
+SDK、日志、exec、服务发现和真实 Docker/Swarm 的测试方式见
+[SDK migration tests](README.md#sdk-migration-tests)。
+
 Docker 采集插件用于收集本地运行的 Docker 容器的状态、CPU、内存、网络及块设备 I/O 等性能指标。该插件基于 `telegraf/inputs.docker` 进行改造 (fork)。
 
 ## 差异说明
