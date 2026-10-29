@@ -1,7 +1,7 @@
 # Categraf Dependabot 安全告警分析与修复方案
 
 - 整理日期：2026-10-29
-- 状态：PostgreSQL 驱动迁移已实现并完成回归验证；Docker SDK 迁移待第二批实施
+- 状态：PostgreSQL 与 Docker SDK 两批迁移均已实现并完成本地/隔离环境验证；待 PR CI 及 GitHub 重新分析
 - 评审修订：补全 Prometheus Docker/Swarm 服务发现依赖闭包，以及 simple protocol 的真实用户配置入口。
 - 告警来源：[Dependabot 汇总页](https://github.com/flashcatcloud/categraf/security/dependabot)
 - 核对方式：通过已登录 Chrome 读取 6 条告警，并核对当前仓库代码、依赖元数据和上游公告。
@@ -339,6 +339,46 @@ client.ContainerStatsOptions{
 - 服务发现的 Unix socket/TLS、API 协商、刷新、超时、错误与取消正常；除第三方包测试外，还需经过本项目的注册和配置入口回归。
 - 默认完整 Prometheus 抓取、remote write 和 TSDB/agent 功能通过兼容性检查；`no_prometheus` 等裁剪构建只作为额外验证，不替代完整构建。
 
+### 5.6 Docker SDK 实施与验证结果（2026-10-29）
+
+**最终依赖组合**：`github.com/moby/moby/client v0.6.2`、`github.com/moby/moby/api v1.56.1`、`github.com/prometheus/prometheus v0.312.0`。实施前已在临时模块中通过这三个固定版本的发现器组合编译；最终采用上游版本升级，无须维护 Prometheus fork 或修改 vendor 源码。
+
+实施范围：
+
+- `inputs/docker`：迁移接口适配器、列表/Inspect/Swarm 返回值和新选项；Stats 显式设置 `IncludePreviousSample: true`；从 Info 保存 daemon OS 类型，保持 Linux/Windows CPU、内存、网络、块设备和状态指标及标签。
+- `logs/util/docker`：迁移镜像、容器、网络端口、事件和日志接口，保留镜像缓存与 not-found 错误分类；关闭 Stats 响应体，处理有限事件流 EOF、重连、启动阻塞、退避和背压时的取消。
+- Keepalived：迁移 exec create/attach/kill，释放 hijacked connection，并按非 TTY 协议解复用 stdout/stderr。
+- Prometheus：通过上游 `discovery/install -> discovery/moby` 保留 Docker/Swarm 注册，新增完整 YAML 入口测试。存储兼容回归同时补全了 `readyStorage.StartTime` 的 agent 分支，以及 agent WAL 的 remote write 通知。
+
+**额外依赖闭包**：完成上述迁移后，模块图仍有 `google/gnxi -> docker/docker v24.0.7`，以及旧完整 Moby 模块要求。Categraf 仅使用 `gnxi/utils/xpath`，上游较新提交也保留这些 daemon 依赖。因此，将原先精确版本 `ef18504847b0` 的两个纯解析文件保留在 `internal/gnmipath`，包含来源、原始版权及 Apache-2.0 许可证；仅修改包名、来源注释和两处等价的 `ReplaceAll` 调用以通过 lint。新增解析和订阅路径兼容测试后，移除 `google/gnxi` 模块。没有通过删除 gNMI 或服务发现功能绕过依赖。
+
+最终模块图、`go.mod`/`go.sum`、vendor 模式和模块模式的默认完整构建依赖中，均不再包含旧 `github.com/docker/docker` 或完整 `github.com/moby/moby` 模块。两种模式的包依赖清单一致，完整 Linux 二进制记录的新 SDK、Prometheus 和 PostgreSQL 版本均符合预期；本地 vendor 已重新生成，继续遵循仓库忽略规则。
+
+测试与实际验证：
+
+| 层次 | 结果 |
+| --- | --- |
+| 配置与请求 | TOML 初始化；ENV 主机/API 覆盖；API 1.40、1.51、1.54 协商；明确 Ping 拒绝过低协商版本；Unix socket 和验证 CA 的 TLS |
+| 指标与类型 | 两次 CPU 样本、Linux/Windows CPU 比例、三种 memory cache 形式、CPU/内存/网络/块设备指标和环境/标签；Swarm 服务、任务和节点返回值 |
+| 日志与资源 | 镜像名缓存、Inspect size/缺失/非法响应、卷过滤、日志流；Stats 正常及解码错误时关闭 Body；有限事件 EOF、重连、错误退避、背压及阻塞建连时取消 |
+| Keepalived exec | 新建/attach/kill 请求、stdout/stderr 解复用、创建/attach 错误，以及真实 shell exec；不假定两个输出流的到达顺序 |
+| 项目服务发现 | 真实 Prometheus YAML 注册/创建发现器；Docker 过滤参数、地址/端口、host networking、元标签；Swarm nodes/services/tasks 的地址及对象/网络元标签；Unix/TLS、失败重试和取消 |
+| 上游服务发现 | 在本项目最终依赖组合下执行 `go test -mod=readonly github.com/prometheus/prometheus/discovery/moby`，通过 |
+| Prometheus 存储 | 真实 HTTP 抓取 → agent/TSDB WAL → remote write，解码接收端 protobuf 并核对样本值，通过 |
+| 真实 Engine | 20.10.24（API 1.41）、28.4.0（API 1.51）、29.5.2（API 1.54）：指标、日志/事件、exec、Docker 发现全部通过；20.10/29.5 在独立嵌套 daemon 中验证真实 Swarm 三角色发现 |
+| 静态检查与构建 | Go 1.25.10 的相关包 race/vet 通过；golangci-lint 2.12.2 按完整新增补丁（包含未跟踪 Go 文件）与 `--tests=false` 检查迁移范围，0 issues；Linux/Windows amd64/arm64 完整构建与 Linux 裁剪构建通过 |
+
+真实 Engine 测试通过授权测试机执行，保留了共享 daemon 的原有配置。测试结束后移除临时容器、匿名卷、Swarm daemon、网络、镜像及文件。最低 API 1.40 由协议夹具覆盖，未运行真实 Docker 19.03 daemon；Windows named pipe 仅完成交叉编译验证，未做 Windows 主机运行测试。
+
+可重复执行的环境变量、用例及清理命令见 `inputs/docker/README.md`。
+
+**安全扫描边界**：模块级扫描未再命中本文件 6 条目标告警；源码及构建二进制也已扫描。仓库扫描整体仍有其他结果，不能将本批验收等同于“全部依赖无漏洞”：
+
+- 本机 Go 1.26.8 / 兼容性构建 Go 1.25.10 的标准库，以及现有 `x/net`、`x/crypto` 有独立告警，需另行安排工具链/依赖升级。
+- Prometheus v0.312.0 的 Outscale 提供方经 `osc-sdk-go/v2 v2.34.0` 新增 `aws-sdk-go v1.55.8`。模块扫描命中 S3 Crypto 的 GO-2022-0635 / GO-2022-0646（CVE-2020-8912 / CVE-2020-8911），均无旧模块原地修复版本；默认完整构建未导入 `service/s3/s3crypto`，源码扫描未给出相应可达调用。上游 Outscale v2.35.0 仍要求同一旧 AWS SDK，不能以无效升级宣称已消除。这两项作为新传递依赖的模块告警单独跟踪，不计入本次 6 条已迁移目标。
+
+远程 PR CI 与 GitHub 告警关闭状态尚待确认。Docker 主机补丁状态仍由第 6 节的独立部署流程确认。
+
 ## 6. Docker daemon 部署侧说明
 
 针对本文件四项 Docker 告警，daemon 修复下限如下：
@@ -381,6 +421,6 @@ Categraf 代码迁移与宿主机 Docker daemon 更新分别安排，不能用 S
 
 ## 8. 状态说明
 
-PostgreSQL 驱动迁移和实际配置入口、安全回归已完成，结果见第 4.4 节。Docker SDK 与 Prometheus Docker/Swarm 服务发现仍按第 5 节安排第二批实施。剩余事项包括第二批迁移、PR CI、GitHub 依赖重新分析、其他扫描告警，以及部署侧 daemon 补丁确认。
+两批代码迁移和验证结果分别记录在第 4.4、5.6 节，均已完成。评审指出的 PostgreSQL 真实配置入口和 Prometheus Docker/Swarm 传递依赖已纳入实现与回归；实施时额外清理了 gNMI XPath 带入的旧 Docker 模块要求。剩余事项包括 PR CI、GitHub 依赖重新分析、单独记录的其他扫描告警，以及部署侧 daemon 补丁确认。
 
 当前代码、未来补丁和实际上线版本可能不同；实施时应以目标分支的依赖图与最新上游公告再次确认。

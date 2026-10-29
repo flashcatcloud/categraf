@@ -3,14 +3,14 @@ package container
 import (
 	"bytes"
 	"context"
-	"io"
 	"log/slog"
 
-	"github.com/docker/docker/api/types/container"
+	"github.com/moby/moby/api/pkg/stdcopy"
+	"github.com/moby/moby/client"
 )
 
 func (k *KeepalivedContainerCollectorHost) dockerExecCmd(cmd []string) (*bytes.Buffer, error) {
-	rst, err := k.dockerCli.ContainerExecCreate(context.Background(), k.containerName, container.ExecOptions{
+	rst, err := k.dockerCli.ExecCreate(context.Background(), k.containerName, client.ExecCreateOptions{
 		AttachStdout: true,
 		AttachStderr: true,
 		Cmd:          cmd,
@@ -21,7 +21,7 @@ func (k *KeepalivedContainerCollectorHost) dockerExecCmd(cmd []string) (*bytes.B
 		return nil, err
 	}
 
-	response, err := k.dockerCli.ContainerExecAttach(context.Background(), rst.ID, container.ExecStartOptions{})
+	response, err := k.dockerCli.ExecAttach(context.Background(), rst.ID, client.ExecAttachOptions{})
 	if err != nil {
 		slog.Debug("Error attaching a connection to an exec process", "CMD", cmd, "error", err)
 
@@ -29,7 +29,9 @@ func (k *KeepalivedContainerCollectorHost) dockerExecCmd(cmd []string) (*bytes.B
 	}
 	defer response.Close()
 
-	data, err := io.ReadAll(response.Reader)
+	// Non-TTY exec uses Docker's multiplexed stdout/stderr framing.
+	var output bytes.Buffer
+	_, err = stdcopy.StdCopy(&output, &output, response.Reader)
 	if err != nil {
 		slog.Debug("Error reading response from docker command",
 			"error", err,
@@ -39,5 +41,5 @@ func (k *KeepalivedContainerCollectorHost) dockerExecCmd(cmd []string) (*bytes.B
 		return nil, err
 	}
 
-	return bytes.NewBuffer(data), nil
+	return &output, nil
 }

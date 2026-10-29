@@ -14,8 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/filters"
+	"github.com/moby/moby/client"
 )
 
 // // eventStreamState logic unit tested in event_stream_test.go
@@ -77,7 +76,7 @@ func (e *eventStreamState) unsubscribe(name string) error {
 }
 
 func (d *DockerUtil) dispatchEvents(sub *eventSubscriber) {
-	fltrs := filters.NewArgs()
+	fltrs := make(client.Filters)
 	fltrs.Add("type", "container")
 	fltrs.Add("event", "start")
 	fltrs.Add("event", "die")
@@ -87,34 +86,59 @@ func (d *DockerUtil) dispatchEvents(sub *eventSubscriber) {
 	// On initial subscribe, don't go back in time. On reconnect, we'll
 	// resume at the latest timestamp we got.
 	latestTimestamp := time.Now().Unix()
-	var cancelFunc context.CancelFunc
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	defer close(sub.errorChan)
+	defer close(sub.eventChan)
+	// Events may block establishing its HTTP stream, so cancellation must also
+	// reach the SDK while the dispatcher is waiting for its return value.
+	go func() {
+		select {
+		case <-sub.cancelChan:
+			cancelFunc()
+		case <-ctx.Done():
+		}
+	}()
 
 CONNECT: // Outer loop handles re-connecting in case the docker daemon closes the connection
 	for {
-		eventOptions := events.ListOptions{
+		eventOptions := client.EventsListOptions{
 			Since:   strconv.FormatInt(latestTimestamp, 10),
 			Filters: fltrs,
 		}
 
-		var ctx context.Context
-		ctx, cancelFunc = context.WithCancel(context.Background())
-		messages, errs := d.cli.Events(ctx, eventOptions)
+		if ctx.Err() != nil {
+			return
+		}
+		streamCtx, stopStream := context.WithCancel(ctx)
+		stream := d.cli.Events(streamCtx, eventOptions)
+		messages, errs := stream.Messages, stream.Err
 
 		// Inner loop iterates over elements in the channel
 		for {
 			select {
-			case <-sub.cancelChan:
+			case <-ctx.Done():
+				stopStream()
 				break CONNECT
-			case err := <-errs:
+			case err, ok := <-errs:
+				stopStream()
+				if !ok {
+					err = io.EOF
+				}
 				if err == io.EOF {
 					// Silently ignore io.EOF that happens on http connection reset
 					log.Println("D! Got EOF, re-connecting")
 				} else {
 					// Else, let's wait 10 seconds and try reconnecting
 					log.Println("W! Got error from docker, waiting for 10 seconds: ", err)
-					time.Sleep(10 * time.Second)
+					timer := time.NewTimer(10 * time.Second)
+					select {
+					case <-timer.C:
+					case <-ctx.Done():
+						timer.Stop()
+						return
+					}
 				}
-				cancelFunc()
 				continue CONNECT // Re-connect to docker
 			case msg := <-messages:
 				latestTimestamp = msg.Time
@@ -129,11 +153,13 @@ CONNECT: // Outer loop handles re-connecting in case the docker daemon closes th
 				// Block if the buffered channel is full, pausing the http
 				// stream. If docker closes because of client timeout, we
 				// will reconnect later and stream from latestTimestamp.
-				sub.eventChan <- event
+				select {
+				case sub.eventChan <- event:
+				case <-ctx.Done():
+					stopStream()
+					return
+				}
 			}
 		}
 	}
-	cancelFunc()
-	close(sub.errorChan)
-	close(sub.eventChan)
 }
