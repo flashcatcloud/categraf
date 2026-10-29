@@ -16,6 +16,10 @@
   ## to grab metrics for.
   ##
   # address = "host=localhost user=postgres sslmode=disable"
+  ## For PgBouncer transaction pooling, select simple protocol in address:
+  # address = "host=localhost user=postgres sslmode=disable default_query_exec_mode=simple_protocol"
+  ## Legacy prefer_simple_protocol=true/false remains supported in address.
+  ## Do not combine it (or statement_cache_mode) with default_query_exec_mode.
 
   ## A custom name for the database that will be used as the "server" tag in the
   ## measurement output. If not specified, a default one generated from
@@ -43,9 +47,8 @@
   ## 0 means no limit
   # statement_metrics_limit = 100
  
-  ## Whether to use prepared statements when connecting to the database.
-  ## This should be set to false when connecting through a PgBouncer instance
-  ## with pool_mode set to transaction.
+  ## Historical field; it does not control the connection protocol.
+  ## Set the query mode in address as shown above instead.
   #prepared_statements = true
 
   ## Whether to skip built-in metrics from pg_stat_database.

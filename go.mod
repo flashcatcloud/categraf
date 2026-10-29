@@ -22,7 +22,7 @@ require (
 	github.com/gosnmp/gosnmp v1.37.0
 	github.com/hashicorp/consul/api v1.32.1
 	github.com/influxdata/line-protocol/v2 v2.2.1
-	github.com/jackc/pgx/v4 v4.18.2
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/jcmturner/gokrb5/v8 v8.4.4
 	github.com/json-iterator/go v1.1.12
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
@@ -145,13 +145,9 @@ require (
 	github.com/gophercloud/gophercloud/v2 v2.11.1 // indirect
 	github.com/grid-x/serial v0.0.0-20211107191517-583c7356b3aa // indirect
 	github.com/hetznercloud/hcloud-go/v2 v2.36.0 // indirect
-	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
-	github.com/jackc/pgconn v1.14.3 // indirect
-	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgproto3/v2 v2.3.3 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/pgtype v1.14.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jcmturner/goidentity/v6 v6.0.1 // indirect
 	github.com/josharian/native v1.1.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
@@ -400,7 +396,6 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect
 	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da // indirect
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.36 // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20230704072500-f1e31cf0ba5c // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
