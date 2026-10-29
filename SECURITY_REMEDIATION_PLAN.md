@@ -397,7 +397,7 @@ client.ContainerStatsOptions{
 | Docker API 1.40 | 协议夹具通过，未运行 Docker 19.03 daemon；新 SDK 支持下限需纳入发布说明 |
 | PostgreSQL 16.14 / 18.4、PgBouncer 1.25.2 | 第 4.5 节扩展矩阵通过；不支持的事务池命名缓存组合明确跳过 |
 | PostgreSQL 14/15 与更老部署 | pgx v5.9.2 上游声明支持 PostgreSQL 14+；本次没有实际运行 14/15，更老版本没有兼容性保证，维护者需确认项目支持范围 |
-| Windows amd64 named pipe | 新增 `TestMobyNamedPipe`：真实 Win32 pipe listener，经生产 ENV/显式端点构造器覆盖协商、Info/List/Inspect/Stats、前次 CPU 样本和请求超时；本地完成 Windows 测试二进制交叉编译；新增 Windows runner CI，实际结果待确认 |
+| Windows amd64 named pipe | 新增 `TestMobyNamedPipe`：真实 Win32 pipe listener，经生产 ENV/显式端点构造器覆盖协商、Info/List/Inspect/Stats、前次 CPU 样本和请求超时；提交 `616eab7a` 的 [Windows runner CI 已通过](https://github.com/flashcatcloud/categraf/actions/runs/40841620256/job/123339107089)，本地 amd64/arm64 测试二进制交叉编译也通过 |
 | Windows daemon / Windows arm64 | 前次完整交叉编译通过；上述 pipe 夹具不等同于真实 Windows Docker daemon 或 arm64 主机端到端验证，仍需维护者确认发布范围 |
 
 新增 Windows CI 不需要安装 Docker 或访问宿主机 daemon，只创建当前测试用户自己的临时命名管道，并关闭 listener/HTTP server/client。它用于验证原生传输路径，不能被描述为所有 Windows 部署均已验证。
