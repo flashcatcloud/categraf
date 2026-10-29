@@ -34,6 +34,39 @@
 
 Make sure that `deployment.yaml` always appears with `etcd-service.yaml` and `deployment-etcd-http` appears with `etcd-service-http.yaml`. They cannot be apply at the same time.
 
+## Use IPv4 for writer and heartbeat connections
+
+For IPv4-only backends, set `PREFER_IPV4_STACK` on the Categraf container to
+avoid AAAA DNS queries when its writer and heartbeat clients reconnect:
+
+```yaml
+spec:
+  template:
+    spec:
+      containers:
+        - name: categraf
+          # Keep the existing image, arguments, mounts, and other environment variables.
+          env:
+            - name: PREFER_IPV4_STACK
+              value: "true"
+```
+
+This is a Pod template fragment for a Deployment, DaemonSet, or StatefulSet.
+For a standalone Pod, set the variable under `spec.containers`. In sidecar mode,
+set it on the Categraf container. Roll out updated Pods to apply the change.
+
+Only the exact string `true` enables this behavior. It applies to all writers
+and the enabled heartbeat client in that process; IPv6-only endpoints will fail
+without IPv6 fallback. Other input clients retain their existing behavior.
+With a proxy, it controls the local connection to the proxy, not DNS resolution
+performed by the proxy. Existing connection pooling and TLS verification remain
+unchanged. Remove the variable or set it to `"false"` and roll out updated Pods
+to restore the default behavior.
+
+This removes AAAA queries from the affected IPv4 dialing paths, not A queries or
+queries from other containers. For large clusters, also review Pod DNS search
+domains/`ndots` and consider NodeLocal DNSCache to reduce shared DNS load.
+
 # dashboards show
 ___
 ![apiserver-dashboards](https://cdn.jsdelivr.net/gh/flashcatcloud/categraf@main/k8s/images/apiserver-dash.jpg)
