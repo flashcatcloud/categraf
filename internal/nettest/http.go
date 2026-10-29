@@ -211,7 +211,9 @@ func httpServer(t *testing.T, secure, closeConn, ipv6 bool) (*httptest.Server, *
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	if ipv6 {
-		server.Listener.Close()
+		if err := server.Listener.Close(); err != nil {
+			t.Fatal(err)
+		}
 		listener, err := net.Listen("tcp6", "[::1]:0")
 		if err != nil {
 			t.Skipf("IPv6 loopback unavailable: %v", err)
@@ -265,7 +267,9 @@ func CheckHTTPProxy(t *testing.T, newClient ClientFactory) {
 		if r.URL.Host != "backend.invalid" || r.Header.Get("Proxy-Authorization") != "Basic dXNlcjpwYXNz" {
 			t.Errorf("proxy request: URL=%s proxy authorization=%q", r.URL, r.Header.Get("Proxy-Authorization"))
 		}
-		io.Copy(io.Discard, r.Body)
+		if _, err := io.Copy(io.Discard, r.Body); err != nil {
+			t.Error(err)
+		}
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(proxy.Close)
