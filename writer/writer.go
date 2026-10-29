@@ -16,6 +16,7 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/pkg/netx"
 )
 
 type Writer struct {
@@ -27,9 +28,9 @@ type Writer struct {
 func newWriter(opt config.WriterOption) (Writer, error) {
 	tr := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
+		DialContext: netx.DialContextFromEnv(&net.Dialer{
 			Timeout: time.Duration(opt.DialTimeout) * time.Millisecond,
-		}).DialContext,
+		}),
 		ResponseHeaderTimeout: time.Duration(opt.Timeout) * time.Millisecond,
 		MaxIdleConnsPerHost:   opt.MaxIdleConnsPerHost,
 	}

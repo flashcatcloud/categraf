@@ -1,14 +1,61 @@
 package heartbeat
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"runtime"
 	"testing"
 
 	cpuUtil "github.com/shirou/gopsutil/v4/cpu"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/system"
+	"flashcat.cloud/categraf/internal/nettest"
 )
+
+func newTestHeartbeatClient(t *testing.T, endpoint, caFile string) func() error {
+	t.Helper()
+	original := config.Config
+	config.Config = &config.ConfigType{Heartbeat: &config.HeartbeatConfig{
+		Url: endpoint, DialTimeout: 2000, Timeout: 2000, MaxIdleConnsPerHost: 10,
+	}}
+	config.Config.Heartbeat.TLSCA = caFile
+	t.Cleanup(func() { config.Config = original })
+	client, err := newHTTPClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(client.CloseIdleConnections)
+	return func() error {
+		req, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewBufferString("test payload"))
+		if err != nil {
+			return err
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+			return err
+		}
+		if resp.StatusCode != http.StatusNoContent {
+			return fmt.Errorf("unexpected heartbeat status: %s", resp.Status)
+		}
+		return nil
+	}
+}
+
+func TestHTTPClientPreferIPv4Stack(t *testing.T) {
+	nettest.CheckHTTPClient(t, newTestHeartbeatClient)
+}
+
+func TestHTTPClientPreferIPv4StackProxy(t *testing.T) {
+	nettest.CheckHTTPProxy(t, newTestHeartbeatClient)
+}
 
 type heartbeatCPUPS struct {
 	system.PS

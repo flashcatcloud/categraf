@@ -54,6 +54,10 @@ batch = 1000
 chan_size = 1000000
 
 [[writers]]
+# Set the process environment variable PREFER_IPV4_STACK=true to use IPv4 only
+# for all writers and heartbeat connections. Only the exact value "true" enables
+# it; unset/false keeps dual-stack behavior. Restart Categraf after changing it.
+# This does not change other input clients or DNS resolution performed by proxies.
 url = "http://127.0.0.1:17000/prometheus/v1/write"
 
 ## Optional TLS Config

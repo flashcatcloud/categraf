@@ -22,6 +22,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs/system"
 	"flashcat.cloud/categraf/pkg/cmdx"
+	"flashcat.cloud/categraf/pkg/netx"
 )
 
 const collinterval = 3
@@ -75,9 +76,9 @@ func newHTTPClient() (*http.Client, error) {
 
 	trans := &http.Transport{
 		Proxy: proxy,
-		DialContext: (&net.Dialer{
+		DialContext: netx.DialContextFromEnv(&net.Dialer{
 			Timeout: time.Duration(config.Config.Heartbeat.DialTimeout) * time.Millisecond,
-		}).DialContext,
+		}),
 		ResponseHeaderTimeout: timeout,
 		MaxIdleConnsPerHost:   config.Config.Heartbeat.MaxIdleConnsPerHost,
 	}
