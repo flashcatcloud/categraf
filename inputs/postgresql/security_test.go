@@ -59,7 +59,7 @@ func TestMalformedDataRowFromServer(t *testing.T) {
 	t.Cleanup(func() { _ = listener.Close() })
 	result := make(chan error, 1)
 	go func() { result <- sendMalformedDataRow(listener) }()
-	ins, err := configuredInstance(t, fmt.Sprintf("host=127.0.0.1 port=%d user=test dbname=test sslmode=disable prefer_simple_protocol=true statement_cache_mode=describe", listener.Addr().(*net.TCPAddr).Port), "")
+	ins, err := configuredInstance(t, fmt.Sprintf("host=127.0.0.1 port=%d user=test dbname=test sslmode=disable prefer_simple_protocol=true statement_cache_mode=describe min_read_buffer_size=16384", listener.Addr().(*net.TCPAddr).Port), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func sendMalformedDataRow(listener net.Listener) error {
 	if !ok {
 		return fmt.Errorf("expected StartupMessage, got %T", message)
 	}
-	for _, key := range []string{"prefer_simple_protocol", "statement_cache_mode"} {
+	for _, key := range []string{"prefer_simple_protocol", "statement_cache_mode", "min_read_buffer_size"} {
 		if _, ok := startup.Parameters[key]; ok {
 			return fmt.Errorf("client option %q sent to server", key)
 		}

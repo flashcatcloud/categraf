@@ -18,6 +18,14 @@ func parseConnectionConfig(address string) (*pgx.ConnConfig, error) {
 	if err != nil {
 		return nil, err
 	}
+	if value, ok := raw.RuntimeParams["min_read_buffer_size"]; ok {
+		// v4 parsed this client option as int32. v5 manages its read buffer
+		// internally, so retain valid legacy DSNs without forwarding the key.
+		size, err := strconv.ParseInt(value, 10, 32)
+		if err != nil || size < 0 {
+			return nil, fmt.Errorf("invalid min_read_buffer_size: expected a non-negative 32-bit integer")
+		}
+	}
 	simple, hasSimple := raw.RuntimeParams["prefer_simple_protocol"]
 	cacheMode, hasCacheMode := raw.RuntimeParams["statement_cache_mode"]
 	_, hasQueryMode := raw.RuntimeParams["default_query_exec_mode"]
@@ -43,6 +51,7 @@ func parseConnectionConfig(address string) (*pgx.ConnConfig, error) {
 	// These are client options, never PostgreSQL startup parameters.
 	delete(connConfig.RuntimeParams, "prefer_simple_protocol")
 	delete(connConfig.RuntimeParams, "statement_cache_mode")
+	delete(connConfig.RuntimeParams, "min_read_buffer_size")
 
 	if !hasQueryMode {
 		switch {

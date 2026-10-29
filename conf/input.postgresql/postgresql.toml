@@ -20,6 +20,7 @@
   # address = "host=localhost user=postgres sslmode=disable default_query_exec_mode=simple_protocol"
   ## Legacy prefer_simple_protocol=true/false remains supported in address.
   ## Do not combine it (or statement_cache_mode) with default_query_exec_mode.
+  ## Legacy min_read_buffer_size is accepted and ignored (pgx v5 manages its buffer).
 
   ## A custom name for the database that will be used as the "server" tag in the
   ## measurement output. If not specified, a default one generated from

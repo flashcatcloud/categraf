@@ -39,8 +39,13 @@ func TestPostgreSQLIntegration(t *testing.T) {
 				{"native simple", "default_query_exec_mode=simple_protocol", pgx.QueryExecModeSimpleProtocol},
 				{"legacy describe", "statement_cache_mode=describe statement_cache_capacity=7", pgx.QueryExecModeCacheDescribe},
 				{"uncached", "statement_cache_capacity=0", pgx.QueryExecModeDescribeExec},
+				{"legacy read buffer", "min_read_buffer_size=16384", pgx.QueryExecModeCacheStatement},
+				{"legacy read buffer simple", "prefer_simple_protocol=true min_read_buffer_size=16384", pgx.QueryExecModeSimpleProtocol},
 			} {
 				t.Run(tc.name, func(t *testing.T) {
+					if endpoint.name == "pgbouncer" && tc.mode == pgx.QueryExecModeCacheStatement {
+						t.Skip("transaction pooling with max_prepared_statements=0 does not support named statement caching; use simple protocol or an unprepared mode")
+					}
 					ins, err := configuredInstance(t, withConnectionOptions(t, address, tc.options), "")
 					if err != nil {
 						t.Fatal(err)
@@ -67,14 +72,9 @@ func TestPostgreSQLIntegration(t *testing.T) {
 						t.Fatal(err)
 					}
 					assertSQLTypes(t, ctx, conn)
-					// PgBouncer without prepared-statement tracking cannot promise
-					// named statement reuse. The collector's unparameterized queries
-					// still work; test bound queries in its compatible modes instead.
-					if endpoint.name != "pgbouncer" || tc.mode != pgx.QueryExecModeCacheStatement {
-						var bound int
-						if err := conn.QueryRowContext(ctx, "SELECT $1::int + 1", 41).Scan(&bound); err != nil || bound != 42 {
-							t.Fatalf("parameterized query: value=%d, err=%v", bound, err)
-						}
+					var bound int
+					if err := conn.QueryRowContext(ctx, "SELECT $1::int + 1", 41).Scan(&bound); err != nil || bound != 42 {
+						t.Fatalf("parameterized query: value=%d, err=%v", bound, err)
 					}
 					if tc.mode == pgx.QueryExecModeSimpleProtocol {
 						assertDollarQuotedParameters(t, ctx, conn)

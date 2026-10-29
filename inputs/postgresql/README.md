@@ -80,6 +80,11 @@ address = "postgres://categraf@localhost:6432/postgres?sslmode=disable&default_q
 `statement_cache_capacity=0` 在未显式选择原生 v5 模式时使用无缓存的 Describe/Exec。
 这些旧客户端参数在建立连接前会被消费，不会发送给 PostgreSQL。
 
+旧 `address` 或 service file 中的 `min_read_buffer_size` 继续接受，无需删除或改写。
+该值必须是非负的 32 位十进制整数，`0` 同样有效；非法值会在初始化时报错。
+pgx v5 自行管理读取缓冲区，因此这里只校验并消费旧参数，不再应用其缓冲区大小，
+也不会把它作为服务端参数发送。此兼容行为不要求用户更改原有合法连接配置。
+
 没有配置查询模式时使用 pgx v5 默认值。`IsPgBouncer` 不是 TOML 配置入口，
 `prepared_statements=false` 也不能替代上述连接串配置。`statement_cache_capacity`、
 `description_cache_capacity` 等原生参数可按 pgx v5 的规则配置。
@@ -106,6 +111,8 @@ go test -race ./inputs/postgresql
 这些 DSN 不应预先包含协议/缓存模式参数，测试会分别添加默认、旧 simple、新 simple、
 旧描述缓存和禁用缓存配置，经过 TOML 加载、`Init`、注册驱动建立连接。
 PgBouncer 测试已覆盖 `pool_mode=transaction`、`max_prepared_statements=0` 的配置。
+该事务池配置不支持命名预备语句缓存，因此默认缓存模式的两项用例会明确跳过；
+其余兼容模式实际运行，旧 `min_read_buffer_size` 与旧 simple protocol 的组合也会连接验证。
 测试还验证默认指标、自定义 SQL 的数值/标签、SQL 类型扫描、错误返回和超时。
 
 ```sh
