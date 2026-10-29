@@ -18,10 +18,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/client"
+	"github.com/containerd/errdefs"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/image"
+	"github.com/moby/moby/client"
 
 	"flashcat.cloud/categraf/logs/util/containers/providers"
 	"flashcat.cloud/categraf/pkg/cache"
@@ -80,14 +80,15 @@ func (d *DockerUtil) init() error {
 
 // ConnectToDocker connects to docker and negotiates the API version
 func ConnectToDocker(ctx context.Context) (*client.Client, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	cli, err := client.New(client.FromEnv)
 	if err != nil {
 		return nil, err
 	}
 	// Looks like docker is not actually doing a call to server when `NewClient` is called
 	// Forcing it to verify server availability by calling Info()
-	_, err = cli.Info(ctx)
+	_, err = cli.Info(ctx, client.InfoOptions{})
 	if err != nil {
+		_ = cli.Close()
 		return nil, err
 	}
 
@@ -100,12 +101,12 @@ func ConnectToDocker(ctx context.Context) (*client.Client, error) {
 func (d *DockerUtil) Images(ctx context.Context, includeIntermediate bool) ([]image.Summary, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
-	images, err := d.cli.ImageList(ctx, image.ListOptions{All: includeIntermediate})
+	result, err := d.cli.ImageList(ctx, client.ImageListOptions{All: includeIntermediate})
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to list docker images: %s", err)
 	}
-	return images, nil
+	return result.Items, nil
 }
 
 // CountVolumes returns the number of attached and dangling volumes.
@@ -124,25 +125,26 @@ func (d *DockerUtil) CountVolumes(ctx context.Context) (int, int, error) {
 		return 0, 0, fmt.Errorf("unable to list dangling docker volumes: %s", err)
 	}
 
-	return len(attachedVolumes.Volumes), len(danglingVolumes.Volumes), nil
+	return len(attachedVolumes.Items), len(danglingVolumes.Items), nil
 }
 
 // RawContainerList wraps around the docker client's ContainerList method.
 // Value validation and error handling are the caller's responsibility.
-func (d *DockerUtil) RawContainerList(ctx context.Context, options container.ListOptions) ([]types.Container, error) {
+func (d *DockerUtil) RawContainerList(ctx context.Context, options client.ContainerListOptions) ([]container.Summary, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
-	return d.cli.ContainerList(ctx, options)
+	result, err := d.cli.ContainerList(ctx, options)
+	return result.Items, err
 }
 
 func (d *DockerUtil) GetHostname(ctx context.Context) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
-	info, err := d.cli.Info(ctx)
+	info, err := d.cli.Info(ctx, client.InfoOptions{})
 	if err != nil {
 		return "", fmt.Errorf("unable to get Docker info: %s", err)
 	}
-	return info.Name, nil
+	return info.Info.Name, nil
 }
 
 // GetStorageStats returns the docker global storage stats if available
@@ -150,11 +152,11 @@ func (d *DockerUtil) GetHostname(ctx context.Context) (string, error) {
 func (d *DockerUtil) GetStorageStats(ctx context.Context) ([]*StorageStats, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
-	info, err := d.cli.Info(ctx)
+	info, err := d.cli.Info(ctx, client.InfoOptions{})
 	if err != nil {
 		return []*StorageStats{}, fmt.Errorf("unable to get Docker info: %s", err)
 	}
-	return parseStorageStatsFromInfo(info)
+	return parseStorageStatsFromInfo(info.Info)
 }
 
 func isImageShaOrRepoDigest(image string) bool {
@@ -173,15 +175,17 @@ func (d *DockerUtil) ResolveImageName(ctx context.Context, image string) (string
 	if _, ok := d.imageNameBySha[image]; !ok {
 		ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 		defer cancel()
-		r, _, err := d.cli.ImageInspectWithRaw(ctx, image)
+		result, err := d.cli.ImageInspect(ctx, image)
 		if err != nil {
 			// Only log errors that aren't "not found" because some images may
 			// just not be available in docker inspect.
-			if !client.IsErrNotFound(err) {
+			if !errdefs.IsNotFound(err) {
 				return image, err
 			}
 			d.imageNameBySha[image] = image
 		}
+
+		r := result.InspectResponse
 
 		// Try RepoTags first and fall back to RepoDigest otherwise.
 		if len(r.RepoTags) > 0 {
@@ -203,7 +207,7 @@ func (d *DockerUtil) ResolveImageName(ctx context.Context, image string) (string
 // ResolveImageNameFromContainer will resolve the container sha image name to their user-friendly name.
 // It is similar to ResolveImageName except it tries to match the image to the container Config.Image.
 // For non-sha names we will just return the name as-is.
-func (d *DockerUtil) ResolveImageNameFromContainer(ctx context.Context, co types.ContainerJSON) (string, error) {
+func (d *DockerUtil) ResolveImageNameFromContainer(ctx context.Context, co container.InspectResponse) (string, error) {
 	if co.Config.Image != "" && !isImageShaOrRepoDigest(co.Config.Image) {
 		return co.Config.Image, nil
 	}
@@ -213,9 +217,9 @@ func (d *DockerUtil) ResolveImageNameFromContainer(ctx context.Context, co types
 
 // Inspect returns a docker inspect object for a given container ID.
 // It tries to locate the container in the inspect cache before making the docker inspect call
-func (d *DockerUtil) Inspect(ctx context.Context, id string, withSize bool) (types.ContainerJSON, error) {
+func (d *DockerUtil) Inspect(ctx context.Context, id string, withSize bool) (container.InspectResponse, error) {
 	cacheKey := GetInspectCacheKey(id, withSize)
-	var containerJson types.ContainerJSON
+	var containerJson container.InspectResponse
 
 	cached, hit := cache.Cache.Get(cacheKey)
 	// Try to get sized hit if we got a miss and withSize=false
@@ -224,7 +228,7 @@ func (d *DockerUtil) Inspect(ctx context.Context, id string, withSize bool) (typ
 	}
 
 	if hit {
-		container, ok := cached.(types.ContainerJSON)
+		container, ok := cached.(container.InspectResponse)
 		if !ok {
 			log.Println("Invalid inspect cache format, forcing a cache miss")
 		} else {
@@ -246,31 +250,32 @@ func (d *DockerUtil) Inspect(ctx context.Context, id string, withSize bool) (typ
 // InspectNoCache returns a docker inspect object for a given container ID. It
 // ignores the inspect cache, always collecting fresh data from the docker
 // daemon.
-func (d *DockerUtil) InspectNoCache(ctx context.Context, id string, withSize bool) (types.ContainerJSON, error) {
+func (d *DockerUtil) InspectNoCache(ctx context.Context, id string, withSize bool) (container.InspectResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
 
-	container, _, err := d.cli.ContainerInspectWithRaw(ctx, id, withSize)
-	if client.IsErrNotFound(err) {
-		return container, fmt.Errorf("docker container %s", id)
+	result, err := d.cli.ContainerInspect(ctx, id, client.ContainerInspectOptions{Size: withSize})
+	inspected := result.Container
+	if errdefs.IsNotFound(err) {
+		return inspected, fmt.Errorf("docker container %s: %w", id, err)
 	}
 	if err != nil {
-		return container, err
+		return inspected, err
 	}
 
-	// ContainerJSONBase is a pointer embed, so it might be nil and cause segfaults
-	if container.ContainerJSONBase == nil {
-		return container, errors.New("invalid inspect data")
+	// These fields are dereferenced by callers; malformed inspect data is invalid.
+	if inspected.Config == nil || inspected.State == nil || inspected.HostConfig == nil {
+		return inspected, errors.New("invalid inspect data")
 	}
 
-	return container, nil
+	return inspected, nil
 }
 
 // InspectSelf returns the inspect content of the container the current agent is running in
-func (d *DockerUtil) InspectSelf(ctx context.Context) (types.ContainerJSON, error) {
+func (d *DockerUtil) InspectSelf(ctx context.Context) (container.InspectResponse, error) {
 	cID, err := providers.ContainerImpl().GetAgentCID()
 	if err != nil {
-		return types.ContainerJSON{}, err
+		return container.InspectResponse{}, err
 	}
 
 	return d.Inspect(ctx, cID, false)
@@ -281,14 +286,14 @@ func (d *DockerUtil) InspectSelf(ctx context.Context) (types.ContainerJSON, erro
 func (d *DockerUtil) AllContainerLabels(ctx context.Context) (map[string]map[string]string, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
-	containers, err := d.cli.ContainerList(ctx, container.ListOptions{})
+	containers, err := d.cli.ContainerList(ctx, client.ContainerListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error listing containers: %s", err)
 	}
 
 	labelMap := make(map[string]map[string]string)
 
-	for _, container := range containers {
+	for _, container := range containers.Items {
 		if len(container.ID) == 0 {
 			continue
 		}
@@ -301,10 +306,11 @@ func (d *DockerUtil) AllContainerLabels(ctx context.Context) (map[string]map[str
 func (d *DockerUtil) GetContainerStats(ctx context.Context, containerID string) (*container.StatsResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
-	stats, err := d.cli.ContainerStats(ctx, containerID, false)
+	stats, err := d.cli.ContainerStats(ctx, containerID, client.ContainerStatsOptions{Stream: false, IncludePreviousSample: true})
 	if err != nil {
 		return nil, fmt.Errorf("unable to get Docker stats: %s", err)
 	}
+	defer func() { _ = stats.Body.Close() }()
 	containerStats := &container.StatsResponse{}
 	err = json.NewDecoder(stats.Body).Decode(&containerStats)
 	if err != nil {

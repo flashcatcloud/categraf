@@ -45,10 +45,7 @@ address = ""
 ## 0 means no limit
 # statement_metrics_limit = 100
 
-## Whether to use prepared statements when connecting to the database.
-## This should be set to false when connecting through a PgBouncer instance
-## with pool_mode set to transaction.
-## 是否使用prepared statements 连接数据库
+## 历史字段，不能用它选择连接协议；请在 address 中配置查询模式。
 # prepared_statements = true
 
 ## Whether to skip built-in metrics from pg_stat_database.
@@ -58,6 +55,71 @@ address = ""
 ## On PostgreSQL 17+, this also skips compatibility metrics collected from pg_stat_checkpointer.
 # disable_pg_stat_bgwriter = false
 ```
+
+### PostgreSQL 驱动与 PgBouncer
+
+插件使用 `pgx/v5`。连接 PgBouncer（例如 transaction pooling）时，可以通过真实的
+`address` 配置选择 simple protocol：
+
+```toml
+[[instances]]
+address = "host=localhost port=6432 user=categraf dbname=postgres sslmode=disable default_query_exec_mode=simple_protocol"
+```
+
+URI 形式同样支持：
+
+```toml
+[[instances]]
+address = "postgres://categraf@localhost:6432/postgres?sslmode=disable&default_query_exec_mode=simple_protocol"
+```
+
+原有连接串参数 `prefer_simple_protocol=true/false` 继续有效，布尔值沿用 pgx v4 的
+解析规则。不要与 `default_query_exec_mode` 同时配置，否则初始化将报错。
+原有 `statement_cache_mode=prepare/describe` 也继续有效；`describe` 使用描述缓存，
+不创建命名的预备语句。它同样不能与 `default_query_exec_mode` 同时配置。
+`statement_cache_capacity=0` 在未显式选择原生 v5 模式时使用无缓存的 Describe/Exec。
+这些旧客户端参数在建立连接前会被消费，不会发送给 PostgreSQL。
+
+旧 `address` 或 service file 中的 `min_read_buffer_size` 继续接受，无需删除或改写。
+该值必须是非负的 32 位十进制整数，`0` 同样有效；非法值会在初始化时报错。
+pgx v5 自行管理读取缓冲区，因此这里只校验并消费旧参数，不再应用其缓冲区大小，
+也不会把它作为服务端参数发送。此兼容行为不要求用户更改原有合法连接配置。
+
+没有配置查询模式时使用 pgx v5 默认值。`IsPgBouncer` 不是 TOML 配置入口，
+`prepared_statements=false` 也不能替代上述连接串配置。`statement_cache_capacity`、
+`description_cache_capacity` 等原生参数可按 pgx v5 的规则配置。
+
+### 驱动迁移回归测试
+
+配置入口、旧参数兼容和畸形 PostgreSQL DataRow 测试无需数据库：
+
+```sh
+go test -race ./inputs/postgresql
+```
+
+真实连接测试使用以下环境变量指定**可销毁的测试数据库**，未设置的端点会跳过。
+测试会创建事务内临时表验证 dollar-quoted SQL 的绑定参数处理，事务结束后自动删除。
+
+| 环境变量 | 测试端点 |
+| --- | --- |
+| `CATEGRAF_POSTGRES_TEST_DSN` | PostgreSQL 直连，建议键值格式 |
+| `CATEGRAF_POSTGRES18_TEST_DSN` | PostgreSQL 18，建议 URI 格式 |
+| `CATEGRAF_PGBOUNCER_TEST_DSN` | PgBouncer transaction pooling |
+| `CATEGRAF_POSTGRES_TLS_TEST_DSN` | 带 `sslmode=verify-full` 和 `sslrootcert` 的 TLS 连接 |
+| `CATEGRAF_POSTGRES_SOCKET_TEST_DSN` | Unix socket；可使用 `.s.PGSQL.5432` 文件路径 |
+
+这些 DSN 不应预先包含协议/缓存模式参数，测试会分别添加默认、旧 simple、新 simple、
+旧描述缓存和禁用缓存配置，经过 TOML 加载、`Init`、注册驱动建立连接。
+PgBouncer 测试已覆盖 `pool_mode=transaction`、`max_prepared_statements=0` 的配置。
+该事务池配置不支持命名预备语句缓存，因此默认缓存模式的两项用例会明确跳过；
+其余兼容模式实际运行，旧 `min_read_buffer_size` 与旧 simple protocol 的组合也会连接验证。
+测试还验证默认指标、自定义 SQL 的数值/标签、SQL 类型扫描、错误返回和超时。
+
+```sh
+# 先将相应环境变量设置为测试环境的连接串，再运行：
+go test -v -count=1 -run TestPostgreSQLIntegration ./inputs/postgresql
+```
+
 ![dashboard](./postgresql.png)
 
 ## metrics

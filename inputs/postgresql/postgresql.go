@@ -14,13 +14,12 @@ import (
 	"sync"
 	"time"
 
-	// Blank import required to register driver
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/conv"
 	"flashcat.cloud/categraf/types"
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/stdlib"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 )
 
 const (
@@ -121,21 +120,16 @@ func (ins *Instance) Init() error {
 		ins.Address = localhost
 	}
 
-	connConfig, err := pgx.ParseConfig(ins.Address)
+	connConfig, err := parseConnectionConfig(ins.Address)
 	if err != nil {
 		log.Println("E! can't parse address :", err)
 		return err
 	}
 
-	// Remove the socket name from the path
-	connConfig.Host = socketRegexp.ReplaceAllLiteralString(connConfig.Host, "")
-
-	// Specific support to make it work with PgBouncer too
-	// See https://github.com/influxdata/telegraf/issues/3253#issuecomment-357505343
+	// Preserve the internal override. User configurations select their protocol
+	// through address; IsPgBouncer is not exposed by the TOML configuration.
 	if ins.IsPgBouncer {
-		// Remove DriveConfig and revert it by the ParseConfig method
-		// See https://github.com/influxdata/telegraf/issues/9134
-		connConfig.PreferSimpleProtocol = true
+		connConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 	}
 
 	connectionString := stdlib.RegisterConnConfig(connConfig)
@@ -155,7 +149,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		log.Println("E! can't sanitize address :", err)
 	}
 	tags := map[string]string{"server": addr}
-	if ins.db, err = sql.Open("pgx", ins.connConfig); err != nil {
+	if ins.db, err = sql.Open("pgx/v5", ins.connConfig); err != nil {
 		slist.PushSample(inputName, "up", 0, tags)
 		log.Println("E! can't open db :", err)
 		return

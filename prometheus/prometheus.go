@@ -116,6 +116,8 @@ func (s *readyStorage) getStats() *tsdb.DBStats {
 func (s *readyStorage) StartTime() (int64, error) {
 	if x := s.get(); x != nil {
 		switch db := x.(type) {
+		case *agent.DB:
+			return db.StartTime()
 		case *tsdb.DB:
 			var startTime int64
 			if len(db.Blocks()) > 0 {
@@ -987,6 +989,7 @@ func Start() {
 					"MaxWALTime", cfg.agent.MaxWALTime,
 				)
 
+				db.SetWriteNotified(remoteStorage)
 				localStorage.Set(db, 0)
 				close(dbOpen)
 				<-cancel

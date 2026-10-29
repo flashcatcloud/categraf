@@ -11,7 +11,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/docker/docker/api/types/container"
 	"io"
 	"log"
 	"net"
@@ -19,8 +18,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/go-connections/nat"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 
 	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/util/containers"
@@ -77,7 +77,7 @@ func (d *DockerUtil) ListContainers(ctx context.Context, cfg *ContainerListConfi
 			// which means to the task IPs, and to the host IPs respectively.
 			// If this turns out to not be the case (it was in our tests)
 			// we'll need to inspect the PortSet more deeply.
-			exposedPorts := []nat.Port{}
+			exposedPorts := []network.Port{}
 			for p := range inspect.Config.ExposedPorts {
 				exposedPorts = append(exposedPorts, p)
 			}
@@ -128,7 +128,7 @@ func (d *DockerUtil) getContainerDetails(ctn *containers.Container) {
 	}
 }
 
-func (d *DockerUtil) ContainerLogs(ctx context.Context, container string, options container.LogsOptions) (io.ReadCloser, error) {
+func (d *DockerUtil) ContainerLogs(ctx context.Context, container string, options client.ContainerLogsOptions) (io.ReadCloser, error) {
 	return d.cli.ContainerLogs(ctx, container, options)
 }
 
@@ -139,10 +139,11 @@ func (d *DockerUtil) dockerContainers(ctx context.Context, cfg *ContainerListCon
 	}
 	ctx, cancel := context.WithTimeout(ctx, d.queryTimeout)
 	defer cancel()
-	cList, err := d.cli.ContainerList(ctx, container.ListOptions{All: cfg.IncludeExited})
+	result, err := d.cli.ContainerList(ctx, client.ContainerListOptions{All: cfg.IncludeExited})
 	if err != nil {
 		return nil, fmt.Errorf("error listing containers: %s", err)
 	}
+	cList := result.Items
 	ret := make([]*containers.Container, 0, len(cList))
 	for _, c := range cList {
 		if d.cfg.CollectNetwork && c.State == containers.ContainerRunningState {
@@ -180,7 +181,7 @@ func (d *DockerUtil) dockerContainers(ctx context.Context, cfg *ContainerListCon
 			Image:       image,
 			ImageID:     c.ImageID,
 			Created:     c.Created,
-			State:       c.State,
+			State:       string(c.State),
 			Excluded:    excluded,
 			Health:      parseContainerHealth(c.Status),
 			AddressList: d.parseContainerNetworkAddresses(c.ID, c.Ports, c.NetworkSettings, c.Names[0]),
@@ -225,7 +226,7 @@ func parseContainerHealth(status string) string {
 
 // parseContainerNetworkAddresses converts docker ports
 // and network settings into a list of NetworkAddress
-func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Port, netSettings *types.SummaryNetworkSettings, container string) []containers.NetworkAddress {
+func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []container.PortSummary, netSettings *container.NetworkSettingsSummary, container string) []containers.NetworkAddress {
 	addrList := []containers.NetworkAddress{}
 	tempAddrList := []containers.NetworkAddress{}
 	if netSettings == nil || len(netSettings.Networks) == 0 {
@@ -234,7 +235,7 @@ func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Po
 	}
 	for _, port := range ports {
 		if isExposed(port) {
-			IP := net.ParseIP(port.IP)
+			IP := net.IP(port.IP.AsSlice())
 			if IP == nil {
 				log.Printf("Unable to parse IP: %v for container: %s", port.IP, container)
 				continue
@@ -253,11 +254,11 @@ func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Po
 	}
 	// Retieve IPs from network settings for the cached ports
 	for _, network := range netSettings.Networks {
-		if network.IPAddress == "" {
+		if !network.IPAddress.IsValid() {
 			log.Printf("No IP found for container %s in network %s", container, network.NetworkID)
 			continue
 		}
-		IP := net.ParseIP(network.IPAddress)
+		IP := net.IP(network.IPAddress.AsSlice())
 		if IP == nil {
 			log.Printf("Unable to parse IP: %v for container: %s", network.IPAddress, container)
 			continue
@@ -275,8 +276,8 @@ func (d *DockerUtil) parseContainerNetworkAddresses(cID string, ports []types.Po
 }
 
 // isExposed returns if a docker port is exposed to the host
-func isExposed(port types.Port) bool {
-	return port.PublicPort > 0 && port.IP != ""
+func isExposed(port container.PortSummary) bool {
+	return port.PublicPort > 0 && port.IP.IsValid()
 }
 
 // getECSMetadataURL inspects a given container ID and returns its ECS container metadata URI
@@ -295,7 +296,7 @@ func (d *DockerUtil) getECSMetadataURL(ctx context.Context, cID string) (string,
 }
 
 // cleanupCaches removes cache entries for unknown containers and images
-func (d *DockerUtil) cleanupCaches(containers []types.Container) {
+func (d *DockerUtil) cleanupCaches(containers []container.Summary) {
 	liveContainers := make(map[string]struct{})
 	liveImages := make(map[string]struct{})
 	for _, c := range containers {
@@ -350,7 +351,7 @@ func correctMissingIPs(addrs []containers.NetworkAddress, hostIPs []string) []co
 }
 
 // crossIPsWithPorts returns the product of a list of IP addresses and a list of ports
-func crossIPsWithPorts(addrs []containers.NetworkAddress, ports []nat.Port) []containers.NetworkAddress {
+func crossIPsWithPorts(addrs []containers.NetworkAddress, ports []network.Port) []containers.NetworkAddress {
 	res := make([]containers.NetworkAddress, len(addrs)*len(ports))
 	c := 0
 
@@ -361,8 +362,8 @@ func crossIPsWithPorts(addrs []containers.NetworkAddress, ports []nat.Port) []co
 		for _, port := range ports {
 			res[c] = containers.NetworkAddress{
 				IP:       addr.IP,
-				Port:     port.Int(),
-				Protocol: port.Proto(),
+				Port:     int(port.Num()),
+				Protocol: string(port.Proto()),
 			}
 			c++
 		}
