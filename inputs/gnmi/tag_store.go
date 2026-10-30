@@ -20,6 +20,8 @@ type tagBucket struct {
 	values       map[string]map[string]string
 }
 
+var tagLabelReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "/", "_")
+
 func newTagStore(_ []TagSubscription) *tagStore {
 	return &tagStore{buckets: make(map[string]*tagBucket)}
 }
@@ -55,10 +57,10 @@ func (s *tagStore) insert(sub TagSubscription, path *pathInfo, values []updateFi
 				// including distinct nested fields with the same leaf name.
 				key = strings.Join(f.path.segments[len(path.segments):], "/")
 			}
-			name += "/" + key
+			// Keep the existing raw label spelling for instance labels and
+			// relabel rules. Historically only suffix hyphens are replaced here.
+			name += "/" + strings.ReplaceAll(key, "-", "_")
 		}
-		// Detect conflicts using the same label spelling emitted by types.NewSample.
-		name = strings.NewReplacer("-", "_", ".", "_", " ", "_", "/", "_").Replace(name)
 		value, err := ToString(f.value)
 		if err != nil {
 			return fmt.Errorf("conversion error for %v: %w", f.value, err)
@@ -111,8 +113,11 @@ func (s *tagStore) insert(sub TagSubscription, path *pathInfo, values []updateFi
 func (s *tagStore) lookup(path *pathInfo, metricTags map[string]string) map[string]string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	result := make(map[string]string)
-	conflicts := make(map[string]bool)
+	type tagLabel struct {
+		name, value string
+		conflict    bool
+	}
+	labels := make(map[string]tagLabel)
 	for _, bucket := range s.buckets {
 		sub := bucket.subscription
 		scope := ""
@@ -132,15 +137,27 @@ func (s *tagStore) lookup(path *pathInfo, metricTags map[string]string) map[stri
 			}
 		}
 		for name, value := range bucket.values[scope] {
-			if old, ok := result[name]; ok && old != value {
-				conflicts[name] = true
+			// Compare the final spelling used by Sample.ConvertTimeSeries,
+			// while retaining the raw name until label processing has run.
+			canonical := tagLabelReplacer.Replace(name)
+			label, exists := labels[canonical]
+			if exists && label.value != value {
+				label.conflict = true
 			}
-			result[name] = value
+			if !exists || name < label.name {
+				// Same-value aliases share one deterministic original spelling.
+				label.name, label.value = name, value
+			}
+			labels[canonical] = label
 		}
 	}
-	for name := range conflicts {
-		delete(result, name)
-		s.warnings.warn("W! gNMI %s: tag conflict for label %q; omitting conflicting label (diagnostics limited to once per minute)", s.address, name)
+	result := make(map[string]string, len(labels))
+	for canonical, label := range labels {
+		if label.conflict {
+			s.warnings.warn("W! gNMI %s: tag conflict for label %q; omitting conflicting label (diagnostics limited to once per minute)", s.address, canonical)
+			continue
+		}
+		result[label.name] = label.value
 	}
 	return result
 }

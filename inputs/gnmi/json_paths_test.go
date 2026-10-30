@@ -72,7 +72,7 @@ func TestNestedJSONTagSuffixes(t *testing.T) {
 		t.Fatalf("JSON tags were emitted as metrics: %v", samples)
 	}
 	tags := h.tagStore.lookup(newInfoFromString("/metrics/value"), nil)
-	if len(tags) != 2 || tags["info_config_name"] != "configured" || tags["info_state_name"] != "operational" {
+	if len(tags) != 2 || tags["info/config/name"] != "configured" || tags["info/state/name"] != "operational" {
 		t.Fatalf("splitting JSON paths changed or merged tag suffixes: %v", tags)
 	}
 }
