@@ -41,31 +41,7 @@ func tagMatchRank(configured, actual *pathInfo) int {
 	if !sameTagSegments(configured, actual) {
 		return 0
 	}
-	if configured.inlineModule != "" && actual.inlineModule != "" && configured.inlineModule != actual.inlineModule {
-		return 0
-	}
-	if configured.explicitOrigin {
-		if actual.explicitOrigin {
-			if configured.origin == actual.origin {
-				return 3
-			}
-			return 0
-		}
-		if configured.inlineModule != "" && configured.inlineModule == actual.inlineModule {
-			return 2
-		}
-		return 0
-	}
-	if configured.inlineModule != "" {
-		if configured.inlineModule == actual.inlineModule {
-			return 2
-		}
-		if actual.explicitOrigin && configured.origin == actual.origin {
-			return 2
-		}
-		return 0
-	}
-	return 1
+	return configured.sourceMatchRank(actual)
 }
 
 func (h *handler) selectTagSubscription(actual *pathInfo) (int, error) {

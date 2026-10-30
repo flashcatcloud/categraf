@@ -133,6 +133,10 @@ go test ./inputs/gnmi ./internal/gnmipath -count=1 -v
 
 高优先级覆盖低优先级，不依赖配置顺序。例如配置 `origin="rfc7951"` 与 `/rg-system:system/hostname`，设备仅发送 `rg-system:system` 时仍可识别。
 
+独立 origin 本身就是模块名时，也可匹配仅有 inline 模块的响应，例如 `origin="rg-system"`、`path="/system/hostname"` 可识别 `/rg-system:system/hostname`。标签、数值订阅选项及 alias 共用来源兼容规则；双方显式 origin 不同或已知 inline 模块冲突时均不匹配。数值响应完全没有来源信息时保留原有回退行为，标签仍要求可验证的来源。
+
+评审修复追加的 `origin_matching_test.go` 随 PR 同步，覆盖上述表示方式兼容、跨模块转换隔离、强匹配优先及兼容 origin 下的指标后缀截取。此前提及但未同步的其他本地测试仍以原说明为准。
+
 同等最高优先级有多个候选时不消费为标签，保留普通数值处理路径并限频告警；不会任意选第一项。初始化可识别的重复来源（包括相同独立 origin、相同路径且模块限定有重叠）直接报错。不同独立 origin 却共享 inline 模块的配置，在设备省略独立 origin 时可能形成运行时歧义，此时不会猜测来源。
 
 ### 缓存与标签应用

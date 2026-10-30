@@ -265,22 +265,42 @@ func (pi *pathInfo) isSubPathOf(path *pathInfo) bool {
 	return ok
 }
 
+// sourceMatchRank compares source metadata independently of the path segments.
+// Explicit origins must agree when both are supplied. Otherwise a known module
+// can establish compatibility between standalone and inline origin forms.
+func (pi *pathInfo) sourceMatchRank(actual *pathInfo) int {
+	if pi.inlineModule != "" && actual.inlineModule != "" && pi.inlineModule != actual.inlineModule {
+		return 0
+	}
+	if pi.explicitOrigin && actual.explicitOrigin {
+		if pi.origin == actual.origin {
+			return 3
+		}
+		return 0
+	}
+	if pi.inlineModule != "" && pi.inlineModule == actual.inlineModule {
+		return 2
+	}
+	if pi.origin != "" {
+		if pi.origin == actual.origin {
+			return 2
+		}
+		return 0
+	}
+	return 1
+}
+
 // subPathMatch reports whether pi (the subscription/alias path) is a sub-path
 // of path (the device field path), and whether the match is "strong".
 //
-// Segment containment is required in every case. Origins follow:
-//   - both set and different -> no match at all;
-//   - the subscription declares an origin (explicit or extracted from an
-//     inline "module:" prefix), or neither side sets one -> strong match;
-//   - the subscription sets no origin while the field carries one -> the
-//     subscription only acts as a wildcard fallback -> weak match.
+// Source compatibility follows the same rules as tag subscriptions. Value paths
+// without any source metadata retain the legacy origin-agnostic matching.
 //
 // A weak match must never override a strong one, otherwise an origin-less
 // catch-all subscription would hijack disable_concatenation/conversion/alias of
 // an explicit-origin subscription (double-concatenated metric names).
 func (pi *pathInfo) subPathMatch(path *pathInfo) (match, strong bool) {
-	// If both set an origin it has to match.
-	if pi.origin != "" && path.origin != "" && pi.origin != path.origin {
+	if pi.sourceMatchRank(path) == 0 && (path.origin != "" || path.inlineModule != "") {
 		return false, false
 	}
 

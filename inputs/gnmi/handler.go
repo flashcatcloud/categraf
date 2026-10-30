@@ -276,6 +276,7 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 			subPath := newInfoFromString(sub.Path)
 			if sub.Origin != "" {
 				subPath.origin = sub.Origin
+				subPath.explicitOrigin = true
 			}
 			return subPath
 		}
@@ -335,7 +336,10 @@ func (h *handler) lookupAlias(info *pathInfo) (aliasPath, alias string) {
 		if !ok {
 			continue
 		}
-		candidates = append(candidates, aliasCandidate{path: i.String(), alias: a, strong: strong})
+		// Use the field's origin spelling when trimming the matched prefix.
+		// Compatible standalone and inline origins can have different lengths.
+		matchedPath := &pathInfo{origin: info.origin, segments: i.segments}
+		candidates = append(candidates, aliasCandidate{path: matchedPath.String(), alias: a, strong: strong})
 		anyStrong = anyStrong || strong
 	}
 	if len(candidates) == 0 {
