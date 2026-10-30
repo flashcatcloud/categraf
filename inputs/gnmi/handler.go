@@ -43,7 +43,8 @@ type handler struct {
 	trimSlash           bool
 	guessPathTag        bool
 
-	sourceTag string
+	sourceTag   string
+	tagWarnings tagWarningLimiter
 }
 
 // SubscribeGNMI and extract telemetry data
@@ -90,23 +91,21 @@ func (h *handler) subscribeGNMI(ctx context.Context, slist *types.SampleList, tl
 	// connectStat.Set(1)
 
 	defer log.Printf("Connection to gNMI device %s closed", h.address)
+
 	for ctx.Err() == nil {
-		var reply *gnmiLib.SubscribeResponse
-		if reply, err = subscribeClient.Recv(); err != nil {
+		reply, err := subscribeClient.Recv()
+		if err != nil {
 			if !errors.Is(err, io.EOF) && ctx.Err() == nil {
-				// connectStat.Set(0)
 				return fmt.Errorf("aborted gNMI subscription: %w", err)
 			}
 			break
 		}
-
 		if h.trace {
 			buf, err := protojson.Marshal(reply)
 			if err != nil {
 				log.Printf("Marshal failed: %v", err)
 			} else {
-				t := reply.GetUpdate().GetTimestamp()
-				log.Printf("Got update_%v: %s", t, string(buf))
+				log.Printf("Got update_%v: %s", reply.GetUpdate().GetTimestamp(), string(buf))
 			}
 		}
 		if response, ok := reply.Response.(*gnmiLib.SubscribeResponse_Update); ok {
@@ -120,7 +119,8 @@ func (h *handler) subscribeGNMI(ctx context.Context, slist *types.SampleList, tl
 
 // Handle SubscribeResponse_Update message from gNMI and parse contained telemetry data
 func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, response *gnmiLib.SubscribeResponse_Update, extension []*gnmiExt.Extension) {
-	timestamp := time.Unix(0, response.Update.Timestamp)
+	responseUpdate := response.Update
+	timestamp := time.Unix(0, responseUpdate.Timestamp)
 
 	// Extract tags from potential extension in the update notification
 	headerTags := make(map[string]string)
@@ -152,7 +152,7 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 	}
 
 	// Extract the path part valid for the whole set of updates if any
-	prefix := newInfoFromPath(response.Update.Prefix)
+	prefix := newInfoFromPath(responseUpdate.Prefix)
 
 	// Add info to the tags
 	headerTags[h.sourceTag], _, _ = net.SplitHostPort(h.address)
@@ -163,7 +163,7 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 	// Process and remove tag-updates from the response first so we can
 	// add all available tags to the metrics later.
 	var valueFields []updateField
-	for _, update := range response.Update.Update {
+	for _, update := range responseUpdate.Update {
 		fullPath := prefix.append(update.Path)
 		fields, err := newFieldsFromUpdate(fullPath, update)
 		if err != nil {
@@ -181,16 +181,17 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 
 		// TODO: Handle each field individually to allow in-JSON tags
 		var tagUpdate bool
-		for _, tagSub := range h.tagsubs {
-			if !fullPath.equalsPathNoKeys(tagSub.fullPath) {
-				continue
-			}
+		selected, matchErr := h.selectTagSubscription(fullPath)
+		if matchErr != nil {
+			h.tagWarnings.warn("W! gNMI %s: %v", h.address, matchErr)
+		}
+		if selected >= 0 {
+			tagSub := h.tagsubs[selected]
 			log.Printf("Tag-subscription update for %q: %+v", tagSub.Name, update)
 			if err := h.tagStore.insert(tagSub, fullPath, fields, tags); err != nil {
 				log.Printf("E! Inserting tag failed: %v", err)
 			}
 			tagUpdate = true
-			break
 		}
 		if !tagUpdate {
 			valueFields = append(valueFields, fields...)
@@ -227,7 +228,7 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 		if name == "" {
 			log.Printf("No measurement alias for gNMI path: %s", field.path)
 			if !h.emptyNameWarnShown {
-				log.Printf(emptyNameWarning, response.Update)
+				log.Printf(emptyNameWarning, responseUpdate)
 				h.emptyNameWarnShown = true
 			}
 		}
@@ -263,37 +264,53 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 		}
 		value := field.value
 		disableConcatenating := false
-		base := field.path.String()
-		for _, sub := range h.subs {
-			subPath := sub.Path
-			if len(strings.Split(base, ":")) >= 2 {
-				// origin is not null
-				if sub.Origin != "" {
-					subPath = sub.Origin + ":" + sub.Path
+		var conversionErr error
+
+		// Resolve the owning value subscription with origin precedence:
+		// an explicit/inline origin that equals the field origin is a strong
+		// match; an origin-less subscription is only a weak wildcard fallback.
+		// A weak match must never override a strong one, otherwise a generic
+		// origin-less subscription could flip disable_concatenation/conversion
+		// of a specific origin subscription (double-concatenated metric names).
+		buildSubPath := func(sub *Subscription) *pathInfo {
+			subPath := newInfoFromString(sub.Path)
+			if sub.Origin != "" {
+				subPath.origin = sub.Origin
+				subPath.explicitOrigin = true
+			}
+			return subPath
+		}
+		var matched *Subscription
+		for i := range h.subs {
+			sub := &h.subs[i]
+			if ok, strong := buildSubPath(sub).subPathMatch(field.path); ok && strong {
+				matched = sub // later strong match wins, preserving prior behavior
+			}
+		}
+		if matched == nil {
+			for i := range h.subs {
+				sub := &h.subs[i]
+				if ok, strong := buildSubPath(sub).subPathMatch(field.path); ok && !strong {
+					matched = sub
 				}
 			}
-			if strings.HasPrefix(base, subPath) {
-				// field.path => origin:path
-				// sub.path => path
-				disableConcatenating = sub.DisableConcatenation
-				switch sub.Conversion {
-				case "ieeefloat32":
-					switch val := field.value.(type) {
-					case string:
-						v, err := string2float32(val)
-						if err != nil {
-						}
-
-						value = v
-					case []uint8:
-						v, err := bytes2float32(val)
-						if err != nil {
-
-						}
-						value = v
-					}
+		}
+		if matched != nil {
+			disableConcatenating = matched.DisableConcatenation
+			if matched.Conversion == "ieeefloat32" {
+				// Skip the field on a decode failure instead of emitting a
+				// misleading zero value.
+				converted, err := convertIEEEFloat32(field.value)
+				if err != nil {
+					conversionErr = fmt.Errorf("subscription %q ieeefloat32 conversion for %s failed: %w", matched.Name, fieldPath, err)
+				} else {
+					value = converted
 				}
 			}
+		}
+		if conversionErr != nil {
+			log.Printf("E! %v", conversionErr)
+			continue
 		}
 		if !disableConcatenating {
 			name = name + "_" + key
@@ -308,18 +325,37 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 // Try to find the alias for the given path
 type aliasCandidate struct {
 	path, alias string
+	strong      bool
 }
 
 func (h *handler) lookupAlias(info *pathInfo) (aliasPath, alias string) {
 	candidates := make([]aliasCandidate, 0)
+	anyStrong := false
 	for i, a := range h.aliases {
-		if !i.isSubPathOf(info) {
+		ok, strong := i.subPathMatch(info)
+		if !ok {
 			continue
 		}
-		candidates = append(candidates, aliasCandidate{i.String(), a})
+		// Use the field's origin spelling when trimming the matched prefix.
+		// Compatible standalone and inline origins can have different lengths.
+		matchedPath := &pathInfo{origin: info.origin, segments: i.segments}
+		candidates = append(candidates, aliasCandidate{path: matchedPath.String(), alias: a, strong: strong})
+		anyStrong = anyStrong || strong
 	}
 	if len(candidates) == 0 {
 		return "", ""
+	}
+
+	// Prefer origin-strong matches; only fall back to origin-less wildcard
+	// aliases when no strong alias exists.
+	if anyStrong {
+		filtered := candidates[:0]
+		for _, c := range candidates {
+			if c.strong {
+				filtered = append(filtered, c)
+			}
+		}
+		candidates = filtered
 	}
 
 	// Reverse sort the candidates by path length so we can use the longest match

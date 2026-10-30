@@ -37,3 +37,19 @@ func bytes2float32(bytes []uint8) (float32, error) {
 	// 将uint32转换为float32
 	return math.Float32frombits(bits), nil
 }
+
+// convertIEEEFloat32 decodes an ieeefloat32-encoded metric value. Depending on
+// the device encoding the raw value arrives as a base64-encoded string
+// (json/json_ietf) or a raw 4-byte slice (proto/bytes). A value of any other
+// type, or a decode failure, returns an error instead of silently producing a
+// misleading zero value.
+func convertIEEEFloat32(raw interface{}) (float32, error) {
+	switch v := raw.(type) {
+	case string:
+		return string2float32(v)
+	case []uint8:
+		return bytes2float32(v)
+	default:
+		return 0.0, fmt.Errorf("ieeefloat32 conversion: unsupported value type %T", raw)
+	}
+}

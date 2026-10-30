@@ -5,157 +5,161 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type tagStore struct {
-	unconditional map[string]string
-	names         map[string]map[string]string
-	elements      elementsStore
+	address  string
+	mu       sync.RWMutex
+	buckets  map[string]*tagBucket
+	warnings tagWarningLimiter
 }
 
-type elementsStore struct {
-	required [][]string
-	tags     map[string]map[string]string
+type tagBucket struct {
+	subscription TagSubscription
+	values       map[string]map[string]string
 }
 
-func newTagStore(subs []TagSubscription) *tagStore {
-	store := tagStore{
-		unconditional: make(map[string]string),
-		names:         make(map[string]map[string]string),
-		elements: elementsStore{
-			required: make([][]string, 0, len(subs)),
-			tags:     make(map[string]map[string]string),
-		},
-	}
-	for _, s := range subs {
-		if s.Match == "elements" {
-			store.elements.required = append(store.elements.required, s.Elements)
-		}
-	}
+var tagLabelReplacer = strings.NewReplacer("-", "_", ".", "_", " ", "_", "/", "_")
 
-	return &store
+func newTagStore(_ []TagSubscription) *tagStore {
+	return &tagStore{buckets: make(map[string]*tagBucket)}
 }
 
-// Store tags extracted from TagSubscriptions
-func (s *tagStore) insert(subscription TagSubscription, path *pathInfo, values []updateField, tags map[string]string) error {
-	switch subscription.Match {
+// Each source writes and clears only its own subscription/source bucket.
+func (s *tagStore) insert(sub TagSubscription, path *pathInfo, values []updateField, tags map[string]string) error {
+	scope := ""
+	switch sub.Match {
 	case "unconditional":
-		for _, f := range values {
-			tagName := subscription.Name
-			if len(f.path.segments) > 0 {
-				key := f.path.segments[len(f.path.segments)-1]
-				key = strings.ReplaceAll(key, "-", "_")
-				if !subscription.DisableConcatenation {
-					tagName += "/" + key
-				}
-			}
-			sv, err := ToString(f.value)
-			if err != nil {
-				return fmt.Errorf("conversion error for %v: %w", f.value, err)
-			}
-			if sv == "" {
-				delete(s.unconditional, tagName)
-			} else {
-				s.unconditional[tagName] = sv
-			}
-		}
 	case "name":
-		// Get the lookup key
-		key, found := tags["name"]
-		if !found {
+		var ok bool
+		scope, ok = tags["name"]
+		if !ok {
 			return nil
-		}
-
-		// Make sure we have a valid map for the key
-		if _, exists := s.names[key]; !exists {
-			s.names[key] = make(map[string]string)
-		}
-
-		// Add the values
-		for _, f := range values {
-			tagName := subscription.Name
-			if len(f.path.segments) > 0 {
-				key := f.path.segments[len(f.path.segments)-1]
-				key = strings.ReplaceAll(key, "-", "_")
-				if !subscription.DisableConcatenation {
-					tagName += "/" + key
-				}
-			}
-			sv, err := ToString(f.value)
-			if err != nil {
-				return fmt.Errorf("conversion error for %v: %w", f.value, err)
-			}
-			if sv == "" {
-				delete(s.names[key], tagName)
-			} else {
-				s.names[key][tagName] = sv
-			}
 		}
 	case "elements":
-		key, match := s.getElementsKeys(path, subscription.Elements)
-		if !match || len(values) == 0 {
+		var ok bool
+		scope, ok = s.getElementsKeys(path, sub.Elements)
+		if !ok {
 			return nil
 		}
-
-		// Make sure we have a valid map for the key
-		if _, exists := s.elements.tags[key]; !exists {
-			s.elements.tags[key] = make(map[string]string)
-		}
-
-		// Add the values
-		for _, f := range values {
-			tagName := subscription.Name
-			if len(f.path.segments) > 0 {
-				key := f.path.segments[len(f.path.segments)-1]
-				key = strings.ReplaceAll(key, "-", "_")
-				if !subscription.DisableConcatenation {
-					tagName += "/" + key
-				}
-			}
-			sv, err := ToString(f.value)
-			if err != nil {
-				return fmt.Errorf("conversion error for %v: %w", f.value, err)
-			}
-			if sv == "" {
-				delete(s.elements.tags[key], tagName)
-			} else {
-				s.elements.tags[key][tagName] = sv
-			}
-		}
 	default:
-		return fmt.Errorf("unknown match strategy %q", subscription.Match)
+		return fmt.Errorf("unknown match strategy %q", sub.Match)
 	}
-
+	// Convert first so a bad field cannot partially overwrite a source batch.
+	updates := make(map[string]string, len(values))
+	for _, f := range values {
+		name := sub.Name
+		if len(f.path.segments) > 0 && !sub.DisableConcatenation {
+			key := f.path.segments[len(f.path.segments)-1]
+			if len(f.path.segments) > len(path.segments) {
+				// Preserve the complete JSON suffix in concatenated labels,
+				// including distinct nested fields with the same leaf name.
+				key = strings.Join(f.path.segments[len(path.segments):], "/")
+			}
+			// Keep the existing raw label spelling for instance labels and
+			// relabel rules. Historically only suffix hyphens are replaced here.
+			name += "/" + strings.ReplaceAll(key, "-", "_")
+		}
+		value, err := ToString(f.value)
+		if err != nil {
+			return fmt.Errorf("conversion error for %v: %w", f.value, err)
+		}
+		updates[name] = value
+	}
+	if len(updates) == 0 {
+		return nil
+	}
+	configured := sub.sourcePath
+	var sourceID string
+	if configured != nil {
+		selectors := make(map[int]map[string]string, len(configured.keyValues))
+		for _, segment := range configured.keyValues {
+			selectors[segment.index] = segment.kv
+		}
+		sourceID = tagIdentity(configured.origin, configured.explicitOrigin, configured.inlineModule, configured.segments, selectors)
+	} else {
+		sourceID = tagIdentity(sub.Origin, sub.Path)
+	}
+	id := tagIdentity(sourceID, sub.Name, sub.Match, sub.Elements, sub.DisableConcatenation, path.origin, path.explicitOrigin, path.inlineModule)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	bucket := s.buckets[id]
+	if bucket == nil {
+		bucket = &tagBucket{subscription: sub, values: make(map[string]map[string]string)}
+		s.buckets[id] = bucket
+	}
+	if bucket.values[scope] == nil {
+		bucket.values[scope] = make(map[string]string)
+	}
+	for name, value := range updates {
+		if value == "" {
+			delete(bucket.values[scope], name)
+		} else {
+			bucket.values[scope][name] = value
+		}
+	}
+	if len(bucket.values[scope]) == 0 {
+		delete(bucket.values, scope)
+	}
+	if len(bucket.values) == 0 {
+		delete(s.buckets, id)
+	}
 	return nil
 }
 
+// Origin identifies a tag source, not the metrics it applies to. Existing
+// unconditional/name/elements application scopes intentionally span modules.
 func (s *tagStore) lookup(path *pathInfo, metricTags map[string]string) map[string]string {
-	// Add all unconditional tags
-	tags := make(map[string]string, len(s.unconditional))
-	for k, v := range s.unconditional {
-		tags[k] = v
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	type tagLabel struct {
+		name, value string
+		conflict    bool
 	}
-
-	// Match names
-	key, found := metricTags["name"]
-	if found {
-		for k, v := range s.names[key] {
-			tags[k] = v
+	labels := make(map[string]tagLabel)
+	for _, bucket := range s.buckets {
+		sub := bucket.subscription
+		scope := ""
+		switch sub.Match {
+		case "unconditional":
+		case "name":
+			var ok bool
+			scope, ok = metricTags["name"]
+			if !ok {
+				continue
+			}
+		case "elements":
+			var ok bool
+			scope, ok = s.getElementsKeys(path, sub.Elements)
+			if !ok {
+				continue
+			}
+		}
+		for name, value := range bucket.values[scope] {
+			// Compare the final spelling used by Sample.ConvertTimeSeries,
+			// while retaining the raw name until label processing has run.
+			canonical := tagLabelReplacer.Replace(name)
+			label, exists := labels[canonical]
+			if exists && label.value != value {
+				label.conflict = true
+			}
+			if !exists || name < label.name {
+				// Same-value aliases share one deterministic original spelling.
+				label.name, label.value = name, value
+			}
+			labels[canonical] = label
 		}
 	}
-
-	// Match elements
-	for _, requiredKeys := range s.elements.required {
-		key, match := s.getElementsKeys(path, requiredKeys)
-		if !match {
+	result := make(map[string]string, len(labels))
+	for canonical, label := range labels {
+		if label.conflict {
+			s.warnings.warn("W! gNMI %s: tag conflict for label %q; omitting conflicting label (diagnostics limited to once per minute)", s.address, canonical)
 			continue
 		}
-		for k, v := range s.elements.tags[key] {
-			tags[k] = v
-		}
+		result[label.name] = label.value
 	}
-
-	return tags
+	return result
 }
 
 func (s *tagStore) getElementsKeys(path *pathInfo, elements []string) (string, bool) {
