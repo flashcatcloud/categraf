@@ -14,6 +14,8 @@ type keySegment struct {
 	name string
 	path string
 	kv   map[string]string
+	// index identifies the path element even when node names repeat.
+	index int
 }
 
 type pathInfo struct {
@@ -89,9 +91,10 @@ func newInfoFromPath(paths ...*gnmiLib.Path) *pathInfo {
 				continue
 			}
 			keyInfo := keySegment{
-				name: elem.Name,
-				path: info.String(),
-				kv:   make(map[string]string, len(elem.Key)),
+				name:  elem.Name,
+				path:  info.String(),
+				kv:    make(map[string]string, len(elem.Key)),
+				index: len(info.segments) - 1,
 			}
 			for k, v := range elem.Key {
 				keyInfo.kv[k] = v
@@ -120,9 +123,10 @@ func (pi *pathInfo) append(paths ...*gnmiLib.Path) *pathInfo {
 	}
 	for _, elem := range pi.keyValues {
 		keyInfo := keySegment{
-			name: elem.name,
-			path: elem.path,
-			kv:   make(map[string]string, len(elem.kv)),
+			name:  elem.name,
+			path:  elem.path,
+			kv:    make(map[string]string, len(elem.kv)),
+			index: elem.index,
 		}
 		for k, v := range elem.kv {
 			keyInfo.kv[k] = v
@@ -151,9 +155,10 @@ func (pi *pathInfo) append(paths ...*gnmiLib.Path) *pathInfo {
 				continue
 			}
 			keyInfo := keySegment{
-				name: elem.Name,
-				path: path.String(),
-				kv:   make(map[string]string, len(elem.Key)),
+				name:  elem.Name,
+				path:  path.String(),
+				kv:    make(map[string]string, len(elem.Key)),
+				index: len(path.segments) - 1,
 			}
 			for k, v := range elem.Key {
 				keyInfo.kv[k] = v
@@ -182,9 +187,10 @@ func (pi *pathInfo) appendSegments(segments ...string) *pathInfo {
 	}
 	for _, elem := range pi.keyValues {
 		keyInfo := keySegment{
-			name: elem.name,
-			path: elem.path,
-			kv:   make(map[string]string, len(elem.kv)),
+			name:  elem.name,
+			path:  elem.path,
+			kv:    make(map[string]string, len(elem.kv)),
+			index: elem.index,
 		}
 		for k, v := range elem.kv {
 			keyInfo.kv[k] = v
@@ -227,7 +233,7 @@ func (pi *pathInfo) normalize() {
 		}
 		pi.segments[0] = pi.segments[0][len(groups[1])+1:]
 		// elements matching must see the same normalized first node name.
-		if len(pi.keyValues) > 0 && pi.keyValues[0].name == firstNode {
+		if len(pi.keyValues) > 0 && pi.keyValues[0].index == 0 && pi.keyValues[0].name == firstNode {
 			pi.keyValues[0].name = pi.segments[0]
 		}
 	}

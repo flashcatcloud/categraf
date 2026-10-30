@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	gnmiLib "github.com/openconfig/gnmi/proto/gnmi"
 	gnmiValue "github.com/openconfig/gnmi/value"
@@ -50,7 +51,7 @@ func processJSON(path *pathInfo, data []byte) ([]updateField, error) {
 	fields := make([]updateField, 0, len(entries))
 	for key, v := range entries {
 		fields = append(fields, updateField{
-			path:  path.appendSegments(key),
+			path:  path.appendSegments(strings.Split(key, "/")...),
 			value: v,
 		})
 	}

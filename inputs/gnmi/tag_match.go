@@ -35,10 +35,47 @@ func sameTagSegments(a, b *pathInfo) bool {
 	return true
 }
 
+func (pi *pathInfo) keysAt(index int) map[string]string {
+	for _, segment := range pi.keyValues {
+		if segment.index == index {
+			return segment.kv
+		}
+	}
+	return nil
+}
+
+// An omitted selector accepts every list entry; '*' accepts any present key.
+func (pi *pathInfo) matchesTagKeys(actual *pathInfo) bool {
+	for _, segment := range pi.keyValues {
+		keys := actual.keysAt(segment.index)
+		for key, expected := range segment.kv {
+			value, exists := keys[key]
+			if !exists || expected != "*" && expected != value {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// Two selectors are disjoint when they require different literal values for
+// the same key on the same element. Partial selectors may still overlap.
+func tagKeysOverlap(a, b *pathInfo) bool {
+	for _, segment := range a.keyValues {
+		keys := b.keysAt(segment.index)
+		for key, value := range segment.kv {
+			if other, exists := keys[key]; exists && value != "*" && other != "*" && value != other {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // Exact explicit-origin matches outrank module compatibility, which outranks
 // origin-less catch-all subscriptions. Known explicit conflicts never match.
 func tagMatchRank(configured, actual *pathInfo) int {
-	if !sameTagSegments(configured, actual) {
+	if !sameTagSegments(configured, actual) || !configured.matchesTagKeys(actual) {
 		return 0
 	}
 	return configured.sourceMatchRank(actual)
@@ -49,7 +86,7 @@ func (h *handler) selectTagSubscription(actual *pathInfo) (int, error) {
 	pathCandidate := false
 	for i := range h.tagsubs {
 		p := h.tagsubs[i].sourcePath
-		pathCandidate = pathCandidate || sameTagSegments(p, actual)
+		pathCandidate = pathCandidate || sameTagSegments(p, actual) && p.matchesTagKeys(actual)
 		rank := tagMatchRank(p, actual)
 		if rank > best {
 			selected, best, ambiguous = i, rank, false
@@ -70,7 +107,7 @@ func validateTagSubscriptions(subs []TagSubscription) error {
 	for i := range subs {
 		for j := 0; j < i; j++ {
 			a, b := subs[i].sourcePath, subs[j].sourcePath
-			if !sameTagSegments(a, b) {
+			if !sameTagSegments(a, b) || !tagKeysOverlap(a, b) {
 				continue
 			}
 			// Equal explicit origins can both match even if only one specifies
@@ -89,6 +126,6 @@ func tagIdentity(parts ...interface{}) string {
 	data, err := json.Marshal(parts)
 	if err != nil {
 		panic(err)
-	} // Only strings, booleans and string slices are passed.
+	} // Only JSON-serializable path metadata is passed.
 	return string(data)
 }

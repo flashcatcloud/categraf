@@ -49,7 +49,13 @@ func (s *tagStore) insert(sub TagSubscription, path *pathInfo, values []updateFi
 	for _, f := range values {
 		name := sub.Name
 		if len(f.path.segments) > 0 && !sub.DisableConcatenation {
-			name += "/" + f.path.segments[len(f.path.segments)-1]
+			key := f.path.segments[len(f.path.segments)-1]
+			if len(f.path.segments) > len(path.segments) {
+				// Preserve the complete JSON suffix in concatenated labels,
+				// including distinct nested fields with the same leaf name.
+				key = strings.Join(f.path.segments[len(path.segments):], "/")
+			}
+			name += "/" + key
 		}
 		// Detect conflicts using the same label spelling emitted by types.NewSample.
 		name = strings.NewReplacer("-", "_", ".", "_", " ", "_", "/", "_").Replace(name)
@@ -65,7 +71,11 @@ func (s *tagStore) insert(sub TagSubscription, path *pathInfo, values []updateFi
 	configured := sub.sourcePath
 	var sourceID string
 	if configured != nil {
-		sourceID = tagIdentity(configured.origin, configured.explicitOrigin, configured.inlineModule, configured.segments)
+		selectors := make(map[int]map[string]string, len(configured.keyValues))
+		for _, segment := range configured.keyValues {
+			selectors[segment.index] = segment.kv
+		}
+		sourceID = tagIdentity(configured.origin, configured.explicitOrigin, configured.inlineModule, configured.segments, selectors)
 	} else {
 		sourceID = tagIdentity(sub.Origin, sub.Path)
 	}
