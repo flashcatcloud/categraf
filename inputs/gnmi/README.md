@@ -179,3 +179,60 @@ manually map the response to a metric name using the `aliases` option like
 
 If this does *not* solve the issue, please follow the warning instructions and
 open an issue with the response, your configuration and the metric you expect.
+
+
+## Complete configuration examples
+
+### Example 3: replace interface and queue source keys with learned tags
+
+This standalone configuration requires device-supported RDMA paths. Adjust the
+address, credentials, TLS, origin and paths for your model.
+
+```toml
+interval = "1s"
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
+# username = "your-user"
+# password = "your-password"
+
+[[instances.subscription]]
+name = "rdma_input"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/input/queues/queue/state"
+subscription_mode = "sample"
+sample_interval = "15s"
+
+[[instances.tag_subscription]]
+name = "ifname"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/name"
+subscription_mode = "sample"
+sample_interval = "15s"
+match = "elements"
+elements = ["interface"]
+disable_concatenation = true
+drop_source_key = true
+
+[[instances.tag_subscription]]
+name = "qename"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/input/queues/queue/name"
+subscription_mode = "sample"
+sample_interval = "15s"
+match = "elements"
+elements = ["interface", "queue"]
+disable_concatenation = true
+drop_source_key = true
+```
+
+After a successful equal-valued tag lookup, ifname replaces the interface name
+key and qename replaces the input queue's full-path name key. Other keys such as
+id remain. Missing/conflicting tags, mismatched sources or unequal values retain
+the original key. Enable drop_source_key separately in each applicable tag
+subscription; it defaults to false. For output queues, add matching telemetry and
+tag subscriptions with input replaced by output. If using session health/ICMP,
+put those instance options before all subscription subtables.
+
+

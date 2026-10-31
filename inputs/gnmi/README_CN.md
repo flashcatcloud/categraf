@@ -129,3 +129,58 @@ gNMI `SubscribeResponse` 的 Update 消息中，每个叶子节点 (Leaf) 的值
     subscription_mode = "sample"
     sample_interval = "60s"
 ```
+
+
+## 完整配置案例
+
+### 案例三：通过标签订阅替代接口和队列的源 key
+
+以下是独立的完整配置；地址、认证、TLS、origin 和路径按设备调整。
+案例使用设备需实际支持的 RDMA 队列路径，路径存在与否须按型号核对。
+
+```toml
+interval = "1s"
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
+# username = "your-user"
+# password = "your-password"
+
+[[instances.subscription]]
+name = "rdma_input"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/input/queues/queue/state"
+subscription_mode = "sample"
+sample_interval = "15s"
+
+[[instances.tag_subscription]]
+name = "ifname"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/name"
+subscription_mode = "sample"
+sample_interval = "15s"
+match = "elements"
+elements = ["interface"]
+disable_concatenation = true
+drop_source_key = true
+
+[[instances.tag_subscription]]
+name = "qename"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/input/queues/queue/name"
+subscription_mode = "sample"
+sample_interval = "15s"
+match = "elements"
+elements = ["interface", "queue"]
+disable_concatenation = true
+drop_source_key = true
+```
+
+关联成功且值一致后，接口的原始 name 标签由 ifname 替代，input 队列的原始路径 key 标签
+由 qename 替代；其他 key（如 id）保留。标签尚未收到、来源不匹配、存在冲突或值不一致时，
+原 key 保留。drop_source_key 必须在每段需要替换的 tag_subscription 内单独开启，默认 false。
+output 队列需增加对应业务订阅和标签订阅，将 input 改为 output。
+与 gnmi_up / ICMP 一起使用时，它们的实例级选项必须放在任何订阅子表之前。
+
+
