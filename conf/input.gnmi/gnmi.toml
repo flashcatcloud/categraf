@@ -109,4 +109,9 @@ interval="1s"
   #  ## elements can be specified in any order. All given keys must be equal
   #  ## for a match.
   #  # elements = ["description", "interface"]
-
+  #
+  #  ## Optional: replace the parent list's identically named path key with
+  #  ## this tag (e.g. /interface/name -> ifname). Default: false.
+  #  ## Removal requires matching ancestry/origin and an unambiguous tag
+  #  ## whose value equals the key. Missing/conflicting tags retain the key.
+  #  # drop_source_key = false

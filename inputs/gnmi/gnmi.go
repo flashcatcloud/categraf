@@ -112,8 +112,9 @@ type Subscription struct {
 // Tag Subscription for a gNMI client
 type TagSubscription struct {
 	Subscription
-	Match    string `toml:"match"`
-	Elements []string
+	Match         string `toml:"match"`
+	Elements      []string
+	DropSourceKey bool `toml:"drop_source_key"`
 }
 
 func (c *Instance) Init() error {

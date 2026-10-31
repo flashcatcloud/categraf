@@ -66,6 +66,42 @@
 
 ## 采集指标
 
+### 用标签订阅替代原始路径 key 标签
+
+在对应的 `[[instances.tag_subscription]]` 内设置 `drop_source_key = true`，
+可在标签成功关联后删除其源叶子直接父节点上的同名 key 标签。默认 `false`，保持原有行为。
+例如，`/interface/name` 生成 `ifname` 后删除接口的原始 `name`；
+`/interface/input/queues/queue/name` 生成 `qename` 后仅删除该 input 队列的原始路径标签。
+
+```toml
+[[instances.tag_subscription]]
+name = "ifname"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/name"
+subscription_mode = "sample"
+match = "elements"
+elements = ["interface"]
+disable_concatenation = true
+drop_source_key = true
+
+[[instances.tag_subscription]]
+name = "qename"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/input/queues/queue/name"
+subscription_mode = "sample"
+match = "elements"
+elements = ["interface", "queue"]
+disable_concatenation = true
+drop_source_key = true
+```
+
+output 队列另配一段，把第二段 `path` 中的 `input` 改为 `output`。
+删除要求路径父节点、来源及 key 选择条件匹配，且标签值与 key 值一致。
+标签尚未收到、已清空、存在冲突或值不一致时保留原始 key，其他 key 不受影响。
+input/output 的标签关联范围仍由 `elements` 决定，但删除只作用于对应方向的路径。
+该选项仍依赖设备上报叶子值，不会直接从 path key 生成自定义标签。
+无需为这项删除另外配置 relabel。
+
 每配置一个 `[[instances.subscription]]`，插件就会生成对应的 Measurement。
 gNMI `SubscribeResponse` 的 Update 消息中，每个叶子节点 (Leaf) 的值都会转化为指标的值 (Field)，路径键值对会被转化为标签 (Tag)。
 
