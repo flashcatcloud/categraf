@@ -4,6 +4,18 @@ interval="1s"
   ## Address and port of the gNMI GRPC server
   addresses = []
 
+  ## Disable all built-in session health metrics (default: false).
+  # disable_gnmi_up = false
+
+  ## Optional background ICMP, independent of session metrics (default: disabled).
+  # enable_icmp = false
+  # icmp_interval = "30s"
+  # icmp_timeout = "3s" # Entire round including DNS, not per-packet timeout.
+  # icmp_count = 3
+  # icmp_packet_interval = "200ms"
+  # icmp_concurrency = 10
+  # icmp_privileged = true # Raw ICMP requires suitable OS permissions.
+
   ## define credentials
   username = "admin"
   password = "admin"
@@ -109,4 +121,3 @@ interval="1s"
   #  ## elements can be specified in any order. All given keys must be equal
   #  ## for a match.
   #  # elements = ["description", "interface"]
-
