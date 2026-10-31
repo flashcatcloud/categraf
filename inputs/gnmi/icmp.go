@@ -83,7 +83,7 @@ func (p nativeICMPProbe) Probe(ctx context.Context, host string, o icmpOptions) 
 	if err != nil {
 		return icmpResult{}, err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	return runICMPRound(ctx, conn, &address, o)
 }
 func icmpHost(host string) string {

@@ -108,7 +108,7 @@ func (h *handler) subscribeGNMI(ctx context.Context, slist *types.SampleList, tl
 		}
 		switch response := reply.Response.(type) {
 		case *gnmiLib.SubscribeResponse_Error:
-			return fmt.Errorf("gNMI subscription error code %d", response.Error.GetCode())
+			return fmt.Errorf("gNMI subscription error code %d", response.Error.GetCode()) //nolint:staticcheck // Legacy targets can still send this deprecated error response.
 		case *gnmiLib.SubscribeResponse_SyncResponse:
 			if response.SyncResponse && h.health != nil {
 				h.health.observe(generation, time.Now(), false)

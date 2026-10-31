@@ -29,7 +29,7 @@ func runICMPRound(ctx context.Context, conn icmpPacketConn, target *net.IPAddr, 
 		return result, fmt.Errorf("ICMP round requires deadline")
 	}
 	closed := make(chan struct{})
-	stop := context.AfterFunc(ctx, func() { conn.Close(); close(closed) })
+	stop := context.AfterFunc(ctx, func() { _ = conn.Close(); close(closed) })
 	defer func() {
 		if !stop() {
 			<-closed
