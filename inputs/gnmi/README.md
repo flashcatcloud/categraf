@@ -175,17 +175,22 @@ open an issue with the response, your configuration and the metric you expect.
 
 ## Built-in session health
 
-Session health is emitted every Gather even when no telemetry arrives. Set
-`disable_gnmi_up = true` to disable all three session metrics:
+The only built-in session metric is `gnmi_up`: 1 after a valid Update notification
+or `sync_response=true` in the current session; 0 before confirmation, during
+reconnect, or after EOF/RPC/protocol error. Set `disable_gnmi_up = true` to disable it.
 
-- `gnmi_up`: 1 after a valid Update notification or `sync_response=true` in the current session; 0 before confirmation, during reconnect, or after EOF/RPC/protocol error.
-- `gnmi_last_update_timestamp_seconds`: local receive time of the last notification containing Update/Delete data (including tag updates), or 0.
-- `gnmi_reconnects_total`: actual connection attempts after the first; resets when the instance restarts.
+`gnmi_up_interval = "30s"` controls reporting independently from telemetry.
+Omitted/zero uses 30 seconds; negative values are rejected. The first Gather
+emits a sample. An unchanged state is emitted again after the interval; a
+changed state is emitted at the next Gather and restarts the interval.
+Each address has its own cadence. Emission is limited by Gather frequency:
+a 60-second Gather cannot report every 30 seconds. Transitions that both occur
+between Gather calls may not be observed. No timer goroutine is added.
 
-Times survive reconnects. `gnmi_up` does not guarantee fresh or successfully
-converted business metrics. Normal ON_CHANGE silence leaves it at 1; an
-undetected blackholed connection can also remain 1. No extra RPCs or automatic
-silence timeout are introduced.
+`gnmi_up` does not guarantee fresh or successfully converted business metrics.
+Normal ON_CHANGE silence leaves it at 1; an undetected blackholed connection can
+also remain 1. No extra RPC or automatic silence timeout is introduced. ICMP
+probing and reporting are unchanged by `gnmi_up_interval`.
 
 Health labels contain static instance labels, the configured `agent_host_tag`
 (default `agent_host`), and `address` (full host:port). Static labels must not

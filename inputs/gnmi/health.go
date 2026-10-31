@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -19,6 +20,9 @@ type sessionHealth struct {
 	mu         sync.Mutex
 	generation uint64
 	state      sessionSnapshot
+	reported   bool
+	lastReport time.Time
+	lastUp     bool
 }
 
 func (s *sessionHealth) beginAttempt() uint64 {
@@ -49,7 +53,17 @@ func (s *sessionHealth) finish(g uint64) {
 		s.state.Up = false
 	}
 }
-func (s *sessionHealth) snapshot() sessionSnapshot { s.mu.Lock(); defer s.mu.Unlock(); return s.state }
+
+// report atomically reserves an emission; each device has its own cadence.
+func (s *sessionHealth) report(now time.Time, interval time.Duration) (bool, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.reported && s.lastUp == s.state.Up && now.Sub(s.lastReport) < interval {
+		return false, false
+	}
+	s.reported, s.lastUp, s.lastReport = true, s.state.Up, now
+	return s.state.Up, true
+}
 func healthHost(address string) (string, error) {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil || host == "" {
@@ -62,6 +76,12 @@ func healthHost(address string) (string, error) {
 	return host, nil
 }
 func (c *Instance) initHealth() error {
+	if c.GNMIUpInterval < 0 {
+		return fmt.Errorf("gnmi_up_interval must not be negative")
+	}
+	if c.GNMIUpInterval == 0 {
+		c.GNMIUpInterval = config.Duration(30 * time.Second)
+	}
 	if c.DisableGNMIUp {
 		return nil
 	}
@@ -117,14 +137,15 @@ func (c *Instance) gatherHealth(sl *types.SampleList, now time.Time) {
 		return
 	}
 	for _, address := range c.Addresses {
-		state := c.health[address].snapshot()
+		isUp, emit := c.health[address].report(now, time.Duration(c.GNMIUpInterval))
+		if !emit {
+			continue
+		}
 		labels := c.healthLabels(address)
 		up := 0
-		if state.Up {
+		if isUp {
 			up = 1
 		}
 		sl.PushSample(inputName, "up", up, labels)
-		sl.PushSample(inputName, "last_update_timestamp_seconds", unixSeconds(state.LastUpdate), labels)
-		sl.PushSample(inputName, "reconnects_total", state.Reconnects, labels)
 	}
 }

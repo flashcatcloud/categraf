@@ -82,6 +82,7 @@ type (
 
 		AgentHostTag       string          `toml:"agent_host_tag"`
 		DisableGNMIUp      bool            `toml:"disable_gnmi_up"`
+		GNMIUpInterval     config.Duration `toml:"gnmi_up_interval"`
 		EnableICMP         bool            `toml:"enable_icmp"`
 		ICMPInterval       config.Duration `toml:"icmp_interval"`
 		ICMPTimeout        config.Duration `toml:"icmp_timeout"`

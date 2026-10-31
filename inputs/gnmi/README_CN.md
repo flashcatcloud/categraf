@@ -96,18 +96,23 @@ gNMI `SubscribeResponse` 的 Update 消息中，每个叶子节点 (Leaf) 的值
 
 ## 内置会话健康指标
 
-每次 Gather 均输出健康指标，业务流断开也继续输出。配置
-`disable_gnmi_up = true` 可关闭以下全部会话指标：
+会话指标仅保留 `gnmi_up`：当前会话收到有效 Update 通知或 sync_response=true 后为 1；
+启动未确认、重连或 EOF/RPC/协议错误后为 0。`disable_gnmi_up = true` 可关闭。
 
-| 指标 | 含义 |
-|---|---|
-| gnmi_up | 当前会话收到有效 Update 通知或 sync_response=true 后为 1；启动未确认、重连或 EOF/RPC/协议错误后为 0 |
-| gnmi_last_update_timestamp_seconds | 最近包含 Update/Delete 数据通知的本地接收 Unix 秒，包含 tag 数据；从未收到为 0 |
-| gnmi_reconnects_total | 首次尝试之后实际开始的连接尝试次数，实例重启归零 |
+在 `[[instances]]` 内、subscription 子表之前配置：
 
-重连保留历史接收时间。up 不保证业务数据新鲜或成功转换；ON_CHANGE 正常静默
-不判 down，尚未检测到的网络黑洞也可能暂时保持 up。本功能不额外发送 RPC，
-不新增静默超时重连。
+```toml
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
+```
+
+未配置或零值采用 30 秒，负值报配置错误。首次 Gather 输出；状态不变时满周期再输出；
+状态变化时在下一次 Gather 提前输出，并重新计时。每台设备独立计时，不增加定时协程。
+业务采集不受影响，实际输出受 Gather 周期约束：Gather 为 60 秒时不能每 30 秒输出。
+两次 Gather 之间发生并恢复的短暂变化可能无法观察。
+
+up 不保证业务数据新鲜或成功转换；ON_CHANGE 正常静默不判 down，尚未检测到的网络黑洞
+也可能保持 up。不额外发送 RPC，不新增静默超时重连。该周期不改变 ICMP 探测和上报。
 
 标签包含实例静态标签、agent_host_tag（默认 agent_host）和完整端点 address。
 实例静态标签不得占用这两个身份标签，agent_host_tag 不得设为 address。

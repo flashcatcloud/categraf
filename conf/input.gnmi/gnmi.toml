@@ -4,8 +4,10 @@ interval="1s"
   ## Address and port of the gNMI GRPC server
   addresses = []
 
-  ## Disable all built-in session health metrics (default: false).
+  ## Disable the built-in gnmi_up metric (default: false).
   # disable_gnmi_up = false
+  ## Report every 30 seconds, or on a state change at the next Gather.
+  # gnmi_up_interval = "30s"
 
   ## Optional background ICMP, independent of session metrics (default: disabled).
   # enable_icmp = false
