@@ -157,3 +157,62 @@ raw ICMP 需要运行账户具有相应权限，如 Linux CAP_NET_RAW 或 Window
 实现说明：gNMI 使用仓库已有的 `golang.org/x/net/icmp`，直接控制 socket 读写截止时间
 与取消关闭；不使用锁定版本 pro-bing 的无界发送重试。任一次发送错误都会使整轮无效。
 `icmp_count` 上限为 65535，避免 Echo 序号溢出。
+
+## 完整配置案例
+
+以下案例分别使用；请按设备调整地址、认证、TLS、origin 和订阅路径。实例参数必须放在
+`[[instances.subscription]]` 或 `[[instances.tag_subscription]]` 子表之前。
+
+### 案例一：仅开启 gnmi_up，稳定状态每 30 秒上报
+
+```toml
+interval = "1s"
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
+enable_icmp = false
+# username = "your-user"
+# password = "your-password"
+
+[[instances.subscription]]
+name = "ifcounters"
+origin = "openconfig-interfaces"
+path = "/interfaces/interface/state/counters"
+subscription_mode = "sample"
+sample_interval = "15s"
+```
+
+只输出 `gnmi_up` 这一项会话指标。首次及状态变化在 Gather 时输出；状态稳定时每 30 秒
+输出一次。业务订阅仍按设备接受的采样周期运行，Gather 每秒转发收到的数据。
+
+### 案例二：gnmi_up 加可选 ICMP
+
+```toml
+interval = "1s"
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
+enable_icmp = true
+icmp_interval = "30s"
+icmp_timeout = "3s"
+icmp_count = 3
+icmp_packet_interval = "200ms"
+icmp_concurrency = 10
+icmp_privileged = true
+
+[[instances.subscription]]
+name = "ifcounters"
+origin = "openconfig-interfaces"
+path = "/interfaces/interface/state/counters"
+subscription_mode = "sample"
+sample_interval = "15s"
+```
+
+ICMP 需要对应 socket 权限；探测失败不阻止 gNMI。`icmp_interval` 控制后台探测频率，
+不控制输出频率：ICMP 最新结果仍随每次 Gather 输出。`gnmi_up_interval` 仅控制 gnmi_up。

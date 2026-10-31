@@ -245,3 +245,60 @@ Implementation note: the ICMP backend uses the repository's existing
 `golang.org/x/net/icmp` directly. The locked pro-bing version cannot reliably
 bound all send retries, so it is not used by gNMI. Every write has a deadline;
 any send error invalidates the round. `icmp_count` must not exceed 65535.
+
+## Complete configuration examples
+
+Adjust the address, credentials, TLS, origin and paths for your device. Put all
+instance options before subscription or tag-subscription subtables.
+
+### Example 1: session up only, 30-second stable-state reporting
+
+```toml
+interval = "1s"
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
+enable_icmp = false
+# username = "your-user"
+# password = "your-password"
+[[instances.subscription]]
+name = "ifcounters"
+origin = "openconfig-interfaces"
+path = "/interfaces/interface/state/counters"
+subscription_mode = "sample"
+sample_interval = "15s"
+```
+
+Only gnmi_up is emitted for session health. The first Gather and observed state
+changes emit immediately; unchanged states are emitted after 30 seconds.
+Telemetry sampling and Gather forwarding keep their independent schedules.
+
+### Example 2: session up with optional ICMP
+
+```toml
+interval = "1s"
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
+enable_icmp = true
+icmp_interval = "30s"
+icmp_timeout = "3s"
+icmp_count = 3
+icmp_packet_interval = "200ms"
+icmp_concurrency = 10
+icmp_privileged = true
+[[instances.subscription]]
+name = "ifcounters"
+origin = "openconfig-interfaces"
+path = "/interfaces/interface/state/counters"
+subscription_mode = "sample"
+sample_interval = "15s"
+```
+
+Ensure the process has appropriate ICMP socket permissions. ICMP failures do not
+gate telemetry. icmp_interval controls probe frequency; cached ICMP results are
+still emitted at every Gather. gnmi_up_interval controls only gnmi_up.
