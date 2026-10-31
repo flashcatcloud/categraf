@@ -172,3 +172,71 @@ manually map the response to a metric name using the `aliases` option like
 
 If this does *not* solve the issue, please follow the warning instructions and
 open an issue with the response, your configuration and the metric you expect.
+
+## Built-in session health
+
+Session health is emitted every Gather even when no telemetry arrives. Set
+`disable_gnmi_up = true` to disable all three session metrics:
+
+- `gnmi_up`: 1 after a valid Update notification or `sync_response=true` in the current session; 0 before confirmation, during reconnect, or after EOF/RPC/protocol error.
+- `gnmi_last_update_timestamp_seconds`: local receive time of the last notification containing Update/Delete data (including tag updates), or 0.
+- `gnmi_reconnects_total`: actual connection attempts after the first; resets when the instance restarts.
+
+Times survive reconnects. `gnmi_up` does not guarantee fresh or successfully
+converted business metrics. Normal ON_CHANGE silence leaves it at 1; an
+undetected blackholed connection can also remain 1. No extra RPCs or automatic
+silence timeout are introduced.
+
+Health labels contain static instance labels, the configured `agent_host_tag`
+(default `agent_host`), and `address` (full host:port). Static labels must not
+use either reserved identity key, and `agent_host_tag` must not be `address`.
+Addresses must be unique host:port endpoints; IPv6 requires brackets. Use distinct
+static labels for the same address in different instances. Normal pipeline
+filters, renaming, global labels and relabel rules still apply.
+
+## Optional built-in ICMP
+
+Set `enable_icmp = true` before subscription subtables. Defaults:
+`icmp_interval="30s"`, `icmp_timeout="3s"` (entire round including DNS),
+`icmp_count=3`, `icmp_packet_interval="200ms"`, `icmp_concurrency=10`,
+`icmp_privileged=true`. Omitted/zero options use defaults; negative values,
+interval <= timeout, or timeout <= (count-1)*packet interval are invalid.
+Disabled ICMP does not validate its unused options or perform DNS/network work.
+Raw ICMP needs OS permissions (for example CAP_NET_RAW on Linux or appropriate
+Windows privileges); `icmp_privileged=false` requests unprivileged ICMP sockets
+where supported. Runtime probe errors never stop gNMI collection.
+
+| Metric | Meaning |
+|---|---|
+| gnmi_icmp_probe_success | 1 for a completed valid round, 0 if pending, execution failed or result expired |
+| gnmi_icmp_up | 1 if at least one reply, otherwise 0; only emitted for valid current results |
+| gnmi_icmp_rtt_seconds | Mean successful reply RTT in seconds; omitted if no replies; 0 is a valid clock-resolution result |
+| gnmi_icmp_packet_loss_ratio | Lost/sent, 0..1; all lost = 1; only valid current results |
+| gnmi_icmp_last_probe_timestamp_seconds | Last completed round (including execution failures), local Unix seconds; 0 before first completion |
+
+All-packet timeout after sending the requested count is a successful probe
+execution with up=0/loss=1. Permission, DNS and socket errors or incomplete sends
+have probe_success=0 and omit up/RTT/loss. Failed rounds replace old success.
+Results older than 2*interval+timeout are treated as stale and omit up/RTT/loss.
+Repeated Gather snapshots carry the original probe completion time separately.
+
+ICMP uses a bounded background worker pool, never blocks Gather, and never
+changes subscription state or triggers reconnects. Same-instance endpoints with
+the same normalized hostname share probes but retain separate address labels.
+The first probe is spread over [0, interval); subsequent probes wait interval
+with +/-10% jitter after completion; no host has overlapping rounds. DNS is
+resolved each round; IPv4 is preferred, then IPv6, with stable sorting within a
+family. Only that selected address is tested; DNS aliases and separate instances
+do not share probes. IPv6 literals with zone are supported. Health identity
+validation applies when either session metrics or ICMP is enabled; disabling
+both retains legacy endpoint/static-label handling.
+
+For optional real loopback validation, run with `GNMI_TEST_ICMP=1`:
+`go test ./inputs/gnmi -run TestICMPNativeLoopback -v -count=1`.
+Normal tests need no ICMP privileges. Validate device ACLs, packet loss, IPv6,
+and runtime permissions in the deployment environment before enabling alarms.
+
+Implementation note: the ICMP backend uses the repository's existing
+`golang.org/x/net/icmp` directly. The locked pro-bing version cannot reliably
+bound all send retries, so it is not used by gNMI. Every write has a deadline;
+any send error invalidates the round. `icmp_count` must not exceed 65535.

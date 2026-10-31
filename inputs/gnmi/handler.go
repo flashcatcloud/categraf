@@ -44,11 +44,17 @@ type handler struct {
 	guessPathTag        bool
 
 	sourceTag   string
+	health      *sessionHealth
 	tagWarnings tagWarningLimiter
 }
 
 // SubscribeGNMI and extract telemetry data
 func (h *handler) subscribeGNMI(ctx context.Context, slist *types.SampleList, tlscfg *tls.Config, request *gnmiLib.SubscribeRequest) error {
+	var generation uint64
+	if h.health != nil {
+		generation = h.health.beginAttempt()
+		defer h.health.finish(generation)
+	}
 	var creds credentials.TransportCredentials
 	if tlscfg != nil {
 		creds = credentials.NewTLS(tlscfg)
@@ -99,6 +105,18 @@ func (h *handler) subscribeGNMI(ctx context.Context, slist *types.SampleList, tl
 				return fmt.Errorf("aborted gNMI subscription: %w", err)
 			}
 			break
+		}
+		switch response := reply.Response.(type) {
+		case *gnmiLib.SubscribeResponse_Error:
+			return fmt.Errorf("gNMI subscription error code %d", response.Error.GetCode())
+		case *gnmiLib.SubscribeResponse_SyncResponse:
+			if response.SyncResponse && h.health != nil {
+				h.health.observe(generation, time.Now(), false)
+			}
+		case *gnmiLib.SubscribeResponse_Update:
+			if response.Update != nil && h.health != nil {
+				h.health.observe(generation, time.Now(), len(response.Update.Update) > 0 || len(response.Update.Delete) > 0)
+			}
 		}
 		if h.trace {
 			buf, err := protojson.Marshal(reply)

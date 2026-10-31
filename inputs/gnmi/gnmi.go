@@ -80,7 +80,18 @@ type (
 		wg          sync.WaitGroup
 		slist       *types.SampleList
 
-		AgentHostTag string `toml:"agent_host_tag"`
+		AgentHostTag       string          `toml:"agent_host_tag"`
+		DisableGNMIUp      bool            `toml:"disable_gnmi_up"`
+		EnableICMP         bool            `toml:"enable_icmp"`
+		ICMPInterval       config.Duration `toml:"icmp_interval"`
+		ICMPTimeout        config.Duration `toml:"icmp_timeout"`
+		ICMPPacketInterval config.Duration `toml:"icmp_packet_interval"`
+		ICMPCount          int             `toml:"icmp_count"`
+		ICMPConcurrency    int             `toml:"icmp_concurrency"`
+		ICMPPrivileged     *bool           `toml:"icmp_privileged"`
+		icmp               *icmpMonitor
+		health             map[string]*sessionHealth
+		dropOnce           sync.Once
 	}
 )
 
@@ -125,6 +136,12 @@ func (c *Instance) Init() error {
 	}
 	if len(c.AgentHostTag) == 0 {
 		c.AgentHostTag = "agent_host"
+	}
+	if err := c.initHealth(); err != nil {
+		return err
+	}
+	if err := c.initICMP(); err != nil {
+		return err
 	}
 	c.slist = types.NewSampleList()
 	c.tagStores = make(map[string]*tagStore)
@@ -233,7 +250,14 @@ func (c *Instance) Init() error {
 	}
 	c.tlsConfig = tlsCfg
 
-	go c.run()
+	ctx, cancel := context.WithCancel(context.Background())
+	c.cancel = cancel
+	if c.icmp != nil {
+		c.wg.Add(1)
+		go func() { defer c.wg.Done(); c.icmp.run(ctx) }()
+	}
+	c.wg.Add(1)
+	go func() { defer c.wg.Done(); c.run(ctx) }()
 	return nil
 }
 
@@ -241,10 +265,8 @@ func (c *Instance) Init() error {
 // reconnecting until the instance is dropped. All configuration that can fail
 // is validated up-front in Init(), so here errors during the connection
 // lifecycle are only logged.
-func (c *Instance) run() {
+func (c *Instance) run(ctx context.Context) {
 	// Prepare the context, optionally with credentials
-	var ctx context.Context
-	ctx, c.cancel = context.WithCancel(context.Background())
 	if len(c.Username) > 0 {
 		ctx = metadata.AppendToOutgoingContext(ctx, "username", c.Username, "password", c.Password)
 	}
@@ -272,6 +294,7 @@ func (c *Instance) run() {
 				trimSlash:           c.TrimFieldNames,
 				guessPathTag:        c.GuessPathTag,
 				sourceTag:           c.AgentHostTag,
+				health:              c.health[addr],
 			}
 			for ctx.Err() == nil {
 				if err := h.subscribeGNMI(ctx, c.slist, c.tlsConfig, c.request); err != nil && ctx.Err() == nil {
@@ -403,15 +426,18 @@ func parsePath(origin string, pathToParse string, target string) (*gnmiLib.Path,
 
 // Stop listener and cleanup
 func (c *Instance) Drop() {
-	if c.cancel != nil {
-		c.cancel()
-	}
-	c.wg.Wait()
+	c.dropOnce.Do(func() {
+		if c.cancel != nil {
+			c.cancel()
+		}
+		c.wg.Wait()
+	})
 }
 
 // Gather plugin measurements (unused)
 func (c *Instance) Gather(slist *types.SampleList) {
 	slist.PushFrontN(c.slist.PopBackAll())
+	c.gatherHealth(slist, time.Now())
 }
 
 func (c *GNMI) Name() string {

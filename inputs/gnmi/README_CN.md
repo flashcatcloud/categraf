@@ -93,3 +93,62 @@ gNMI `SubscribeResponse` 的 Update 消息中，每个叶子节点 (Leaf) 的值
     subscription_mode = "sample"
     sample_interval = "60s"
 ```
+
+## 内置会话健康指标
+
+每次 Gather 均输出健康指标，业务流断开也继续输出。配置
+`disable_gnmi_up = true` 可关闭以下全部会话指标：
+
+| 指标 | 含义 |
+|---|---|
+| gnmi_up | 当前会话收到有效 Update 通知或 sync_response=true 后为 1；启动未确认、重连或 EOF/RPC/协议错误后为 0 |
+| gnmi_last_update_timestamp_seconds | 最近包含 Update/Delete 数据通知的本地接收 Unix 秒，包含 tag 数据；从未收到为 0 |
+| gnmi_reconnects_total | 首次尝试之后实际开始的连接尝试次数，实例重启归零 |
+
+重连保留历史接收时间。up 不保证业务数据新鲜或成功转换；ON_CHANGE 正常静默
+不判 down，尚未检测到的网络黑洞也可能暂时保持 up。本功能不额外发送 RPC，
+不新增静默超时重连。
+
+标签包含实例静态标签、agent_host_tag（默认 agent_host）和完整端点 address。
+实例静态标签不得占用这两个身份标签，agent_host_tag 不得设为 address。
+地址必须是唯一 host:port，IPv6 使用方括号。不同实例配置同一地址时使用不同静态标签。
+统一输出管线的过滤、重命名和 relabel 规则仍然适用。
+
+## 可选内置 ICMP
+
+在 subscription 子表前配置 `enable_icmp = true` 开启；默认关闭。
+默认值：`icmp_interval="30s"`、`icmp_timeout="3s"`（含 DNS 的整轮截止时间）、
+`icmp_count=3`、`icmp_packet_interval="200ms"`、`icmp_concurrency=10`、
+`icmp_privileged=true`。未配置或零值使用默认值；负值、interval<=timeout 或
+ timeout<=(count-1)*packet_interval 为配置错误。关闭时忽略未使用的 ICMP 参数，
+不执行 DNS 和探测。
+
+| 指标 | 含义 |
+|---|---|
+| gnmi_icmp_probe_success | 有效完整轮次为 1；未就绪、执行错误、结果过期为 0 |
+| gnmi_icmp_up | 有回复为 1，全丢包为 0；仅有效且未过期时输出 |
+| gnmi_icmp_rtt_seconds | 成功回复平均 RTT，单位秒；无回复不输出；时钟分辨率可能使有效 RTT 为 0 |
+| gnmi_icmp_packet_loss_ratio | 丢包数/发送数，0～1；全丢包为 1；仅有效且未过期时输出 |
+| gnmi_icmp_last_probe_timestamp_seconds | 最新一轮完成时间（含执行错误），本地 Unix 秒；首轮未完成为 0 |
+
+发送足量探测包后超时无回复，表示 probe_success=1/up=0/loss=1。
+权限、DNS、socket、发送不足等错误，表示 probe_success=0，不输出 up/RTT/loss，
+不会沿用上一轮成功结果。结果超过 2*interval+timeout 未更新时也停止输出旧值。
+每次 Gather 重复读取最新完整快照，通过 last_probe 判断探测时间。
+
+ICMP 在后台有限 worker 中运行，不阻塞 Gather，不改变 gnmi_up，不触发重连。
+同实例同一规范化主机的不同端口共享探测，仍按完整 address 分别输出。
+首轮分散在 [0, interval)，后续按完成时间加 interval 和 ±10% 抖动调度，同主机不重入。
+每轮重新解析 DNS，优先 IPv4、其次 IPv6，各地址族内稳定排序选择一个地址；
+不表示全部解析地址均在线，也不跨 DNS 别名或实例去重。支持带 zone 的 IPv6 字面量。
+任一类健康指标启用时校验身份标签和端点；两类都关闭可沿用旧端点和静态标签配置。
+
+raw ICMP 需要运行账户具有相应权限，如 Linux CAP_NET_RAW 或 Windows 相应权限；
+`icmp_privileged=false` 请求非特权 ICMP socket，支持程度依赖系统。
+运行权限或探测错误仅影响 ICMP 指标，不中止 gNMI。真实环回测试需设置
+`GNMI_TEST_ICMP=1` 后运行 `go test ./inputs/gnmi -run TestICMPNativeLoopback -v -count=1`。
+普通单测无需 ICMP 权限。上线前另行验证设备 ACL、丢包、IPv6 和部署账户权限。
+
+实现说明：gNMI 使用仓库已有的 `golang.org/x/net/icmp`，直接控制 socket 读写截止时间
+与取消关闭；不使用锁定版本 pro-bing 的无界发送重试。任一次发送错误都会使整轮无效。
+`icmp_count` 上限为 65535，避免 Echo 序号溢出。
