@@ -128,6 +128,13 @@ problems, e.g. when getting an *empty metric-name warning*!
   #  ## elements can be specified in any order. All given keys must be equal
   #  ## for a match.
   #  # elements = ["description", "interface"]
+  #
+  #  ## Optional: remove the source leaf's identically named key on its
+  #  ## immediate parent list after a successful tag replacement. Default: false.
+  #  ## Example: /interface/name with name="ifname" replaces the interface key.
+  #  ## Requires matching ancestry/origin and equal values. Missing/conflicting
+  #  ## tags preserve the original key; other list keys are unaffected.
+  #  # drop_source_key = false
 ```
 
 ## Metrics

@@ -219,8 +219,14 @@ func (h *handler) handleSubscribeResponseUpdate(slist *types.SampleList, respons
 		}
 
 		// Add the tags derived via tag-subscriptions
-		for k, v := range h.tagStore.lookup(field.path, tags) {
+		derivedTags, sourceKeys := h.tagStore.lookupWithSourceKeys(field.path, tags)
+		for k, v := range derivedTags {
 			tags[k] = v
+		}
+		// Lookup uses the original keys. Only remove keys with a successful,
+		// unambiguous replacement after all tag subscriptions have been resolved.
+		for key := range sourceKeys {
+			delete(tags, key)
 		}
 
 		// Lookup alias for the metric
