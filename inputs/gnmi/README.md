@@ -234,5 +234,3 @@ the original key. Enable drop_source_key separately in each applicable tag
 subscription; it defaults to false. For output queues, add matching telemetry and
 tag subscriptions with input replaced by output. If using session health/ICMP,
 put those instance options before all subscription subtables.
-
-

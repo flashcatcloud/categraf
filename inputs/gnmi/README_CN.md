@@ -182,5 +182,3 @@ drop_source_key = true
 原 key 保留。drop_source_key 必须在每段需要替换的 tag_subscription 内单独开启，默认 false。
 output 队列需增加对应业务订阅和标签订阅，将 input 改为 output。
 与 gnmi_up / ICMP 一起使用时，它们的实例级选项必须放在任何订阅子表之前。
-
-
