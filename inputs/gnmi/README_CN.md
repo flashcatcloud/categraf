@@ -66,6 +66,42 @@
 
 ## 采集指标
 
+### 用标签订阅替代原始路径 key 标签
+
+在对应的 `[[instances.tag_subscription]]` 内设置 `drop_source_key = true`，
+可在标签成功关联后删除其源叶子直接父节点上的同名 key 标签。默认 `false`，保持原有行为。
+例如，`/interface/name` 生成 `ifname` 后删除接口的原始 `name`；
+`/interface/input/queues/queue/name` 生成 `qename` 后仅删除该 input 队列的原始路径标签。
+
+```toml
+[[instances.tag_subscription]]
+name = "ifname"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/name"
+subscription_mode = "sample"
+match = "elements"
+elements = ["interface"]
+disable_concatenation = true
+drop_source_key = true
+
+[[instances.tag_subscription]]
+name = "qename"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/input/queues/queue/name"
+subscription_mode = "sample"
+match = "elements"
+elements = ["interface", "queue"]
+disable_concatenation = true
+drop_source_key = true
+```
+
+output 队列另配一段，把第二段 `path` 中的 `input` 改为 `output`。
+删除要求路径父节点、来源及 key 选择条件匹配，且标签值与 key 值一致。
+标签尚未收到、已清空、存在冲突或值不一致时保留原始 key，其他 key 不受影响。
+input/output 的标签关联范围仍由 `elements` 决定，但删除只作用于对应方向的路径。
+该选项仍依赖设备上报叶子值，不会直接从 path key 生成自定义标签。
+无需为这项删除另外配置 relabel。
+
 每配置一个 `[[instances.subscription]]`，插件就会生成对应的 Measurement。
 gNMI `SubscribeResponse` 的 Update 消息中，每个叶子节点 (Leaf) 的值都会转化为指标的值 (Field)，路径键值对会被转化为标签 (Tag)。
 
@@ -217,3 +253,53 @@ sample_interval = "15s"
 
 ICMP 需要对应 socket 权限；探测失败不阻止 gNMI。`icmp_interval` 控制后台探测频率，
 不控制输出频率：ICMP 最新结果仍随每次 Gather 输出。`gnmi_up_interval` 仅控制 gnmi_up。
+
+### 案例三：通过标签订阅替代接口和队列的源 key
+
+以下是独立的完整配置；地址、认证、TLS、origin 和路径按设备调整。
+案例使用设备需实际支持的 RDMA 队列路径，路径存在与否须按型号核对。
+
+```toml
+interval = "1s"
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
+# username = "your-user"
+# password = "your-password"
+
+[[instances.subscription]]
+name = "rdma_input"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/input/queues/queue/state"
+subscription_mode = "sample"
+sample_interval = "15s"
+
+[[instances.tag_subscription]]
+name = "ifname"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/name"
+subscription_mode = "sample"
+sample_interval = "15s"
+match = "elements"
+elements = ["interface"]
+disable_concatenation = true
+drop_source_key = true
+
+[[instances.tag_subscription]]
+name = "qename"
+origin = "openconfig-qos"
+path = "/qos/rdma-counters/interfaces/interface/input/queues/queue/name"
+subscription_mode = "sample"
+sample_interval = "15s"
+match = "elements"
+elements = ["interface", "queue"]
+disable_concatenation = true
+drop_source_key = true
+```
+
+关联成功且值一致后，接口的原始 name 标签由 ifname 替代，input 队列的原始路径 key 标签
+由 qename 替代；其他 key（如 id）保留。标签尚未收到、来源不匹配、存在冲突或值不一致时，
+原 key 保留。drop_source_key 必须在每段需要替换的 tag_subscription 内单独开启，默认 false。
+output 队列需增加对应业务订阅和标签订阅，将 input 改为 output。
+与 gnmi_up / ICMP 一起使用时，它们的实例级选项必须放在任何订阅子表之前。
