@@ -180,8 +180,148 @@ manually map the response to a metric name using the `aliases` option like
 If this does *not* solve the issue, please follow the warning instructions and
 open an issue with the response, your configuration and the metric you expect.
 
+## Built-in session health
+
+The only built-in session metric is `gnmi_up`: 1 after a valid Update notification
+or `sync_response=true` in the current session; 0 before confirmation, during
+reconnect, or after EOF/RPC/protocol error. Set `disable_gnmi_up = true` to disable it.
+
+`gnmi_up_interval = "30s"` controls reporting independently from telemetry.
+Omitted/zero uses 30 seconds; negative values are rejected. The first Gather
+emits a sample. An unchanged state is emitted again after the interval; a
+changed state is emitted at the next Gather and restarts the interval.
+Each address has its own cadence. Emission is limited by Gather frequency:
+a 60-second Gather cannot report every 30 seconds. Transitions that both occur
+between Gather calls may not be observed. No timer goroutine is added.
+
+`gnmi_up` does not guarantee fresh or successfully converted business metrics.
+Normal ON_CHANGE silence leaves it at 1; an undetected blackholed connection can
+also remain 1. No extra RPC or automatic silence timeout is introduced. ICMP
+probing and reporting are unchanged by `gnmi_up_interval`.
+
+Session health accepts the same gRPC targets as telemetry, including resolver
+URIs such as `dns:///device:50051`; it does not require a plain host:port address.
+Health labels contain static instance labels and the configured `agent_host_tag`
+(default `agent_host`). If a single hostname cannot be extracted, the host label
+uses the configured target. Existing static labels take precedence.
+The complete configured target is normally carried by `address`. If that label
+is used by static labels or `agent_host_tag`, a separate `gnmi_target` label
+preserves endpoint identity. If that name is also occupied, `gnmi_target_1`,
+`gnmi_target_2`, etc. are tried, accounting for output label normalization and
+both instance and global label names.
+Repeated identical targets emit one health sample per metric. Their session
+health is aggregated: `gnmi_up=1` while any active subscription has been confirmed;
+starting or failing another subscription does not hide a healthy session. It
+returns to 0 after the last confirmed session ends. Telemetry subscriptions are
+unchanged. Use distinct static labels for the same target in different instances.
+Normal pipeline filters, renaming, global labels and relabel rules still apply;
+avoid removing the endpoint identity label when combining multiple targets.
+
+## Optional built-in ICMP
+
+Set `enable_icmp = true` before subscription subtables. Defaults:
+`icmp_interval="30s"`, `icmp_timeout="3s"` (entire round including DNS),
+`icmp_count=3`, `icmp_packet_interval="200ms"`, `icmp_concurrency=10`,
+`icmp_privileged=true`. Omitted/zero options use defaults; negative values,
+interval <= timeout, or timeout <= (count-1)*packet interval are invalid.
+Disabled ICMP does not validate its unused options or perform DNS/network work.
+Raw ICMP needs OS permissions (for example CAP_NET_RAW on Linux or appropriate
+Windows privileges); `icmp_privileged=false` requests unprivileged ICMP sockets
+where supported. Runtime probe errors never stop gNMI collection.
+
+| Metric | Meaning |
+|---|---|
+| gnmi_icmp_probe_success | 1 for a completed valid round, 0 if pending, execution failed or result expired |
+| gnmi_icmp_up | 1 if at least one reply, otherwise 0; only emitted for valid current results |
+| gnmi_icmp_rtt_seconds | Mean successful reply RTT in seconds; omitted if no replies; 0 is a valid clock-resolution result |
+| gnmi_icmp_packet_loss_ratio | Lost/sent, 0..1; all lost = 1; only valid current results |
+| gnmi_icmp_last_probe_timestamp_seconds | Last completed round (including execution failures), local Unix seconds; 0 before first completion |
+
+All-packet timeout after sending the requested count is a successful probe
+execution with up=0/loss=1. Permission, DNS and socket errors or incomplete sends
+have probe_success=0 and omit up/RTT/loss. Failed rounds replace old success.
+Results older than 2*interval+timeout are treated as stale and omit up/RTT/loss.
+Repeated Gather snapshots carry the original probe completion time separately.
+
+ICMP uses a bounded background worker pool, never blocks Gather, and never
+changes subscription state or triggers reconnects. Same-instance endpoints with
+the same normalized hostname share probes but retain separate endpoint identity labels.
+The first probe is spread over [0, interval); subsequent probes wait interval
+with +/-10% jitter after completion; no host has overlapping rounds. DNS is
+resolved each round; IPv4 is preferred, then IPv6, with stable sorting within a
+family. Only that selected address is tested; DNS aliases and separate instances
+do not share probes. IPv6 literals with zone are supported. ICMP requires a plain
+host:numeric-port target (bracketed IPv6 is supported). Other gRPC target forms
+are skipped with a startup warning; they emit probe_success=0 and a zero last-probe
+timestamp without up/RTT/loss metrics. Their telemetry and session health continue
+normally. Static label names remain unrestricted.
+
+For optional real loopback validation, run with `GNMI_TEST_ICMP=1`:
+`go test ./inputs/gnmi -run TestICMPNativeLoopback -v -count=1`.
+Normal tests need no ICMP privileges. Validate device ACLs, packet loss, IPv6,
+and runtime permissions in the deployment environment before enabling alarms.
+
+Implementation note: the ICMP backend uses the repository's existing
+`golang.org/x/net/icmp` directly. The locked pro-bing version cannot reliably
+bound all send retries, so it is not used by gNMI. Every write has a deadline;
+any send error invalidates the round. `icmp_count` must not exceed 65535.
 
 ## Complete configuration examples
+
+Adjust the address, credentials, TLS, origin and paths for your device. Put all
+instance options before subscription or tag-subscription subtables.
+
+### Example 1: session up only, 30-second stable-state reporting
+
+```toml
+interval = "1s"
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
+enable_icmp = false
+# username = "your-user"
+# password = "your-password"
+[[instances.subscription]]
+name = "ifcounters"
+origin = "openconfig-interfaces"
+path = "/interfaces/interface/state/counters"
+subscription_mode = "sample"
+sample_interval = "15s"
+```
+
+Only gnmi_up is emitted for session health. The first Gather and observed state
+changes emit immediately; unchanged states are emitted after 30 seconds.
+Telemetry sampling and Gather forwarding keep their independent schedules.
+
+### Example 2: session up with optional ICMP
+
+```toml
+interval = "1s"
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
+enable_icmp = true
+icmp_interval = "30s"
+icmp_timeout = "3s"
+icmp_count = 3
+icmp_packet_interval = "200ms"
+icmp_concurrency = 10
+icmp_privileged = true
+[[instances.subscription]]
+name = "ifcounters"
+origin = "openconfig-interfaces"
+path = "/interfaces/interface/state/counters"
+subscription_mode = "sample"
+sample_interval = "15s"
+```
+
+Ensure the process has appropriate ICMP socket permissions. ICMP failures do not
+gate telemetry. icmp_interval controls probe frequency; cached ICMP results are
+still emitted at every Gather. gnmi_up_interval controls only gnmi_up.
 
 ### Example 3: replace interface and queue source keys with learned tags
 

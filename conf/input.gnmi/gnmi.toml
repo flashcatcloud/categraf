@@ -4,6 +4,20 @@ interval="1s"
   ## Address and port of the gNMI GRPC server
   addresses = []
 
+  ## Disable the built-in gnmi_up metric (default: false).
+  # disable_gnmi_up = false
+  ## Report every 30 seconds, or on a state change at the next Gather.
+  # gnmi_up_interval = "30s"
+
+  ## Optional background ICMP, independent of session metrics (default: disabled).
+  # enable_icmp = false
+  # icmp_interval = "30s"
+  # icmp_timeout = "3s" # Entire round including DNS, not per-packet timeout.
+  # icmp_count = 3
+  # icmp_packet_interval = "200ms"
+  # icmp_concurrency = 10
+  # icmp_privileged = true # Raw ICMP requires suitable OS permissions.
+
   ## define credentials
   username = "admin"
   password = "admin"
