@@ -3,6 +3,7 @@ package gnmi
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"net/netip"
 	"sort"
@@ -121,16 +122,15 @@ func (c *Instance) initICMP() error {
 	if time.Duration(c.ICMPInterval) <= timeout || int64(c.ICMPCount-1) > int64(timeout/packet) || time.Duration(c.ICMPCount-1)*packet >= timeout {
 		return fmt.Errorf("ICMP round requires timeout > (count-1)*packet_interval and interval > timeout")
 	}
-	// Health labels must remain unambiguous even if session metrics are disabled.
-	if err := c.validateHealthIdentity(); err != nil {
-		return err
-	}
 	hosts := make([]string, 0, len(c.Addresses))
 	seen := map[string]bool{}
 	for _, a := range c.Addresses {
 		host, err := healthHost(a)
 		if err != nil {
-			return err
+			// ICMP cannot infer a host for every gRPC resolver target. Do not
+			// let optional probing prevent an otherwise valid subscription.
+			log.Printf("W! gNMI ICMP: skipping target %q: %v", a, err)
+			continue
 		}
 		host = icmpHost(host)
 		if !seen[host] {

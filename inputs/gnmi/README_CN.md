@@ -150,11 +150,14 @@ gnmi_up_interval = "30s"
 up 不保证业务数据新鲜或成功转换；ON_CHANGE 正常静默不判 down，尚未检测到的网络黑洞
 也可能保持 up。不额外发送 RPC，不新增静默超时重连。该周期不改变 ICMP 探测和上报。
 
-标签包含实例静态标签、agent_host_tag（默认 agent_host）和完整端点 address。
-已有静态标签优先，包括 address 和自定义主机标签；不会因同名标签导致初始化失败。
-请确保最终标签组合能够区分不同采集目标。
-地址必须是唯一 host:port，IPv6 使用方括号。不同实例配置同一地址时使用不同静态标签。
-统一输出管线的过滤、重命名和 relabel 规则仍然适用。
+会话健康支持与业务采集相同的 gRPC target，包括 `dns:///device:50051` 等 resolver URI，
+不强制要求普通 host:port。标签包含实例静态标签和 agent_host_tag（默认 agent_host）；
+无法提取单一主机时，主机标签使用完整配置目标。已有静态标签保持优先。
+完整目标通常由 address 标签标识；若该名称被静态标签或 agent_host_tag 占用，
+则额外使用 gnmi_target 保留目标身份。若该名称也被占用，则依次尝试 gnmi_target_1、
+gnmi_target_2 等，并考虑输出标签名称规范化后的冲突。
+重复的相同目标每项健康指标只输出一次；不同实例配置同一目标时使用不同静态标签。
+统一输出管线的过滤、重命名和 relabel 规则仍然适用；合并多个目标时应保留目标身份标签。
 
 ## 可选内置 ICMP
 
@@ -179,11 +182,13 @@ up 不保证业务数据新鲜或成功转换；ON_CHANGE 正常静默不判 dow
 每次 Gather 重复读取最新完整快照，通过 last_probe 判断探测时间。
 
 ICMP 在后台有限 worker 中运行，不阻塞 Gather，不改变 gnmi_up，不触发重连。
-同实例同一规范化主机的不同端口共享探测，仍按完整 address 分别输出。
+同实例同一规范化主机的不同端口共享探测，仍通过完整目标身份标签分别输出。
 首轮分散在 [0, interval)，后续按完成时间加 interval 和 ±10% 抖动调度，同主机不重入。
 每轮重新解析 DNS，优先 IPv4、其次 IPv6，各地址族内稳定排序选择一个地址；
 不表示全部解析地址均在线，也不跨 DNS 别名或实例去重。支持带 zone 的 IPv6 字面量。
-任一类健康指标启用时校验端点，不限制静态标签名称；两类都关闭可沿用旧端点配置。
+ICMP 要求普通 host:数字端口（IPv6 使用方括号）；其他 gRPC target 在启动时告警并跳过探测，
+只输出 probe_success=0 和为零的 last_probe 时间，不输出 up/RTT/loss。
+对应目标的业务采集和会话健康照常运行，不限制静态标签名称。
 
 raw ICMP 需要运行账户具有相应权限，如 Linux CAP_NET_RAW 或 Windows 相应权限；
 `icmp_privileged=false` 请求非特权 ICMP socket，支持程度依赖系统。

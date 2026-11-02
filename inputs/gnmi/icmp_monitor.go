@@ -114,7 +114,12 @@ func (c *Instance) gatherICMP(sl *types.SampleList, now time.Time) {
 	if !c.EnableICMP || c.icmp == nil {
 		return
 	}
+	seen := make(map[string]bool, len(c.Addresses))
 	for _, a := range c.Addresses {
+		if seen[a] {
+			continue
+		}
+		seen[a] = true
 		host, _ := healthHost(a)
 		s, ok := c.icmp.snapshot(icmpHost(host))
 		labels := c.healthLabels(a)

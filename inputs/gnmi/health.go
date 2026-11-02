@@ -85,37 +85,46 @@ func (c *Instance) initHealth() error {
 	if c.DisableGNMIUp {
 		return nil
 	}
-	if err := c.validateHealthIdentity(); err != nil {
-		return err
-	}
+	// Session health observes gRPC sessions, so it must accept every target
+	// supported by the existing dialer, including resolver URIs.
 	c.health = make(map[string]*sessionHealth, len(c.Addresses))
 	for _, a := range c.Addresses {
 		c.health[a] = &sessionHealth{}
 	}
 	return nil
 }
-func (c *Instance) validateHealthIdentity() error {
-	seen := map[string]bool{}
-	for _, a := range c.Addresses {
-		if _, err := healthHost(a); err != nil {
-			return err
-		}
-		if seen[a] {
-			return fmt.Errorf("duplicate gNMI address %q", a)
-		}
-		seen[a] = true
+
+// Keep the usual address label unless existing configuration owns that name.
+// Fallback names also avoid collisions after output label normalization.
+func (c *Instance) healthAddressTag() string {
+	used := map[string]bool{tagLabelReplacer.Replace(c.AgentHostTag): true}
+	for key := range c.GetLabels() {
+		used[tagLabelReplacer.Replace(key)] = true
 	}
-	return nil
+	if !used["address"] {
+		return "address"
+	}
+	key := "gnmi_target"
+	for suffix := 1; used[key]; suffix++ {
+		key = "gnmi_target_" + strconv.Itoa(suffix)
+	}
+	return key
 }
 func (c *Instance) healthLabels(address string) map[string]string {
 	labels := make(map[string]string)
-	host, _ := healthHost(address)
+	host, err := healthHost(address)
+	if err != nil {
+		// A resolver URI need not identify a single host. Retain the target
+		// rather than rejecting it or emitting an empty host label.
+		host = address
+	}
 	labels["address"] = address
 	labels[c.AgentHostTag] = host
 	// Match the output pipeline: existing static labels take precedence.
 	for k, v := range c.GetLabels() {
 		labels[k] = v
 	}
+	labels[c.healthAddressTag()] = address
 	return labels
 }
 func unixSeconds(t time.Time) float64 {
@@ -129,8 +138,8 @@ func (c *Instance) gatherHealth(sl *types.SampleList, now time.Time) {
 	if c.DisableGNMIUp {
 		return
 	}
-	for _, address := range c.Addresses {
-		isUp, emit := c.health[address].report(now, time.Duration(c.GNMIUpInterval))
+	for address, health := range c.health {
+		isUp, emit := health.report(now, time.Duration(c.GNMIUpInterval))
 		if !emit {
 			continue
 		}

@@ -74,19 +74,13 @@ func TestHealthConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	legacy.Drop()
-	for _, a := range [][]string{{"bad"}, {"host:1", "host:1"}, {"[fe80::1%eth0]:123"}} {
+	for _, a := range [][]string{{"dns:///host:123"}, {"bad"}, {"host:1", "host:1"}, {"[fe80::1%eth0]:123"}} {
 		c := &Instance{Addresses: a}
-		err := c.Init()
-		if len(a) == 1 && a[0] != "bad" {
-			if err != nil {
-				t.Fatal(err)
-			}
-			c.Drop()
-			c.Drop()
-		} else if err == nil {
-			c.Drop()
-			t.Fatalf("accepted invalid addresses: %v", a)
+		if err := c.Init(); err != nil {
+			t.Fatalf("health must not reject legacy targets %v: %v", a, err)
 		}
+		c.Drop()
+		c.Drop()
 	}
 	c := &Instance{Addresses: []string{"host:1"}, AgentHostTag: "address"}
 	if err := c.Init(); err != nil {

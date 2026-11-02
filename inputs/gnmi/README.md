@@ -199,13 +199,19 @@ Normal ON_CHANGE silence leaves it at 1; an undetected blackholed connection can
 also remain 1. No extra RPC or automatic silence timeout is introduced. ICMP
 probing and reporting are unchanged by `gnmi_up_interval`.
 
-Health labels contain static instance labels, the configured `agent_host_tag`
-(default `agent_host`), and `address` (full host:port). Existing static labels
-take precedence, including address and the configured host tag; they never cause
-health initialization to fail. Ensure the resulting labels distinguish your targets.
-Addresses must be unique host:port endpoints; IPv6 requires brackets. Use distinct
-static labels for the same address in different instances. Normal pipeline
-filters, renaming, global labels and relabel rules still apply.
+Session health accepts the same gRPC targets as telemetry, including resolver
+URIs such as `dns:///device:50051`; it does not require a plain host:port address.
+Health labels contain static instance labels and the configured `agent_host_tag`
+(default `agent_host`). If a single hostname cannot be extracted, the host label
+uses the configured target. Existing static labels take precedence.
+The complete configured target is normally carried by `address`. If that label
+is used by static labels or `agent_host_tag`, a separate `gnmi_target` label
+preserves endpoint identity. If that name is also occupied, `gnmi_target_1`,
+`gnmi_target_2`, etc. are tried, accounting for output label normalization.
+Repeated identical targets emit one health sample per metric. Use distinct static
+labels for the same target in different instances. Normal pipeline filters,
+renaming, global labels and relabel rules still apply; avoid removing the endpoint
+identity label when combining multiple targets.
 
 ## Optional built-in ICMP
 
@@ -235,13 +241,16 @@ Repeated Gather snapshots carry the original probe completion time separately.
 
 ICMP uses a bounded background worker pool, never blocks Gather, and never
 changes subscription state or triggers reconnects. Same-instance endpoints with
-the same normalized hostname share probes but retain separate address labels.
+the same normalized hostname share probes but retain separate endpoint identity labels.
 The first probe is spread over [0, interval); subsequent probes wait interval
 with +/-10% jitter after completion; no host has overlapping rounds. DNS is
 resolved each round; IPv4 is preferred, then IPv6, with stable sorting within a
 family. Only that selected address is tested; DNS aliases and separate instances
-do not share probes. IPv6 literals with zone are supported. Health endpoint validation applies when either session metrics or ICMP is enabled;
-static label names are unrestricted. Disabling both retains legacy endpoint handling.
+do not share probes. IPv6 literals with zone are supported. ICMP requires a plain
+host:numeric-port target (bracketed IPv6 is supported). Other gRPC target forms
+are skipped with a startup warning; they emit probe_success=0 and a zero last-probe
+timestamp without up/RTT/loss metrics. Their telemetry and session health continue
+normally. Static label names remain unrestricted.
 
 For optional real loopback validation, run with `GNMI_TEST_ICMP=1`:
 `go test ./inputs/gnmi -run TestICMPNativeLoopback -v -count=1`.
