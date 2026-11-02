@@ -95,14 +95,6 @@ func (c *Instance) initHealth() error {
 	return nil
 }
 func (c *Instance) validateHealthIdentity() error {
-	if c.AgentHostTag == "address" {
-		return fmt.Errorf("agent_host_tag conflicts with reserved address label")
-	}
-	for _, key := range []string{"address", c.AgentHostTag} {
-		if _, ok := c.GetLabels()[key]; ok {
-			return fmt.Errorf("static label %q conflicts with health identity", key)
-		}
-	}
 	seen := map[string]bool{}
 	for _, a := range c.Addresses {
 		if _, err := healthHost(a); err != nil {
@@ -117,12 +109,13 @@ func (c *Instance) validateHealthIdentity() error {
 }
 func (c *Instance) healthLabels(address string) map[string]string {
 	labels := make(map[string]string)
+	host, _ := healthHost(address)
+	labels["address"] = address
+	labels[c.AgentHostTag] = host
+	// Match the output pipeline: existing static labels take precedence.
 	for k, v := range c.GetLabels() {
 		labels[k] = v
 	}
-	host, _ := healthHost(address)
-	labels[c.AgentHostTag] = host
-	labels["address"] = address
 	return labels
 }
 func unixSeconds(t time.Time) float64 {

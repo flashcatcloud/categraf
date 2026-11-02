@@ -193,8 +193,9 @@ also remain 1. No extra RPC or automatic silence timeout is introduced. ICMP
 probing and reporting are unchanged by `gnmi_up_interval`.
 
 Health labels contain static instance labels, the configured `agent_host_tag`
-(default `agent_host`), and `address` (full host:port). Static labels must not
-use either reserved identity key, and `agent_host_tag` must not be `address`.
+(default `agent_host`), and `address` (full host:port). Existing static labels
+take precedence, including address and the configured host tag; they never cause
+health initialization to fail. Ensure the resulting labels distinguish your targets.
 Addresses must be unique host:port endpoints; IPv6 requires brackets. Use distinct
 static labels for the same address in different instances. Normal pipeline
 filters, renaming, global labels and relabel rules still apply.
@@ -232,9 +233,8 @@ The first probe is spread over [0, interval); subsequent probes wait interval
 with +/-10% jitter after completion; no host has overlapping rounds. DNS is
 resolved each round; IPv4 is preferred, then IPv6, with stable sorting within a
 family. Only that selected address is tested; DNS aliases and separate instances
-do not share probes. IPv6 literals with zone are supported. Health identity
-validation applies when either session metrics or ICMP is enabled; disabling
-both retains legacy endpoint/static-label handling.
+do not share probes. IPv6 literals with zone are supported. Health endpoint validation applies when either session metrics or ICMP is enabled;
+static label names are unrestricted. Disabling both retains legacy endpoint handling.
 
 For optional real loopback validation, run with `GNMI_TEST_ICMP=1`:
 `go test ./inputs/gnmi -run TestICMPNativeLoopback -v -count=1`.

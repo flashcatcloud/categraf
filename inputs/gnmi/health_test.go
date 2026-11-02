@@ -3,6 +3,7 @@ package gnmi
 import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/types"
+	"github.com/BurntSushi/toml"
 	"sync"
 	"testing"
 	"time"
@@ -88,10 +89,10 @@ func TestHealthConfig(t *testing.T) {
 		}
 	}
 	c := &Instance{Addresses: []string{"host:1"}, AgentHostTag: "address"}
-	if c.Init() == nil {
-		c.Drop()
-		t.Fatal("accepted reserved label")
+	if err := c.Init(); err != nil {
+		t.Fatal(err)
 	}
+	c.Drop()
 }
 
 func TestHealthLabels(t *testing.T) {
@@ -111,10 +112,10 @@ func TestHealthLabels(t *testing.T) {
 	for _, key := range []string{"address", "agent_host"} {
 		bad := &Instance{Addresses: []string{"host:123"}}
 		bad.Labels = map[string]string{key: "override"}
-		if bad.Init() == nil {
-			bad.Drop()
-			t.Fatalf("accepted reserved %s", key)
+		if err := bad.Init(); err != nil {
+			t.Fatal(err)
 		}
+		bad.Drop()
 	}
 }
 
@@ -210,3 +211,47 @@ func TestGNMIUpCustomInterval(t *testing.T) {
 }
 
 func (s *sessionHealth) snapshot() sessionSnapshot { s.mu.Lock(); defer s.mu.Unlock(); return s.state }
+
+func TestHealthPreservesLegacyStaticLabels(t *testing.T) {
+	for _, icmp := range []bool{false, true} {
+		c := &Instance{Addresses: []string{"127.0.0.1:50051"}, EnableICMP: icmp}
+		c.Labels = map[string]string{"address": "my-device", "agent_host": "custom-host"}
+		if err := c.Init(); err != nil {
+			t.Fatalf("existing labels must not stop telemetry (icmp=%v): %v", icmp, err)
+		}
+		sl := types.NewSampleList()
+		c.Gather(sl)
+		c.Drop()
+		for _, sample := range sl.PopBackAll() {
+			if sample.Labels["address"] != "my-device" || sample.Labels["agent_host"] != "custom-host" {
+				t.Fatalf("static labels overwritten: %v", sample.Labels)
+			}
+		}
+		if c.Labels["address"] != "my-device" {
+			t.Fatal("instance labels mutated")
+		}
+	}
+}
+
+func TestHealthReviewerConfiguration(t *testing.T) {
+	var plugin GNMI
+	_, err := toml.Decode(`interval = "1s"
+[[instances]]
+addresses = ["127.0.0.1:50051"]
+labels = { address = "my-device" }
+`, &plugin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := plugin.Instances[0]
+	if err := c.Init(); err != nil {
+		t.Fatal(err)
+	}
+	defer c.Drop()
+	sl := types.NewSampleList()
+	c.Gather(sl)
+	samples := sl.PopBackAll()
+	if len(samples) != 1 || samples[0].Metric != "gnmi_up" || samples[0].Labels["address"] != "my-device" {
+		t.Fatalf("legacy config output: %v", samples)
+	}
+}
