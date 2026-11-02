@@ -17,6 +17,7 @@ type tagStore struct {
 
 type tagBucket struct {
 	subscription TagSubscription
+	source       *pathInfo
 	values       map[string]map[string]string
 }
 
@@ -86,7 +87,13 @@ func (s *tagStore) insert(sub TagSubscription, path *pathInfo, values []updateFi
 	defer s.mu.Unlock()
 	bucket := s.buckets[id]
 	if bucket == nil {
-		bucket = &tagBucket{subscription: sub, values: make(map[string]map[string]string)}
+		bucket = &tagBucket{
+			subscription: sub,
+			// The bucket identity includes this metadata. Do not retain the
+			// first update's list keys: a bucket contains multiple scopes.
+			source: &pathInfo{origin: path.origin, explicitOrigin: path.explicitOrigin, inlineModule: path.inlineModule},
+			values: make(map[string]map[string]string),
+		}
 		s.buckets[id] = bucket
 	}
 	if bucket.values[scope] == nil {
@@ -111,11 +118,17 @@ func (s *tagStore) insert(sub TagSubscription, path *pathInfo, values []updateFi
 // Origin identifies a tag source, not the metrics it applies to. Existing
 // unconditional/name/elements application scopes intentionally span modules.
 func (s *tagStore) lookup(path *pathInfo, metricTags map[string]string) map[string]string {
+	labels, _ := s.lookupWithSourceKeys(path, metricTags)
+	return labels
+}
+
+func (s *tagStore) lookupWithSourceKeys(path *pathInfo, metricTags map[string]string) (map[string]string, map[string]bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	type tagLabel struct {
 		name, value string
 		conflict    bool
+		sourceKeys  map[string]bool
 	}
 	labels := make(map[string]tagLabel)
 	for _, bucket := range s.buckets {
@@ -148,18 +161,66 @@ func (s *tagStore) lookup(path *pathInfo, metricTags map[string]string) map[stri
 				// Same-value aliases share one deterministic original spelling.
 				label.name, label.value = name, value
 			}
+			// Deletion requires symmetric source compatibility: an unknown
+			// source must not act as a wildcard for a known metric module.
+			if key, ok := sub.sourceKeyTag(path, name, value); ok && bucket.source.sourceMatchRank(path) > 0 && path.sourceMatchRank(bucket.source) > 0 {
+				if label.sourceKeys == nil {
+					label.sourceKeys = make(map[string]bool)
+				}
+				label.sourceKeys[key] = true
+			}
 			labels[canonical] = label
 		}
 	}
 	result := make(map[string]string, len(labels))
+	drops := make(map[string]bool)
 	for canonical, label := range labels {
 		if label.conflict {
 			s.warnings.warn("W! gNMI %s: tag conflict for label %q; omitting conflicting label (diagnostics limited to once per minute)", s.address, canonical)
 			continue
 		}
 		result[label.name] = label.value
+		for key := range label.sourceKeys {
+			drops[key] = true
+		}
 	}
-	return result
+	// A replacement may intentionally reuse an automatic label's spelling.
+	// Never remove a label supplied by a successful tag subscription.
+	for key := range drops {
+		if label, exists := labels[tagLabelReplacer.Replace(key)]; exists && !label.conflict {
+			delete(drops, key)
+		}
+	}
+	return result, drops
+}
+
+// A source leaf such as interface/name replaces only the identically named
+// key on its exact parent list. Full ancestry and origin must match even when
+// the subscription's label application scope intentionally spans other paths.
+func (sub *TagSubscription) sourceKeyTag(metric *pathInfo, label, value string) (string, bool) {
+	source := sub.sourcePath
+	if !sub.DropSourceKey || source == nil || len(source.segments) < 2 || source.sourceMatchRank(metric) == 0 {
+		return "", false
+	}
+	parent := len(source.segments) - 2
+	if len(metric.segments) <= parent || !source.matchesTagKeys(metric) {
+		return "", false
+	}
+	for i := 0; i <= parent; i++ {
+		if source.segments[i] != metric.segments[i] {
+			return "", false
+		}
+	}
+	key := source.segments[parent+1]
+	expectedLabel := sub.Name
+	if !sub.DisableConcatenation {
+		expectedLabel += "/" + strings.ReplaceAll(key, "-", "_")
+	}
+	if label != expectedLabel {
+		return "", false
+	}
+	rawName, keyValue, ok := metric.keyTag(parent, key)
+	return rawName, ok && keyValue == value
 }
 
 func (s *tagStore) getElementsKeys(path *pathInfo, elements []string) (string, bool) {

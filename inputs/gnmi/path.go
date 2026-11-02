@@ -394,3 +394,34 @@ func (pi *pathInfo) Tags() map[string]string {
 
 	return tags
 }
+
+// keyTag locates the original automatic label for a specific list key,
+// including the full-path spelling used when an ancestor has the same key.
+func (pi *pathInfo) keyTag(index int, key string) (string, string, bool) {
+	short := strings.ReplaceAll(key, "-", "_")
+	seen := false
+	for _, segment := range pi.keyValues {
+		if segment.index == index {
+			value, ok := segment.kv[key]
+			if !ok {
+				return "", "", false
+			}
+			// Ambiguous normalized spellings must not cause data loss.
+			for other := range segment.kv {
+				if other != key && strings.ReplaceAll(other, "-", "_") == short {
+					return "", "", false
+				}
+			}
+			if seen {
+				return segment.path + "/" + short, value, true
+			}
+			return short, value, true
+		}
+		for other := range segment.kv {
+			if strings.ReplaceAll(other, "-", "_") == short {
+				seen = true
+			}
+		}
+	}
+	return "", "", false
+}
