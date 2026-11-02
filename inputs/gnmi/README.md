@@ -207,11 +207,15 @@ uses the configured target. Existing static labels take precedence.
 The complete configured target is normally carried by `address`. If that label
 is used by static labels or `agent_host_tag`, a separate `gnmi_target` label
 preserves endpoint identity. If that name is also occupied, `gnmi_target_1`,
-`gnmi_target_2`, etc. are tried, accounting for output label normalization.
-Repeated identical targets emit one health sample per metric. Use distinct static
-labels for the same target in different instances. Normal pipeline filters,
-renaming, global labels and relabel rules still apply; avoid removing the endpoint
-identity label when combining multiple targets.
+`gnmi_target_2`, etc. are tried, accounting for output label normalization and
+both instance and global label names.
+Repeated identical targets emit one health sample per metric. Their session
+health is aggregated: `gnmi_up=1` while any active subscription has been confirmed;
+starting or failing another subscription does not hide a healthy session. It
+returns to 0 after the last confirmed session ends. Telemetry subscriptions are
+unchanged. Use distinct static labels for the same target in different instances.
+Normal pipeline filters, renaming, global labels and relabel rules still apply;
+avoid removing the endpoint identity label when combining multiple targets.
 
 ## Optional built-in ICMP
 

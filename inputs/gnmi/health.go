@@ -19,6 +19,8 @@ type sessionSnapshot struct {
 type sessionHealth struct {
 	mu         sync.Mutex
 	generation uint64
+	active     map[uint64]bool
+	upSessions int
 	state      sessionSnapshot
 	reported   bool
 	lastReport time.Time
@@ -32,14 +34,24 @@ func (s *sessionHealth) beginAttempt() uint64 {
 		s.state.Reconnects++
 	}
 	s.generation++
-	s.state.Up = false
+	if s.active == nil {
+		s.active = make(map[uint64]bool)
+	}
+	// Repeated targets can have concurrent subscriptions. A new attempt must
+	// not invalidate another worker's confirmed, still-active session.
+	s.active[s.generation] = false
 	return s.generation
 }
 func (s *sessionHealth) observe(g uint64, now time.Time, data bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if g != s.generation {
+	up, active := s.active[g]
+	if !active {
 		return
+	}
+	if !up {
+		s.active[g] = true
+		s.upSessions++
 	}
 	s.state.Up = true
 	if data {
@@ -49,9 +61,15 @@ func (s *sessionHealth) observe(g uint64, now time.Time, data bool) {
 func (s *sessionHealth) finish(g uint64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if g == s.generation {
-		s.state.Up = false
+	up, active := s.active[g]
+	if !active {
+		return
 	}
+	delete(s.active, g)
+	if up {
+		s.upSessions--
+	}
+	s.state.Up = s.upSessions > 0
 }
 
 // report atomically reserves an emission; each device has its own cadence.
@@ -103,6 +121,13 @@ func (c *Instance) healthAddressTag() string {
 	}
 	if !used["address"] {
 		return "address"
+	}
+	// The pipeline appends global defaults before normalizing label names.
+	// Avoid aliases such as global "gnmi-target" alongside "gnmi_target".
+	if config.Config != nil {
+		for key := range config.Config.Global.Labels {
+			used[tagLabelReplacer.Replace(key)] = true
+		}
 	}
 	key := "gnmi_target"
 	for suffix := 1; used[key]; suffix++ {

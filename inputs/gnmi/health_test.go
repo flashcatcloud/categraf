@@ -21,6 +21,7 @@ func TestSessionHealth(t *testing.T) {
 	if !got.Up || got.Reconnects != 0 || !got.LastUpdate.Equal(now) {
 		t.Fatalf("first response: %+v", got)
 	}
+	s.finish(g) // A single subscription finishes its old attempt before retrying.
 	g2 := s.beginAttempt()
 	s.observe(g2, now.Add(time.Second), false)
 	s.finish(g)
@@ -65,6 +66,35 @@ func TestGatherHealth(t *testing.T) {
 	c.Gather(sl)
 	if len(sl.PopBackAll()) != 1 {
 		t.Fatal("disable should retain only business sample")
+	}
+}
+
+func TestSessionHealthOverlappingAttempts(t *testing.T) {
+	var s sessionHealth
+	now := time.Unix(100, 0)
+	first := s.beginAttempt()
+	s.observe(first, now, true)
+	failed := s.beginAttempt()
+	if !s.snapshot().Up {
+		t.Fatal("a new attempt hid a healthy session")
+	}
+	s.finish(failed)
+	if !s.snapshot().Up {
+		t.Fatal("a failed attempt hid a healthy session")
+	}
+	second := s.beginAttempt()
+	s.observe(second, now.Add(time.Second), true)
+	s.finish(first)
+	s.finish(first) // Finishing twice must not clear another session's state.
+	s.observe(first, now.Add(10*time.Second), true)
+	got := s.snapshot()
+	if !got.Up || !got.LastUpdate.Equal(now.Add(time.Second)) {
+		t.Fatalf("closing an older session changed the remaining session: %+v", got)
+	}
+	s.finish(second)
+	s.observe(second, now.Add(20*time.Second), true)
+	if s.snapshot().Up {
+		t.Fatal("a completed attempt resurrected a closed session")
 	}
 }
 
@@ -129,8 +159,8 @@ func TestSessionHealthConcurrent(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-	if s.snapshot().Reconnects != 799 {
-		t.Fatal("lost attempts")
+	if got := s.snapshot(); got.Reconnects != 799 || got.Up {
+		t.Fatalf("lost attempts or retained completed sessions: %+v", got)
 	}
 }
 

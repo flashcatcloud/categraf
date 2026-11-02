@@ -17,16 +17,19 @@ func TestHealthEndpointIdentityThroughPipeline(t *testing.T) {
 
 	for _, tc := range []struct {
 		name, hostTag, targetTag string
-		labels                   map[string]string
+		labels, globalLabels     map[string]string
 	}{
 		{name: "default", hostTag: "agent_host", targetTag: "address"},
 		{name: "host tag owns address", hostTag: "address", targetTag: "gnmi_target"},
 		{name: "static identity labels", hostTag: "agent_host", targetTag: "gnmi_target", labels: map[string]string{"address": "my-device", "agent_host": "my-host"}},
 		{name: "normalized fallback collisions", hostTag: "address", targetTag: "gnmi_target_2", labels: map[string]string{"gnmi-target": "existing", "gnmi.target.1": "existing-1"}},
 		{name: "host tag owns fallback", hostTag: "gnmi_target", targetTag: "gnmi_target_1", labels: map[string]string{"address": "my-device"}},
+		{name: "global normalized fallback", hostTag: "agent_host", targetTag: "gnmi_target_1", labels: map[string]string{"address": "my-device"}, globalLabels: map[string]string{"gnmi-target": "fleet-a"}},
+		{name: "global and instance fallback chain", hostTag: "address", targetTag: "gnmi_target_3", labels: map[string]string{"gnmi-target_1": "instance"}, globalLabels: map[string]string{"gnmi-target": "fleet-a", "gnmi.target.2": "fleet-b"}},
 	} {
 		for _, icmpOnly := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/icmp_only=%t", tc.name, icmpOnly), func(t *testing.T) {
+				config.Config.Global.Labels = tc.globalLabels
 				c := &Instance{
 					Addresses:    []string{"127.0.0.1:50051", "127.0.0.1:50052"},
 					AgentHostTag: tc.hostTag, EnableICMP: true, DisableGNMIUp: icmpOnly,
@@ -71,6 +74,11 @@ func TestHealthEndpointIdentityThroughPipeline(t *testing.T) {
 					for key, value := range tc.labels {
 						if labels[tagLabelReplacer.Replace(key)] != value {
 							t.Fatalf("static label %q was overwritten: %v", key, labels)
+						}
+					}
+					for key, value := range tc.globalLabels {
+						if labels[tagLabelReplacer.Replace(key)] != value {
+							t.Fatalf("global label %q was overwritten: %v", key, labels)
 						}
 					}
 					identity := fmt.Sprint(series.Labels)
