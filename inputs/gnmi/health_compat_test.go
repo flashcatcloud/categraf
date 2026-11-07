@@ -27,77 +27,63 @@ func TestHealthEndpointIdentityThroughPipeline(t *testing.T) {
 		{name: "global normalized fallback", hostTag: "agent_host", targetTag: "gnmi_target_1", labels: map[string]string{"address": "my-device"}, globalLabels: map[string]string{"gnmi-target": "fleet-a"}},
 		{name: "global and instance fallback chain", hostTag: "address", targetTag: "gnmi_target_3", labels: map[string]string{"gnmi-target_1": "instance"}, globalLabels: map[string]string{"gnmi-target": "fleet-a", "gnmi.target.2": "fleet-b"}},
 	} {
-		for _, icmpOnly := range []bool{false, true} {
-			t.Run(fmt.Sprintf("%s/icmp_only=%t", tc.name, icmpOnly), func(t *testing.T) {
-				config.Config.Global.Labels = tc.globalLabels
-				c := &Instance{
-					Addresses:    []string{"127.0.0.1:50051", "127.0.0.1:50052"},
-					AgentHostTag: tc.hostTag, EnableICMP: true, DisableGNMIUp: icmpOnly,
-				}
-				c.Labels = tc.labels
-				if err := c.initHealth(); err != nil {
-					t.Fatal(err)
-				}
-				if err := c.initICMP(); err != nil {
-					t.Fatal(err)
-				}
-				now := time.Now()
-				if !icmpOnly {
-					h := c.health[c.Addresses[0]]
-					h.observe(h.beginAttempt(), now, true)
-				}
-				c.icmp.store("127.0.0.1", icmpResult{Sent: 3, Received: 3, AvgRTT: time.Millisecond}, nil, now)
-				list := types.NewSampleList()
-				c.gatherHealth(list, now)
-				samples := c.Process(list).PopBackAll()
-				want := 12 // Five ICMP metrics and one session metric per endpoint.
-				if icmpOnly {
-					want = 10
-				}
-				if len(samples) != want {
-					t.Fatalf("samples = %d, want %d", len(samples), want)
-				}
-				seen := make(map[string]bool)
-				for _, sample := range samples {
-					series := sample.ConvertTimeSeries("")
-					labels := make(map[string]string)
-					for _, label := range series.Labels {
-						if _, exists := labels[label.Name]; exists {
-							t.Fatalf("duplicate exported label %q", label.Name)
-						}
-						labels[label.Name] = label.Value
+
+		t.Run(tc.name, func(t *testing.T) {
+			config.Config.Global.Labels = tc.globalLabels
+			c := &Instance{
+				Addresses:    []string{"127.0.0.1:50051", "127.0.0.1:50052"},
+				AgentHostTag: tc.hostTag, EnableICMP: true,
+			}
+			c.Labels = tc.labels
+			if err := c.initHealth(); err != nil {
+				t.Fatal(err)
+			}
+			if err := c.initICMP(); err != nil {
+				t.Fatal(err)
+			}
+			now := time.Now()
+
+			c.icmp.store("127.0.0.1", icmpResult{Sent: 3, Received: 3, AvgRTT: time.Millisecond}, nil, now)
+			list := types.NewSampleList()
+			c.gatherICMP(list, now)
+			samples := c.Process(list).PopBackAll()
+
+			want := 10
+			if len(samples) != want {
+				t.Fatalf("samples = %d, want %d", len(samples), want)
+			}
+			seen := make(map[string]bool)
+			for _, sample := range samples {
+				series := sample.ConvertTimeSeries("")
+				labels := make(map[string]string)
+				for _, label := range series.Labels {
+					if _, exists := labels[label.Name]; exists {
+						t.Fatalf("duplicate exported label %q", label.Name)
 					}
-					target := labels[tc.targetTag]
-					if target != c.Addresses[0] && target != c.Addresses[1] {
-						t.Fatalf("lost endpoint identity: %v", labels)
-					}
-					for key, value := range tc.labels {
-						if labels[tagLabelReplacer.Replace(key)] != value {
-							t.Fatalf("static label %q was overwritten: %v", key, labels)
-						}
-					}
-					for key, value := range tc.globalLabels {
-						if labels[tagLabelReplacer.Replace(key)] != value {
-							t.Fatalf("global label %q was overwritten: %v", key, labels)
-						}
-					}
-					identity := fmt.Sprint(series.Labels)
-					if seen[identity] {
-						t.Fatalf("different endpoints emitted the same series: %v", labels)
-					}
-					seen[identity] = true
-					if sample.Metric == "gnmi_up" {
-						wantUp := 0.0
-						if target == c.Addresses[0] {
-							wantUp = 1
-						}
-						if series.Samples[0].Value != wantUp {
-							t.Fatalf("wrong session state for %s: %v", target, series.Samples)
-						}
+					labels[label.Name] = label.Value
+				}
+				target := labels[tc.targetTag]
+				if target != c.Addresses[0] && target != c.Addresses[1] {
+					t.Fatalf("lost endpoint identity: %v", labels)
+				}
+				for key, value := range tc.labels {
+					if labels[tagLabelReplacer.Replace(key)] != value {
+						t.Fatalf("static label %q was overwritten: %v", key, labels)
 					}
 				}
-			})
-		}
+				for key, value := range tc.globalLabels {
+					if labels[tagLabelReplacer.Replace(key)] != value {
+						t.Fatalf("global label %q was overwritten: %v", key, labels)
+					}
+				}
+				identity := fmt.Sprint(series.Labels)
+				if seen[identity] {
+					t.Fatalf("different endpoints emitted the same series: %v", labels)
+				}
+				seen[identity] = true
+
+			}
+		})
 	}
 }
 
@@ -117,7 +103,7 @@ func TestHealthLegacyTargetsAndICMPSkips(t *testing.T) {
 	now := time.Now()
 	c.icmp.store("127.0.0.1", icmpResult{Sent: 3, Received: 3, AvgRTT: time.Millisecond}, nil, now)
 	list := types.NewSampleList()
-	c.gatherHealth(list, now)
+	c.gatherICMP(list, now)
 	counts := map[string]int{}
 	for _, sample := range list.PopBackAll() {
 		target := sample.Labels["address"]
@@ -137,7 +123,7 @@ func TestHealthLegacyTargetsAndICMPSkips(t *testing.T) {
 			}
 		}
 	}
-	if counts[direct] != 6 || counts[resolver] != 3 {
+	if counts[direct] != 5 || counts[resolver] != 2 {
 		t.Fatalf("unexpected metrics or duplicate endpoint output: %v", counts)
 	}
 }

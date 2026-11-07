@@ -2,6 +2,7 @@ package gnmi
 
 import (
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/types"
 	"github.com/BurntSushi/toml"
 	"sync"
@@ -36,36 +37,48 @@ func TestSessionHealth(t *testing.T) {
 	}
 }
 
-func TestGatherHealth(t *testing.T) {
-	c := &Instance{Addresses: []string{"127.0.0.1:1234"}}
-	if err := c.Init(); err != nil {
+func TestGatherHealthAcrossFiles(t *testing.T) {
+	var plugin GNMI
+	err := cfg.LoadConfigs([]cfg.ConfigWithFormat{
+		{Format: cfg.TomlFormat, Config: "interval = \"1s\"\ngnmi_up_interval = \"5s\""},
+		{Format: cfg.TomlFormat, Config: "[[instances]]\naddresses = [\"host:123\"]\ndisable_gnmi_up = true\ngnmi_up_interval = \"1s\"\nlabels = { address = \"instance-one\" }"},
+		{Format: cfg.TomlFormat, Config: "[[instances]]\naddresses = [\"host:123\", \"host:124\"]\n[[instances]]\naddresses = [\"host:123\"]"},
+	}, &plugin)
+	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.Drop()
+	if err := plugin.Init(); err != nil {
+		t.Fatal(err)
+	}
+	for _, instance := range plugin.Instances {
+		if err := instance.initHealth(); err != nil {
+			t.Fatal(err)
+		}
+		instance.SetInitialized()
+	}
+	if plugin.Interval != config.Duration(time.Second) || plugin.GNMIUpInterval != config.Duration(5*time.Second) {
+		t.Fatal("top-level intervals were not loaded")
+	}
+	up := plugin.Instances[0].health["host:123"]
+	up.observe(up.beginAttempt(), time.Now(), false)
 	sl := types.NewSampleList()
-	c.Gather(sl)
+	plugin.Gather(sl)
 	samples := sl.PopBackAll()
-	if len(samples) != 1 {
-		t.Fatalf("want 1 health metric, got %d", len(samples))
+	if len(samples) != 2 {
+		t.Fatalf("expected one sample per endpoint, got %v", samples)
 	}
-	want := map[string]bool{"gnmi_up": true}
-	for _, v := range samples {
-		if !want[v.Metric] {
-			t.Fatalf("unexpected health metric: %s", v.Metric)
+	want := map[string]int{"host:123": 1, "host:124": 0}
+	for _, sample := range samples {
+		address := sample.Labels["address"]
+		if value, ok := want[address]; !ok || sample.Value != value || sample.Metric != "gnmi_up" {
+			t.Fatalf("unexpected sample: %+v", sample)
 		}
-		delete(want, v.Metric)
-		if v.Labels["address"] != "127.0.0.1:1234" || v.Labels["agent_host"] != "127.0.0.1" {
-			t.Fatalf("bad labels: %+v", v)
-		}
+		delete(want, address)
 	}
-	if len(want) != 0 {
-		t.Fatalf("missing health metrics: %v", want)
-	}
-	c.DisableGNMIUp = true
-	c.slist.PushSample("business", "value", 7)
-	c.Gather(sl)
-	if len(sl.PopBackAll()) != 1 {
-		t.Fatal("disable should retain only business sample")
+	plugin.DisableGNMIUp = true
+	plugin.Gather(sl)
+	if len(sl.PopBackAll()) != 0 {
+		t.Fatal("plugin disable must suppress gnmi_up")
 	}
 }
 
@@ -99,7 +112,7 @@ func TestSessionHealthOverlappingAttempts(t *testing.T) {
 }
 
 func TestHealthConfig(t *testing.T) {
-	legacy := &Instance{Addresses: []string{"dns:///host:123"}, DisableGNMIUp: true, AgentHostTag: "address"}
+	legacy := &Instance{Addresses: []string{"dns:///host:123"}, healthDisabled: true, AgentHostTag: "address"}
 	if err := legacy.Init(); err != nil {
 		t.Fatal(err)
 	}
@@ -169,11 +182,21 @@ func TestGNMIUpReporting(t *testing.T) {
 	if err := c.initHealth(); err != nil {
 		t.Fatal(err)
 	}
+	c.SetInitialized()
+	peer := &Instance{Addresses: []string{"host:123"}}
+	if err := peer.initHealth(); err != nil {
+		t.Fatal(err)
+	}
+	peer.SetInitialized()
+	plugin := &GNMI{Instances: []*Instance{c, peer}}
+	if err := plugin.Init(); err != nil {
+		t.Fatal(err)
+	}
 	now := time.Unix(100, 0)
 	check := func(offset time.Duration, want map[string]int) {
 		t.Helper()
 		sl := types.NewSampleList()
-		c.gatherHealth(sl, now.Add(offset))
+		plugin.gatherHealth(sl, now.Add(offset))
 		samples := sl.PopBackAll()
 		if len(samples) != len(want) {
 			t.Fatalf("offset %v: want %v, got %v", offset, want, samples)
@@ -194,10 +217,19 @@ func TestGNMIUpReporting(t *testing.T) {
 	check(29*time.Second, map[string]int{})
 	check(30*time.Second, map[string]int{"other:123": 0})
 	check(32*time.Second, map[string]int{"host:123": 1})
+	other := peer.health["host:123"]
+	otherGeneration := other.beginAttempt()
+	other.observe(otherGeneration, now, false)
 	c.health["host:123"].finish(g)
+	check(33*time.Second, map[string]int{})
+	other.finish(otherGeneration)
 	check(33*time.Second, map[string]int{"host:123": 0})
 	check(34*time.Second, map[string]int{})
 	check(63*time.Second, map[string]int{"host:123": 0, "other:123": 0})
+	plugin.Instances = []*Instance{peer}
+	check(93*time.Second, map[string]int{"host:123": 0})
+	plugin.Instances = []*Instance{c, peer}
+	check(94*time.Second, map[string]int{"other:123": 0})
 }
 func TestGNMIUpIntervalConfig(t *testing.T) {
 	for _, tc := range []struct {
@@ -205,31 +237,13 @@ func TestGNMIUpIntervalConfig(t *testing.T) {
 		want     time.Duration
 		invalid  bool
 	}{{0, 30 * time.Second, false}, {config.Duration(5 * time.Second), 5 * time.Second, false}, {-1, 0, true}} {
-		c := &Instance{Addresses: []string{"host:123"}, AgentHostTag: "agent_host", GNMIUpInterval: tc.interval}
-		err := c.initHealth()
+		c := &GNMI{GNMIUpInterval: tc.interval}
+		err := c.Init()
 		if (err != nil) != tc.invalid {
 			t.Fatalf("interval %v: %v", tc.interval, err)
 		}
 		if err == nil && time.Duration(c.GNMIUpInterval) != tc.want {
 			t.Fatalf("interval default: %v", c.GNMIUpInterval)
-		}
-	}
-}
-
-func TestGNMIUpCustomInterval(t *testing.T) {
-	c := &Instance{Addresses: []string{"host:123"}, AgentHostTag: "agent_host", GNMIUpInterval: config.Duration(5 * time.Second)}
-	if err := c.initHealth(); err != nil {
-		t.Fatal(err)
-	}
-	now := time.Unix(100, 0)
-	for _, tc := range []struct {
-		offset time.Duration
-		want   int
-	}{{0, 1}, {time.Second, 0}, {5 * time.Second, 1}, {6 * time.Second, 0}, {10 * time.Second, 1}} {
-		sl := types.NewSampleList()
-		c.gatherHealth(sl, now.Add(tc.offset))
-		if n := len(sl.PopBackAll()); n != tc.want {
-			t.Fatalf("%v: got %d want %d", tc.offset, n, tc.want)
 		}
 	}
 }
@@ -275,7 +289,7 @@ labels = { address = "my-device" }
 	sl := types.NewSampleList()
 	c.Gather(sl)
 	samples := sl.PopBackAll()
-	if len(samples) != 1 || samples[0].Metric != "gnmi_up" || samples[0].Labels["address"] != "my-device" {
+	if len(samples) != 0 {
 		t.Fatalf("legacy config output: %v", samples)
 	}
 }

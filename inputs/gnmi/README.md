@@ -182,40 +182,28 @@ open an issue with the response, your configuration and the metric you expect.
 
 ## Built-in session health
 
-The only built-in session metric is `gnmi_up`: 1 after a valid Update notification
-or `sync_response=true` in the current session; 0 before confirmation, during
-reconnect, or after EOF/RPC/protocol error. Set `disable_gnmi_up = true` to disable it.
+The local gNMI plugin reports one `gnmi_up` series per configured `address`
+(host:port), across files and instances. The value is 1 when any initialized
+subscription for that address has received a valid notification or sync response
+and its session remains active; otherwise it is 0. This is endpoint health, so
+one healthy session can coexist with failures in other subscriptions.
 
-`gnmi_up_interval = "30s"` controls reporting independently from telemetry.
-Omitted/zero uses 30 seconds; negative values are rejected. The first Gather
-emits a sample. An unchanged state is emitted again after the interval; a
-changed state is emitted at the next Gather and restarts the interval.
-Each address has its own cadence. Emission is limited by Gather frequency:
-a 60-second Gather cannot report every 30 seconds. Transitions that both occur
-between Gather calls may not be observed. No timer goroutine is added.
+Set `disable_gnmi_up` and `gnmi_up_interval` once at the plugin root alongside
+`interval`, before the first `[[instances]]`. For split TOML files, put these
+settings in the first file (for example, `00-gnmi.toml`), since local TOML files
+are concatenated in filename order. Move existing instance-level health options
+to the plugin root; the old values no longer control reporting.
 
-`gnmi_up` does not guarantee fresh or successfully converted business metrics.
-Normal ON_CHANGE silence leaves it at 1; an undetected blackholed connection can
-also remain 1. No extra RPC or automatic silence timeout is introduced. ICMP
-probing and reporting are unchanged by `gnmi_up_interval`.
+The first plugin Gather emits a sample. A state change emits on the next
+Gather and restarts the cadence; an unchanged state emits after
+`gnmi_up_interval` (default 30s, including when set to zero). Negative intervals
+are invalid. Reporting is limited by the plugin Gather cadence. Both changes in
+a short outage between Gather calls may go unobserved.
 
-Session health accepts the same gRPC targets as telemetry, including resolver
-URIs such as `dns:///device:50051`; it does not require a plain host:port address.
-Health labels contain static instance labels and the configured `agent_host_tag`
-(default `agent_host`). If a single hostname cannot be extracted, the host label
-uses the configured target. Existing static labels take precedence.
-The complete configured target is normally carried by `address`. If that label
-is used by static labels or `agent_host_tag`, a separate `gnmi_target` label
-preserves endpoint identity. If that name is also occupied, `gnmi_target_1`,
-`gnmi_target_2`, etc. are tried, accounting for output label normalization and
-both instance and global label names.
-Repeated identical targets emit one health sample per metric. Their session
-health is aggregated: `gnmi_up=1` while any active subscription has been confirmed;
-starting or failing another subscription does not hide a healthy session. It
-returns to 0 after the last confirmed session ends. Telemetry subscriptions are
-unchanged. Use distinct static labels for the same target in different instances.
-Normal pipeline filters, renaming, global labels and relabel rules still apply;
-avoid removing the endpoint identity label when combining multiple targets.
+Health uses the endpoint address and plugin/global label processing, without
+instance labels or instance relabel rules. Keep `address` distinct in the final
+label set. Separate HTTP-delivered plugin objects and agent processes report
+independently. Business sampling and ICMP still run at instance level.
 
 ## Optional built-in ICMP
 
@@ -275,11 +263,11 @@ instance options before subscription or tag-subscription subtables.
 
 ```toml
 interval = "1s"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
 [[instances]]
 addresses = ["192.0.2.10:50051"]
 agent_host_tag = "ident"
-disable_gnmi_up = false
-gnmi_up_interval = "30s"
 enable_icmp = false
 # username = "your-user"
 # password = "your-password"
@@ -299,11 +287,11 @@ Telemetry sampling and Gather forwarding keep their independent schedules.
 
 ```toml
 interval = "1s"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
 [[instances]]
 addresses = ["192.0.2.10:50051"]
 agent_host_tag = "ident"
-disable_gnmi_up = false
-gnmi_up_interval = "30s"
 enable_icmp = true
 icmp_interval = "30s"
 icmp_timeout = "3s"

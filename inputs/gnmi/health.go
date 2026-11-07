@@ -2,6 +2,7 @@ package gnmi
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"strconv"
 	"sync"
@@ -22,9 +23,11 @@ type sessionHealth struct {
 	active     map[uint64]bool
 	upSessions int
 	state      sessionSnapshot
-	reported   bool
-	lastReport time.Time
-	lastUp     bool
+}
+
+type upReport struct {
+	at time.Time
+	up bool
 }
 
 func (s *sessionHealth) beginAttempt() uint64 {
@@ -72,15 +75,10 @@ func (s *sessionHealth) finish(g uint64) {
 	s.state.Up = s.upSessions > 0
 }
 
-// report atomically reserves an emission; each device has its own cadence.
-func (s *sessionHealth) report(now time.Time, interval time.Duration) (bool, bool) {
+func (s *sessionHealth) isUp() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.reported && s.lastUp == s.state.Up && now.Sub(s.lastReport) < interval {
-		return false, false
-	}
-	s.reported, s.lastUp, s.lastReport = true, s.state.Up, now
-	return s.state.Up, true
+	return s.state.Up
 }
 func healthHost(address string) (string, error) {
 	host, port, err := net.SplitHostPort(address)
@@ -93,14 +91,27 @@ func healthHost(address string) (string, error) {
 	}
 	return host, nil
 }
-func (c *Instance) initHealth() error {
+func (c *GNMI) Init() error {
 	if c.GNMIUpInterval < 0 {
 		return fmt.Errorf("gnmi_up_interval must not be negative")
 	}
 	if c.GNMIUpInterval == 0 {
 		c.GNMIUpInterval = config.Duration(30 * time.Second)
 	}
-	if c.DisableGNMIUp {
+	c.upReports = make(map[string]upReport)
+	warned := false
+	for _, instance := range c.Instances {
+		instance.healthDisabled = c.DisableGNMIUp
+		if !warned && (instance.DisableGNMIUp || instance.GNMIUpInterval != 0) {
+			log.Println("W! gNMI instance-level disable_gnmi_up and gnmi_up_interval are ignored; configure them at plugin level")
+			warned = true
+		}
+	}
+	return nil
+}
+
+func (c *Instance) initHealth() error {
+	if c.healthDisabled {
 		return nil
 	}
 	// Session health observes gRPC sessions, so it must accept every target
@@ -119,6 +130,10 @@ func (c *Instance) healthAddressTag() string {
 	for key := range c.GetLabels() {
 		used[tagLabelReplacer.Replace(key)] = true
 	}
+	return healthAddressTag(used)
+}
+
+func healthAddressTag(used map[string]bool) string {
 	if !used["address"] {
 		return "address"
 	}
@@ -158,21 +173,43 @@ func unixSeconds(t time.Time) float64 {
 	}
 	return float64(t.UnixNano()) / 1e9
 }
-func (c *Instance) gatherHealth(sl *types.SampleList, now time.Time) {
-	c.gatherICMP(sl, now)
+func (c *GNMI) Gather(sl *types.SampleList) {
+	c.gatherHealth(sl, time.Now())
+}
+
+func (c *GNMI) gatherHealth(sl *types.SampleList, now time.Time) {
 	if c.DisableGNMIUp {
 		return
 	}
-	for address, health := range c.health {
-		isUp, emit := health.report(now, time.Duration(c.GNMIUpInterval))
-		if !emit {
+	states := make(map[string]bool)
+	used := make(map[string]bool)
+	for key := range c.GetLabels() {
+		used[tagLabelReplacer.Replace(key)] = true
+	}
+	addressTag := healthAddressTag(used)
+	for _, instance := range c.Instances {
+		if !instance.Initialized() {
 			continue
 		}
-		labels := c.healthLabels(address)
+		for address, session := range instance.health {
+			states[address] = states[address] || session.isUp()
+		}
+	}
+	for address := range c.upReports {
+		if _, exists := states[address]; !exists {
+			delete(c.upReports, address)
+		}
+	}
+	for address, isUp := range states {
+		last, reported := c.upReports[address]
+		if reported && last.up == isUp && now.Sub(last.at) < time.Duration(c.GNMIUpInterval) {
+			continue
+		}
+		c.upReports[address] = upReport{at: now, up: isUp}
 		up := 0
 		if isUp {
 			up = 1
 		}
-		sl.PushSample(inputName, "up", up, labels)
+		sl.PushSample(inputName, "up", up, map[string]string{addressTag: address})
 	}
 }

@@ -132,34 +132,29 @@ gNMI `SubscribeResponse` 的 Update 消息中，每个叶子节点 (Leaf) 的值
 
 ## 内置会话健康指标
 
-会话指标仅保留 `gnmi_up`：当前会话收到有效 Update 通知或 sync_response=true 后为 1；
-启动未确认、重连或 EOF/RPC/协议错误后为 0。`disable_gnmi_up = true` 可关闭。
+本地 gNMI 插件跨文件、跨实例按配置的 `address`（host:port）汇总，每个地址仅输出一条
+`gnmi_up`。该地址的已初始化实例中，只要有一条会话收到有效数据通知或同步响应且仍在线，
+就报 1；所有参与会话均未确认或已断开时，报 0。
 
-在 `[[instances]]` 内、subscription 子表之前配置：
+将上报开关和周期与采集间隔一起设置在插件顶层：
 
 ```toml
+interval = "1s"
 disable_gnmi_up = false
 gnmi_up_interval = "30s"
 ```
 
-未配置或零值采用 30 秒，负值报配置错误。首次 Gather 输出；状态不变时满周期再输出；
-状态变化时在下一次 Gather 提前输出，并重新计时。每台设备独立计时，不增加定时协程。
-业务采集不受影响，实际输出受 Gather 周期约束：Gather 为 60 秒时不能每 30 秒输出。
-两次 Gather 之间发生并恢复的短暂变化可能无法观察。
+三个字段在整个目录各定义一次，并放在第一个 `[[instances]]` 之前。拆分文件时可放在
+排序靠前的 `00-gnmi.toml`，本地加载器按文件名顺序拼接 TOML。请把原实例级健康选项迁移
+到插件顶层，旧值不再控制上报。
 
-up 不保证业务数据新鲜或成功转换；ON_CHANGE 正常静默不判 down，尚未检测到的网络黑洞
-也可能保持 up。不额外发送 RPC，不新增静默超时重连。该周期不改变 ICMP 探测和上报。
+首次插件 Gather 上报；状态变化在下一次 Gather 提前上报并重新计时，状态稳定则按
+`gnmi_up_interval` 上报。未配置或为零时默认 30 秒，负值报错。实际间隔受插件 Gather
+周期约束，两次 Gather 之间恢复的短暂故障可能不会反映在指标上。
 
-会话健康支持与业务采集相同的 gRPC target，包括 `dns:///device:50051` 等 resolver URI，
-不强制要求普通 host:port。标签包含实例静态标签和 agent_host_tag（默认 agent_host）；
-无法提取单一主机时，主机标签使用完整配置目标。已有静态标签保持优先。
-完整目标通常由 address 标签标识；若该名称被静态标签或 agent_host_tag 占用，
-则额外使用 gnmi_target 保留目标身份。若该名称也被占用，则依次尝试 gnmi_target_1、
-gnmi_target_2 等，并考虑实例标签、全局标签在输出名称规范化后的冲突。
-重复的相同目标每项健康指标只输出一次；会话状态聚合计算：只要仍有一个已确认的订阅存活，
-gnmi_up 就保持为 1，新建或失败的其他订阅不会覆盖正常会话；最后一个已确认会话结束后才变为 0。
-业务订阅行为不变；不同实例配置同一目标时使用不同静态标签。
-统一输出管线的过滤、重命名和 relabel 规则仍然适用；合并多个目标时应保留目标身份标签。
+指标使用端点地址及插件级、全局标签处理，不继承实例级标签或 relabel 规则。请保证最终
+标签仍能区分不同地址。HTTP 下发的独立插件对象和不同 Categraf 进程分别汇总。
+业务采集及 ICMP 仍按原来的实例配置运行。
 
 ## 可选内置 ICMP
 
@@ -211,12 +206,12 @@ raw ICMP 需要运行账户具有相应权限，如 Linux CAP_NET_RAW 或 Window
 
 ```toml
 interval = "1s"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
 
 [[instances]]
 addresses = ["192.0.2.10:50051"]
 agent_host_tag = "ident"
-disable_gnmi_up = false
-gnmi_up_interval = "30s"
 enable_icmp = false
 # username = "your-user"
 # password = "your-password"
@@ -236,12 +231,12 @@ sample_interval = "15s"
 
 ```toml
 interval = "1s"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
 
 [[instances]]
 addresses = ["192.0.2.10:50051"]
 agent_host_tag = "ident"
-disable_gnmi_up = false
-gnmi_up_interval = "30s"
 enable_icmp = true
 icmp_interval = "30s"
 icmp_timeout = "3s"
