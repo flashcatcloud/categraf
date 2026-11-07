@@ -207,52 +207,31 @@ independently. Business sampling and ICMP still run at instance level.
 
 ## Optional built-in ICMP
 
-Set `enable_icmp = true` before subscription subtables. Defaults:
-`icmp_interval="30s"`, `icmp_timeout="3s"` (entire round including DNS),
-`icmp_count=3`, `icmp_packet_interval="200ms"`, `icmp_concurrency=10`,
-`icmp_privileged=true`. Omitted/zero options use defaults; negative values,
-interval <= timeout, or timeout <= (count-1)*packet interval are invalid.
-Disabled ICMP does not validate its unused options or perform DNS/network work.
-Raw ICMP needs OS permissions (for example CAP_NET_RAW on Linux or appropriate
-Windows privileges); `icmp_privileged=false` requests unprivileged ICMP sockets
-where supported. Runtime probe errors never stop gNMI collection.
+ICMP is disabled by default. Set `enable_icmp = true` once at the plugin root,
+alongside `interval`, before any instance tables. Move any previous instance
+settings to the plugin root. Legacy instance options are accepted but ignored
+and non-default values produce a migration warning.
 
-| Metric | Meaning |
-|---|---|
-| gnmi_icmp_probe_success | 1 for a completed valid round, 0 if pending, execution failed or result expired |
-| gnmi_icmp_up | 1 if at least one reply, otherwise 0; only emitted for valid current results |
-| gnmi_icmp_rtt_seconds | Mean successful reply RTT in seconds; omitted if no replies; 0 is a valid clock-resolution result |
-| gnmi_icmp_packet_loss_ratio | Lost/sent, 0..1; all lost = 1; only valid current results |
-| gnmi_icmp_last_probe_timestamp_seconds | Last completed round (including execution failures), local Unix seconds; 0 before first completion |
+The monitor probes each distinct host from initialized instances, across local
+files and ports. It skips targets without an extractable host:port. It uses the
+configured hostname or IP as the identity, without resolving aliases for deduplication.
 
-All-packet timeout after sending the requested count is a successful probe
-execution with up=0/loss=1. Permission, DNS and socket errors or incomplete sends
-have probe_success=0 and omit up/RTT/loss. Failed rounds replace old success.
-Results older than 2*interval+timeout are treated as stale and omit up/RTT/loss.
-Repeated Gather snapshots carry the original probe completion time separately.
+Defaults are `icmp_interval = "30s"`, `icmp_timeout = "3s"`, `icmp_count = 3`,
+`icmp_packet_interval = "200ms"`, `icmp_concurrency = 10`, `icmp_privileged = true`,
+and `icmp_report_interval = "60s"`. The timeout includes DNS. Privileged probes
+require appropriate socket permissions. The monitor continues probing independently
+of Gather. The first completed result and changes between reachable, unreachable,
+and probe failure are sent on the next Gather. Stable results send only the latest
+new round once the report interval has elapsed. An expired result emits one failure
+sample group, without repeating stale measurements.
 
-ICMP uses a bounded background worker pool, never blocks Gather, and never
-changes subscription state or triggers reconnects. Same-instance endpoints with
-the same normalized hostname share probes but retain separate endpoint identity labels.
-The first probe is spread over [0, interval); subsequent probes wait interval
-with +/-10% jitter after completion; no host has overlapping rounds. DNS is
-resolved each round; IPv4 is preferred, then IPv6, with stable sorting within a
-family. Only that selected address is tested; DNS aliases and separate instances
-do not share probes. IPv6 literals with zone are supported. ICMP requires a plain
-host:numeric-port target (bracketed IPv6 is supported). Other gRPC target forms
-are skipped with a startup warning; they emit probe_success=0 and a zero last-probe
-timestamp without up/RTT/loss metrics. Their telemetry and session health continue
-normally. Static label names remain unrestricted.
-
-For optional real loopback validation, run with `GNMI_TEST_ICMP=1`:
-`go test ./inputs/gnmi -run TestICMPNativeLoopback -v -count=1`.
-Normal tests need no ICMP privileges. Validate device ACLs, packet loss, IPv6,
-and runtime permissions in the deployment environment before enabling alarms.
-
-Implementation note: the ICMP backend uses the repository's existing
-`golang.org/x/net/icmp` directly. The locked pro-bing version cannot reliably
-bound all send retries, so it is not used by gNMI. Every write has a deadline;
-any send error invalidates the round. `icmp_count` must not exceed 65535.
+ICMP metrics use `icmp_host` instead of a gNMI endpoint address. A completed
+round emits `gnmi_icmp_probe_success` and `gnmi_icmp_last_probe_timestamp_seconds`.
+A successful round adds `gnmi_icmp_up` and `gnmi_icmp_packet_loss_ratio`.
+All packets lost means probe success 1, up 0 and loss ratio 1. If a reply is
+received, `gnmi_icmp_rtt_seconds` is the round's average RTT. Execution errors
+and expired results omit reachability, loss and RTT. Update dashboard selectors
+from `address` to `icmp_host` when migrating ICMP queries.
 
 ## Complete configuration examples
 
@@ -265,10 +244,10 @@ instance options before subscription or tag-subscription subtables.
 interval = "1s"
 disable_gnmi_up = false
 gnmi_up_interval = "30s"
+enable_icmp = false
 [[instances]]
 addresses = ["192.0.2.10:50051"]
 agent_host_tag = "ident"
-enable_icmp = false
 # username = "your-user"
 # password = "your-password"
 [[instances.subscription]]
@@ -289,16 +268,14 @@ Telemetry sampling and Gather forwarding keep their independent schedules.
 interval = "1s"
 disable_gnmi_up = false
 gnmi_up_interval = "30s"
-[[instances]]
-addresses = ["192.0.2.10:50051"]
-agent_host_tag = "ident"
 enable_icmp = true
 icmp_interval = "30s"
 icmp_timeout = "3s"
 icmp_count = 3
-icmp_packet_interval = "200ms"
-icmp_concurrency = 10
-icmp_privileged = true
+icmp_report_interval = "60s"
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
 [[instances.subscription]]
 name = "ifcounters"
 origin = "openconfig-interfaces"
@@ -307,9 +284,7 @@ subscription_mode = "sample"
 sample_interval = "15s"
 ```
 
-Ensure the process has appropriate ICMP socket permissions. ICMP failures do not
-gate telemetry. icmp_interval controls probe frequency; cached ICMP results are
-still emitted at every Gather. gnmi_up_interval controls only gnmi_up.
+ICMP probes run independently of telemetry. Only new results are eligible for reporting.
 
 ### Example 3: replace interface and queue source keys with learned tags
 

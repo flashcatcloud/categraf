@@ -14,19 +14,19 @@ import (
 )
 
 func TestICMPConfig(t *testing.T) {
-	c := &Instance{EnableICMP: true}
+	c := &GNMI{EnableICMP: true}
 	if err := c.initICMP(); err != nil {
 		t.Fatal(err)
 	}
 	if c.ICMPCount != 3 || c.ICMPConcurrency != 10 || time.Duration(c.ICMPTimeout) != 3*time.Second {
 		t.Fatalf("defaults: %+v", c)
 	}
-	for _, c := range []*Instance{{EnableICMP: true, ICMPCount: -1}, {EnableICMP: true, ICMPCount: 65537, ICMPPacketInterval: config.Duration(time.Nanosecond)}, {EnableICMP: true, ICMPTimeout: config.Duration(-1)}, {EnableICMP: true, ICMPInterval: config.Duration(time.Second)}} {
+	for _, c := range []*GNMI{{EnableICMP: true, ICMPCount: -1}, {EnableICMP: true, ICMPCount: 65537, ICMPPacketInterval: config.Duration(time.Nanosecond)}, {EnableICMP: true, ICMPTimeout: config.Duration(-1)}, {EnableICMP: true, ICMPInterval: config.Duration(time.Second)}} {
 		if c.initICMP() == nil {
 			t.Fatal("accepted invalid probe config")
 		}
 	}
-	if err := (&Instance{ICMPCount: -1}).initICMP(); err != nil {
+	if err := (&GNMI{ICMPCount: -1}).initICMP(); err != nil {
 		t.Fatal("disabled should ignore options")
 	}
 }
@@ -45,10 +45,7 @@ func TestGatherICMP(t *testing.T) {
 		{"short", icmpResult{Sent: 1, Received: 1}, nil, 0, 0, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			c := &Instance{Addresses: []string{"host:123"}, AgentHostTag: "agent_host", EnableICMP: true, DisableGNMIUp: true}
-			if err := c.initICMP(); err != nil {
-				t.Fatal(err)
-			}
+			c := testICMPPlugin(t, []string{"host:123"})
 			c.icmp.store("host", tc.result, tc.err, now)
 			sl := types.NewSampleList()
 			c.gatherICMP(sl, now)
@@ -111,10 +108,7 @@ func TestICMPNativeLoopback(t *testing.T) {
 }
 
 func TestICMPFailedRoundReplacesSuccess(t *testing.T) {
-	c := &Instance{EnableICMP: true, DisableGNMIUp: true, Addresses: []string{"host:1"}, AgentHostTag: "agent_host"}
-	if err := c.initICMP(); err != nil {
-		t.Fatal(err)
-	}
+	c := testICMPPlugin(t, []string{"host:1"})
 	now := time.Unix(100, 0)
 	c.icmp.store("host", icmpResult{Sent: 3, Received: 3}, nil, now)
 	c.icmp.store("host", icmpResult{}, errors.New("DNS"), now.Add(time.Second))

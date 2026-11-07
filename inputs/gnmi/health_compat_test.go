@@ -1,129 +1,98 @@
 package gnmi
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
-	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/pkg/cfg"
 	"flashcat.cloud/categraf/types"
 )
 
-func TestHealthEndpointIdentityThroughPipeline(t *testing.T) {
-	previous, previousHostInfo := config.Config, config.HostInfo
-	config.Config = &config.ConfigType{Global: config.Global{OmitHostname: true}}
-	config.HostInfo = &config.HostInfoCache{}
-	t.Cleanup(func() { config.Config = previous; config.HostInfo = previousHostInfo })
+func testICMPPlugin(t *testing.T, addresses ...[]string) *GNMI {
+	t.Helper()
+	plugin := &GNMI{EnableICMP: true}
+	for _, group := range addresses {
+		instance := &Instance{Addresses: group}
+		instance.SetInitialized()
+		plugin.Instances = append(plugin.Instances, instance)
+	}
+	if err := plugin.Init(); err != nil {
+		t.Fatal(err)
+	}
+	plugin.icmp = plugin.newICMPMonitor()
+	plugin.icmpReports = make(map[string]icmpReport)
+	return plugin
+}
 
+func TestICMPRequiresExplicitTopLevelEnable(t *testing.T) {
 	for _, tc := range []struct {
-		name, hostTag, targetTag string
-		labels, globalLabels     map[string]string
+		root string
+		want bool
 	}{
-		{name: "default", hostTag: "agent_host", targetTag: "address"},
-		{name: "host tag owns address", hostTag: "address", targetTag: "gnmi_target"},
-		{name: "static identity labels", hostTag: "agent_host", targetTag: "gnmi_target", labels: map[string]string{"address": "my-device", "agent_host": "my-host"}},
-		{name: "normalized fallback collisions", hostTag: "address", targetTag: "gnmi_target_2", labels: map[string]string{"gnmi-target": "existing", "gnmi.target.1": "existing-1"}},
-		{name: "host tag owns fallback", hostTag: "gnmi_target", targetTag: "gnmi_target_1", labels: map[string]string{"address": "my-device"}},
-		{name: "global normalized fallback", hostTag: "agent_host", targetTag: "gnmi_target_1", labels: map[string]string{"address": "my-device"}, globalLabels: map[string]string{"gnmi-target": "fleet-a"}},
-		{name: "global and instance fallback chain", hostTag: "address", targetTag: "gnmi_target_3", labels: map[string]string{"gnmi-target_1": "instance"}, globalLabels: map[string]string{"gnmi-target": "fleet-a", "gnmi.target.2": "fleet-b"}},
+		{"", false},
+		{"enable_icmp = false", false},
+		{"enable_icmp = true", true},
 	} {
-
-		t.Run(tc.name, func(t *testing.T) {
-			config.Config.Global.Labels = tc.globalLabels
-			c := &Instance{
-				Addresses:    []string{"127.0.0.1:50051", "127.0.0.1:50052"},
-				AgentHostTag: tc.hostTag, EnableICMP: true,
-			}
-			c.Labels = tc.labels
-			if err := c.initHealth(); err != nil {
-				t.Fatal(err)
-			}
-			if err := c.initICMP(); err != nil {
-				t.Fatal(err)
-			}
-			now := time.Now()
-
-			c.icmp.store("127.0.0.1", icmpResult{Sent: 3, Received: 3, AvgRTT: time.Millisecond}, nil, now)
-			list := types.NewSampleList()
-			c.gatherICMP(list, now)
-			samples := c.Process(list).PopBackAll()
-
-			want := 10
-			if len(samples) != want {
-				t.Fatalf("samples = %d, want %d", len(samples), want)
-			}
-			seen := make(map[string]bool)
-			for _, sample := range samples {
-				series := sample.ConvertTimeSeries("")
-				labels := make(map[string]string)
-				for _, label := range series.Labels {
-					if _, exists := labels[label.Name]; exists {
-						t.Fatalf("duplicate exported label %q", label.Name)
-					}
-					labels[label.Name] = label.Value
-				}
-				target := labels[tc.targetTag]
-				if target != c.Addresses[0] && target != c.Addresses[1] {
-					t.Fatalf("lost endpoint identity: %v", labels)
-				}
-				for key, value := range tc.labels {
-					if labels[tagLabelReplacer.Replace(key)] != value {
-						t.Fatalf("static label %q was overwritten: %v", key, labels)
-					}
-				}
-				for key, value := range tc.globalLabels {
-					if labels[tagLabelReplacer.Replace(key)] != value {
-						t.Fatalf("global label %q was overwritten: %v", key, labels)
-					}
-				}
-				identity := fmt.Sprint(series.Labels)
-				if seen[identity] {
-					t.Fatalf("different endpoints emitted the same series: %v", labels)
-				}
-				seen[identity] = true
-
-			}
-		})
+		var plugin GNMI
+		err := cfg.LoadConfigs([]cfg.ConfigWithFormat{
+			{Format: cfg.TomlFormat, Config: "interval = \"15s\"\n" + tc.root},
+			{Format: cfg.TomlFormat, Config: "[[instances]]\naddresses = [\"host:123\"]\nenable_icmp = true"},
+			{Format: cfg.TomlFormat, Config: "[[instances]]\naddresses = [\"host:124\"]"},
+		}, &plugin)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := plugin.Init(); err != nil {
+			t.Fatal(err)
+		}
+		for _, instance := range plugin.Instances {
+			instance.SetInitialized()
+		}
+		if err := plugin.Start(nil); err != nil {
+			t.Fatal(err)
+		}
+		plugin.Drop()
+		if (plugin.icmp != nil) != tc.want {
+			t.Fatalf("top-level %q: monitor enabled = %t", tc.root, plugin.icmp != nil)
+		}
+		if tc.want && (len(plugin.icmp.hosts) != 1 || plugin.icmp.hosts[0] != "host") {
+			t.Fatalf("duplicate hosts: %v", plugin.icmp.hosts)
+		}
 	}
 }
 
-func TestHealthLegacyTargetsAndICMPSkips(t *testing.T) {
-	const direct = "127.0.0.1:50051"
-	const resolver = "dns:///127.0.0.1:50051"
-	c := &Instance{Addresses: []string{direct, direct, resolver}, AgentHostTag: "agent_host", EnableICMP: true}
-	if err := c.initHealth(); err != nil {
-		t.Fatal(err)
+func TestICMPSkipsResolverTargets(t *testing.T) {
+	plugin := testICMPPlugin(t, []string{"127.0.0.1:50051", "dns:///127.0.0.1:50051"})
+	if len(plugin.icmp.hosts) != 1 || plugin.icmp.hosts[0] != "127.0.0.1" {
+		t.Fatalf("unexpected probe targets: %v", plugin.icmp.hosts)
 	}
-	if err := c.initICMP(); err != nil {
-		t.Fatal(err)
-	}
-	if len(c.icmp.hosts) != 1 || c.icmp.hosts[0] != "127.0.0.1" {
-		t.Fatalf("unsupported resolver target must not be probed: %v", c.icmp.hosts)
-	}
-	now := time.Now()
-	c.icmp.store("127.0.0.1", icmpResult{Sent: 3, Received: 3, AvgRTT: time.Millisecond}, nil, now)
+}
+
+func TestICMPReportCadence(t *testing.T) {
+	plugin := testICMPPlugin(t, []string{"host:1"})
+	start := time.Unix(100, 0)
 	list := types.NewSampleList()
-	c.gatherICMP(list, now)
-	counts := map[string]int{}
-	for _, sample := range list.PopBackAll() {
-		target := sample.Labels["address"]
-		counts[target]++
-		if target == resolver {
-			switch sample.Metric {
-			case "gnmi_up", "gnmi_icmp_probe_success":
-				if sample.Value != 0 {
-					t.Fatalf("unexpected successful result for resolver target: %+v", sample)
-				}
-			case "gnmi_icmp_last_probe_timestamp_seconds":
-				if sample.Value != float64(0) {
-					t.Fatalf("skipped probe has a completion timestamp: %+v", sample)
-				}
-			default:
-				t.Fatalf("skipped probe emitted a reachability result: %+v", sample)
-			}
+	check := func(seconds int, count int) {
+		t.Helper()
+		plugin.gatherICMP(list, start.Add(time.Duration(seconds)*time.Second))
+		if samples := list.PopBackAll(); len(samples) != count {
+			t.Fatalf("at %ds, want %d samples, got %v", seconds, count, samples)
 		}
 	}
-	if counts[direct] != 5 || counts[resolver] != 2 {
-		t.Fatalf("unexpected metrics or duplicate endpoint output: %v", counts)
-	}
+	check(0, 0)
+	reachable := icmpResult{Sent: 3, Received: 3}
+	plugin.icmp.store("host", reachable, nil, start)
+	check(0, 5)
+	plugin.icmp.store("host", reachable, nil, start.Add(30*time.Second))
+	check(30, 0)
+	check(60, 5)
+	check(61, 0)
+	plugin.icmp.store("host", icmpResult{Sent: 3}, nil, start.Add(62*time.Second))
+	check(62, 4)
+	check(63, 0)
+	plugin.icmp.store("host", reachable, nil, start.Add(64*time.Second))
+	check(64, 5)
+	check(124, 0)
+	check(128, 2)
+	check(129, 0)
 }

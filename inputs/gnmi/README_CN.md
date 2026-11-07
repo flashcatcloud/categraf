@@ -158,44 +158,25 @@ gnmi_up_interval = "30s"
 
 ## 可选内置 ICMP
 
-在 subscription 子表前配置 `enable_icmp = true` 开启；默认关闭。
-默认值：`icmp_interval="30s"`、`icmp_timeout="3s"`（含 DNS 的整轮截止时间）、
-`icmp_count=3`、`icmp_packet_interval="200ms"`、`icmp_concurrency=10`、
-`icmp_privileged=true`。未配置或零值使用默认值；负值、interval<=timeout 或
- timeout<=(count-1)*packet_interval 为配置错误。关闭时忽略未使用的 ICMP 参数，
-不执行 DNS 和探测。
+ICMP 默认关闭。请在第一个 `[[instances]]` 之前，与 `interval` 一起在插件顶层
+显式设置 `enable_icmp = true`。请迁移原实例级配置，旧字段仍可解析，但不再生效，
+非默认值会触发迁移提示。
 
-| 指标 | 含义 |
-|---|---|
-| gnmi_icmp_probe_success | 有效完整轮次为 1；未就绪、执行错误、结果过期为 0 |
-| gnmi_icmp_up | 有回复为 1，全丢包为 0；仅有效且未过期时输出 |
-| gnmi_icmp_rtt_seconds | 成功回复平均 RTT，单位秒；无回复不输出；时钟分辨率可能使有效 RTT 为 0 |
-| gnmi_icmp_packet_loss_ratio | 丢包数/发送数，0～1；全丢包为 1；仅有效且未过期时输出 |
-| gnmi_icmp_last_probe_timestamp_seconds | 最新一轮完成时间（含执行错误），本地 Unix 秒；首轮未完成为 0 |
+后台探测从已初始化实例收集主机，跨文件、跨端口去重。无法提取 host:port 的目标
+会跳过，不影响业务采集。按配置的主机名或 IP 去重，DNS 别名不自动合并。
 
-发送足量探测包后超时无回复，表示 probe_success=1/up=0/loss=1。
-权限、DNS、socket、发送不足等错误，表示 probe_success=0，不输出 up/RTT/loss，
-不会沿用上一轮成功结果。结果超过 2*interval+timeout 未更新时也停止输出旧值。
-每次 Gather 重复读取最新完整快照，通过 last_probe 判断探测时间。
+默认探测间隔 30 秒，单轮超时 3 秒（包含 DNS），每轮 3 包，包间隔 200ms，
+最大并发 10，特权模式开启。特权探测需要相应的 socket 权限。
+`icmp_report_interval` 默认 60 秒。首次结果及可达、不可达、执行失败之间的变化
+在下一次 Gather 上报。状态稳定时，到期只上报最新的新一轮结果。结果过期时只上报一次
+执行状态异常，不重复发送旧的在线状态、RTT 或丢包率。
 
-ICMP 在后台有限 worker 中运行，不阻塞 Gather，不改变 gnmi_up，不触发重连。
-同实例同一规范化主机的不同端口共享探测，仍通过完整目标身份标签分别输出。
-首轮分散在 [0, interval)，后续按完成时间加 interval 和 ±10% 抖动调度，同主机不重入。
-每轮重新解析 DNS，优先 IPv4、其次 IPv6，各地址族内稳定排序选择一个地址；
-不表示全部解析地址均在线，也不跨 DNS 别名或实例去重。支持带 zone 的 IPv6 字面量。
-ICMP 要求普通 host:数字端口（IPv6 使用方括号）；其他 gRPC target 在启动时告警并跳过探测，
-只输出 probe_success=0 和为零的 last_probe 时间，不输出 up/RTT/loss。
-对应目标的业务采集和会话健康照常运行，不限制静态标签名称。
-
-raw ICMP 需要运行账户具有相应权限，如 Linux CAP_NET_RAW 或 Windows 相应权限；
-`icmp_privileged=false` 请求非特权 ICMP socket，支持程度依赖系统。
-运行权限或探测错误仅影响 ICMP 指标，不中止 gNMI。真实环回测试需设置
-`GNMI_TEST_ICMP=1` 后运行 `go test ./inputs/gnmi -run TestICMPNativeLoopback -v -count=1`。
-普通单测无需 ICMP 权限。上线前另行验证设备 ACL、丢包、IPv6 和部署账户权限。
-
-实现说明：gNMI 使用仓库已有的 `golang.org/x/net/icmp`，直接控制 socket 读写截止时间
-与取消关闭；不使用锁定版本 pro-bing 的无界发送重试。任一次发送错误都会使整轮无效。
-`icmp_count` 上限为 65535，避免 Echo 序号溢出。
+ICMP 指标按 `icmp_host` 标识主机。每轮上报 `gnmi_icmp_probe_success` 和
+`gnmi_icmp_last_probe_timestamp_seconds`。执行成功时还上报 `gnmi_icmp_up` 和
+`gnmi_icmp_packet_loss_ratio`，收到回复时才有 `gnmi_icmp_rtt_seconds`。
+正常执行但全丢包时，probe_success 为 1、up 为 0、丢包率为 1。执行失败或结果过期
+时，probe_success 为 0，省略在线状态、RTT 和丢包率。旧看板请从按 `address` 查询
+ICMP 改为按 `icmp_host` 查询。
 
 ## 完整配置案例
 
@@ -208,11 +189,11 @@ raw ICMP 需要运行账户具有相应权限，如 Linux CAP_NET_RAW 或 Window
 interval = "1s"
 disable_gnmi_up = false
 gnmi_up_interval = "30s"
+enable_icmp = false
 
 [[instances]]
 addresses = ["192.0.2.10:50051"]
 agent_host_tag = "ident"
-enable_icmp = false
 # username = "your-user"
 # password = "your-password"
 
@@ -233,17 +214,15 @@ sample_interval = "15s"
 interval = "1s"
 disable_gnmi_up = false
 gnmi_up_interval = "30s"
-
-[[instances]]
-addresses = ["192.0.2.10:50051"]
-agent_host_tag = "ident"
 enable_icmp = true
 icmp_interval = "30s"
 icmp_timeout = "3s"
 icmp_count = 3
-icmp_packet_interval = "200ms"
-icmp_concurrency = 10
-icmp_privileged = true
+icmp_report_interval = "60s"
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
 
 [[instances.subscription]]
 name = "ifcounters"
@@ -253,8 +232,7 @@ subscription_mode = "sample"
 sample_interval = "15s"
 ```
 
-ICMP 需要对应 socket 权限；探测失败不阻止 gNMI。`icmp_interval` 控制后台探测频率，
-不控制输出频率：ICMP 最新结果仍随每次 Gather 输出。`gnmi_up_interval` 仅控制 gnmi_up。
+ICMP 需要对应 socket 权限。探测持续进行，上报只使用尚未发送的新结果。
 
 ### 案例三：通过标签订阅替代接口和队列的源 key
 

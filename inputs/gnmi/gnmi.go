@@ -40,10 +40,24 @@ var supportedExtensions = []string{"juniper_header"}
 type (
 	GNMI struct {
 		config.PluginConfig
-		Instances      []*Instance
-		DisableGNMIUp  bool            `toml:"disable_gnmi_up"`
-		GNMIUpInterval config.Duration `toml:"gnmi_up_interval"`
-		upReports      map[string]upReport
+		Instances          []*Instance
+		DisableGNMIUp      bool            `toml:"disable_gnmi_up"`
+		GNMIUpInterval     config.Duration `toml:"gnmi_up_interval"`
+		EnableICMP         bool            `toml:"enable_icmp"`
+		ICMPInterval       config.Duration `toml:"icmp_interval"`
+		ICMPTimeout        config.Duration `toml:"icmp_timeout"`
+		ICMPPacketInterval config.Duration `toml:"icmp_packet_interval"`
+		ICMPCount          int             `toml:"icmp_count"`
+		ICMPConcurrency    int             `toml:"icmp_concurrency"`
+		ICMPPrivileged     *bool           `toml:"icmp_privileged"`
+		ICMPReportInterval config.Duration `toml:"icmp_report_interval"`
+		icmp               *icmpMonitor
+		icmpReports        map[string]icmpReport
+		icmpMu             sync.Mutex
+		icmpCancel         context.CancelFunc
+		icmpDone           chan struct{}
+		icmpStopped        bool
+		upReports          map[string]upReport
 	}
 
 	Instance struct {
@@ -93,7 +107,6 @@ type (
 		ICMPCount          int             `toml:"icmp_count"`
 		ICMPConcurrency    int             `toml:"icmp_concurrency"`
 		ICMPPrivileged     *bool           `toml:"icmp_privileged"`
-		icmp               *icmpMonitor
 		health             map[string]*sessionHealth
 		healthDisabled     bool
 		dropOnce           sync.Once
@@ -144,9 +157,6 @@ func (c *Instance) Init() error {
 		c.AgentHostTag = "agent_host"
 	}
 	if err := c.initHealth(); err != nil {
-		return err
-	}
-	if err := c.initICMP(); err != nil {
 		return err
 	}
 	c.slist = types.NewSampleList()
@@ -258,10 +268,6 @@ func (c *Instance) Init() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancel = cancel
-	if c.icmp != nil {
-		c.wg.Add(1)
-		go func() { defer c.wg.Done(); c.icmp.run(ctx) }()
-	}
 	c.wg.Add(1)
 	go func() { defer c.wg.Done(); c.run(ctx) }()
 	return nil
@@ -443,7 +449,6 @@ func (c *Instance) Drop() {
 // Gather plugin measurements (unused)
 func (c *Instance) Gather(slist *types.SampleList) {
 	slist.PushFrontN(c.slist.PopBackAll())
-	c.gatherICMP(slist, time.Now())
 }
 
 func (c *GNMI) Name() string {
@@ -463,6 +468,7 @@ func (c *GNMI) GetInstances() []inputs.Instance {
 }
 
 func (c *GNMI) Drop() {
+	c.stopICMP()
 	for _, instance := range c.Instances {
 		instance.Drop()
 	}

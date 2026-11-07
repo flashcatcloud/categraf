@@ -28,7 +28,7 @@ func newICMPMonitor(hosts []string, o icmpOptions, interval time.Duration, concu
 func (m *icmpMonitor) store(host string, r icmpResult, err error, now time.Time) {
 	valid := err == nil && r.Sent == m.opts.Count && r.Received >= 0 && r.Received <= r.Sent && r.AvgRTT >= 0
 	m.mu.Lock()
-	m.results[host] = icmpSnapshot{Result: r, CompletedAt: now, Success: valid}
+	m.results[host] = icmpSnapshot{Round: m.results[host].Round + 1, Result: r, CompletedAt: now, Success: valid}
 	m.mu.Unlock()
 }
 func (m *icmpMonitor) snapshot(host string) (icmpSnapshot, bool) {
@@ -110,34 +110,67 @@ func (m *icmpMonitor) run(ctx context.Context) {
 		}
 	}
 }
-func (c *Instance) gatherICMP(sl *types.SampleList, now time.Time) {
-	if !c.EnableICMP || c.icmp == nil {
+
+type icmpStatus uint8
+
+const (
+	icmpFailed icmpStatus = iota
+	icmpUnreachable
+	icmpReachable
+	icmpExpired
+)
+
+type icmpReport struct {
+	round  uint64
+	at     time.Time
+	status icmpStatus
+}
+
+func (c *GNMI) gatherICMP(sl *types.SampleList, now time.Time) {
+	if c.icmp == nil {
 		return
 	}
-	seen := make(map[string]bool, len(c.Addresses))
-	for _, a := range c.Addresses {
-		if seen[a] {
+	maxAge := 2*time.Duration(c.ICMPInterval) + time.Duration(c.ICMPTimeout)
+	for _, host := range c.icmp.hosts {
+		snapshot, ok := c.icmp.snapshot(host)
+		if !ok {
 			continue
 		}
-		seen[a] = true
-		host, _ := healthHost(a)
-		s, ok := c.icmp.snapshot(icmpHost(host))
-		labels := c.healthLabels(a)
-		success := 0
-		if ok && s.Success && now.Sub(s.CompletedAt) <= 2*time.Duration(c.ICMPInterval)+time.Duration(c.ICMPTimeout) {
-			success = 1
+		status := icmpFailed
+		switch {
+		case now.Sub(snapshot.CompletedAt) > maxAge:
+			status = icmpExpired
+		case snapshot.Success && snapshot.Result.Received == 0:
+			status = icmpUnreachable
+		case snapshot.Success:
+			status = icmpReachable
 		}
-		sl.PushSample(inputName, "icmp_probe_success", success, labels)
-		sl.PushSample(inputName, "icmp_last_probe_timestamp_seconds", unixSeconds(s.CompletedAt), labels)
-		if success == 0 {
+		last, reported := c.icmpReports[host]
+		if reported && last.status == status &&
+			(last.round == snapshot.Round || status == icmpExpired || now.Sub(last.at) < time.Duration(c.ICMPReportInterval)) {
 			continue
 		}
-		up := 0
-		if s.Result.Received > 0 {
-			up = 1
-			sl.PushSample(inputName, "icmp_rtt_seconds", s.Result.AvgRTT.Seconds(), labels)
-		}
-		sl.PushSample(inputName, "icmp_up", up, labels)
-		sl.PushSample(inputName, "icmp_packet_loss_ratio", float64(s.Result.Sent-s.Result.Received)/float64(s.Result.Sent), labels)
+		c.icmpReports[host] = icmpReport{round: snapshot.Round, at: now, status: status}
+		c.emitICMP(sl, host, snapshot, status)
 	}
+}
+
+func (c *GNMI) emitICMP(sl *types.SampleList, host string, snapshot icmpSnapshot, status icmpStatus) {
+	labels := map[string]string{"icmp_host": host}
+	success := 0
+	if status == icmpReachable || status == icmpUnreachable {
+		success = 1
+	}
+	sl.PushSample(inputName, "icmp_probe_success", success, labels)
+	sl.PushSample(inputName, "icmp_last_probe_timestamp_seconds", unixSeconds(snapshot.CompletedAt), labels)
+	if success == 0 {
+		return
+	}
+	up := 0
+	if status == icmpReachable {
+		up = 1
+		sl.PushSample(inputName, "icmp_rtt_seconds", snapshot.Result.AvgRTT.Seconds(), labels)
+	}
+	sl.PushSample(inputName, "icmp_up", up, labels)
+	sl.PushSample(inputName, "icmp_packet_loss_ratio", float64(snapshot.Result.Sent-snapshot.Result.Received)/float64(snapshot.Result.Sent), labels)
 }

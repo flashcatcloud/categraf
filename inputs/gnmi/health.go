@@ -100,14 +100,21 @@ func (c *GNMI) Init() error {
 	}
 	c.upReports = make(map[string]upReport)
 	warned := false
+	icmpWarned := false
 	for _, instance := range c.Instances {
 		instance.healthDisabled = c.DisableGNMIUp
+		if !icmpWarned && (instance.EnableICMP || instance.ICMPInterval != 0 ||
+			instance.ICMPTimeout != 0 || instance.ICMPCount != 0 || instance.ICMPConcurrency != 0 ||
+			instance.ICMPPacketInterval != 0 || instance.ICMPPrivileged != nil) {
+			log.Println("W! gNMI instance-level ICMP settings are ignored; configure them at plugin level")
+			icmpWarned = true
+		}
 		if !warned && (instance.DisableGNMIUp || instance.GNMIUpInterval != 0) {
 			log.Println("W! gNMI instance-level disable_gnmi_up and gnmi_up_interval are ignored; configure them at plugin level")
 			warned = true
 		}
 	}
-	return nil
+	return c.initICMP()
 }
 
 func (c *Instance) initHealth() error {
@@ -125,14 +132,6 @@ func (c *Instance) initHealth() error {
 
 // Keep the usual address label unless existing configuration owns that name.
 // Fallback names also avoid collisions after output label normalization.
-func (c *Instance) healthAddressTag() string {
-	used := map[string]bool{tagLabelReplacer.Replace(c.AgentHostTag): true}
-	for key := range c.GetLabels() {
-		used[tagLabelReplacer.Replace(key)] = true
-	}
-	return healthAddressTag(used)
-}
-
 func healthAddressTag(used map[string]bool) string {
 	if !used["address"] {
 		return "address"
@@ -150,23 +149,6 @@ func healthAddressTag(used map[string]bool) string {
 	}
 	return key
 }
-func (c *Instance) healthLabels(address string) map[string]string {
-	labels := make(map[string]string)
-	host, err := healthHost(address)
-	if err != nil {
-		// A resolver URI need not identify a single host. Retain the target
-		// rather than rejecting it or emitting an empty host label.
-		host = address
-	}
-	labels["address"] = address
-	labels[c.AgentHostTag] = host
-	// Match the output pipeline: existing static labels take precedence.
-	for k, v := range c.GetLabels() {
-		labels[k] = v
-	}
-	labels[c.healthAddressTag()] = address
-	return labels
-}
 func unixSeconds(t time.Time) float64 {
 	if t.IsZero() {
 		return 0
@@ -174,7 +156,9 @@ func unixSeconds(t time.Time) float64 {
 	return float64(t.UnixNano()) / 1e9
 }
 func (c *GNMI) Gather(sl *types.SampleList) {
-	c.gatherHealth(sl, time.Now())
+	now := time.Now()
+	c.gatherHealth(sl, now)
+	c.gatherICMP(sl, now)
 }
 
 func (c *GNMI) gatherHealth(sl *types.SampleList, now time.Time) {
