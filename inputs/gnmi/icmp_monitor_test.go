@@ -54,7 +54,7 @@ func TestICMPMonitorBoundedAndCanceled(t *testing.T) {
 	// Snapshot/metric output must return while network probes remain blocked.
 	c := &Instance{Addresses: []string{"a:1"}, EnableICMP: true, DisableGNMIUp: true, AgentHostTag: "agent_host", icmp: m}
 	gatherDone := make(chan struct{})
-	go func() { c.gatherHealth(types.NewSampleList(), time.Now()); close(gatherDone) }()
+	go func() { c.gatherICMP(types.NewSampleList(), time.Now()); close(gatherDone) }()
 	select {
 	case <-gatherDone:
 	case <-time.After(time.Second):
@@ -81,7 +81,7 @@ func TestICMPMonitorDeduplicatesPorts(t *testing.T) {
 	c.icmp.store("host", icmpResult{Sent: 3, Received: 3, AvgRTT: time.Millisecond}, nil, time.Unix(1, 0))
 	sl := types.NewSampleList()
 	c.DisableGNMIUp = true
-	c.gatherHealth(sl, time.Unix(1, 0))
+	c.gatherICMP(sl, time.Unix(1, 0))
 	seen := map[string]bool{}
 	for _, sample := range sl.PopBackAll() {
 		if sample.Metric == "gnmi_icmp_up" {

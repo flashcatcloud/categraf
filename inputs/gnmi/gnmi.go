@@ -40,7 +40,10 @@ var supportedExtensions = []string{"juniper_header"}
 type (
 	GNMI struct {
 		config.PluginConfig
-		Instances []*Instance
+		Instances      []*Instance
+		DisableGNMIUp  bool            `toml:"disable_gnmi_up"`
+		GNMIUpInterval config.Duration `toml:"gnmi_up_interval"`
+		upReports      map[string]upReport
 	}
 
 	Instance struct {
@@ -92,6 +95,7 @@ type (
 		ICMPPrivileged     *bool           `toml:"icmp_privileged"`
 		icmp               *icmpMonitor
 		health             map[string]*sessionHealth
+		healthDisabled     bool
 		dropOnce           sync.Once
 	}
 )
@@ -439,7 +443,7 @@ func (c *Instance) Drop() {
 // Gather plugin measurements (unused)
 func (c *Instance) Gather(slist *types.SampleList) {
 	slist.PushFrontN(c.slist.PopBackAll())
-	c.gatherHealth(slist, time.Now())
+	c.gatherICMP(slist, time.Now())
 }
 
 func (c *GNMI) Name() string {
@@ -465,6 +469,7 @@ func (c *GNMI) Drop() {
 }
 
 var _ inputs.SampleGatherer = new(Instance)
+var _ inputs.SampleGatherer = new(GNMI)
 var _ inputs.Input = new(GNMI)
 var _ inputs.InstancesGetter = new(GNMI)
 

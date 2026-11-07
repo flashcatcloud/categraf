@@ -51,7 +51,7 @@ func TestGatherICMP(t *testing.T) {
 			}
 			c.icmp.store("host", tc.result, tc.err, now)
 			sl := types.NewSampleList()
-			c.gatherHealth(sl, now)
+			c.gatherICMP(sl, now)
 			got := map[string]float64{}
 			for _, s := range sl.PopBackAll() {
 				switch v := s.Value.(type) {
@@ -76,7 +76,7 @@ func TestGatherICMP(t *testing.T) {
 				t.Fatal("RTT without replies")
 			}
 			sl = types.NewSampleList()
-			c.gatherHealth(sl, now.Add(64*time.Second))
+			c.gatherICMP(sl, now.Add(64*time.Second))
 			for _, s := range sl.PopBackAll() {
 				if s.Metric == "gnmi_icmp_up" {
 					t.Fatal("stale up emitted")
@@ -119,7 +119,7 @@ func TestICMPFailedRoundReplacesSuccess(t *testing.T) {
 	c.icmp.store("host", icmpResult{Sent: 3, Received: 3}, nil, now)
 	c.icmp.store("host", icmpResult{}, errors.New("DNS"), now.Add(time.Second))
 	sl := types.NewSampleList()
-	c.gatherHealth(sl, now.Add(time.Second))
+	c.gatherICMP(sl, now.Add(time.Second))
 	for _, s := range sl.PopBackAll() {
 		if s.Metric == "gnmi_icmp_up" || s.Metric == "gnmi_icmp_rtt_seconds" || s.Metric == "gnmi_icmp_packet_loss_ratio" {
 			t.Fatal("failed round reused previous values")
