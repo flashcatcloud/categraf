@@ -21,28 +21,32 @@ func HTTPTransportFromEnv(transport *http.Transport) *http.Transport {
 	if t.Protocols == nil && transport.TLSNextProto["h2"] != nil {
 		t.ForceAttemptHTTP2 = true
 	}
-	if t.DialContext != nil {
-		dial := t.DialContext
-		t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return dial(ctx, networkForIPv4(network, true), addr)
+	dial := t.DialContext
+	if dial == nil {
+		legacyDial := t.Dial //nolint:staticcheck // Preserve caller-provided legacy callbacks when DialContext is absent.
+		if legacyDial != nil {
+			dial = func(_ context.Context, network, addr string) (net.Conn, error) {
+				return legacyDial(network, addr)
+			}
+		} else {
+			dial = (&net.Dialer{}).DialContext
 		}
-	} else if t.Dial != nil {
-		dial := t.Dial
-		t.Dial = func(network, addr string) (net.Conn, error) {
-			return dial(networkForIPv4(network, true), addr)
-		}
-	} else {
-		t.DialContext = DialContextFromEnv(&net.Dialer{})
 	}
-	if t.DialTLSContext != nil {
-		dial := t.DialTLSContext
-		t.DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return dial(ctx, networkForIPv4(network, true), addr)
+	t.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return dial(ctx, networkForIPv4(network, true), addr)
+	}
+	dialTLS := t.DialTLSContext
+	if dialTLS == nil {
+		legacyDialTLS := t.DialTLS //nolint:staticcheck // Preserve caller-provided legacy TLS callbacks when DialTLSContext is absent.
+		if legacyDialTLS != nil {
+			dialTLS = func(_ context.Context, network, addr string) (net.Conn, error) {
+				return legacyDialTLS(network, addr)
+			}
 		}
-	} else if t.DialTLS != nil {
-		dial := t.DialTLS
-		t.DialTLS = func(network, addr string) (net.Conn, error) {
-			return dial(networkForIPv4(network, true), addr)
+	}
+	if dialTLS != nil {
+		t.DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dialTLS(ctx, networkForIPv4(network, true), addr)
 		}
 	}
 	return t

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -17,6 +18,70 @@ import (
 
 	"flashcat.cloud/categraf/internal/nettest"
 )
+
+func TestHTTPTransportLegacyDialCompatibility(t *testing.T) {
+	t.Setenv("PREFER_IPV4_STACK", "true")
+	for _, secure := range []bool{false, true} {
+		for _, modern := range []bool{false, true} {
+			t.Run(fmt.Sprintf("TLS=%t/context-priority=%t", secure, modern), func(t *testing.T) {
+				type contextKey struct{}
+				ctx := context.WithValue(context.Background(), contextKey{}, "retained")
+				wantErr := errors.New("callback error")
+				var gotNetwork, gotAddress string
+				legacyCalls, contextCalls := 0, 0
+				legacy := func(network, addr string) (net.Conn, error) {
+					legacyCalls++
+					gotNetwork, gotAddress = network, addr
+					return nil, wantErr
+				}
+				withContext := func(c context.Context, network, addr string) (net.Conn, error) {
+					contextCalls++
+					if c.Value(contextKey{}) != "retained" {
+						t.Error("context lost")
+					}
+					gotNetwork, gotAddress = network, addr
+					return nil, wantErr
+				}
+				original := &http.Transport{}
+				if secure {
+					original.DialTLS = legacy //nolint:staticcheck // Exercise compatibility with a caller's legacy TLS hook.
+					if modern {
+						original.DialTLSContext = withContext
+					}
+				} else {
+					original.Dial = legacy //nolint:staticcheck // Exercise compatibility with a caller's legacy dial hook.
+					if modern {
+						original.DialContext = withContext
+					}
+				}
+				transport := HTTPTransportFromEnv(original)
+				dial := transport.DialContext
+				if secure {
+					dial = transport.DialTLSContext
+				}
+				if dial == nil {
+					t.Fatal("missing context dial callback")
+				}
+				for _, network := range []string{"tcp", "tcp6"} {
+					_, err := dial(ctx, network, "example.invalid:443")
+					wantNetwork := network
+					if network == "tcp" {
+						wantNetwork = "tcp4"
+					}
+					if !errors.Is(err, wantErr) || gotNetwork != wantNetwork || gotAddress != "example.invalid:443" {
+						t.Fatalf("callback: network=%s address=%s err=%v", gotNetwork, gotAddress, err)
+					}
+				}
+				if (modern && (contextCalls != 2 || legacyCalls != 0)) || (!modern && (legacyCalls != 2 || contextCalls != 0)) {
+					t.Fatalf("callback priority changed: legacy=%d context=%d", legacyCalls, contextCalls)
+				}
+				if !modern && (original.DialContext != nil || original.DialTLSContext != nil) {
+					t.Fatal("mutated original transport")
+				}
+			})
+		}
+	}
+}
 
 func newHTTPTestClient(t *testing.T, endpoint, caFile string) func() error {
 	t.Helper()
