@@ -16,6 +16,12 @@ import (
 
 const capMetricChan = 1000
 
+var (
+	descNameRegexp        = regexp.MustCompile(`fqName: "([^"]*)"`)
+	descConstLabelsRegexp = regexp.MustCompile(`constLabels: {([^}]*)}`)
+	descLabelPairRegexp   = regexp.MustCompile(`(\w+)="([^"]*)"`)
+)
+
 func Collect(e prometheus.Collector, slist *types.SampleList, constLabels ...map[string]string) error {
 	if e == nil {
 		return errors.New("exporter must not be nil")
@@ -85,8 +91,7 @@ func Collect(e prometheus.Collector, slist *types.SampleList, constLabels ...map
 
 func DescName(descStr string) (string, error) {
 	// 使用正则表达式匹配fqName部分
-	re := regexp.MustCompile(`fqName: "([^"]*)"`)
-	matches := re.FindStringSubmatch(descStr)
+	matches := descNameRegexp.FindStringSubmatch(descStr)
 	if len(matches) < 2 {
 		return "", fmt.Errorf("failed to extract fqName from desc string")
 	}
@@ -95,8 +100,7 @@ func DescName(descStr string) (string, error) {
 
 func DescConstLabels(descStr string) (map[string]string, error) {
 	// 使用正则表达式匹配constLabels部分
-	re := regexp.MustCompile(`constLabels: {([^}]*)}`)
-	matches := re.FindStringSubmatch(descStr)
+	matches := descConstLabelsRegexp.FindStringSubmatch(descStr)
 	if len(matches) < 2 {
 		return nil, fmt.Errorf("failed to extract constLabels from desc string")
 	}
@@ -111,8 +115,7 @@ func DescConstLabels(descStr string) (map[string]string, error) {
 	pairs := strings.Split(matches[1], ",")
 	for _, pair := range pairs {
 		// 使用正则表达式匹配每个label对中的name和value
-		pairRe := regexp.MustCompile(`(\w+)="([^"]*)"`)
-		pairMatches := pairRe.FindStringSubmatch(pair)
+		pairMatches := descLabelPairRegexp.FindStringSubmatch(pair)
 		if len(pairMatches) < 3 {
 			return nil, fmt.Errorf("invalid label pair format: %s", pair)
 		}

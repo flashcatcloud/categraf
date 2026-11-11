@@ -119,11 +119,13 @@ func QueueMetrics() *Snapshot {
 	return &ss
 }
 
-// WriteTimeSeries write prompb.TimeSeries to all writers
+// WriteTimeSeries normalizes labels in place and writes prompb.TimeSeries to all writers.
 func WriteTimeSeries(timeSeries []prompb.TimeSeries) {
 	if len(timeSeries) == 0 {
 		return
 	}
+
+	normalizeTimeSeriesLabels(timeSeries)
 
 	now := time.Now()
 	wg := sync.WaitGroup{}
