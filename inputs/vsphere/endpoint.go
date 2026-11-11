@@ -961,9 +961,18 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 		log.Println("E! NewThrottledExecutor", err.Error())
 		return
 	}
+	defer te.Wait()
+
 	maxMetrics := e.Parent.MaxQueryMetrics
 	if maxMetrics < 1 {
 		maxMetrics = 1
+	}
+	if res.realTime || maxMetrics > maxRealtimeMetrics {
+		maxMetrics = maxRealtimeMetrics
+	}
+	maxObjects := e.Parent.MaxQueryObjects
+	if maxObjects < 1 {
+		maxObjects = 1
 	}
 
 	// Workaround for vCenter weirdness. Cluster metrics seem to count multiple times
@@ -973,10 +982,13 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 		maxMetrics = 10
 	}
 
-	pqs := make(queryChunk, 0, e.Parent.MaxQueryObjects)
+	pqs := make(queryChunk, 0, maxObjects)
 	numQs := 0
 
 	for _, obj := range res.objects {
+		if ctx.Err() != nil {
+			return
+		}
 		timeBuckets := make(map[int64]*gtypes.PerfQuerySpec)
 		for metricIdx, metric := range res.metrics {
 			// Determine time of last successful collection
@@ -1011,16 +1023,15 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 			// Add this metric to the bucket
 			bucket.MetricId = append(bucket.MetricId, metric)
 
-			// Bucket filled to capacity?
-			// OR if we're past the absolute maximum limit
-			if (!res.realTime && len(bucket.MetricId) >= maxMetrics) || len(bucket.MetricId) > maxRealtimeMetrics {
+			// Submit full buckets without exceeding the per-query metric limit.
+			if len(bucket.MetricId) >= maxMetrics {
 				if e.debug() {
 					log.Printf("D! Submitting partial query: %d metrics (%d remaining) of type %s for %s. Total objects %d",
 						len(bucket.MetricId), len(res.metrics)-metricIdx, res.name, e.URL.Host, len(res.objects))
 				}
 
 				// Don't send work items if the context has been cancelled.
-				if ctx.Err() == context.Canceled {
+				if ctx.Err() != nil {
 					return
 				}
 
@@ -1029,18 +1040,19 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 				submitChunkJob(ctx, te, job, queryChunk{*bucket})
 			}
 		}
-		// Handle data in time bucket and submit job if we've reached the maximum number of object.
+		// Flush before adding a bucket that would exceed the query's metric
+		// budget or, for realtime resources, its object (query spec) budget.
 		for _, bucket := range timeBuckets {
-			pqs = append(pqs, *bucket)
-			numQs += len(bucket.MetricId)
-			if (!res.realTime && numQs > e.Parent.MaxQueryObjects) || numQs > maxRealtimeMetrics {
+			if len(pqs) > 0 && (numQs+len(bucket.MetricId) > maxMetrics || (res.realTime && len(pqs) >= maxObjects)) {
 				if e.debug() {
 					log.Printf("D! Submitting final bucket job for %s: %d metrics", res.name, numQs)
 				}
 				submitChunkJob(ctx, te, job, pqs)
-				pqs = make(queryChunk, 0, e.Parent.MaxQueryObjects)
+				pqs = make(queryChunk, 0, maxObjects)
 				numQs = 0
 			}
+			pqs = append(pqs, *bucket)
+			numQs += len(bucket.MetricId)
 		}
 	}
 	// Submit any jobs left in the queue
@@ -1050,9 +1062,6 @@ func (e *Endpoint) chunkify(ctx context.Context, res *resourceKind, now time.Tim
 		}
 		submitChunkJob(ctx, te, job, pqs)
 	}
-
-	// Wait for background collection to finish
-	te.Wait()
 }
 
 func (e *Endpoint) collectResource(ctx context.Context, resourceType string, slist *types.SampleList) error {

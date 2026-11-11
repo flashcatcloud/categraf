@@ -179,8 +179,11 @@
   ## set to 64 for vCenter 5.5 and 6.0 (default: 256)
   # max_query_objects = 256
 
-  ## number of metrics to retrieve per query for non-realtime resources (clusters and datastores)
+  ## maximum total metric IDs per query for non-realtime resources
+  ## (clusters, resource pools, datacenters and datastores), across all objects in the query
   ## set to 64 for vCenter 5.5 and 6.0 (default: 256)
+  ## vCenter may query additional dependent metrics for aggregate resources, so its
+  ## server-side query size can still exceed this limit. Clusters are capped at 10 metric IDs per query.
   # max_query_metrics = 256
 
   ## number of go routines to use for collection and discovery of objects and metrics
