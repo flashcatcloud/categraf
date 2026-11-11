@@ -165,7 +165,11 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 	}
 
 	brokers := strings.Split(endpoint.Addr, ",")
-	c, err := New(typ, brokers, coreconfig.Config.Logs.Config)
+	producerConfig, brokers, err := prepareIPv4Config(coreconfig.Config.Logs.Config, brokers)
+	if err != nil {
+		return nil, fmt.Errorf("kafka IPv4 policy: %w", err)
+	}
+	c, err := New(typ, brokers, producerConfig)
 	if err != nil {
 		return nil, fmt.Errorf("kafka producer: %w", err)
 	}

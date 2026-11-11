@@ -13,6 +13,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	"flashcat.cloud/categraf/pkg/netx"
 )
 
 // ResetClient wraps (http.Client).Do and resets the underlying connections at the
@@ -93,7 +95,7 @@ func Proxy(proxy func(r *http.Request) (*url.URL, error)) Option {
 
 func NetDialer(dialer *net.Dialer) Option {
 	return func(client *http.Client) {
-		client.Transport.(*http.Transport).DialContext = dialer.DialContext
+		client.Transport.(*http.Transport).DialContext = netx.DialContextFromEnv(dialer)
 	}
 }
 func FollowRedirects(followRedirects bool) Option {
@@ -119,5 +121,5 @@ func CreateHTTPClient(opts ...Option) *http.Client {
 	for _, opt := range opts {
 		opt(client)
 	}
-	return client
+	return netx.HTTPClientFromEnv(client)
 }

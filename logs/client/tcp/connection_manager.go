@@ -20,6 +20,8 @@ import (
 	"sync"
 	"time"
 
+	"flashcat.cloud/categraf/pkg/netx"
+
 	"golang.org/x/net/proxy"
 
 	logsconfig "flashcat.cloud/categraf/config/logs"
@@ -89,7 +91,7 @@ func (cm *ConnectionManager) NewConnection(ctx context.Context) (net.Conn, error
 		var conn net.Conn
 		if cm.endpoint.ProxyAddress != "" {
 			var dialer proxy.Dialer
-			dialer, err = proxy.SOCKS5("tcp", cm.endpoint.ProxyAddress, nil, proxy.Direct)
+			dialer, err = proxy.SOCKS5("tcp", cm.endpoint.ProxyAddress, nil, netx.NewDialer(&net.Dialer{}))
 			if err != nil {
 				log.Println("E!", err)
 				continue
@@ -100,7 +102,7 @@ func (cm *ConnectionManager) NewConnection(ctx context.Context) (net.Conn, error
 			var dialer net.Dialer
 			dctx, cancel := context.WithTimeout(ctx, connectionTimeout)
 			defer cancel()
-			conn, err = dialer.DialContext(dctx, "tcp", cm.address())
+			conn, err = netx.DialContextFromEnv(&dialer)(dctx, "tcp", cm.address())
 		}
 		if err != nil {
 			log.Println("W!", err)

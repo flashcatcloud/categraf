@@ -1,6 +1,9 @@
 package proxy
 
 import (
+	"net"
+
+	"flashcat.cloud/categraf/pkg/netx"
 	"golang.org/x/net/proxy"
 )
 
@@ -18,5 +21,5 @@ func (c *Socks5ProxyConfig) GetDialer() (proxy.Dialer, error) {
 		auth.User = c.Socks5ProxyUsername
 		auth.Password = c.Socks5ProxyPassword
 	}
-	return proxy.SOCKS5("tcp", c.Socks5ProxyAddress, auth, proxy.Direct)
+	return proxy.SOCKS5("tcp", c.Socks5ProxyAddress, auth, netx.NewDialer(&net.Dialer{}))
 }
