@@ -16,7 +16,6 @@
 package exporter
 
 import (
-	"regexp"
 	"strings"
 	"time"
 
@@ -108,12 +107,6 @@ var (
 		"serverStatus.wiredTiger.perf.":                   "perf_bucket",
 		"systemMetrics.disks.":                            "device_name",
 	}
-
-	// Regular expressions used to make the metric name Prometheus-compatible
-	// This variables are global to compile the regexps only once.
-	specialCharsRe        = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
-	repeatedUnderscoresRe = regexp.MustCompile(`__+`)
-	dollarRe              = regexp.MustCompile(`\_$`)
 )
 
 // prometheusize renames metrics by replacing some prefixes with shorter names
@@ -121,18 +114,54 @@ var (
 // exporter name prefix.
 func prometheusize(s string) string {
 	for _, pair := range prefixes {
-		if strings.HasPrefix(s, pair[0]+".") {
-			s = pair[1] + strings.TrimPrefix(s, pair[0])
+		if len(s) > len(pair[0]) && s[len(pair[0])] == '.' && strings.HasPrefix(s, pair[0]) {
+			s = pair[1] + s[len(pair[0]):]
 			break
 		}
 	}
 
-	s = specialCharsRe.ReplaceAllString(s, "_")
-	s = dollarRe.ReplaceAllString(s, "")
-	s = repeatedUnderscoresRe.ReplaceAllString(s, "_")
-	s = strings.TrimPrefix(s, "_")
+	name := sanitizeMetricName(s)
+	var b strings.Builder
+	b.Grow(len(exporterPrefix) + len(name))
+	b.WriteString(exporterPrefix)
+	b.Write(name)
 
-	return exporterPrefix + s
+	return b.String()
+}
+
+// sanitizeMetricName is equivalent to replacing `[^a-zA-Z0-9_]+` with "_",
+// removing one trailing "_", collapsing `__+` to "_" and removing one leading "_".
+func sanitizeMetricName(s string) []byte {
+	b := make([]byte, 0, len(s))
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; isMetricNameChar(c) {
+			b = append(b, c)
+		} else if i == 0 || isMetricNameChar(s[i-1]) {
+			b = append(b, '_')
+		}
+	}
+	if n := len(b); n > 0 && b[n-1] == '_' {
+		b = b[:n-1]
+	}
+
+	n := 0
+	for _, c := range b {
+		if c == '_' && n > 0 && b[n-1] == '_' {
+			continue
+		}
+		b[n] = c
+		n++
+	}
+	b = b[:n]
+	if len(b) > 0 && b[0] == '_' {
+		b = b[1:]
+	}
+
+	return b
+}
+
+func isMetricNameChar(c byte) bool {
+	return c == '_' || '0' <= c && c <= '9' || 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z'
 }
 
 // nameAndLabel checks if there are predefined metric name and label for that metric or
@@ -271,7 +300,7 @@ func makeMetrics(prefix string, m bson.M, labels map[string]string, compatibleMo
 
 			metrics := []*rawMetric{rm}
 
-			if renamedMetrics := metricRenameAndLabel(rm, specialConversions()); renamedMetrics != nil {
+			if renamedMetrics := metricRenameAndLabel(rm, specialConversions); renamedMetrics != nil {
 				metrics = renamedMetrics
 			}
 
@@ -366,64 +395,62 @@ func metricRenameAndLabel(rm *rawMetric, convs []conversion) []*rawMetric {
 	return result
 }
 
-// specialConversions returns a list of special conversions we want to implement.
+// specialConversions contains read-only metric conversion rules.
 // See: https://jira.percona.com/browse/PMM-6506
-func specialConversions() []conversion {
-	return []conversion{
-		{
-			oldName:     "mongodb_ss_opLatencies_ops",
-			prefix:      "mongodb_ss_opLatencies",
-			suffixLabel: "op_type",
-			suffixMapping: map[string]string{
-				"commands_ops":     "commands",
-				"reads_ops":        "reads",
-				"transactions_ops": "transactions",
-				"writes_ops":       "writes",
-			},
+var specialConversions = []conversion{
+	{
+		oldName:     "mongodb_ss_opLatencies_ops",
+		prefix:      "mongodb_ss_opLatencies",
+		suffixLabel: "op_type",
+		suffixMapping: map[string]string{
+			"commands_ops":     "commands",
+			"reads_ops":        "reads",
+			"transactions_ops": "transactions",
+			"writes_ops":       "writes",
 		},
-		{
-			oldName:     "mongodb_ss_opLatencies_latency",
-			prefix:      "mongodb_ss_opLatencies",
-			suffixLabel: "op_type",
-			suffixMapping: map[string]string{
-				"commands_latency":     "commands",
-				"reads_latency":        "reads",
-				"transactions_latency": "transactions",
-				"writes_latency":       "writes",
-			},
+	},
+	{
+		oldName:     "mongodb_ss_opLatencies_latency",
+		prefix:      "mongodb_ss_opLatencies",
+		suffixLabel: "op_type",
+		suffixMapping: map[string]string{
+			"commands_latency":     "commands",
+			"reads_latency":        "reads",
+			"transactions_latency": "transactions",
+			"writes_latency":       "writes",
 		},
-		// mongodb_ss_wt_concurrentTransactions_read_out
-		// mongodb_ss_wt_concurrentTransactions_write_out
-		{
-			oldName:     "mongodb_ss_wt_concurrentTransactions_out",
-			prefix:      "mongodb_ss_wt_concurrentTransactions",
-			suffixLabel: "txn_rw",
-			suffixMapping: map[string]string{
-				"read_out":  "read",
-				"write_out": "write",
-			},
+	},
+	// mongodb_ss_wt_concurrentTransactions_read_out
+	// mongodb_ss_wt_concurrentTransactions_write_out
+	{
+		oldName:     "mongodb_ss_wt_concurrentTransactions_out",
+		prefix:      "mongodb_ss_wt_concurrentTransactions",
+		suffixLabel: "txn_rw",
+		suffixMapping: map[string]string{
+			"read_out":  "read",
+			"write_out": "write",
 		},
-		// mongodb_ss_wt_concurrentTransactions_read_available
-		// mongodb_ss_wt_concurrentTransactions_write_available
-		{
-			oldName:     "mongodb_ss_wt_concurrentTransactions_available",
-			prefix:      "mongodb_ss_wt_concurrentTransactions",
-			suffixLabel: "txn_rw",
-			suffixMapping: map[string]string{
-				"read_available":  "read",
-				"write_available": "write",
-			},
+	},
+	// mongodb_ss_wt_concurrentTransactions_read_available
+	// mongodb_ss_wt_concurrentTransactions_write_available
+	{
+		oldName:     "mongodb_ss_wt_concurrentTransactions_available",
+		prefix:      "mongodb_ss_wt_concurrentTransactions",
+		suffixLabel: "txn_rw",
+		suffixMapping: map[string]string{
+			"read_available":  "read",
+			"write_available": "write",
 		},
-		// mongodb_ss_wt_concurrentTransactions_read_totalTickets
-		// mongodb_ss_wt_concurrentTransactions_write_totalTickets
-		{
-			oldName:     "mongodb_ss_wt_concurrentTransactions_totalTickets",
-			prefix:      "mongodb_ss_wt_concurrentTransactions",
-			suffixLabel: "txn_rw",
-			suffixMapping: map[string]string{
-				"read_totalTickets":  "read",
-				"write_totalTickets": "write",
-			},
+	},
+	// mongodb_ss_wt_concurrentTransactions_read_totalTickets
+	// mongodb_ss_wt_concurrentTransactions_write_totalTickets
+	{
+		oldName:     "mongodb_ss_wt_concurrentTransactions_totalTickets",
+		prefix:      "mongodb_ss_wt_concurrentTransactions",
+		suffixLabel: "txn_rw",
+		suffixMapping: map[string]string{
+			"read_totalTickets":  "read",
+			"write_totalTickets": "write",
 		},
-	}
+	},
 }

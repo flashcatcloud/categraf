@@ -1,7 +1,7 @@
 package types
 
 import (
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -11,19 +11,12 @@ import (
 	"flashcat.cloud/categraf/pkg/conv"
 )
 
-type (
-	pair struct {
-		key string
-		val string
-	}
-
-	Sample struct {
-		Metric    string            `json:"metric"`
-		Timestamp time.Time         `json:"timestamp"`
-		Value     interface{}       `json:"value"`
-		Labels    map[string]string `json:"labels"`
-	}
-)
+type Sample struct {
+	Metric    string            `json:"metric"`
+	Timestamp time.Time         `json:"timestamp"`
+	Value     interface{}       `json:"value"`
+	Labels    map[string]string `json:"labels"`
+}
 
 var (
 	labelReplacer  = strings.NewReplacer("-", "_", ".", "_", " ", "_", "/", "_")
@@ -60,8 +53,6 @@ func (item *Sample) ConvertTimeSeries(precision string) *prompb.TimeSeries {
 		return nil
 	}
 
-	pt := prompb.TimeSeries{}
-
 	timestamp := item.Timestamp.UnixMilli()
 	switch precision {
 	case "s":
@@ -71,38 +62,22 @@ func (item *Sample) ConvertTimeSeries(precision string) *prompb.TimeSeries {
 		timestamp = ts - ts%60000
 	}
 
-	pt.Samples = append(pt.Samples, prompb.Sample{
-		Timestamp: timestamp,
-		Value:     value,
-	})
-
-	// add label: metric
-	pt.Labels = append(pt.Labels, prompb.Label{
-		Name:  model.MetricNameLabel,
-		Value: item.Metric,
-	})
-
-	// sort labels
-	pairs := make([]pair, 0, len(item.Labels))
+	pt := &prompb.TimeSeries{
+		Labels:  make([]prompb.Label, 0, len(item.Labels)+1),
+		Samples: []prompb.Sample{{Timestamp: timestamp, Value: value}},
+	}
+	pt.Labels = append(pt.Labels, prompb.Label{Name: model.MetricNameLabel, Value: item.Metric})
 	for k, v := range item.Labels {
-		pairs = append(pairs, pair{k, v})
+		pt.Labels = append(pt.Labels, prompb.Label{Name: labelReplacer.Replace(k), Value: v})
 	}
-	sort.Slice(pairs, func(i, j int) bool {
-		if pairs[i].key == pairs[j].key {
-			return pairs[i].val < pairs[j].val
+	slices.SortFunc(pt.Labels, func(a, b prompb.Label) int {
+		if n := strings.Compare(a.Name, b.Name); n != 0 {
+			return n
 		}
-		return pairs[i].key < pairs[j].key
+		return strings.Compare(a.Value, b.Value)
 	})
 
-	// add other labels
-	for _, p := range pairs {
-		pt.Labels = append(pt.Labels, prompb.Label{
-			Name:  labelReplacer.Replace(p.key),
-			Value: p.val,
-		})
-	}
-
-	return &pt
+	return pt
 }
 
 func (s *Sample) SetTime(t time.Time) *Sample {
