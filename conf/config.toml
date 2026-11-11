@@ -54,10 +54,20 @@ batch = 1000
 chan_size = 1000000
 
 [[writers]]
-# Set the process environment variable PREFER_IPV4_STACK=true to use IPv4 only
-# for all writers and heartbeat connections. Only the exact value "true" enables
-# it; unset/false keeps dual-stack behavior. Restart Categraf after changing it.
-# This does not change other input clients or DNS resolution performed by proxies.
+# PREFER_IPV4_STACK=true restricts ordinary TCP/UDP connections to IPv4 for:
+# writers, heartbeat, outbound host-IP detection, remote configuration, Ibex,
+# upgrade downloads, logs (HTTP/TCP/SOCKS/Kafka and Docker/Kubelet discovery),
+# and clients using pkg/httpx or pkg/proxy (including http_response, NSQ,
+# JSON exporter, and the related x509_cert TCP paths).
+# Only the exact string "true" enables it; restart Categraf after changing it.
+# IPv6-only targets on these paths fail without IPv6 fallback. Explicit network
+# families and IPv6/DNS monitoring retain their own settings. Independent input
+# clients and the embedded Prometheus subsystem are not all covered.
+# Proxy-side DNS and custom Kafka proxy dialers retain their own policy. Kafka
+# canonical bootstrap resolution uses A then PTR; combining canonical resolution
+# with a custom proxy and this IPv4 switch is rejected with a configuration error.
+# A changed outbound IP can change heartbeat host_ip, $ip-based hostnames and
+# labels, and consequently host identity or time-series continuity.
 url = "http://127.0.0.1:17000/prometheus/v1/write"
 
 ## Optional TLS Config

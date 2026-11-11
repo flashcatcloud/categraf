@@ -11,12 +11,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"flashcat.cloud/categraf/pkg/netx"
 )
 
 func download(file string) (string, error) {
 	fname := filepath.Base(file)
 	log.Println("downloading file:", file, "save to:", fname)
-	res, err := http.Get(file)
+	client := netx.HTTPClientFromEnv(http.DefaultClient)
+	if client != http.DefaultClient {
+		defer client.CloseIdleConnections()
+	}
+	res, err := client.Get(file)
 	if err != nil {
 		return fname, fmt.Errorf("cannot download file from %s", file)
 	}

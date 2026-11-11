@@ -21,6 +21,8 @@ import (
 	"strings"
 	"time"
 
+	"flashcat.cloud/categraf/pkg/netx"
+
 	coreconfig "flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/logs/util"
 	"flashcat.cloud/categraf/logs/util/kubernetes"
@@ -90,10 +92,10 @@ func newForConfig(config kubeletClientConfig, timeout time.Duration) (*kubeletCl
 	}
 
 	return &kubeletClient{
-		client: http.Client{
+		client: *netx.HTTPClientFromEnv(&http.Client{
 			Transport: customTransport,
 			Timeout:   timeout,
-		},
+		}),
 		kubeletURL: fmt.Sprintf("%s://%s", config.scheme, config.baseURL),
 		config:     config,
 		headers:    headers,

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"flashcat.cloud/categraf/pkg/netx"
+
 	jsoniter "github.com/json-iterator/go"
 	"github.com/toolkits/pkg/file"
 
@@ -294,7 +296,7 @@ func GetOutboundIP() (net.IP, error) {
 		}
 	}
 
-	conn, err := net.Dial("udp", addr)
+	conn, err := netx.Dial("udp", addr)
 	if err != nil {
 		ip, err := getLocalIP()
 		if err != nil {

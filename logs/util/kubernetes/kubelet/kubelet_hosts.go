@@ -13,6 +13,8 @@ import (
 	"net"
 	"time"
 
+	"flashcat.cloud/categraf/pkg/netx"
+
 	"flashcat.cloud/categraf/logs/util/docker"
 )
 
@@ -57,7 +59,7 @@ func getKubeletHostFromConfig(ctx context.Context, kubeletHost string) ([]string
 	if kubeletIP == nil {
 		log.Printf("Parsing kubernetes_kubelet_host: %s is a hostname, cached, trying to resolve it to ip...", kubeletHost)
 		hostnames = append(hostnames, kubeletHost)
-		ipAddrs, err := net.DefaultResolver.LookupIPAddr(ctx, kubeletHost)
+		ipAddrs, err := netx.LookupIPAddr(ctx, kubeletHost)
 		if err != nil {
 			log.Printf("Cannot LookupIP hostname %s: %v", kubeletHost, err)
 		} else {
@@ -94,7 +96,7 @@ func getKubeletHostFromDocker(ctx context.Context) ([]string, []string) {
 
 	log.Printf("Trying to resolve host name %s provided by docker to ip...", dockerHost)
 	hostnames = append(hostnames, dockerHost)
-	ipAddrs, err := net.DefaultResolver.LookupIPAddr(ctx, dockerHost)
+	ipAddrs, err := netx.LookupIPAddr(ctx, dockerHost)
 	if err != nil {
 		log.Printf("Cannot resolve host name %s, cached, provided by docker to ip: %s", dockerHost, err)
 	} else {

@@ -2,8 +2,11 @@ package proxy
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
+
+	"flashcat.cloud/categraf/pkg/netx"
 
 	"golang.org/x/net/proxy"
 )
@@ -35,6 +38,7 @@ type TCPProxy struct {
 }
 
 func (p *TCPProxy) Proxy() (*ProxiedDialer, error) {
+	direct := netx.NewDialer(&net.Dialer{})
 	var dialer proxy.Dialer
 	if p.UseProxy {
 		if len(p.ProxyURL) > 0 {
@@ -43,14 +47,14 @@ func (p *TCPProxy) Proxy() (*ProxiedDialer, error) {
 				return nil, fmt.Errorf("error parsing proxy url %q: %w", p.ProxyURL, err)
 			}
 
-			if dialer, err = proxy.FromURL(parsed, proxy.Direct); err != nil {
+			if dialer, err = proxy.FromURL(parsed, direct); err != nil {
 				return nil, err
 			}
 		} else {
-			dialer = proxy.FromEnvironment()
+			dialer = proxy.FromEnvironmentUsing(direct)
 		}
 	} else {
-		dialer = proxy.Direct
+		dialer = direct
 	}
 
 	return &ProxiedDialer{dialer}, nil

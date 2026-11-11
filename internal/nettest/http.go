@@ -37,13 +37,33 @@ func clearProxyEnv(t *testing.T) {
 type dnsCounts struct {
 	a    atomic.Int64
 	aaaa atomic.Int64
+	ptr  atomic.Int64
+}
+
+// ObserveCanonicalDNS adds a PTR record and a canonical-name A/AAAA alias to the
+// fixture, for clients that canonicalize addresses before opening connections.
+func ObserveCanonicalDNS(t *testing.T, host, canonical string, ipv4, ipv6, canonicalIPv4 net.IP) func() (int64, int64, int64) {
+	counts := localDNS(t, host, ipv4, ipv6, canonicalDNS{name: canonical, ipv4: canonicalIPv4})
+	return func() (int64, int64, int64) { return counts.a.Load(), counts.aaaa.Load(), counts.ptr.Load() }
+}
+
+// ObserveDNS installs an isolated resolver for host and returns its query counts.
+// Tests using this fixture must not run in parallel with other resolver users.
+func ObserveDNS(t *testing.T, host string, ipv4, ipv6 net.IP) func() (int64, int64) {
+	counts := localDNS(t, host, ipv4, ipv6)
+	return func() (int64, int64) { return counts.a.Load(), counts.aaaa.Load() }
+}
+
+type canonicalDNS struct {
+	name string
+	ipv4 net.IP
 }
 
 // localDNS normally redirects the Go resolver without touching system files.
 // CATEGRAF_TEST_SYSTEM_DNS=1 instead uses the real system resolver and port 53.
 // That opt-in mode must run in an isolated network/mount namespace with its own
 // resolv.conf; it permits testing both Go and cgo without altering the host DNS.
-func localDNS(t *testing.T, host string, ipv4, ipv6 net.IP) *dnsCounts {
+func localDNS(t *testing.T, host string, ipv4, ipv6 net.IP, canonical ...canonicalDNS) *dnsCounts {
 	t.Helper()
 	address := "127.0.0.1:0"
 	systemDNS := os.Getenv("CATEGRAF_TEST_SYSTEM_DNS") == "1"
@@ -64,7 +84,15 @@ func localDNS(t *testing.T, host string, ipv4, ipv6 net.IP) *dnsCounts {
 			reply.SetReply(req)
 			reply.Authoritative = true
 			for _, q := range req.Question {
-				if q.Name != dns.Fqdn(host) {
+				if len(canonical) != 0 && q.Qtype == dns.TypePTR && ipv4 != nil {
+					reverse, _ := dns.ReverseAddr(ipv4.String())
+					if q.Name == reverse {
+						counts.ptr.Add(1)
+						reply.Answer = append(reply.Answer, &dns.PTR{Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 60}, Ptr: dns.Fqdn(canonical[0].name)})
+						continue
+					}
+				}
+				if q.Name != dns.Fqdn(host) && (len(canonical) == 0 || q.Name != dns.Fqdn(canonical[0].name)) {
 					reply.Rcode = dns.RcodeNameError
 					continue
 				}
@@ -72,8 +100,12 @@ func localDNS(t *testing.T, host string, ipv4, ipv6 net.IP) *dnsCounts {
 				switch q.Qtype {
 				case dns.TypeA:
 					counts.a.Add(1)
-					if ipv4 != nil {
-						reply.Answer = append(reply.Answer, &dns.A{Hdr: header, A: ipv4})
+					address := ipv4
+					if len(canonical) != 0 && q.Name == dns.Fqdn(canonical[0].name) {
+						address = canonical[0].ipv4
+					}
+					if address != nil {
+						reply.Answer = append(reply.Answer, &dns.A{Hdr: header, A: address})
 					}
 				case dns.TypeAAAA:
 					counts.aaaa.Add(1)
@@ -103,7 +135,7 @@ func localDNS(t *testing.T, host string, ipv4, ipv6 net.IP) *dnsCounts {
 		net.DefaultResolver = &net.Resolver{
 			PreferGo: true,
 			Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-				return (&net.Dialer{Timeout: time.Second}).DialContext(ctx, network, pc.LocalAddr().String())
+				return (&net.Dialer{Timeout: time.Second, Resolver: &net.Resolver{}}).DialContext(ctx, network, pc.LocalAddr().String())
 			},
 		}
 		t.Cleanup(func() { net.DefaultResolver = original })

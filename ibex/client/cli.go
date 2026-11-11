@@ -8,11 +8,12 @@ import (
 	"io"
 	"log"
 	"math"
-	"net"
 	"net/rpc"
 	"reflect"
 	"sync"
 	"time"
+
+	"flashcat.cloud/categraf/pkg/netx"
 
 	"github.com/ugorji/go/codec"
 
@@ -65,7 +66,7 @@ func connect() *rpcClient {
 	for i := 0; i < l; i++ {
 		addr := config.Config.Ibex.Servers[i]
 		begin := time.Now()
-		conn, err := net.DialTimeout("tcp", addr, time.Second*5)
+		conn, err := netx.DialTimeout("tcp", addr, time.Second*5)
 		if err != nil {
 			log.Printf("W! dial %s fail: %s", addr, err)
 			continue

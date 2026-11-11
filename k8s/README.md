@@ -34,10 +34,10 @@
 
 Make sure that `deployment.yaml` always appears with `etcd-service.yaml` and `deployment-etcd-http` appears with `etcd-service-http.yaml`. They cannot be apply at the same time.
 
-## Use IPv4 for writer and heartbeat connections
+## Use IPv4 for Agent connections
 
-For IPv4-only backends, set `PREFER_IPV4_STACK` on the Categraf container to
-avoid AAAA DNS queries when its writer and heartbeat clients reconnect:
+For IPv4-only deployments, set `PREFER_IPV4_STACK` on the Categraf container to
+avoid AAAA DNS queries on the supported connection and address-discovery paths:
 
 ```yaml
 spec:
@@ -55,13 +55,37 @@ This is a Pod template fragment for a Deployment, DaemonSet, or StatefulSet.
 For a standalone Pod, set the variable under `spec.containers`. In sidecar mode,
 set it on the Categraf container. Roll out updated Pods to apply the change.
 
-Only the exact string `true` enables this behavior. It applies to all writers
-and the enabled heartbeat client in that process; IPv6-only endpoints will fail
-without IPv6 fallback. Other input clients retain their existing behavior.
-With a proxy, it controls the local connection to the proxy, not DNS resolution
-performed by the proxy. Existing connection pooling and TLS verification remain
-unchanged. Remove the variable or set it to `"false"` and roll out updated Pods
-to restore the default behavior.
+Only the exact string `true` enables this behavior. The supported paths are:
+
+- All writers and the enabled heartbeat client.
+- Outbound host-IP detection at startup and every minute when `HOSTIP` is unset.
+- Remote HTTP configuration, Ibex RPC, and upgrade downloads.
+- Logs sent through HTTP, TCP, SOCKS, and direct Kafka connections; remote Docker
+  log connections, Kubelet address discovery, and Kubelet HTTP requests.
+- Public `pkg/httpx` and `pkg/proxy` clients, including `http_response`, NSQ,
+  JSON exporter, and the related `x509_cert` TCP paths.
+
+IPv6-only targets on these paths fail without IPv6 fallback. Explicit address
+families and dedicated IPv6/DNS monitoring retain their own settings. Independent
+plugin clients, database/cloud SDKs, and the embedded Prometheus subsystem are
+not all covered; this switch does not guarantee that the entire Pod stops AAAA
+queries. See the [scope and implementation plan](../docs/issue-1513-ipv4-scope-and-fix-plan.md).
+
+With a proxy, the policy applies to the supported local connection to the proxy.
+DNS performed by the proxy and custom Kafka proxy dialers retain their own policy.
+When Kafka `Net.ResolveCanonicalBootstrapServers` is enabled, direct bootstrap
+discovery uses A records and retains PTR-based canonical hostnames for TLS/GSSAPI.
+Combining that setting with both a custom proxy dialer and the IPv4 switch is
+rejected explicitly, because the proxy may own remote name resolution.
+
+Outbound IP selection can change heartbeat `host_ip`, `$ip`-based hostnames and
+labels. Check host identity and time-series continuity during rollout. Setting
+the correct `HOSTIP` for each Categraf instance bypasses outbound IP detection.
+
+Existing connection pooling, HTTP protocol selection, and TLS verification are
+preserved. Remove the variable or set it to `"false"` and roll out updated Pods
+to restore the default connection policy. Review any host identity changes
+separately when rolling back.
 
 This removes AAAA queries from the affected IPv4 dialing paths, not A queries or
 queries from other containers. For large clusters, also review Pod DNS search

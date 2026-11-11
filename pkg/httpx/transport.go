@@ -13,6 +13,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	"flashcat.cloud/categraf/pkg/netx"
 )
 
 var (
@@ -59,7 +61,7 @@ func CreateHTTPTransport() *http.Transport {
 	// desirable side-effect of disabling http/2; if removing those fields then
 	// consider the implication of the protocol switch for intakes and other http
 	// servers. See ForceAttemptHTTP2 in https://pkg.go.dev/net/http#Transport.
-	transport := &http.Transport{
+	transport := netx.HTTPTransportFromEnv(&http.Transport{
 		TLSClientConfig: tlsConfig,
 		DialContext: (&net.Dialer{
 			Timeout: 30 * time.Second,
@@ -74,7 +76,7 @@ func CreateHTTPTransport() *http.Transport {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-	}
+	})
 
 	return transport
 }
