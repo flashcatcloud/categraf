@@ -132,55 +132,98 @@ gNMI `SubscribeResponse` 的 Update 消息中，每个叶子节点 (Leaf) 的值
 
 ## 内置会话健康指标
 
-本地 gNMI 插件跨文件、跨实例按配置的 `address`（host:port）汇总，每个地址仅输出一条
-`gnmi_up`。该地址的已初始化实例中，只要有一条会话收到有效数据通知或同步响应且仍在线，
-就报 1；所有参与会话均未确认或已断开时，报 0。
+实例会话指标为 `gnmi_up`：当前会话收到有效 Update 通知或 sync_response=true 后为 1；
+启动未确认、重连或 EOF/RPC/协议错误后为 0。`disable_gnmi_up = true` 可关闭。
 
-将上报开关和周期与采集间隔一起设置在插件顶层：
+在 `[[instances]]` 内、subscription 子表之前配置：
 
 ```toml
-interval = "1s"
 disable_gnmi_up = false
 gnmi_up_interval = "30s"
 ```
 
-三个字段在整个目录各定义一次，并放在第一个 `[[instances]]` 之前。拆分文件时可放在
-排序靠前的 `00-gnmi.toml`，本地加载器按文件名顺序拼接 TOML。请把原实例级健康选项迁移
-到插件顶层，旧值不再控制上报。
+未配置或零值采用 30 秒，负值报配置错误。首次 Gather 输出；状态不变时满周期再输出；
+状态变化时在下一次 Gather 提前输出，并重新计时。每台设备独立计时，不增加定时协程。
+业务采集不受影响，实际输出受 Gather 周期约束：Gather 为 60 秒时不能每 30 秒输出。
+两次 Gather 之间发生并恢复的短暂变化可能无法观察。
 
-首次插件 Gather 上报；状态变化在下一次 Gather 提前上报并重新计时，状态稳定则按
-`gnmi_up_interval` 上报。未配置或为零时默认 30 秒，负值报错。实际间隔受插件 Gather
-周期约束，两次 Gather 之间恢复的短暂故障可能不会反映在指标上。
+up 不保证业务数据新鲜或成功转换；ON_CHANGE 正常静默不判 down，尚未检测到的网络黑洞
+也可能保持 up。不额外发送 RPC，不新增静默超时重连。该周期不改变 ICMP 探测和上报。
 
-指标使用端点地址及插件级、全局标签处理，不继承实例级标签或 relabel 规则。
-若插件标签占用 address，端点身份依次选择未占用的 gnmi_target、gnmi_target_1 等名称，
-并避让插件级、全局标签规范化后的名称，保留已有标签。请保证最终身份标签仍能区分不同地址。
-HTTP 下发的独立插件对象和不同 Categraf 进程分别汇总。业务采集仍按实例配置运行。
+会话健康支持与业务采集相同的 gRPC target，包括 `dns:///device:50051` 等 resolver URI，
+不强制要求普通 host:port。标签包含实例静态标签和 agent_host_tag（默认 agent_host）；
+无法提取单一主机时，主机标签使用完整配置目标。已有静态标签保持优先。
+完整目标通常由 address 标签标识；若该名称被静态标签或 agent_host_tag 占用，
+则额外使用 gnmi_target 保留目标身份。若该名称也被占用，则依次尝试 gnmi_target_1、
+gnmi_target_2 等，并考虑实例标签、全局标签在输出名称规范化后的冲突。
+重复的相同目标每项健康指标只输出一次；会话状态聚合计算：只要仍有一个已确认的订阅存活，
+gnmi_up 就保持为 1，新建或失败的其他订阅不会覆盖正常会话；最后一个已确认会话结束后才变为 0。
+业务订阅行为不变；不同实例配置同一目标时使用不同静态标签。
+统一输出管线的过滤、重命名和 relabel 规则仍然适用；合并多个目标时应保留目标身份标签。
 
 ## 可选内置 ICMP
 
-ICMP 默认关闭。请在第一个 `[[instances]]` 之前，与 `interval` 一起在插件顶层
-显式设置 `enable_icmp = true`。请迁移原实例级配置，旧字段仍可解析，但不再生效，
-非默认值会触发迁移提示。
+在 subscription 子表前配置 `enable_icmp = true` 开启；默认关闭。
+默认值：`icmp_interval="30s"`、`icmp_timeout="3s"`（含 DNS 的整轮截止时间）、
+`icmp_count=3`、`icmp_packet_interval="200ms"`、`icmp_concurrency=10`、
+`icmp_privileged=true`。未配置或零值使用默认值；负值、interval<=timeout 或
+ timeout<=(count-1)*packet_interval 为配置错误。关闭时忽略未使用的 ICMP 参数，
+不执行 DNS 和探测。
 
-后台探测从已初始化实例收集主机，跨文件、跨端口去重。无法提取 host:port 的目标
-会跳过，不影响业务采集。按配置的主机名或 IP 去重，DNS 别名不自动合并。
+| 指标 | 含义 |
+|---|---|
+| gnmi_icmp_probe_success | 有效完整轮次为 1；未就绪、执行错误、结果过期为 0 |
+| gnmi_icmp_up | 有回复为 1，全丢包为 0；仅有效且未过期时输出 |
+| gnmi_icmp_rtt_seconds | 成功回复平均 RTT，单位秒；无回复不输出；时钟分辨率可能使有效 RTT 为 0 |
+| gnmi_icmp_packet_loss_ratio | 丢包数/发送数，0～1；全丢包为 1；仅有效且未过期时输出 |
+| gnmi_icmp_last_probe_timestamp_seconds | 最新一轮完成时间（含执行错误），本地 Unix 秒；首轮未完成为 0 |
 
-默认探测间隔 30 秒，单轮超时 3 秒（包含 DNS），每轮 3 包，包间隔 200ms，
-最大并发 10，特权模式开启。特权探测需要相应的 socket 权限。
-`icmp_report_interval` 默认 60 秒。首次结果及可达、不可达、执行失败之间的变化
-在下一次 Gather 上报。状态稳定时，到期只上报最新的新一轮结果。结果过期时只上报一次
-执行状态异常，不重复发送旧的在线状态、RTT 或丢包率。
+发送足量探测包后超时无回复，表示 probe_success=1/up=0/loss=1。
+权限、DNS、socket、发送不足等错误，表示 probe_success=0，不输出 up/RTT/loss，
+不会沿用上一轮成功结果。结果超过 2*interval+timeout 未更新时也停止输出旧值。
+每次 Gather 重复读取最新完整快照，通过 last_probe 判断探测时间。
 
-ICMP 指标默认按 `icmp_host` 标识主机。若插件标签占用该名称，或全局 `icmp-host` 等别名
-规范化后会与其重名，则依次选择未占用的 `gnmi_icmp_host`、`gnmi_icmp_host_1` 等名称，
-保留已有标签。与正常全局标签优先级一致，全局同名 `icmp_host` 默认值不会覆盖已生成的主机身份。
-每轮上报 `gnmi_icmp_probe_success` 和
-`gnmi_icmp_last_probe_timestamp_seconds`。执行成功时还上报 `gnmi_icmp_up` 和
-`gnmi_icmp_packet_loss_ratio`，收到回复时才有 `gnmi_icmp_rtt_seconds`。
-正常执行但全丢包时，probe_success 为 1、up 为 0、丢包率为 1。执行失败或结果过期
-时，probe_success 为 0，省略在线状态、RTT 和丢包率。旧看板请从按 `address` 查询
-ICMP 改为按 `icmp_host` 查询；存在标签冲突时，使用实际生成的备用身份标签查询。
+ICMP 在后台有限 worker 中运行，不阻塞 Gather，不改变 gnmi_up，不触发重连。
+跨已初始化实例和本地配置文件，相同规范化主机与完全一致的有效探测配置共享一轮网络探测。
+去重键包含包数、超时、包间隔、权限、探测周期和实例并发；不同配置独立探测。
+静态标签和会话上报周期不影响去重。各实例仍按每次 Gather 输出自己的完整端点、主机及静态标签，
+经过原实例级 relabel；尚未完成、失败和过期快照的输出语义不变。
+插件顶层 `icmp_max_concurrency` 控制共享池总并发，默认 10；相同配置组也共同遵守该组的
+`icmp_concurrency` 上限。请按独立探测数量配置足够的调度容量。
+首轮分散在 [0, interval)，后续按完成时间加 interval 和 ±10% 抖动调度，同主机与配置键不重入。
+每轮重新解析 DNS，优先 IPv4、其次 IPv6，各地址族内稳定排序选择一个地址；
+不表示全部解析地址均在线，不跨 DNS 别名去重。支持带 zone 的 IPv6 字面量。
+ICMP 要求普通 host:数字端口（IPv6 使用方括号）；其他 gRPC target 在启动时告警并跳过探测，
+只输出 probe_success=0 和为零的 last_probe 时间，不输出 up/RTT/loss。
+对应目标的业务采集和会话健康照常运行，不限制静态标签名称。
+
+raw ICMP 需要运行账户具有相应权限，如 Linux CAP_NET_RAW 或 Windows 相应权限；
+`icmp_privileged=false` 请求非特权 ICMP socket，支持程度依赖系统。
+运行权限或探测错误仅影响 ICMP 指标，不中止 gNMI。真实环回测试需设置
+`GNMI_TEST_ICMP=1` 后运行 `go test ./inputs/gnmi -run TestICMPNativeLoopback -v -count=1`。
+普通单测无需 ICMP 权限。上线前另行验证设备 ACL、丢包、IPv6 和部署账户权限。
+
+实现说明：gNMI 使用仓库已有的 `golang.org/x/net/icmp`，直接控制 socket 读写截止时间
+与取消关闭；不使用锁定版本 pro-bing 的无界发送重试。任一次发送错误都会使整轮无效。
+`icmp_count` 上限为 65535，避免 Echo 序号溢出。
+
+## 可选端点聚合指标
+
+原有 `disable_gnmi_up`、`gnmi_up_interval` 和 ICMP 参数继续配置在 `[[instances]]` 内，
+默认值、指标名、端点及主机标签、静态标签、实例 relabel 和上报周期保持不变。
+不同实例使用同一端点时，应保留可区分实例的静态标签。
+
+在插件顶层、第一个实例之前设置 `enable_endpoint_up = true`，额外输出 `gnmi_endpoint_up`。
+该指标跨已初始化实例和本地文件按完整端点聚合：任意会话已确认且仍存活时为 1，否则为 0。
+实例的 `gnmi_up=0` 仍会独立输出，不会被该汇总指标覆盖。
+实例 `disable_gnmi_up` 只关闭实例指标，不关闭已显式启用的端点聚合。
+
+`endpoint_up_interval` 默认 30 秒，启用时拒绝负值；首次插件 Gather 和观察到的状态变化立即上报，
+稳定状态按周期上报，实际频率受插件 Gather 周期约束。聚合有独立的上报计时，
+只使用插件级及全局标签和 relabel。端点身份通常使用 address；发生配置或规范化名称冲突时，
+选择未占用的 gnmi_target、gnmi_target_1 等名称。
+聚合在线不表示每条订阅或每项业务指标均正常。HTTP 下发的独立插件对象及不同进程分别聚合。
+默认不开启聚合，不增加新指标。
 
 ## 完整配置案例
 
@@ -191,13 +234,13 @@ ICMP 改为按 `icmp_host` 查询；存在标签冲突时，使用实际生成�
 
 ```toml
 interval = "1s"
-disable_gnmi_up = false
-gnmi_up_interval = "30s"
-enable_icmp = false
 
 [[instances]]
 addresses = ["192.0.2.10:50051"]
 agent_host_tag = "ident"
+disable_gnmi_up = false
+gnmi_up_interval = "30s"
+enable_icmp = false
 # username = "your-user"
 # password = "your-password"
 
@@ -216,17 +259,19 @@ sample_interval = "15s"
 
 ```toml
 interval = "1s"
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+agent_host_tag = "ident"
 disable_gnmi_up = false
 gnmi_up_interval = "30s"
 enable_icmp = true
 icmp_interval = "30s"
 icmp_timeout = "3s"
 icmp_count = 3
-icmp_report_interval = "60s"
-
-[[instances]]
-addresses = ["192.0.2.10:50051"]
-agent_host_tag = "ident"
+icmp_packet_interval = "200ms"
+icmp_concurrency = 10
+icmp_privileged = true
 
 [[instances.subscription]]
 name = "ifcounters"
@@ -236,7 +281,8 @@ subscription_mode = "sample"
 sample_interval = "15s"
 ```
 
-ICMP 需要对应 socket 权限。探测持续进行，上报只使用尚未发送的新结果。
+ICMP 需要对应 socket 权限；探测失败不阻止 gNMI。`icmp_interval` 控制后台探测频率，
+不控制输出频率：ICMP 最新结果仍随每次 Gather 输出。`gnmi_up_interval` 仅控制 gnmi_up。
 
 ### 案例三：通过标签订阅替代接口和队列的源 key
 
@@ -287,3 +333,35 @@ drop_source_key = true
 原 key 保留。drop_source_key 必须在每段需要替换的 tag_subscription 内单独开启，默认 false。
 output 队列需增加对应业务订阅和标签订阅，将 input 改为 output。
 与 gnmi_up / ICMP 一起使用时，它们的实例级选项必须放在任何订阅子表之前。
+
+### 案例四：保留实例健康并额外开启端点聚合
+
+请按设备调整路径和认证。两个实例的有效 ICMP 参数相同，共享同一轮探测。
+若 CPU 会话断开但接口会话仍在线，各自 gnmi_up 分别为 0 和 1，gnmi_endpoint_up 仍为 1。
+
+```toml
+interval = "1s"
+enable_endpoint_up = true
+endpoint_up_interval = "30s"
+icmp_max_concurrency = 10
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+labels = { subscription = "interfaces" }
+enable_icmp = true
+[[instances.subscription]]
+name = "interfaces"
+path = "/interfaces/interface/state/counters"
+subscription_mode = "sample"
+sample_interval = "15s"
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+labels = { subscription = "cpu" }
+enable_icmp = true
+[[instances.subscription]]
+name = "cpu"
+path = "/system/cpus/cpu/state"
+subscription_mode = "sample"
+sample_interval = "15s"
+```

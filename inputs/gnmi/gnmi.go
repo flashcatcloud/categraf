@@ -41,23 +41,15 @@ type (
 	GNMI struct {
 		config.PluginConfig
 		Instances          []*Instance
-		DisableGNMIUp      bool            `toml:"disable_gnmi_up"`
-		GNMIUpInterval     config.Duration `toml:"gnmi_up_interval"`
-		EnableICMP         bool            `toml:"enable_icmp"`
-		ICMPInterval       config.Duration `toml:"icmp_interval"`
-		ICMPTimeout        config.Duration `toml:"icmp_timeout"`
-		ICMPPacketInterval config.Duration `toml:"icmp_packet_interval"`
-		ICMPCount          int             `toml:"icmp_count"`
-		ICMPConcurrency    int             `toml:"icmp_concurrency"`
-		ICMPPrivileged     *bool           `toml:"icmp_privileged"`
-		ICMPReportInterval config.Duration `toml:"icmp_report_interval"`
+		EnableEndpointUp   bool            `toml:"enable_endpoint_up"`
+		EndpointUpInterval config.Duration `toml:"endpoint_up_interval"`
+		ICMPMaxConcurrency int             `toml:"icmp_max_concurrency"`
 		icmp               *icmpMonitor
-		icmpReports        map[string]icmpReport
 		icmpMu             sync.Mutex
 		icmpCancel         context.CancelFunc
 		icmpDone           chan struct{}
 		icmpStopped        bool
-		upReports          map[string]upReport
+		endpointReports    map[string]upReport
 	}
 
 	Instance struct {
@@ -108,7 +100,8 @@ type (
 		ICMPConcurrency    int             `toml:"icmp_concurrency"`
 		ICMPPrivileged     *bool           `toml:"icmp_privileged"`
 		health             map[string]*sessionHealth
-		healthDisabled     bool
+		icmp               *icmpMonitor
+		icmpTargets        map[string]string
 		dropOnce           sync.Once
 	}
 )
@@ -157,6 +150,9 @@ func (c *Instance) Init() error {
 		c.AgentHostTag = "agent_host"
 	}
 	if err := c.initHealth(); err != nil {
+		return err
+	}
+	if err := c.initICMP(); err != nil {
 		return err
 	}
 	c.slist = types.NewSampleList()
@@ -446,9 +442,10 @@ func (c *Instance) Drop() {
 	})
 }
 
-// Gather plugin measurements (unused)
+// Forward telemetry and instance-level health snapshots.
 func (c *Instance) Gather(slist *types.SampleList) {
 	slist.PushFrontN(c.slist.PopBackAll())
+	c.gatherHealth(slist, time.Now())
 }
 
 func (c *GNMI) Name() string {
@@ -476,6 +473,7 @@ func (c *GNMI) Drop() {
 
 var _ inputs.SampleGatherer = new(Instance)
 var _ inputs.SampleGatherer = new(GNMI)
+var _ inputs.ServiceInput = new(GNMI)
 var _ inputs.Input = new(GNMI)
 var _ inputs.InstancesGetter = new(GNMI)
 

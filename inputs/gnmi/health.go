@@ -2,7 +2,6 @@ package gnmi
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"sync"
@@ -23,6 +22,9 @@ type sessionHealth struct {
 	active     map[uint64]bool
 	upSessions int
 	state      sessionSnapshot
+	reported   bool
+	lastReport time.Time
+	lastUp     bool
 }
 
 type upReport struct {
@@ -92,55 +94,52 @@ func healthHost(address string) (string, error) {
 	return host, nil
 }
 func (c *GNMI) Init() error {
+	if c.EnableEndpointUp {
+		if c.EndpointUpInterval < 0 {
+			return fmt.Errorf("endpoint_up_interval must not be negative")
+		}
+		if c.EndpointUpInterval == 0 {
+			c.EndpointUpInterval = config.Duration(30 * time.Second)
+		}
+	}
+	if c.ICMPMaxConcurrency < 0 {
+		return fmt.Errorf("icmp_max_concurrency must not be negative")
+	}
+	if c.ICMPMaxConcurrency == 0 {
+		c.ICMPMaxConcurrency = 10
+	}
+	c.endpointReports = make(map[string]upReport)
+	return nil
+}
+
+func (c *Instance) initHealth() error {
 	if c.GNMIUpInterval < 0 {
 		return fmt.Errorf("gnmi_up_interval must not be negative")
 	}
 	if c.GNMIUpInterval == 0 {
 		c.GNMIUpInterval = config.Duration(30 * time.Second)
 	}
-	c.upReports = make(map[string]upReport)
-	warned := false
-	icmpWarned := false
-	for _, instance := range c.Instances {
-		instance.healthDisabled = c.DisableGNMIUp
-		if !icmpWarned && (instance.EnableICMP || instance.ICMPInterval != 0 ||
-			instance.ICMPTimeout != 0 || instance.ICMPCount != 0 || instance.ICMPConcurrency != 0 ||
-			instance.ICMPPacketInterval != 0 || instance.ICMPPrivileged != nil) {
-			log.Println("W! gNMI instance-level ICMP settings are ignored; configure them at plugin level")
-			icmpWarned = true
-		}
-		if !warned && (instance.DisableGNMIUp || instance.GNMIUpInterval != 0) {
-			log.Println("W! gNMI instance-level disable_gnmi_up and gnmi_up_interval are ignored; configure them at plugin level")
-			warned = true
-		}
-	}
-	return c.initICMP()
-}
-
-func (c *Instance) initHealth() error {
-	if c.healthDisabled {
-		return nil
-	}
-	// Session health observes gRPC sessions, so it must accept every target
-	// supported by the existing dialer, including resolver URIs.
+	// Keep observing even when instance reporting is disabled: the optional
+	// endpoint aggregate has an independent switch and reporting cadence.
 	c.health = make(map[string]*sessionHealth, len(c.Addresses))
-	for _, a := range c.Addresses {
-		c.health[a] = &sessionHealth{}
+	for _, address := range c.Addresses {
+		c.health[address] = &sessionHealth{}
 	}
 	return nil
 }
 
-// Preserve target identity without replacing configured labels or introducing
-// duplicate names when the output pipeline normalizes label aliases.
-func (c *GNMI) healthIdentityTag(primary, fallback string) string {
+func healthIdentityTag(primary, fallback string, labels map[string]string, reserved ...string) string {
 	used := make(map[string]bool)
-	for key := range c.GetLabels() {
+	for key := range labels {
+		used[tagLabelReplacer.Replace(key)] = true
+	}
+	for _, key := range reserved {
 		used[tagLabelReplacer.Replace(key)] = true
 	}
 	if config.Config != nil {
 		for key := range config.Config.Global.Labels {
-			// An exact global default is already shadowed by the emitted
-			// identity. A differently spelled alias would create a duplicate.
+			// Exact global defaults cannot replace an emitted label, but aliases
+			// would introduce duplicate names after output normalization.
 			if key != primary {
 				used[tagLabelReplacer.Replace(key)] = true
 			}
@@ -155,24 +154,63 @@ func (c *GNMI) healthIdentityTag(primary, fallback string) string {
 	}
 	return key
 }
+
+func (c *Instance) healthLabels(address string) map[string]string {
+	host, err := healthHost(address)
+	if err != nil {
+		host = address
+	}
+	labels := map[string]string{"address": address, c.AgentHostTag: host}
+	for key, value := range c.GetLabels() {
+		labels[key] = value
+	}
+	tag := healthIdentityTag("address", "gnmi_target", c.GetLabels(), c.AgentHostTag)
+	labels[tag] = address
+	return labels
+}
+
 func unixSeconds(t time.Time) float64 {
 	if t.IsZero() {
 		return 0
 	}
 	return float64(t.UnixNano()) / 1e9
 }
-func (c *GNMI) Gather(sl *types.SampleList) {
-	now := time.Now()
-	c.gatherHealth(sl, now)
-	c.gatherICMP(sl, now)
+
+func (s *sessionHealth) report(now time.Time, interval time.Duration) (bool, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.reported && s.lastUp == s.state.Up && now.Sub(s.lastReport) < interval {
+		return false, false
+	}
+	s.reported, s.lastUp, s.lastReport = true, s.state.Up, now
+	return s.state.Up, true
 }
 
-func (c *GNMI) gatherHealth(sl *types.SampleList, now time.Time) {
+func (c *Instance) gatherHealth(sl *types.SampleList, now time.Time) {
+	c.gatherICMP(sl, now)
 	if c.DisableGNMIUp {
 		return
 	}
+	for address, session := range c.health {
+		up, emit := session.report(now, time.Duration(c.GNMIUpInterval))
+		if !emit {
+			continue
+		}
+		value := 0
+		if up {
+			value = 1
+		}
+		sl.PushSample(inputName, "up", value, c.healthLabels(address))
+	}
+}
+
+func (c *GNMI) Gather(sl *types.SampleList) { c.gatherEndpointHealth(sl, time.Now()) }
+
+func (c *GNMI) gatherEndpointHealth(sl *types.SampleList, now time.Time) {
+	if !c.EnableEndpointUp {
+		return
+	}
 	states := make(map[string]bool)
-	addressTag := c.healthIdentityTag("address", "gnmi_target")
 	for _, instance := range c.Instances {
 		if !instance.Initialized() {
 			continue
@@ -181,21 +219,22 @@ func (c *GNMI) gatherHealth(sl *types.SampleList, now time.Time) {
 			states[address] = states[address] || session.isUp()
 		}
 	}
-	for address := range c.upReports {
+	for address := range c.endpointReports {
 		if _, exists := states[address]; !exists {
-			delete(c.upReports, address)
+			delete(c.endpointReports, address)
 		}
 	}
-	for address, isUp := range states {
-		last, reported := c.upReports[address]
-		if reported && last.up == isUp && now.Sub(last.at) < time.Duration(c.GNMIUpInterval) {
+	tag := healthIdentityTag("address", "gnmi_target", c.GetLabels())
+	for address, up := range states {
+		last, reported := c.endpointReports[address]
+		if reported && last.up == up && now.Sub(last.at) < time.Duration(c.EndpointUpInterval) {
 			continue
 		}
-		c.upReports[address] = upReport{at: now, up: isUp}
-		up := 0
-		if isUp {
-			up = 1
+		c.endpointReports[address] = upReport{at: now, up: up}
+		value := 0
+		if up {
+			value = 1
 		}
-		sl.PushSample(inputName, "up", up, map[string]string{addressTag: address})
+		sl.PushSample(inputName, "endpoint_up", value, map[string]string{tag: address})
 	}
 }

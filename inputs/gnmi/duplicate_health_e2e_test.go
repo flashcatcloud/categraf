@@ -88,15 +88,10 @@ func TestDuplicateTargetSessionHealthE2E(t *testing.T) {
 	if len(business) != 1 || business[0].Metric != "gnmi_value" || business[0].Value != uint64(7) {
 		t.Fatalf("healthy subscription stopped delivering telemetry: %v", business)
 	}
-	c.SetInitialized()
-	plugin := &GNMI{Instances: []*Instance{c}}
-	if err := plugin.Init(); err != nil {
-		t.Fatal(err)
-	}
 	checkUp := func(want int) {
 		t.Helper()
 		output := types.NewSampleList()
-		plugin.gatherHealth(output, time.Now())
+		c.gatherHealth(output, time.Now())
 		samples := output.PopBackAll()
 		if len(samples) != 1 || samples[0].Metric != "gnmi_up" || samples[0].Value != want {
 			t.Fatalf("session health = %v, want one gnmi_up=%d sample", samples, want)

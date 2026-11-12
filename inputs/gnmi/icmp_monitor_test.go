@@ -52,7 +52,7 @@ func TestICMPMonitorBoundedAndCanceled(t *testing.T) {
 		t.Fatal("unbounded or reentrant probes")
 	}
 	// Snapshot/metric output must return while network probes remain blocked.
-	c := &GNMI{icmp: m, icmpReports: make(map[string]icmpReport)}
+	c := &Instance{Addresses: []string{"a:1"}, EnableICMP: true, DisableGNMIUp: true, AgentHostTag: "agent_host", icmp: m}
 	gatherDone := make(chan struct{})
 	go func() { c.gatherICMP(types.NewSampleList(), time.Now()); close(gatherDone) }()
 	select {
@@ -71,26 +71,29 @@ func TestICMPMonitorBoundedAndCanceled(t *testing.T) {
 	}
 }
 func TestICMPMonitorDeduplicatesPorts(t *testing.T) {
-	c := testICMPPlugin(t, []string{"HOST:1", "host:2"}, []string{"host:1", "host:3"})
-	if len(c.icmp.hosts) != 1 {
+	c := &Instance{Addresses: []string{"HOST:1", "host:2"}, AgentHostTag: "agent_host", EnableICMP: true}
+	if err := c.initICMP(); err != nil {
+		t.Fatal(err)
+	}
+	if len(c.icmp.keys) != 1 {
 		t.Fatal("same host not deduplicated")
 	}
 	c.icmp.store("host", icmpResult{Sent: 3, Received: 3, AvgRTT: time.Millisecond}, nil, time.Unix(1, 0))
 	sl := types.NewSampleList()
 	c.DisableGNMIUp = true
-	c.gatherICMP(sl, time.Unix(1, 0))
+	c.gatherHealth(sl, time.Unix(1, 0))
 	seen := map[string]bool{}
 	for _, sample := range sl.PopBackAll() {
 		if sample.Metric == "gnmi_icmp_up" {
-			seen[sample.Labels["icmp_host"]] = true
+			seen[sample.Labels["address"]] = true
 		}
 	}
-	if len(seen) != 1 || !seen["host"] {
-		t.Fatalf("expected one host series: %v", seen)
+	if len(seen) != 2 {
+		t.Fatalf("lost per-port identity: %v", seen)
 	}
 }
 func TestICMPMonitorConcurrentSnapshots(t *testing.T) {
-	m := newICMPMonitor(nil, icmpOptions{Count: 3}, time.Second, 1, nil)
+	m := newICMPMonitor([]string{"a"}, icmpOptions{Count: 3}, time.Second, 1, nil)
 	var wg sync.WaitGroup
 	for i := 0; i < 8; i++ {
 		wg.Add(1)

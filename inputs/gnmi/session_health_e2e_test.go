@@ -54,12 +54,6 @@ func TestResolverTargetTelemetryWithHealth(t *testing.T) {
 				waitHealth(t, func() bool { return c.slist.Len() > 0 })
 				list := types.NewSampleList()
 				c.Gather(list)
-				c.SetInitialized()
-				plugin := &GNMI{Instances: []*Instance{c}}
-				if err := plugin.Init(); err != nil {
-					t.Fatal(err)
-				}
-				plugin.Gather(list)
 				business, up := false, false
 				for _, sample := range list.PopBackAll() {
 					if sample.Metric == "gnmi_system_value" {
