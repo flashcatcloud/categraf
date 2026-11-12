@@ -4,9 +4,11 @@ package prometheus
 
 import (
 	"context"
+	"flashcat.cloud/categraf/internal/nettest"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -28,6 +30,22 @@ import (
 )
 
 func TestPrometheusStorageCompatibility(t *testing.T) {
+	for _, value := range []string{"false", "true"} {
+		t.Run(value, func(t *testing.T) { testStorageNetwork(t, value) })
+	}
+}
+func testStorageNetwork(t *testing.T, value string) {
+	for _, key := range []string{"HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"} {
+		t.Setenv(key, "")
+	}
+	t.Setenv("PREFER_IPV4_STACK", value)
+	counts := nettest.ObserveDNS(t, "example.com.", net.IPv4(127, 0, 0, 1), net.IPv6loopback)
+	policy, closePolicy := newNetworkPolicy()
+	defer closePolicy()
+
+	if value == "true" {
+		t.Setenv("PREFER_IPV4_STACK", "false")
+	}
 	for _, mode := range []string{"agent", "tsdb"} {
 		t.Run(mode, func(t *testing.T) {
 			received := make(chan struct{}, 1)
@@ -77,7 +95,7 @@ func TestPrometheusStorageCompatibility(t *testing.T) {
 			dir := t.TempDir()
 			local := &readyStorage{stats: tsdb.NewDBStats()}
 			readyScraper := &readyScrapeManager{}
-			remoteStore := remote.NewStorage(logger, registry, local.StartTime, dir, 2*time.Second, readyScraper, false)
+			remoteStore := remote.NewStorage(logger, registry, local.StartTime, dir, 2*time.Second, readyScraper, false, policy)
 			var db storage.Storage
 			var err error
 			if mode == "agent" {
@@ -109,7 +127,7 @@ func TestPrometheusStorageCompatibility(t *testing.T) {
 					t.Error(err)
 				}
 			}()
-			manager, err := scrape.NewManager(nil, logger, logging.NewJSONFileLogger, nil, fanout, registry)
+			manager, err := scrape.NewManager(&scrape.Options{HTTPClientOptions: policy.HTTPOptions()}, logger, logging.NewJSONFileLogger, nil, fanout, registry)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -131,7 +149,7 @@ remote_write:
     batch_send_deadline: 100ms
   metadata_config:
     send: false
-`, strings.TrimPrefix(exporter.URL, "http://"), receiver.URL), logger)
+`, strings.Replace(strings.TrimPrefix(exporter.URL, "http://"), "127.0.0.1", "example.com.", 1), strings.Replace(receiver.URL, "127.0.0.1", "example.com.", 1)), logger)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -142,7 +160,7 @@ remote_write:
 				t.Fatal(err)
 			}
 			updates := make(chan map[string][]*targetgroup.Group, 1)
-			updates <- map[string][]*targetgroup.Group{"smoke": {{Source: "fixture", Targets: []model.LabelSet{{model.AddressLabel: model.LabelValue(strings.TrimPrefix(exporter.URL, "http://"))}}}}}
+			updates <- map[string][]*targetgroup.Group{"smoke": {{Source: "fixture", Targets: []model.LabelSet{{model.AddressLabel: model.LabelValue(strings.Replace(strings.TrimPrefix(exporter.URL, "http://"), "127.0.0.1", "example.com.", 1))}}}}}
 			done := make(chan error, 1)
 			go func() { done <- manager.Run(updates) }()
 			defer func() {
@@ -159,5 +177,9 @@ remote_write:
 				t.Fatal("sample did not reach remote write through scrape and WAL storage")
 			}
 		})
+	}
+	a, aaaa := counts()
+	if a == 0 || value == "true" && aaaa != 0 {
+		t.Fatalf("A=%d AAAA=%d", a, aaaa)
 	}
 }

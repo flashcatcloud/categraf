@@ -18,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"flashcat.cloud/categraf/pkg/netx"
 )
 
 type ComponentOption struct {
@@ -33,6 +35,7 @@ type ComponentOption struct {
 type Component struct {
 	CommonConfig
 	ComponentOption
+	httpClient       *http.Client
 	metricsWhiteList *singlylinkedlist.List
 }
 
@@ -73,8 +76,7 @@ func (c *Component) GetData(requestURL string) (map[string]interface{}, error) {
 		}
 	}
 
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(requestURL)
+	resp, err := c.httpClient.Get(requestURL)
 	if err != nil {
 		return nil, fmt.Errorf("get data from %s failed: %v", requestURL, err)
 	}
@@ -189,6 +191,7 @@ func (c *Component) filterMetricsValue(clearedMetricsKey string, metricsValue in
 func (c *Component) Initialize(commonConfig CommonConfig) error {
 	c.metricsWhiteList = singlylinkedlist.New()
 	c.CommonConfig = commonConfig
+	c.httpClient = netx.HTTPClientFromEnv(&http.Client{Timeout: 5 * time.Second})
 	// 使用配置的白名单
 	if len(c.ComponentOption.WhiteList) > 0 {
 		for _, metricsKey := range c.ComponentOption.WhiteList {
@@ -240,7 +243,7 @@ func (e *Component) getDataWithSpnego(requestURL string) (map[string]interface{}
 		errInfo := fmt.Sprintf("could not load krb5.conf %s", err)
 		return nil, errors.New(errInfo)
 	}
-	cl := client.NewWithKeytab(SaslUsername, krb5Conf.Realms[0].Realm, kt, krb5Conf, client.DisablePAFXFAST(e.SaslDisablePAFXFast))
+	cl := client.NewWithKeytab(SaslUsername, krb5Conf.Realms[0].Realm, kt, krb5Conf, client.DisablePAFXFAST(e.SaslDisablePAFXFast), client.NetworkPolicy(netx.NetworkPolicyFromEnv()))
 	// Log in the client
 	err = cl.Login()
 	if err != nil {
@@ -254,8 +257,10 @@ func (e *Component) getDataWithSpnego(requestURL string) (map[string]interface{}
 		return nil, errors.New(errInfo)
 	}
 
-	spnegoHTTPClient := &http.Client{Timeout: 5 * time.Second}
-	spnegoCl := spnego.NewClient(cl, spnegoHTTPClient, SaslUsername)
+	// SPNEGO mutates the client redirect handler and cookie jar. Share only
+	// the component transport, retaining fresh authentication state per request.
+	spnegoHTTPClient := *e.httpClient
+	spnegoCl := spnego.NewClient(cl, &spnegoHTTPClient, SaslUsername)
 	resp, err := spnegoCl.Do(r)
 	if err != nil {
 		errInfo := fmt.Sprintf("error making spnego request %s ,err is %s", requestURL, err)

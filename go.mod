@@ -56,9 +56,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/auth v0.20.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
-	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cyphar.com/go-pathrs v0.2.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1 // indirect
@@ -218,6 +216,8 @@ require (
 )
 
 require (
+	cloud.google.com/go/auth v0.20.0
+	cloud.google.com/go/compute/metadata v0.9.0
 	cloud.google.com/go/monitoring v1.24.3
 	github.com/AlekSi/pointer v1.2.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
@@ -304,7 +304,7 @@ require (
 	github.com/dennwc/varint v1.0.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/digitalocean/godo v1.193.0 // indirect
-	github.com/docker/go-connections v0.8.2 // indirect
+	github.com/docker/go-connections v0.8.2
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/eapache/go-resiliency v1.7.0 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
@@ -334,7 +334,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.14.0 // indirect
 	github.com/go-resty/resty/v2 v2.17.2 // indirect
-	github.com/go-zookeeper/zk v1.0.4 // indirect
+	github.com/go-zookeeper/zk v1.0.4
 	github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
@@ -393,7 +393,7 @@ require (
 	github.com/prometheus/exporter-toolkit v0.16.0
 	github.com/prometheus/procfs v0.16.1
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect
-	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da // indirect
+	github.com/samuel/go-zookeeper v0.0.0-20190923202752-2cc03de413da
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.36 // indirect
 	github.com/shurcooL/httpfs v0.0.0-20230704072500-f1e31cf0ba5c // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
@@ -417,7 +417,7 @@ require (
 	go.uber.org/goleak v1.3.0 // indirect
 	golang.org/x/crypto v0.55.0
 	golang.org/x/mod v0.38.0 // indirect
-	golang.org/x/oauth2 v0.36.0 // indirect
+	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/term v0.45.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
@@ -444,3 +444,41 @@ replace (
 	github.com/googleapis/google-cloud-go/storage => cloud.google.com/go/storage v1.30.1
 	github.com/kardianos/service => github.com/kongfei605/service v1.2.2
 )
+
+replace google.golang.org/grpc => ./third_party/grpc
+
+replace github.com/vmware/govmomi => ./third_party/govmomi
+
+replace github.com/aws/aws-sdk-go-v2 => ./third_party/aws-sdk-go-v2
+
+replace github.com/denisenkom/go-mssqldb => ./third_party/go-mssqldb
+
+replace github.com/alibabacloud-go/tea => ./third_party/tea
+
+replace github.com/alibabacloud-go/darabonba-openapi/v2 => ./third_party/darabonba-openapi
+
+replace github.com/krallistic/kazoo-go => ./third_party/kazoo-go
+
+replace google.golang.org/api => ./third_party/google-api
+
+replace cloud.google.com/go/auth => ./third_party/google-auth
+
+replace cloud.google.com/go/compute/metadata => ./third_party/google-metadata
+
+replace github.com/sijms/go-ora/v2 => ./third_party/go-ora
+
+replace github.com/jcmturner/gokrb5/v8 => ./third_party/gokrb5
+
+replace github.com/IBM/sarama => ./third_party/sarama
+
+replace github.com/prometheus/prometheus => ./third_party/prometheus
+
+replace github.com/prometheus/common => ./third_party/prometheus-common
+
+replace github.com/prometheus/sigv4 => ./third_party/prometheus-sigv4
+
+replace golang.org/x/oauth2 => ./third_party/oauth2
+
+replace github.com/Azure/azure-sdk-for-go/sdk/azcore => ./third_party/azure-azcore
+
+replace github.com/aws/aws-sdk-go-v2/config => ./third_party/aws-config

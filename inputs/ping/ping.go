@@ -3,6 +3,7 @@ package ping
 import (
 	"bytes"
 	"errors"
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log"
 	"net"
@@ -41,6 +42,7 @@ type Instance struct {
 	Method       string   `toml:"method"`        // Method defines how to ping (native or exec)
 	Binary       string   `toml:"binary"`        // Ping executable binary
 
+	ipv4Only      bool
 	calcInterval  time.Duration
 	calcTimeout   time.Duration
 	sourceAddress string
@@ -52,6 +54,7 @@ type Instance struct {
 }
 
 func (ins *Instance) Init() error {
+	ins.ipv4Only = netx.PreferIPv4() && !ins.IPv6
 	if len(ins.Targets) == 0 {
 		return types.ErrInstancesEmpty
 	}
@@ -230,16 +233,11 @@ type pingStats struct {
 func (ins *Instance) ping(destination string) (*pingStats, error) {
 	ps := &pingStats{}
 
-	pinger, err := ping.NewPinger(destination)
+	pinger, err := ins.resolvePinger(destination)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new pinger: %w", err)
+		return nil, err
 	}
-
 	pinger.SetPrivileged(true)
-
-	if ins.IPv6 {
-		pinger.SetNetwork("ip6")
-	}
 
 	pinger.Size = defaultPingDataBytesSize
 	if ins.Size != nil {
@@ -294,4 +292,19 @@ func hostPinger(binary string, timeout float64, args ...string) (string, error) 
 		return stderr.String(), errors.New("run command timeout")
 	}
 	return stdout.String(), err
+}
+
+// Resolve before opening an ICMP socket so the family policy applies to the
+// library's first lookup; explicit IPv6 probes retain their requested family.
+func (ins *Instance) resolvePinger(destination string) (*ping.Pinger, error) {
+	pinger := ping.New(destination)
+	if ins.IPv6 {
+		pinger.SetNetwork("ip6")
+	} else if ins.ipv4Only {
+		pinger.SetNetwork("ip4")
+	}
+	if err := pinger.Resolve(); err != nil {
+		return nil, fmt.Errorf("failed to resolve ping target: %w", err)
+	}
+	return pinger, nil
 }

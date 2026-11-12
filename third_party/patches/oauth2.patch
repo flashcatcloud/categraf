@@ -1,0 +1,87 @@
+--- a/google/default.go
++++ b/google/default.go
+@@ -109,6 +109,9 @@
+ // CredentialsParams holds user supplied parameters that are used together
+ // with a credentials file for building a Credentials object.
+ type CredentialsParams struct {
++	// MetadataClient is an optional private client used for ADC probing, project,
++	// universe-domain and token requests. Nil retains the global SDK defaults.
++	MetadataClient *metadata.Client
+ 	// Scopes is the list OAuth scopes. Required.
+ 	// Example: https://www.googleapis.com/auth/cloud-platform
+ 	Scopes []string
+@@ -250,10 +253,22 @@
+ 
+ 	// Third, if we're on Google Compute Engine, an App Engine standard second generation runtime,
+ 	// or App Engine flexible, use the metadata server.
+-	if metadata.OnGCE() {
+-		id, _ := metadata.ProjectID()
++	onGCE := false
++	if params.MetadataClient == nil {
++		onGCE = metadata.OnGCE()
++	} else {
++		onGCE = params.MetadataClient.OnGCEWithContext(ctx)
++	}
++	if onGCE {
++		get := metadata.Get
++		projectID := metadata.ProjectID
++		if params.MetadataClient != nil {
++			get = params.MetadataClient.Get
++			projectID = params.MetadataClient.ProjectID
++		}
++		id, _ := projectID()
+ 		universeDomainProvider := func() (string, error) {
+-			universeDomain, err := metadata.Get("universe/universe_domain")
++			universeDomain, err := get("universe/universe_domain")
+ 			if err != nil {
+ 				if _, ok := err.(metadata.NotDefinedError); ok {
+ 					// http.StatusNotFound (404)
+@@ -266,7 +281,7 @@
+ 		}
+ 		return &Credentials{
+ 			ProjectID:              id,
+-			TokenSource:            computeTokenSource("", params.EarlyTokenRefresh, params.Scopes...),
++			TokenSource:            computeTokenSourceWithClient("", params.EarlyTokenRefresh, params.MetadataClient, params.Scopes...),
+ 			UniverseDomainProvider: universeDomainProvider,
+ 			universeDomain:         params.UniverseDomain,
+ 		}, nil
+--- a/google/google.go
++++ b/google/google.go
+@@ -260,16 +260,20 @@
+ }
+ 
+ func computeTokenSource(account string, earlyExpiry time.Duration, scope ...string) oauth2.TokenSource {
+-	return oauth2.ReuseTokenSourceWithExpiry(nil, computeSource{account: account, scopes: scope}, earlyExpiry)
++	return computeTokenSourceWithClient(account, earlyExpiry, nil, scope...)
++}
++func computeTokenSourceWithClient(account string, earlyExpiry time.Duration, client *metadata.Client, scope ...string) oauth2.TokenSource {
++	return oauth2.ReuseTokenSourceWithExpiry(nil, computeSource{account: account, scopes: scope, metadataClient: client}, earlyExpiry)
+ }
+ 
+ type computeSource struct {
+-	account string
+-	scopes  []string
++	metadataClient *metadata.Client
++	account        string
++	scopes         []string
+ }
+ 
+ func (cs computeSource) Token() (*oauth2.Token, error) {
+-	if !metadata.OnGCE() {
++	if cs.metadataClient == nil && !metadata.OnGCE() {
+ 		return nil, errors.New("oauth2/google: can't get a token from the metadata service; not running on GCE")
+ 	}
+ 	acct := cs.account
+@@ -282,7 +286,11 @@
+ 		v.Set("scopes", strings.Join(cs.scopes, ","))
+ 		tokenURI = tokenURI + "?" + v.Encode()
+ 	}
+-	tokenJSON, err := metadata.Get(tokenURI)
++	get := metadata.Get
++	if cs.metadataClient != nil {
++		get = cs.metadataClient.Get
++	}
++	tokenJSON, err := get(tokenURI)
+ 	if err != nil {
+ 		return nil, err
+ 	}

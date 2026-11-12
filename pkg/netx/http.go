@@ -6,12 +6,41 @@ import (
 	"net/http"
 )
 
+// ConfigureHTTPTransportFromEnv configures a fresh, exclusively owned transport
+// in place. SDKs retaining its identity for pool cleanup must use this instead
+// of replacing the transport. Call it before the first request, never on a
+// shared transport or concurrently with requests.
+func ConfigureHTTPTransportFromEnv(transport *http.Transport) {
+	configureHTTPTransport(transport, PreferIPv4())
+}
+
+// HTTPTransportConfigurerFromEnv captures the policy for SDKs which construct
+// or clone their final transport lazily, including credential refresh clients.
+func HTTPTransportConfigurerFromEnv() func(*http.Transport) {
+	enabled := PreferIPv4()
+	return func(transport *http.Transport) { configureHTTPTransport(transport, enabled) }
+}
+
+func configureHTTPTransport(transport *http.Transport, enabled bool) {
+	if !enabled {
+		return
+	}
+	configured := httpTransportWithPolicy(transport, true)
+	transport.DialContext = configured.DialContext
+	transport.DialTLSContext = configured.DialTLSContext
+	transport.ForceAttemptHTTP2 = configured.ForceAttemptHTTP2
+}
+
 // HTTPTransportFromEnv returns a private transport when IPv4 mode is enabled,
 // retaining TLS, proxy, timeout and protocol settings. Otherwise it returns the
 // source unchanged. The source may have been used already, but must not be
 // reconfigured concurrently with this call.
 func HTTPTransportFromEnv(transport *http.Transport) *http.Transport {
-	if !PreferIPv4() {
+	return httpTransportWithPolicy(transport, PreferIPv4())
+}
+
+func httpTransportWithPolicy(transport *http.Transport, enabled bool) *http.Transport {
+	if !enabled {
 		return transport
 	}
 	t := transport.Clone()
@@ -67,4 +96,10 @@ func HTTPClientFromEnv(client *http.Client) *http.Client {
 		c.Transport = HTTPTransportFromEnv(t)
 	}
 	return &c
+}
+
+// HTTPTransportConfigurerFromIPv4 returns a fixed IPv4 configurer for a policy
+// that has already been captured by an owning SDK client.
+func HTTPTransportConfigurerFromIPv4() func(*http.Transport) {
+	return func(t *http.Transport) { configureHTTPTransport(t, true) }
 }

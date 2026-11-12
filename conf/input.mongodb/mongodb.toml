@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for database connections and driver HTTP (including OCSP); full discovery/identity acceptance remains pending.
+# Restart to apply; scope and remaining work: docs/issue-1513-plugin-ipv4-implementation.md
 [[instances]]
 # log level, enum: panic, fatal, error, warn, warning, info, debug, trace, defaults to info.
 log_level = "info"

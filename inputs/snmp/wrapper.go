@@ -1,6 +1,7 @@
 package snmp
 
 import (
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log"
 	"net/url"
@@ -183,7 +184,7 @@ func (gs *GosnmpWrapper) SetAgent(agent string) error {
 	// they can result in cryptic errors by net.Dial.
 	switch u.Scheme {
 	case "tcp", "tcp4", "tcp6", "udp", "udp4", "udp6":
-		gs.Transport = u.Scheme
+		gs.Transport = netx.NetworkFromEnv(u.Scheme)
 	default:
 		return fmt.Errorf("unsupported scheme: %v", u.Scheme)
 	}

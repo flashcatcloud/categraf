@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for ordinary SNMP TCP/UDP; explicit address families remain configured.
+# Restart to apply; status and exceptions: docs/issue-1513-plugin-ipv4-implementation.md
 #[[instances]]
 #agents = ["udp://192.168.10.47:161"]
 #community = "public"

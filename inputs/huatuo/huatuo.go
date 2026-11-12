@@ -21,6 +21,7 @@ import (
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/parser"
 	"flashcat.cloud/categraf/parser/prometheus"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -65,6 +66,8 @@ type Instance struct {
 	URL     string          `toml:"url"`
 	Timeout config.Duration `toml:"timeout"`
 
+	client *http.Client
+
 	// Internal state
 	cmd        *exec.Cmd
 	cancelFunc context.CancelFunc
@@ -101,6 +104,11 @@ func (ins *Instance) Init() error {
 	}
 
 	ins.parser = prometheus.EmptyParser()
+	timeout := 5 * time.Second
+	if ins.Timeout > 0 {
+		timeout = time.Duration(ins.Timeout)
+	}
+	ins.client = netx.HTTPClientFromEnv(&http.Client{Timeout: timeout})
 
 	if ins.InstallPath != "" {
 		// Local Managed Mode
@@ -410,6 +418,9 @@ func (ins *Instance) manageProcess(ctx context.Context) {
 }
 
 func (ins *Instance) Drop() {
+	if ins.client != nil && ins.client.Transport != nil && ins.client.Transport != http.DefaultTransport {
+		ins.client.CloseIdleConnections()
+	}
 	if ins.cancelFunc != nil {
 		ins.cancelFunc()
 	}
@@ -436,15 +447,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 }
 
 func (ins *Instance) scrape(slist *types.SampleList) error {
-	var timeout = 5 * time.Second
-	if ins.Timeout > 0 {
-		timeout = time.Duration(ins.Timeout)
-	}
-
-	client := http.Client{
-		Timeout: timeout,
-	}
-	resp, err := client.Get(ins.realURL)
+	resp, err := ins.client.Get(ins.realURL)
 	if err != nil {
 		return err
 	}
@@ -460,4 +463,12 @@ func (ins *Instance) scrape(slist *types.SampleList) error {
 	}
 
 	return ins.parser.Parse(content, slist)
+}
+
+func (h *Huatuo) Drop() {
+	for _, ins := range h.Instances {
+		if ins.client != nil && ins.client.Transport != nil && ins.client.Transport != http.DefaultTransport {
+			ins.client.CloseIdleConnections()
+		}
+	}
 }

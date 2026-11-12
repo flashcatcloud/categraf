@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for ordinary native/exec ping; explicit ipv6 probes retain their configuration.
+# Restart to apply; status and exceptions: docs/issue-1513-plugin-ipv4-implementation.md
 # # collect interval
 # interval = 15
 

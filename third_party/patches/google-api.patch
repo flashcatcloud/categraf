@@ -1,0 +1,189 @@
+--- a/internal/creds.go
++++ b/internal/creds.go
+@@ -18,6 +18,7 @@
+ 	"cloud.google.com/go/auth"
+ 	"cloud.google.com/go/auth/credentials"
+ 	"cloud.google.com/go/auth/oauth2adapt"
++	"cloud.google.com/go/compute/metadata"
+ 	"golang.org/x/oauth2"
+ 	"google.golang.org/api/internal/cert"
+ 	"google.golang.org/api/internal/credentialstype"
+@@ -33,6 +34,9 @@
+ func Creds(ctx context.Context, ds *DialSettings) (*google.Credentials, error) {
+ 	if ds.IsNewAuthLibraryEnabled() {
+ 		return credsNewAuth(ds)
++	}
++	if ds.AuthHTTPClientConfigurer != nil {
++		ctx = context.WithValue(ctx, oauth2.HTTPClient, ds.AuthHTTPClientConfigurer(oauth2.NewClient(ctx, nil)))
+ 	}
+ 	creds, err := baseCreds(ctx, ds)
+ 	if err != nil {
+@@ -91,6 +95,9 @@
+ 	} else {
+ 		oauth2Client = oauth2.NewClient(ctx, nil)
+ 	}
++	if settings.AuthHTTPClientConfigurer != nil {
++		oauth2Client = settings.AuthHTTPClientConfigurer(oauth2Client)
++	}
+ 	return tokenURL, oauth2Client, nil
+ }
+ 
+@@ -143,12 +150,14 @@
+ 	credsFile, _ := settings.GetAuthCredentialsFile()
+ 	credsJSON, _ := settings.GetAuthCredentialsJSON()
+ 	return credentials.DetectDefault(&credentials.DetectOptions{
+-		Scopes:           scopes,
+-		Audience:         aud,
+-		CredentialsFile:  credsFile,
+-		CredentialsJSON:  credsJSON,
+-		UseSelfSignedJWT: useSelfSignedJWT,
+-		Logger:           settings.Logger,
++		HTTPClientConfigurer: settings.AuthHTTPClientConfigurer,
++		LookupHost:           settings.AuthLookupHost,
++		Scopes:               scopes,
++		Audience:             aud,
++		CredentialsFile:      credsFile,
++		CredentialsJSON:      credsJSON,
++		UseSelfSignedJWT:     useSelfSignedJWT,
++		Logger:               settings.Logger,
+ 	})
+ }
+ 
+@@ -172,7 +181,11 @@
+ 	if ds.TokenSource != nil {
+ 		return &google.Credentials{TokenSource: ds.TokenSource}, nil
+ 	}
+-	cred, err := google.FindDefaultCredentials(ctx, ds.GetScopes()...)
++	params := google.CredentialsParams{Scopes: ds.GetScopes()}
++	if ds.AuthHTTPClientConfigurer != nil || ds.AuthLookupHost != nil {
++		params.MetadataClient = metadata.NewWithOptions(&metadata.Options{UseDefaultClient: true, HTTPClientConfigurer: ds.AuthHTTPClientConfigurer, LookupHost: ds.AuthLookupHost})
++	}
++	cred, err := google.FindDefaultCredentialsWithParams(ctx, params)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/internal/settings.go
++++ b/internal/settings.go
+@@ -6,6 +6,7 @@
+ package internal
+ 
+ import (
++	"context"
+ 	"crypto/tls"
+ 	"errors"
+ 	"log/slog"
+@@ -32,15 +33,17 @@
+ // DialSettings holds information needed to establish a connection with a
+ // Google API service.
+ type DialSettings struct {
+-	Endpoint                string
+-	DefaultEndpoint         string
+-	DefaultEndpointTemplate string
+-	DefaultMTLSEndpoint     string
+-	Scopes                  []string
+-	DefaultScopes           []string
+-	EnableJwtWithScope      bool
+-	TokenSource             oauth2.TokenSource
+-	Credentials             *google.Credentials
++	AuthHTTPClientConfigurer func(*http.Client) *http.Client
++	AuthLookupHost           func(context.Context, string) ([]string, error)
++	Endpoint                 string
++	DefaultEndpoint          string
++	DefaultEndpointTemplate  string
++	DefaultMTLSEndpoint      string
++	Scopes                   []string
++	DefaultScopes            []string
++	EnableJwtWithScope       bool
++	TokenSource              oauth2.TokenSource
++	Credentials              *google.Credentials
+ 	// Deprecated: Use AuthCredentialsFile instead, due to security risk.
+ 	CredentialsFile string
+ 	// Deprecated: Use AuthCredentialsJSON instead, due to security risk.
+@@ -164,6 +167,15 @@
+ 
+ // Validate reports an error if ds is invalid.
+ func (ds *DialSettings) Validate() error {
++	if ds.AuthHTTPClientConfigurer != nil {
++		if enabled, _ := strconv.ParseBool(os.Getenv("EXPERIMENTAL_GOOGLE_API_USE_S2A")); enabled {
++			return errors.New("per-client network policy does not support experimental S2A transports")
++		}
++		if ds.EnableDirectPath && os.Getenv("GOOGLE_CLOUD_DISABLE_DIRECT_PATH") != "true" {
++			return errors.New("per-client network policy does not support DirectPath's custom resolver")
++		}
++	}
++
+ 	if ds.SkipValidation {
+ 		return nil
+ 	}
+--- a/option/option.go
++++ b/option/option.go
+@@ -6,6 +6,7 @@
+ package option
+ 
+ import (
++	"context"
+ 	"crypto/tls"
+ 	"log/slog"
+ 	"net/http"
+@@ -535,3 +536,19 @@
+ func (w withLogger) Apply(o *internal.DialSettings) {
+ 	o.Logger = w.l
+ }
++
++// WithAuthHTTPPolicy configures credential HTTP clients after SDK defaults and
++// mTLS setup, without replacing the business API transport or authentication.
++func WithAuthHTTPPolicy(configure func(*http.Client) *http.Client, lookup func(context.Context, string) ([]string, error)) ClientOption {
++	return authHTTPPolicy{configure: configure, lookup: lookup}
++}
++
++type authHTTPPolicy struct {
++	configure func(*http.Client) *http.Client
++	lookup    func(context.Context, string) ([]string, error)
++}
++
++func (p authHTTPPolicy) Apply(settings *internal.DialSettings) {
++	settings.AuthHTTPClientConfigurer = p.configure
++	settings.AuthLookupHost = p.lookup
++}
+--- a/transport/grpc/dial.go
++++ b/transport/grpc/dial.go
+@@ -211,11 +211,13 @@
+ 		ClientCertProvider:    ds.ClientCertSource,
+ 		APIKey:                ds.APIKey,
+ 		DetectOpts: &credentials.DetectOptions{
+-			Scopes:          ds.Scopes,
+-			Audience:        aud,
+-			CredentialsFile: credsFile,
+-			CredentialsJSON: credsJSON,
+-			Logger:          ds.Logger,
++			HTTPClientConfigurer: ds.AuthHTTPClientConfigurer,
++			LookupHost:           ds.AuthLookupHost,
++			Scopes:               ds.Scopes,
++			Audience:             aud,
++			CredentialsFile:      credsFile,
++			CredentialsJSON:      credsJSON,
++			Logger:               ds.Logger,
+ 		},
+ 		InternalOptions: &grpctransport.InternalOptions{
+ 			EnableNonDefaultSAForDirectPath: ds.AllowNonDefaultServiceAccount,
+--- a/transport/http/dial.go
++++ b/transport/http/dial.go
+@@ -120,11 +120,13 @@
+ 		ClientCertProvider:    ds.ClientCertSource,
+ 		BaseRoundTripper:      base,
+ 		DetectOpts: &credentials.DetectOptions{
+-			Scopes:          ds.Scopes,
+-			Audience:        aud,
+-			CredentialsFile: credsFile,
+-			CredentialsJSON: credsJSON,
+-			Logger:          ds.Logger,
++			HTTPClientConfigurer: ds.AuthHTTPClientConfigurer,
++			LookupHost:           ds.AuthLookupHost,
++			Scopes:               ds.Scopes,
++			Audience:             aud,
++			CredentialsFile:      credsFile,
++			CredentialsJSON:      credsJSON,
++			Logger:               ds.Logger,
+ 		},
+ 		InternalOptions: &httptransport.InternalOptions{
+ 			EnableJWTWithScope:      ds.EnableJwtWithScope,

@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for ordinary SNMP TCP/UDP and ping; explicit IPv6 remains configured.
+# Restart to apply; status and exceptions: docs/issue-1513-plugin-ipv4-implementation.md
 # Retrieves SNMP values from remote agents
 [[instances]]
 ## Agent addresses to retrieve values from.

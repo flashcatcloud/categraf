@@ -478,3 +478,11 @@ func isSelected(metric internalTypes.Metric, name, namespace string, metricregex
 	}
 	return true
 }
+
+func (a *Aliyun) Drop() {
+	for _, ins := range a.Instances {
+		if ins.client != nil {
+			ins.client.Close()
+		}
+	}
+}

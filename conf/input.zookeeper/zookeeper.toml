@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for ZooKeeper TCP/TLS monitoring connections.
+# Restart to apply; status and exceptions: docs/issue-1513-plugin-ipv4-implementation.md
 # # collect interval
 # interval = 15
 

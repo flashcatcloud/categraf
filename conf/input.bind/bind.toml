@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for statistics HTTP.
+# Restart to apply; scope and remaining work: docs/issue-1513-plugin-ipv4-implementation.md
 [[instances]]
 urls = [
  # "http://localhost:8053/xml/v3",

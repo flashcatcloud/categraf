@@ -23,6 +23,7 @@ import (
 	promconfig "github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/discovery"
 	"github.com/prometheus/prometheus/discovery/targetgroup"
+	"github.com/prometheus/prometheus/util/httppolicy"
 )
 
 func TestDockerDiscoveryTransportsAndRetry(t *testing.T) {
@@ -108,7 +109,7 @@ const swarmDiscoveryTasks = `[{"ID":"task","ServiceID":"service","NodeID":"node"
 
 // Load the full Prometheus YAML through the same package and install registry
 // used by Categraf. Testing the upstream constructors alone would miss that path.
-func discoveryFromYAML(t *testing.T, yaml string) discovery.Discoverer {
+func discoveryFromYAML(t *testing.T, yaml string, policies ...*httppolicy.Policy) discovery.Discoverer {
 	t.Helper()
 	logger := slog.New(slog.DiscardHandler)
 	config, err := promconfig.Load(yaml, logger)
@@ -130,7 +131,11 @@ func discoveryFromYAML(t *testing.T, yaml string) discovery.Discoverer {
 		t.Fatal(err)
 	}
 	t.Cleanup(metrics.Unregister)
-	d, err := configs[0].NewDiscoverer(discovery.DiscovererOptions{Logger: logger, Metrics: metrics, SetName: "docker-regression"})
+	var policy *httppolicy.Policy
+	if len(policies) > 0 {
+		policy = policies[0]
+	}
+	d, err := configs[0].NewDiscoverer(discovery.DiscovererOptions{Logger: logger, Metrics: metrics, SetName: "docker-regression", NetworkPolicy: policy, HTTPClientOptions: policy.HTTPOptions()})
 	if err != nil {
 		t.Fatal(err)
 	}

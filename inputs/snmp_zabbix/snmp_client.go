@@ -2,6 +2,7 @@ package snmp_zabbix
 
 import (
 	"context"
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log"
 	"net"
@@ -499,6 +500,10 @@ func (m *SNMPClientManager) createClient(agent string) (*gosnmp.GoSNMP, error) {
 	}
 
 	// 创建SNMP客户端
+	network := agentConfig.Transport
+	if network == "" {
+		network = "udp"
+	}
 	client := &gosnmp.GoSNMP{
 		Target:                  agentConfig.Host,
 		Port:                    uint16(agentConfig.Port),
@@ -508,7 +513,7 @@ func (m *SNMPClientManager) createClient(agent string) (*gosnmp.GoSNMP, error) {
 		Retries:                 m.config.Retries,
 		MaxRepetitions:          uint32(m.config.MaxRepetitions),
 		MaxOids:                 gosnmp.MaxOids, // 默认值
-		Transport:               agentConfig.Transport,
+		Transport:               netx.NetworkFromEnv(network),
 		UseUnconnectedUDPSocket: m.config.UnconnectedUDPSocket,
 	}
 	if m.config.DebugMode {

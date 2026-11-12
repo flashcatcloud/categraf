@@ -3,6 +3,7 @@ package net_response
 import (
 	"bufio"
 	"errors"
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log"
 	"math"
@@ -200,7 +201,7 @@ func (ins *Instance) TCPGather(address string) (map[string]string, map[string]in
 	// Start Timer
 	start := time.Now()
 	// Connecting
-	conn, err := net.DialTimeout("tcp", address, time.Duration(ins.Timeout))
+	conn, err := netx.DialTimeout("tcp", address, time.Duration(ins.Timeout))
 	// Stop timer
 	responseTime := time.Since(start).Seconds()
 	// Handle error
@@ -266,7 +267,8 @@ func (ins *Instance) UDPGather(address string) (map[string]string, map[string]in
 	// Start Timer
 	start := time.Now()
 	// Resolving
-	udpAddr, err := net.ResolveUDPAddr("udp", address)
+	network := netx.NetworkFromEnv("udp")
+	udpAddr, err := net.ResolveUDPAddr(network, address)
 	// Handle error
 	if err != nil {
 		fields["result_code"] = ConnectionFailed
@@ -276,7 +278,7 @@ func (ins *Instance) UDPGather(address string) (map[string]string, map[string]in
 		return tags, fields, nil
 	}
 	// Connecting
-	conn, err := net.DialUDP("udp", nil, udpAddr)
+	conn, err := net.DialUDP(network, nil, udpAddr)
 	// Handle error
 	if err != nil {
 		fields["result_code"] = ConnectionFailed

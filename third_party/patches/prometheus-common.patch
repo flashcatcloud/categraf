@@ -1,0 +1,47 @@
+--- a/config/http_config.go
++++ b/config/http_config.go
+@@ -496,14 +496,15 @@
+ type NewTLSConfigFunc func(context.Context, *TLSConfig, ...TLSConfigOption) (*tls.Config, error)
+ 
+ type httpClientOptions struct {
+-	dialContextFunc   DialContextFunc
+-	newTLSConfigFunc  NewTLSConfigFunc
+-	keepAlivesEnabled bool
+-	http2Enabled      bool
+-	idleConnTimeout   time.Duration
+-	userAgent         string
+-	host              string
+-	secretManager     SecretManager
++	oauth2DialContextFunc DialContextFunc
++	dialContextFunc       DialContextFunc
++	newTLSConfigFunc      NewTLSConfigFunc
++	keepAlivesEnabled     bool
++	http2Enabled          bool
++	idleConnTimeout       time.Duration
++	userAgent             string
++	host                  string
++	secretManager         SecretManager
+ }
+ 
+ // HTTPClientOption defines an option that can be applied to the HTTP client.
+@@ -523,6 +524,12 @@
+ 	return httpClientOptionFunc(func(opts *httpClientOptions) {
+ 		opts.dialContextFunc = fn
+ 	})
++}
++
++// WithOAuth2DialContextFunc selects the independent token endpoint dialer.
++// It does not inherit business-endpoint DNS load-balancing options.
++func WithOAuth2DialContextFunc(fn DialContextFunc) HTTPClientOption {
++	return httpClientOptionFunc(func(opts *httpClientOptions) { opts.oauth2DialContextFunc = fn })
+ }
+ 
+ // WithNewTLSConfigFunc allows you to override the func that creates the TLS config
+@@ -969,6 +976,7 @@
+ 	tlsTransport := func(tlsConfig *tls.Config) (http.RoundTripper, error) {
+ 		return &http.Transport{
+ 			TLSClientConfig:       tlsConfig,
++			DialContext:           rt.opts.oauth2DialContextFunc,
+ 			Proxy:                 rt.config.Proxy(),
+ 			ProxyConnectHeader:    rt.config.GetProxyConnectHeader(),
+ 			DisableKeepAlives:     !rt.opts.keepAlivesEnabled,

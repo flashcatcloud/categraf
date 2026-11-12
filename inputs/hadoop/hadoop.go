@@ -107,3 +107,15 @@ func (ins *Hadoop) Gather(slist *types.SampleList) {
 	}
 	wg.Wait()
 }
+
+func (ins *Hadoop) Drop() {
+	if ins.components == nil {
+		return
+	}
+	for _, value := range ins.components.Values() {
+		client := value.(*Component).httpClient
+		if client != nil && client.Transport != nil {
+			client.CloseIdleConnections()
+		}
+	}
+}

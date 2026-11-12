@@ -10,6 +10,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 
@@ -87,6 +88,7 @@ func (ins *Instance) Init() error {
 		TLSClientConfig: tlsCfg,
 	}
 
+	conf.Transport = netx.HTTPTransportFromEnv(conf.Transport)
 	client, err := api.NewClient(conf)
 	if err != nil {
 		return err

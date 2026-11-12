@@ -44,3 +44,5 @@ mbean = "java.lang:type=Memory"
 Because this plugin collects the exact same kind of data as the `jolokia_agent` plugin, the metric names and structure depend entirely on your `[[instances.metric]]` configurations.
 
 Therefore, it does not come with a single predefined dashboard. You must customize your dashboard based on the specific business logic (e.g., Tomcat / JBoss / Kafka) you are querying, or reuse existing Jolokia Agent dashboards.
+
+`PREFER_IPV4_STACK=true` enables IPv4 for this plugin's HTTP connections. Restart Categraf to apply; IPv6-only targets fail without fallback. See the [implementation status and remaining paths](../../docs/issue-1513-plugin-ipv4-implementation.md).

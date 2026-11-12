@@ -19,7 +19,11 @@ package exporter
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"sync"
+
+	"flashcat.cloud/categraf/pkg/netx"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -32,6 +36,7 @@ var _ prometheus.Collector = (*Exporter)(nil)
 // Exporter holds Exporter methods and attributes.
 type Exporter struct {
 	client                *mongo.Client
+	httpClient            *http.Client // owned policy client; never the SDK's shared default
 	clientMu              sync.Mutex
 	logger                *logrus.Logger
 	opts                  *Opts
@@ -99,12 +104,23 @@ func New(opts *Opts) (*Exporter, error) {
 		return nil, fmt.Errorf("cannot connect to mongo: %v", err)
 	}
 
-	return exp, exp.initCollectors(ctx, exp.client)
+	if err := exp.initCollectors(ctx, exp.client); err != nil {
+		exp.Close()
+		return nil, err
+	}
+	return exp, nil
 }
 
 func (e *Exporter) Close() {
+	e.clientMu.Lock()
+	defer e.clientMu.Unlock()
 	if e.client != nil {
 		e.client.Disconnect(context.Background())
+		e.client = nil
+	}
+	if e.httpClient != nil {
+		e.httpClient.CloseIdleConnections()
+		e.httpClient = nil
 	}
 }
 
@@ -231,16 +247,17 @@ func (e *Exporter) getClient(ctx context.Context) (*mongo.Client, error) {
 		return e.client, nil
 	}
 
-	client, err := connect(context.Background(), e.opts.URI, e.opts.Username, e.opts.Password, e.opts.DirectConnect)
+	client, httpClient, err := connect(ctx, e.opts.URI, e.opts.Username, e.opts.Password, e.opts.DirectConnect)
 	if err != nil {
 		return nil, err
 	}
 
 	e.client = client
+	e.httpClient = httpClient
 	return client, nil
 }
 
-func connect(ctx context.Context, dsn, username, password string, directConnect bool) (*mongo.Client, error) {
+func connect(ctx context.Context, dsn, username, password string, directConnect bool) (*mongo.Client, *http.Client, error) {
 	opts := options.Client().ApplyURI(dsn)
 	opts.SetDirect(directConnect)
 	opts.SetAppName("mongodb_exporter")
@@ -252,17 +269,60 @@ func connect(ctx context.Context, dsn, username, password string, directConnect 
 		})
 	}
 
+	httpClient, err := configureIPv4(opts)
+	if err != nil {
+		return nil, nil, err
+	}
 	client, err := mongo.Connect(ctx, opts)
 	if err != nil {
-		return nil, err
+		if httpClient != nil {
+			httpClient.CloseIdleConnections()
+		}
+		return nil, nil, err
 	}
 
 	if err = client.Ping(ctx, nil); err != nil {
 		// Ping failed. Close background connections. Error is ignored since the ping error is more relevant.
 		_ = client.Disconnect(ctx)
+		if httpClient != nil {
+			httpClient.CloseIdleConnections()
+		}
 
-		return nil, fmt.Errorf("cannot connect to MongoDB: %w", err)
+		return nil, nil, fmt.Errorf("cannot connect to MongoDB: %w", err)
 	}
 
-	return client, nil
+	return client, httpClient, nil
+}
+
+// configureIPv4 runs before mongo.Connect constructs authenticators and topology.
+// The returned HTTP client is private and must be closed after Disconnect.
+func configureIPv4(opts *options.ClientOptions) (*http.Client, error) {
+	if !netx.PreferIPv4() {
+		return nil, nil
+	}
+	httpClient := opts.HTTPClient
+	if httpClient == nil {
+		httpClient = options.Client().HTTPClient
+	}
+	transport := httpClient.Transport
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+	if _, ok := transport.(*http.Transport); !ok {
+		return nil, fmt.Errorf("MongoDB IPv4 policy requires an adapted HTTP transport, got %T", transport)
+	}
+	httpClient = netx.HTTPClientFromEnv(httpClient)
+	opts.SetHTTPClient(httpClient)
+	if opts.Dialer == nil {
+		opts.SetDialer(netx.NewDialer(&net.Dialer{}))
+	} else {
+		opts.SetDialer(contextDialer(netx.DialFuncFromEnv(opts.Dialer.DialContext)))
+	}
+	return httpClient, nil
+}
+
+type contextDialer func(context.Context, string, string) (net.Conn, error)
+
+func (dial contextDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	return dial(ctx, network, addr)
 }

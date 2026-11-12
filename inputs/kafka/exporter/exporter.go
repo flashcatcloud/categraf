@@ -3,6 +3,7 @@ package exporter
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"flashcat.cloud/categraf/pkg/kafkax"
 	"fmt"
 	"os"
 	"regexp"
@@ -50,6 +51,7 @@ type PromDesc struct {
 // Exporter collects Kafka stats from the given server and exports them using
 // the prometheus metrics package.
 type Exporter struct {
+	newClient                  func() (sarama.Client, error)
 	client                     sarama.Client
 	topicFilter                *regexp.Regexp
 	topicExclude               *regexp.Regexp
@@ -68,7 +70,6 @@ type Exporter struct {
 	consumerGroupFetchAll      bool
 	consumerGroupLagTable      interpolationMap
 	kafkaOpts                  Options
-	saramaConfig               *sarama.Config
 	logger                     log.Logger
 	promDesc                   *PromDesc
 	disableCalculateLagRate    bool
@@ -217,7 +218,7 @@ func New(logger log.Logger, opts Options, topicFilter, topicExclude, groupFilter
 	}
 
 	if opts.UseZooKeeperLag {
-		zookeeperClient, err = kazoo.NewKazoo(opts.UriZookeeper, nil)
+		zookeeperClient, err = kafkax.NewKazooFromEnv(opts.UriZookeeper, nil)
 		if err != nil {
 			level.Error(logger).Log("msg", "Error connecting to ZooKeeper", "err", err.Error())
 			return nil, err
@@ -232,7 +233,8 @@ func New(logger log.Logger, opts Options, topicFilter, topicExclude, groupFilter
 
 	config.Metadata.RefreshFrequency = interval
 
-	client, err := sarama.NewClient(opts.Uri, config)
+	newClient := kafkax.NewClientFactory(config, opts.Uri)
+	client, err := newClient()
 
 	if err != nil {
 		level.Error(logger).Log("msg", "Error initiating kafka client: %s", "err", err.Error())
@@ -243,6 +245,7 @@ func New(logger log.Logger, opts Options, topicFilter, topicExclude, groupFilter
 	// Init our exporter.
 	newExporter := &Exporter{
 		client:                     client,
+		newClient:                  newClient,
 		topicFilter:                regexp.MustCompile(topicFilter),
 		topicExclude:               regexp.MustCompile(topicExclude),
 		groupFilter:                regexp.MustCompile(groupFilter),
@@ -259,7 +262,6 @@ func New(logger log.Logger, opts Options, topicFilter, topicExclude, groupFilter
 		consumerGroupFetchAll:      config.Version.IsAtLeast(sarama.V2_0_0_0),
 		consumerGroupLagTable:      interpolationMap{mu: sync.Mutex{}},
 		kafkaOpts:                  opts,
-		saramaConfig:               config,
 		logger:                     logger,
 		promDesc:                   nil, // initialized in func initializeMetrics
 		disableCalculateLagRate:    opts.DisableCalculateLagRate,
@@ -841,7 +843,7 @@ func (e *Exporter) RunPruner() {
 					}
 				}()
 
-				client, err := sarama.NewClient(e.kafkaOpts.Uri, e.saramaConfig)
+				client, err := e.newClient()
 				if err != nil {
 					level.Error(e.logger).Log("msg", "Error initializing kafka client for RunPruner", "err", err.Error())
 					return // only return from anonymous function, don't exit goroutine

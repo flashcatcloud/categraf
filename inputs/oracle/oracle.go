@@ -3,6 +3,7 @@ package oracle
 import (
 	"context"
 	"database/sql"
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log"
 	"regexp"
@@ -95,7 +96,7 @@ func (ins *Instance) Init() error {
 		return fmt.Errorf("failed to build oracle connect string %s: %v", ins.Address, err)
 	}
 
-	conn, err := sql.Open("oracle", connString)
+	conn, err := openPoolFromEnv(connString)
 	if err != nil {
 		return fmt.Errorf("failed to open oracle database %s: %v", ins.Address, err)
 	}
@@ -360,4 +361,18 @@ func explode(target string) (ip string, port int, service string, err error) {
 	}
 
 	return
+}
+
+func openPoolFromEnv(dsn string) (*sql.DB, error) {
+	pool, err := sql.Open("oracle", dsn)
+	if err != nil || !netx.PreferIPv4() {
+		return pool, err
+	}
+	connector, err := pool.Driver().(*go_ora.OracleDriver).OpenConnector(dsn)
+	_ = pool.Close()
+	if err != nil {
+		return nil, err
+	}
+	connector.(*go_ora.OracleConnector).NetworkPolicy(netx.NetworkPolicyFromEnv())
+	return sql.OpenDB(connector), nil
 }

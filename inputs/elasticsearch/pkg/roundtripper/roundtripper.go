@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	internalaws "flashcat.cloud/categraf/pkg/aws"
 	"io"
 	"log"
 	"net/http"
@@ -42,7 +43,7 @@ type AWSSigningTransport struct {
 
 func NewAWSSigningTransport(transport http.RoundTripper, region string, roleArn string) (*AWSSigningTransport, error) {
 	// Only set region explicitly when provided; otherwise allow env/IMDS resolution
-	var opts []func(*config.LoadOptions) error
+	opts := internalaws.HTTPClientOptionsFromEnv()
 	if region != "" {
 		opts = append(opts, config.WithRegion(region))
 	}

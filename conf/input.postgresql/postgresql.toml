@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for PostgreSQL DNS/TCP; Unix sockets retain their transport.
+# Restart to apply; scope and remaining work: docs/issue-1513-plugin-ipv4-implementation.md
 # Read metrics from one or many postgresql servers
 # # collect interval
 # interval = 15

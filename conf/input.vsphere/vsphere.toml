@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for SOAP, inherited service clients and certificate-login tunnels.
+# Restart to apply; scope and remaining work: docs/issue-1513-plugin-ipv4-implementation.md
 # # collect interval
 # interval = 15
 

@@ -9,7 +9,6 @@ on:
       - 'docker/**'
       - 'doc/**'
       - 'k8s/**'
-      - 'scripts/**'
       - '**.md'
       - '.gitignore'
 
@@ -38,18 +37,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          # Keep the PR base available for local diff filtering, including
+          # PRs too large for GitHub's diff API.
+          fetch-depth: 0
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
       - name: Tidy Go modules
         run: go mod tidy
+      - name: Verify PR lint baseline
+        if: github.event_name == 'pull_request'
+        env:
+          LINT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git cat-file -e "${LINT_BASE_SHA}^{commit}"
       - name: Run golang-ci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12
-          args: --timeout=10m --tests=false
-          only-new-issues: true
+          # only-new-issues downloads the diff through GitHub's API, which
+          # rejects PRs with more than 300 files and falls back to full lint.
+          # Use the checked-out base instead; manual runs retain full lint.
+          args: >-
+            --timeout=10m --tests=false
+            ${{ github.event_name == 'pull_request' && format('--new-from-rev={0}', github.event.pull_request.base.sha) || '' }}
+          only-new-issues: false
           skip-cache: true
       - name: Run go version check
         run: make go-version-check
@@ -72,14 +83,56 @@ jobs:
         run: make build-linux && make build-linux-arm
       - name: go build windows
         run: make build-windows
+  PluginIPv4Policy:
+    name: "Plugin IPv4 DNS Regression"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+      - name: Verify tidy dependency closure
+        run: go mod tidy -diff
+      - name: Verify pinned SDK patches
+        run: python3 scripts/verify-network-patches.py
+      - name: Test plugin and shared-client DNS policies
+        run: >-
+          go test -mod=readonly -race -count=1
+          ./inputs/nginx ./inputs/nginx_upstream_check ./inputs/apache/... ./inputs/haproxy
+          ./inputs/rabbitmq ./inputs/tomcat ./inputs/logstash ./inputs/influxdb
+          ./inputs/clickhouse ./inputs/elasticsearch ./inputs/elasticsearch/pkg/roundtripper ./inputs/jolokia
+          ./inputs/jolokia_agent ./inputs/jolokia_proxy ./inputs/jenkins ./inputs/cloudwatch
+          ./inputs/redfish ./inputs/tengine ./inputs/nats ./inputs/xskyapi
+          ./inputs/appdynamics ./inputs/docker ./inputs/cadvisor ./inputs/kubernetes
+          ./inputs/prometheus ./inputs/consul ./inputs/emc_unity ./inputs/phpfpm
+          ./inputs/traffic_server ./inputs/bind ./inputs/rocketmq_offset ./inputs/hadoop
+          ./inputs/huatuo ./inputs/x509_cert ./inputs/supervisor ./inputs/node_exporter/collector
+          ./logs/util/docker ./pkg/dockerx ./inputs/mysql ./inputs/postgresql
+          ./inputs/redis ./inputs/redis_sentinel ./inputs/mongodb/... ./inputs/kafka/...
+          ./inputs/vsphere ./logs/client/kafka ./pkg/kafkax ./pkg/netx
+          ./pkg/httpx ./pkg/proxy ./pkg/aws ./pkg/googlex ./pkg/grpcx ./pkg/zkx
+          ./inputs/sqlserver ./inputs/oracle ./inputs/gnmi ./inputs/googlecloud ./inputs/aliyun/...
+          ./inputs/ldap ./inputs/whois ./inputs/modbus ./inputs/net_response ./inputs/zookeeper
+          ./inputs/snmp ./inputs/snmp_zabbix ./inputs/ping ./prometheus
+          github.com/prometheus/prometheus/discovery/azure
+      - name: Verify metrics Kafka without log collection
+        env:
+          CGO_ENABLED: "0"
+        run: go build -mod=readonly -tags no_logs -o /tmp/categraf-no-logs .
   WindowsNamedPipe:
     name: "Windows Named Pipe Regression"
     runs-on: windows-latest
     timeout-minutes: 20
+    strategy:
+      matrix:
+        ipv4: ["false", "true"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
       - name: Test real Windows named-pipe transport
+        env:
+          PREFER_IPV4_STACK: ${{ matrix.ipv4 }}
         run: go test -mod=readonly -v -count=1 -run '^TestMobyNamedPipe$' -timeout=2m ./inputs/docker

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
 	gnatsd "github.com/nats-io/nats-server/v2/server"
 	"io"
@@ -125,9 +126,9 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		ResponseHeaderTimeout: time.Duration(ins.ResponseTimeout),
 	}
 
-	client := &http.Client{
+	client := netx.HTTPClientFromEnv(&http.Client{
 		Transport: tr,
 		Timeout:   time.Duration(ins.ResponseTimeout),
-	}
+	})
 	return client, nil
 }

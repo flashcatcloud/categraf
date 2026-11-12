@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
 
 	"github.com/kolo/xmlrpc"
@@ -11,6 +12,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/filter"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -89,7 +91,7 @@ func (ins *Instance) Init() error {
 	}
 	var err error
 	// Initializing XML-RPC client
-	ins.rpcClient, err = xmlrpc.NewClient(ins.Url, nil)
+	ins.rpcClient, err = xmlrpc.NewClient(ins.Url, netx.HTTPTransportFromEnv(http.DefaultTransport.(*http.Transport)))
 	if err != nil {
 		return fmt.Errorf("XML-RPC client initialization failed: %w", err)
 	}

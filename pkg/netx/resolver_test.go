@@ -45,3 +45,23 @@ func TestNetworkFromEnv(t *testing.T) {
 		})
 	}
 }
+
+func TestLookupHostCapturedPolicy(t *testing.T) {
+	t.Setenv("PREFER_IPV4_STACK", "true")
+	counts := nettest.ObserveDNS(t, "lookup.invalid.", net.IPv4(127, 0, 0, 1), net.IPv6loopback)
+	lookup := LookupHostFromEnv(net.DefaultResolver)
+	t.Setenv("PREFER_IPV4_STACK", "false")
+	addresses, err := lookup(context.Background(), "lookup.invalid.")
+	if err != nil || len(addresses) != 1 || addresses[0] != "127.0.0.1" {
+		t.Fatalf("addresses=%v err=%v", addresses, err)
+	}
+	a, aaaa := counts()
+	if a == 0 || aaaa != 0 {
+		t.Fatalf("A=%d AAAA=%d", a, aaaa)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := lookup(ctx, "lookup.invalid."); err == nil {
+		t.Fatal("canceled lookup succeeded")
+	}
+}

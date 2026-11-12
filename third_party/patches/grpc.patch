@@ -1,0 +1,254 @@
+--- a/dialoptions.go
++++ b/dialoptions.go
+@@ -67,8 +67,9 @@
+ // dialOptions configure a Dial call. dialOptions are set by the DialOption
+ // values passed to Dial.
+ type dialOptions struct {
+-	unaryInt  UnaryClientInterceptor
+-	streamInt StreamClientInterceptor
++	proxyResolverBuilder resolver.Builder
++	unaryInt             UnaryClientInterceptor
++	streamInt            StreamClientInterceptor
+ 
+ 	chainUnaryInts  []UnaryClientInterceptor
+ 	chainStreamInts []StreamClientInterceptor
+@@ -810,3 +811,14 @@
+ 		o.copts.BufferPool = bufferPool
+ 	})
+ }
++
++// WithNetworkPolicy decorates the native direct/proxy dial network without
++// selecting the custom-dialer path or changing proxy/keepalive semantics.
++func WithNetworkPolicy(policy func(string) string) DialOption {
++	return newFuncDialOption(func(o *dialOptions) { o.copts.NetworkPolicy = policy })
++}
++
++// WithProxyResolverBuilder installs a per-ClientConn proxy-address resolver.
++func WithProxyResolverBuilder(builder resolver.Builder) DialOption {
++	return newFuncDialOption(func(o *dialOptions) { o.proxyResolverBuilder = builder })
++}
+--- a/internal/resolver/delegatingresolver/delegatingresolver.go
++++ b/internal/resolver/delegatingresolver/delegatingresolver.go
+@@ -50,9 +50,10 @@
+ //
+ // It implements the [resolver.Resolver] interface.
+ type delegatingResolver struct {
+-	target   resolver.Target     // parsed target URI to be resolved
+-	cc       resolver.ClientConn // gRPC ClientConn
+-	proxyURL *url.URL            // proxy URL, derived from proxy environment and target
++	target       resolver.Target     // parsed target URI to be resolved
++	cc           resolver.ClientConn // gRPC ClientConn
++	buildOptions resolver.BuildOptions
++	proxyURL     *url.URL // proxy URL, derived from proxy environment and target
+ 
+ 	// We do not hold both mu and childMu in the same goroutine. Avoid holding
+ 	// both locks when calling into the child, as the child resolver may
+@@ -105,6 +106,7 @@
+ //     resolution is enabled using the dial option.
+ func New(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions, targetResolverBuilder resolver.Builder, targetResolutionEnabled bool) (resolver.Resolver, error) {
+ 	r := &delegatingResolver{
++		buildOptions:   opts,
+ 		target:         target,
+ 		cc:             cc,
+ 		proxyResolver:  nopResolver{},
+@@ -164,7 +166,10 @@
+ // scheme. It adjusts the proxyURL to conform to the "dns:///" format and builds
+ // a resolver with a wrappingClientConn to capture resolved addresses.
+ func (r *delegatingResolver) proxyURIResolver(opts resolver.BuildOptions) (resolver.Resolver, error) {
+-	proxyBuilder := resolver.Get("dns")
++	proxyBuilder := opts.ProxyResolverBuilder
++	if proxyBuilder == nil {
++		proxyBuilder = resolver.Get("dns")
++	}
+ 	if proxyBuilder == nil {
+ 		panic("delegating_resolver: resolver for proxy not found for scheme dns")
+ 	}
+@@ -421,7 +426,7 @@
+ 			if _, ok := r.proxyResolver.(nopResolver); !ok {
+ 				return
+ 			}
+-			proxyResolver, err := r.proxyURIResolver(resolver.BuildOptions{})
++			proxyResolver, err := r.proxyURIResolver(r.buildOptions)
+ 			if err != nil {
+ 				r.cc.ReportError(fmt.Errorf("delegating_resolver: unable to build the proxy resolver: %v", err))
+ 				return
+--- a/internal/resolver/dns/dns_resolver.go
++++ b/internal/resolver/dns/dns_resolver.go
+@@ -112,7 +112,9 @@
+ 	return &dnsBuilder{}
+ }
+ 
+-type dnsBuilder struct{}
++type dnsBuilder struct {
++	lookupHost func(context.Context, *net.Resolver, string) ([]string, error)
++}
+ 
+ // Build creates and starts a DNS resolver that watches the name resolution of
+ // the target.
+@@ -149,6 +151,14 @@
+ 		return nil, err
+ 	}
+ 
++	if b.lookupHost != nil {
++		base, ok := d.resolver.(*net.Resolver)
++		if !ok {
++			cancel()
++			return nil, fmt.Errorf("custom DNS resolver cannot accept host lookup policy")
++		}
++		d.resolver = &hostLookupResolver{NetResolver: d.resolver, lookup: func(ctx context.Context, host string) ([]string, error) { return b.lookupHost(ctx, base, host) }}
++	}
+ 	d.wg.Add(1)
+ 	go d.watcher()
+ 	return d, nil
+@@ -470,3 +480,17 @@
+ 	}
+ 	return sc
+ }
++
++// NewBuilderWithLookupHost retains standard DNS lifecycle, SRV and TXT handling.
++func NewBuilderWithLookupHost(lookup func(context.Context, *net.Resolver, string) ([]string, error)) resolver.Builder {
++	return &dnsBuilder{lookupHost: lookup}
++}
++
++type hostLookupResolver struct {
++	internal.NetResolver
++	lookup func(context.Context, string) ([]string, error)
++}
++
++func (r *hostLookupResolver) LookupHost(ctx context.Context, host string) ([]string, error) {
++	return r.lookup(ctx, host)
++}
+--- a/internal/transport/http2_client.go
++++ b/internal/transport/http2_client.go
+@@ -158,7 +158,7 @@
+ 	logger       *grpclog.PrefixLogger
+ }
+ 
+-func dial(ctx context.Context, fn func(context.Context, string) (net.Conn, error), addr resolver.Address, grpcUA string) (net.Conn, error) {
++func dial(ctx context.Context, fn func(context.Context, string) (net.Conn, error), addr resolver.Address, grpcUA string, networkPolicy func(string) string) (net.Conn, error) {
+ 	address := addr.Addr
+ 	networkType, ok := networktype.Get(addr)
+ 	if fn != nil {
+@@ -183,7 +183,10 @@
+ 		networkType, address = ParseDialTarget(address)
+ 	}
+ 	if opts, present := proxyattributes.Get(addr); present {
+-		return proxyDial(ctx, addr, grpcUA, opts)
++		return proxyDial(ctx, addr, grpcUA, opts, networkPolicy)
++	}
++	if networkPolicy != nil {
++		networkType = networkPolicy(networkType)
+ 	}
+ 	return internal.NetDialerWithTCPKeepalive().DialContext(ctx, networkType, address)
+ }
+@@ -222,7 +225,7 @@
+ 	// address specific arbitrary data to reach custom dialers and credential handshakers.
+ 	connectCtx = icredentials.NewClientHandshakeInfoContext(connectCtx, credentials.ClientHandshakeInfo{Attributes: addr.Attributes})
+ 
+-	conn, err := dial(connectCtx, opts.Dialer, addr, opts.UserAgent)
++	conn, err := dial(connectCtx, opts.Dialer, addr, opts.UserAgent, opts.NetworkPolicy)
+ 	if err != nil {
+ 		if opts.FailOnNonTempDialError {
+ 			return nil, connectionErrorf(isTemporary(err), err, "transport: error while dialing: %v", err)
+--- a/internal/transport/proxy.go
++++ b/internal/transport/proxy.go
+@@ -28,6 +28,7 @@
+ 	"net/http"
+ 	"net/http/httputil"
+ 	"net/url"
++	"time"
+ 
+ 	"google.golang.org/grpc/internal"
+ 	"google.golang.org/grpc/internal/proxyattributes"
+@@ -99,12 +100,37 @@
+ }
+ 
+ // proxyDial establishes a TCP connection to the specified address and performs an HTTP CONNECT handshake.
+-func proxyDial(ctx context.Context, addr resolver.Address, grpcUA string, opts proxyattributes.Options) (net.Conn, error) {
+-	conn, err := internal.NetDialerWithTCPKeepalive().DialContext(ctx, "tcp", addr.Addr)
++func proxyDial(ctx context.Context, addr resolver.Address, grpcUA string, opts proxyattributes.Options, networkPolicy func(string) string) (net.Conn, error) {
++	network := "tcp"
++	if networkPolicy != nil {
++		network = networkPolicy(network)
++	}
++	conn, err := internal.NetDialerWithTCPKeepalive().DialContext(ctx, network, addr.Addr)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	return doHTTPConnectHandshake(ctx, conn, grpcUA, opts)
++	stop := make(chan struct{})
++	done := make(chan struct{})
++	go func() {
++		defer close(done)
++		select {
++		case <-ctx.Done():
++			_ = conn.SetDeadline(time.Now())
++		case <-stop:
++		}
++	}()
++	result, err := doHTTPConnectHandshake(ctx, conn, grpcUA, opts)
++	close(stop)
++	<-done
++	if err != nil {
++		return nil, err
++	}
++	if err := ctx.Err(); err != nil {
++		_ = conn.Close()
++		return nil, err
++	}
++	_ = conn.SetDeadline(time.Time{})
++	return result, nil
+ }
+ 
+ func sendHTTPRequest(ctx context.Context, req *http.Request, conn net.Conn) error {
+--- a/internal/transport/transport.go
++++ b/internal/transport/transport.go
+@@ -615,6 +615,7 @@
+ 
+ // ConnectOptions covers all relevant options for communicating with the server.
+ type ConnectOptions struct {
++	NetworkPolicy func(string) string
+ 	// UserAgent is the application user agent.
+ 	UserAgent string
+ 	// Dialer specifies how to dial a network address.
+--- a/resolver/dns/dns_resolver.go
++++ b/resolver/dns/dns_resolver.go
+@@ -21,6 +21,8 @@
+ package dns
+ 
+ import (
++	"context"
++	"net"
+ 	"time"
+ 
+ 	"google.golang.org/grpc/internal/resolver/dns"
+@@ -58,3 +60,9 @@
+ func SetMinResolutionInterval(d time.Duration) {
+ 	dns.MinResolutionInterval = d
+ }
++
++// NewBuilderWithLookupHost creates a private builder with caller-controlled host
++// address resolution; service config, SRV and re-resolution remain native.
++func NewBuilderWithLookupHost(lookup func(context.Context, *net.Resolver, string) ([]string, error)) resolver.Builder {
++	return dns.NewBuilderWithLookupHost(lookup)
++}
+--- a/resolver/resolver.go
++++ b/resolver/resolver.go
+@@ -152,6 +152,7 @@
+ // BuildOptions includes additional information for the builder to create
+ // the resolver.
+ type BuildOptions struct {
++	ProxyResolverBuilder Builder
+ 	// DisableServiceConfig indicates whether a resolver implementation should
+ 	// fetch service config data.
+ 	DisableServiceConfig bool
+--- a/resolver_wrapper.go
++++ b/resolver_wrapper.go
+@@ -73,6 +73,7 @@
+ 			return
+ 		}
+ 		opts := resolver.BuildOptions{
++			ProxyResolverBuilder: ccr.cc.dopts.proxyResolverBuilder,
+ 			DisableServiceConfig: ccr.cc.dopts.disableServiceConfig,
+ 			DialCreds:            ccr.cc.dopts.copts.TransportCredentials,
+ 			CredsBundle:          ccr.cc.dopts.copts.CredsBundle,

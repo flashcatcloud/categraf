@@ -5,6 +5,7 @@ package kafka
 import (
 	"context"
 	"errors"
+	"flashcat.cloud/categraf/pkg/kafkax"
 	"fmt"
 	"log"
 	"strings"
@@ -165,7 +166,7 @@ func newDestination(endpoint logsconfig.Endpoint, contentType string, destinatio
 	}
 
 	brokers := strings.Split(endpoint.Addr, ",")
-	producerConfig, brokers, err := prepareIPv4Config(coreconfig.Config.Logs.Config, brokers)
+	producerConfig, brokers, err := kafkax.PrepareIPv4Config(coreconfig.Config.Logs.Config, brokers)
 	if err != nil {
 		return nil, fmt.Errorf("kafka IPv4 policy: %w", err)
 	}

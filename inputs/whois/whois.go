@@ -1,7 +1,9 @@
 package whois
 
 import (
+	"flashcat.cloud/categraf/pkg/netx"
 	"log"
+	"net"
 	"sync"
 	"time"
 
@@ -92,6 +94,9 @@ func (ins *Instance) Init() error {
 	}
 
 	ins.client = whois.NewClient()
+	if netx.PreferIPv4() {
+		ins.client.SetDialer(netx.NewDialer(&net.Dialer{Timeout: 30 * time.Second}))
+	}
 	if ins.Timeout != 0 {
 		ins.client.SetTimeout(time.Duration(ins.Timeout) * time.Second)
 	}

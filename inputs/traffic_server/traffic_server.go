@@ -14,6 +14,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -72,9 +73,9 @@ func (ins *Instance) Init() error {
 		ins.Method = "GET"
 	}
 
-	ins.client = &http.Client{
+	ins.client = netx.HTTPClientFromEnv(&http.Client{
 		Timeout: time.Duration(ins.Timeout),
-	}
+	})
 
 	for _, target := range ins.Targets {
 		addr, err := url.Parse(target)
@@ -157,4 +158,12 @@ func (ins *Instance) gatherJSONData(address string, value interface{}) error {
 	}
 
 	return nil
+}
+
+func (r *TrafficServer) Drop() {
+	for _, ins := range r.Instances {
+		if client, ok := ins.client.(*http.Client); ok && client.Transport != nil && client.Transport != http.DefaultTransport {
+			client.CloseIdleConnections()
+		}
+	}
 }

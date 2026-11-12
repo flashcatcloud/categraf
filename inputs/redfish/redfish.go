@@ -14,6 +14,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
 	"github.com/tidwall/gjson"
 )
@@ -110,14 +111,14 @@ func (i *Instance) Init() error {
 
 		i.Addresses[idx].baseURL = base
 		i.Addresses[idx].InitHTTPClientConfig()
-		i.Addresses[idx].client = &http.Client{
+		i.Addresses[idx].client = netx.HTTPClientFromEnv(&http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true,
 				},
 			},
 			Timeout: time.Duration(v.Timeout),
-		}
+		})
 	}
 
 	if len(i.Sets) == 0 {

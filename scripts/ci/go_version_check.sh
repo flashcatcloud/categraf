@@ -1,16 +1,29 @@
 #!/usr/bin/env bash
 
-set -eo pipefail
+set -euo pipefail
 
-function main () {
-    local -r required_version="1.21"  # 设置所需的最低 Go 版本
+# Keep the CI minimum synchronized with the module and compare numeric versions.
+# Comparing an unstripped "go1.x" against "1.x" always accepted older toolchains.
+required_version=$(awk '$1 == "go" { print $2; exit }' go.mod)
+current_version=$(go env GOVERSION)
+normalized_version=${current_version#devel }
+normalized_version=${normalized_version#go}
 
-    local -r current_version=$(go version | awk '{print $3}')  # 获取当前 Go 版本
+if [[ -z "$required_version" || ! "$normalized_version" =~ ^[0-9]+\.[0-9]+ ]]; then
+    >&2 echo "Error: cannot compare Go version $current_version against go.mod"
+    exit 1
+fi
 
-    if [[ "$(printf '%s\n' "$required_version" "$current_version" | sort -V | head -n1)" != "$required_version" ]]; then
-        >&2 echo "Error: Go version $required_version or higher is required, but found $current_version"
-        exit 1
-    fi
-}
-
-main
+if ! awk -v required="$required_version" -v actual="$normalized_version" 'BEGIN {
+    split(required, r, ".")
+    split(actual, a, ".")
+    for (i = 1; i <= 3; i++) {
+        if (a[i] + 0 < r[i] + 0) exit 1
+        if (a[i] + 0 > r[i] + 0) exit 0
+    }
+    # A prerelease of the required version precedes its stable release.
+    if (actual ~ /(beta|rc|-)/) exit 1
+}'; then
+    >&2 echo "Error: Go $required_version or higher is required, but found $current_version"
+    exit 1
+fi

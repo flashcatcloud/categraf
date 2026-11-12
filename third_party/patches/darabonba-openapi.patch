@@ -1,0 +1,68 @@
+--- a/client/client.go
++++ b/client/client.go
+@@ -42,6 +42,7 @@
+  * Model for initing client
+  */
+ type Config struct {
++	HTTPClientPool *tea.ClientPool `json:"-" xml:"-"`
+ 	// accesskey id
+ 	AccessKeyId *string `json:"accessKeyId,omitempty" xml:"accessKeyId,omitempty"`
+ 	// accesskey secret
+@@ -341,6 +342,7 @@
+ }
+ 
+ type Client struct {
++	HTTPClientPool       *tea.ClientPool `json:"-" xml:"-"`
+ 	Endpoint             *string
+ 	RegionId             *string
+ 	Protocol             *string
+@@ -380,6 +382,9 @@
+ }
+ 
+ func (client *Client) Init(config *Config) (_err error) {
++	if config != nil {
++		client.HTTPClientPool = config.HTTPClientPool
++	}
+ 	if tea.BoolValue(util.IsUnset(tea.ToMap(config))) {
+ 		_err = tea.NewSDKError(map[string]interface{}{
+ 			"code":    "ParameterMissing",
+@@ -565,6 +570,7 @@
+ 				request_.Query["Signature"] = openapiutil.GetRPCSignature(signedParam, request_.Method, accessKeySecret)
+ 			}
+ 
++			_runtime["httpClientPool"] = client.HTTPClientPool
+ 			response_, _err := tea.DoRequest(request_, _runtime)
+ 			if _err != nil {
+ 				return _result, _err
+@@ -768,6 +774,7 @@
+ 				request_.Headers["authorization"] = tea.String("acs " + tea.StringValue(accessKeyId) + ":" + tea.StringValue(openapiutil.GetROASignature(stringToSign, accessKeySecret)))
+ 			}
+ 
++			_runtime["httpClientPool"] = client.HTTPClientPool
+ 			response_, _err := tea.DoRequest(request_, _runtime)
+ 			if _err != nil {
+ 				return _result, _err
+@@ -985,6 +992,7 @@
+ 				request_.Headers["authorization"] = tea.String("acs " + tea.StringValue(accessKeyId) + ":" + tea.StringValue(openapiutil.GetROASignature(stringToSign, accessKeySecret)))
+ 			}
+ 
++			_runtime["httpClientPool"] = client.HTTPClientPool
+ 			response_, _err := tea.DoRequest(request_, _runtime)
+ 			if _err != nil {
+ 				return _result, _err
+@@ -1267,6 +1275,7 @@
+ 
+ 			}
+ 
++			_runtime["httpClientPool"] = client.HTTPClientPool
+ 			response_, _err := tea.DoRequest(request_, _runtime)
+ 			if _err != nil {
+ 				return _result, _err
+@@ -1521,6 +1530,7 @@
+ 			request_.Query = interceptorContext.Request.Query
+ 			request_.Body = interceptorContext.Request.Stream
+ 			request_.Headers = interceptorContext.Request.Headers
++			_runtime["httpClientPool"] = client.HTTPClientPool
+ 			response_, _err := tea.DoRequest(request_, _runtime)
+ 			if _err != nil {
+ 				return _result, _err

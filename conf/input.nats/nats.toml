@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for monitoring HTTP.
+# Restart to apply; scope and remaining work: docs/issue-1513-plugin-ipv4-implementation.md
 # Provides metrics about the state of a NATS server
 # This plugin does NOT support FreeBSD
 # # collect interval

@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for SQL Server lookup, TCP and SQL Browser UDP; original mssql query processing is retained.
+# Restart to apply; status and exceptions: docs/issue-1513-plugin-ipv4-implementation.md
 # # collect interval
 # interval = 15
 

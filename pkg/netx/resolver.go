@@ -21,3 +21,37 @@ func LookupIPAddr(ctx context.Context, host string) ([]net.IPAddr, error) {
 	}
 	return addrs, nil
 }
+
+// LookupHostFromEnv captures the policy before an SDK's pre-dial resolution.
+// It returns every IPv4 address, retaining the resolver's context and errors.
+func LookupHostFromEnv(resolver *net.Resolver) func(context.Context, string) ([]string, error) {
+	if !PreferIPv4() {
+		return resolver.LookupHost
+	}
+	return func(ctx context.Context, host string) ([]string, error) {
+		ips, err := resolver.LookupIP(ctx, "ip4", host)
+		if err != nil {
+			return nil, err
+		}
+		addresses := make([]string, len(ips))
+		for i, ip := range ips {
+			addresses[i] = ip.String()
+		}
+		return addresses, nil
+	}
+}
+
+// LookupHostIPv4 resolves all IPv4 addresses through the supplied resolver.
+func LookupHostIPv4(resolver *net.Resolver) func(context.Context, string) ([]string, error) {
+	return func(ctx context.Context, host string) ([]string, error) {
+		ips, err := resolver.LookupIP(ctx, "ip4", host)
+		if err != nil {
+			return nil, err
+		}
+		out := make([]string, len(ips))
+		for i, ip := range ips {
+			out[i] = ip.String()
+		}
+		return out, nil
+	}
+}

@@ -3,6 +3,7 @@ package ldap
 import (
 	"crypto/tls"
 	"errors"
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log"
 	"net/url"
@@ -146,19 +147,19 @@ func (ins *Instance) connect() (*ldap.Conn, error) {
 	switch ins.mode {
 	case "ldap":
 		var err error
-		conn, err = ldap.Dial("tcp", ins.Server)
+		conn, err = ldap.Dial(netx.NetworkFromEnv("tcp"), ins.Server)
 		if err != nil {
 			return nil, err
 		}
 	case "ldaps":
 		var err error
-		conn, err = ldap.DialTLS("tcp", ins.Server, ins.tlsCfg)
+		conn, err = ldap.DialTLS(netx.NetworkFromEnv("tcp"), ins.Server, ins.tlsCfg)
 		if err != nil {
 			return nil, err
 		}
 	case "starttls":
 		var err error
-		conn, err = ldap.Dial("tcp", ins.Server)
+		conn, err = ldap.Dial(netx.NetworkFromEnv("tcp"), ins.Server)
 		if err != nil {
 			return nil, err
 		}

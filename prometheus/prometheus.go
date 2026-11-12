@@ -605,6 +605,11 @@ func Start() {
 		os.Exit(1)
 	}
 
+	networkPolicy, closeNetworkPolicy := newNetworkPolicy()
+	defer closeNetworkPolicy()
+	cfg.notifier.NetworkPolicy = networkPolicy
+	cfg.notifier.HTTPClientOptions = networkPolicy.HTTPOptions()
+	cfg.scrape.HTTPClientOptions = networkPolicy.HTTPOptions()
 	notifierManager := notifier.NewManager(&cfg.notifier, model.UTF8Validation, logger.With("component", "notifier"))
 
 	ctxScrape, cancelScrape := context.WithCancel(context.Background())
@@ -616,8 +621,8 @@ func Start() {
 		os.Exit(1)
 	}
 
-	discoveryManagerScrape := discovery.NewManager(ctxScrape, logger.With("component", "discovery manager scrape"), prometheus.DefaultRegisterer, sdMetrics, discovery.Name("scrape"))
-	discoveryManagerNotify := discovery.NewManager(ctxNotify, logger.With("component", "discovery manager notify"), prometheus.DefaultRegisterer, sdMetrics, discovery.Name("notify"))
+	discoveryManagerScrape := discovery.NewManager(ctxScrape, logger.With("component", "discovery manager scrape"), prometheus.DefaultRegisterer, sdMetrics, discovery.Name("scrape"), discovery.HTTPClientOptions(networkPolicy.HTTPOptions()...), discovery.NetworkPolicy(networkPolicy))
+	discoveryManagerNotify := discovery.NewManager(ctxNotify, logger.With("component", "discovery manager notify"), prometheus.DefaultRegisterer, sdMetrics, discovery.Name("notify"), discovery.HTTPClientOptions(networkPolicy.HTTPOptions()...), discovery.NetworkPolicy(networkPolicy))
 
 	noStepSubqueryInterval := &safePromQLNoStepSubqueryInterval{}
 	noStepSubqueryInterval.Set(config.DefaultGlobalConfig.EvaluationInterval)
@@ -682,7 +687,7 @@ func Start() {
 
 	remoteFlushDeadline := time.Duration(1 * time.Minute)
 	localStoragePath := cfg.agentStoragePath
-	remoteStorage := remote.NewStorage(logger.With("component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, remoteFlushDeadline, scraper, false)
+	remoteStorage := remote.NewStorage(logger.With("component", "remote"), prometheus.DefaultRegisterer, localStorage.StartTime, localStoragePath, remoteFlushDeadline, scraper, false, networkPolicy)
 	fanoutStorage := storage.NewFanout(logger, localStorage, remoteStorage)
 
 	scrapeManager, err := scrape.NewManager(

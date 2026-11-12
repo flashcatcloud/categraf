@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for remote Docker TCP; Unix sockets and named pipes retain their transport.
+# Restart to apply; scope and remaining work: docs/issue-1513-plugin-ipv4-implementation.md
 # # collect interval
 # interval = 15
 

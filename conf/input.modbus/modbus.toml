@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for TCP, RTUoverTCP and ASCIIoverTCP; serial connections retain their configuration.
+# Restart to apply; status and exceptions: docs/issue-1513-plugin-ipv4-implementation.md
 # # Categraf Modbus Plugin
 # # Ported from InfluxData Telegraf
 

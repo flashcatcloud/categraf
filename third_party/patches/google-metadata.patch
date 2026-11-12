@@ -1,0 +1,64 @@
+--- a/metadata.go
++++ b/metadata.go
+@@ -356,7 +356,8 @@
+ 
+ // A Client provides metadata.
+ type Client struct {
+-	hc *http.Client
++	lookupHost func(context.Context, string) ([]string, error)
++	hc         *http.Client
+ 	// subClient by default is a HTTP Client that is only used for subscribe
+ 	// methods that should not specify a timeout. If the user specifies a client
+ 	// this with be the same as 'hc'.
+@@ -366,6 +367,8 @@
+ 
+ // Options for configuring a [Client].
+ type Options struct {
++	HTTPClientConfigurer func(*http.Client) *http.Client
++	LookupHost           func(context.Context, string) ([]string, error)
+ 	// Client is the HTTP client used to make requests. Optional.
+ 	// If UseDefaultClient is true, this field is ignored.
+ 	// If this field is nil, a new default http.Client will be created.
+@@ -409,7 +412,12 @@
+ 		if logger == nil {
+ 			logger = slog.New(noOpHandler{})
+ 		}
+-		return &Client{hc: defaultClient.hc, subClient: defaultClient.subClient, logger: logger}
++		client, sub := defaultClient.hc, defaultClient.subClient
++		if opts.HTTPClientConfigurer != nil {
++			client = opts.HTTPClientConfigurer(client)
++			sub = opts.HTTPClientConfigurer(sub)
++		}
++		return &Client{hc: client, subClient: sub, logger: logger, lookupHost: opts.LookupHost}
+ 	}
+ 
+ 	// Handle isolated client creation.
+@@ -423,7 +431,11 @@
+ 	if logger == nil {
+ 		logger = slog.New(noOpHandler{})
+ 	}
+-	return &Client{hc: client, subClient: subClient, logger: logger}
++	if opts.HTTPClientConfigurer != nil {
++		client = opts.HTTPClientConfigurer(client)
++		subClient = opts.HTTPClientConfigurer(subClient)
++	}
++	return &Client{hc: client, subClient: subClient, logger: logger, lookupHost: opts.LookupHost}
+ }
+ 
+ // NOTE: metadataRequestStrategy is assigned to a variable for test stubbing purposes.
+@@ -467,7 +479,14 @@
+ 	// Try two strategies in parallel.
+ 	// See https://github.com/googleapis/google-cloud-go/issues/194
+ 	go metadataRequestStrategy(ctx, c.hc, resc)
+-	go dnsRequestStrategy(ctx, resc)
++	if c.lookupHost == nil {
++		go dnsRequestStrategy(ctx, resc)
++	} else {
++		go func() {
++			addrs, err := c.lookupHost(ctx, "metadata.google.internal.")
++			resc <- err == nil && strsContains(addrs, metadataIP)
++		}()
++	}
+ 
+ 	tryHarder := systemInfoSuggestsGCE()
+ 	if tryHarder {

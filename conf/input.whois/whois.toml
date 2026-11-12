@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for WHOIS TCP requests and referrals.
+# Restart to apply; status and exceptions: docs/issue-1513-plugin-ipv4-implementation.md
 # # collect interval
 #interval = 3600
 #

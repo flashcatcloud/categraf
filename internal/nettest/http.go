@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -27,6 +28,65 @@ import (
 // send must POST to endpoint and consume and close the response body.
 type ClientFactory func(t *testing.T, endpoint, caFile string) (send func() error)
 
+// CheckInputHTTPClient exercises an input's actual client constructor, including
+// reuse, reconnects, an IPv6-only target and creation-time policy capture. Each
+// constructor retains its own keep-alive and TLS defaults; detailed TLS and proxy
+// tests can additionally use CheckHTTPClient and CheckHTTPProxy.
+func CheckInputHTTPClient(t *testing.T, factory func(*testing.T, string) *http.Client) {
+	t.Helper()
+	clearProxyEnv(t)
+	for _, value := range []string{"unset", "false", "true"} {
+		for _, ipv6Only := range []bool{false, true} {
+			t.Run(fmt.Sprintf("env=%s/ipv6-only=%t", value, ipv6Only), func(t *testing.T) {
+				setIPv4Env(t, value)
+				ipv4 := net.IPv4(127, 0, 0, 1)
+				if ipv6Only {
+					ipv4 = nil
+				}
+				counts := localDNS(t, "example.com.", ipv4, net.IPv6loopback)
+				server, _, _ := httpServer(t, false, false, ipv6Only)
+				endpoint := strings.Replace(server.URL, "127.0.0.1", "example.com.", 1)
+				endpoint = strings.Replace(endpoint, "[::1]", "example.com.", 1)
+				client := factory(t, endpoint)
+				t.Cleanup(client.CloseIdleConnections)
+				if value == "true" {
+					// Reconnects must keep the policy captured by the constructor.
+					t.Setenv("PREFER_IPV4_STACK", "false")
+				}
+				for i := 0; i < 6; i++ {
+					if i == 5 {
+						client.CloseIdleConnections()
+					}
+					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+					req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, nil)
+					if err != nil {
+						cancel()
+						t.Fatal(err)
+					}
+					resp, err := client.Do(req)
+					if err == nil {
+						_, err = io.Copy(io.Discard, resp.Body)
+						_ = resp.Body.Close()
+					}
+					cancel()
+					if ipv6Only && value == "true" {
+						if err == nil {
+							t.Fatal("IPv4 policy reached IPv6-only target")
+						}
+						break
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				if counts.a.Load() == 0 || (value == "true" && counts.aaaa.Load() != 0) || (value != "true" && counts.aaaa.Load() == 0) {
+					t.Fatalf("unexpected DNS queries: A=%d AAAA=%d", counts.a.Load(), counts.aaaa.Load())
+				}
+			})
+		}
+	}
+}
+
 func clearProxyEnv(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy"} {
@@ -35,9 +95,11 @@ func clearProxyEnv(t *testing.T) {
 }
 
 type dnsCounts struct {
-	a    atomic.Int64
-	aaaa atomic.Int64
-	ptr  atomic.Int64
+	mu      sync.Mutex
+	queries map[string]map[uint16]int64
+	a       atomic.Int64
+	aaaa    atomic.Int64
+	ptr     atomic.Int64
 }
 
 // ObserveCanonicalDNS adds a PTR record and a canonical-name A/AAAA alias to the
@@ -74,7 +136,7 @@ func localDNS(t *testing.T, host string, ipv4, ipv6 net.IP, canonical ...canonic
 	if err != nil {
 		t.Fatal(err)
 	}
-	counts := new(dnsCounts)
+	counts := &dnsCounts{queries: make(map[string]map[uint16]int64)}
 	ready := make(chan struct{})
 	server := &dns.Server{
 		PacketConn:        pc,
@@ -84,6 +146,12 @@ func localDNS(t *testing.T, host string, ipv4, ipv6 net.IP, canonical ...canonic
 			reply.SetReply(req)
 			reply.Authoritative = true
 			for _, q := range req.Question {
+				counts.mu.Lock()
+				if counts.queries[q.Name] == nil {
+					counts.queries[q.Name] = make(map[uint16]int64)
+				}
+				counts.queries[q.Name][q.Qtype]++
+				counts.mu.Unlock()
 				if len(canonical) != 0 && q.Qtype == dns.TypePTR && ipv4 != nil {
 					reverse, _ := dns.ReverseAddr(ipv4.String())
 					if q.Name == reverse {
@@ -320,5 +388,17 @@ func CheckHTTPProxy(t *testing.T, newClient ClientFactory) {
 				t.Fatalf("unexpected proxy DNS queries: A=%d AAAA=%d", a, aaaa)
 			}
 		})
+	}
+}
+
+// ObserveDNSQueries records even unexpected names, so proxy tests detect local
+// lookups of targets that should only be resolved by the remote proxy.
+func ObserveDNSQueries(t *testing.T, host string, ipv4, ipv6 net.IP) func(string) (int64, int64) {
+	c := localDNS(t, host, ipv4, ipv6)
+	return func(host string) (int64, int64) {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		q := c.queries[dns.Fqdn(host)]
+		return q[dns.TypeA], q[dns.TypeAAAA]
 	}
 }

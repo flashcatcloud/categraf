@@ -13,6 +13,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/conv"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	"github.com/go-redis/redis/v8"
@@ -54,6 +55,13 @@ func (ins *Instance) Init() error {
 		Username: ins.Username,
 		Password: ins.Password,
 		PoolSize: ins.PoolSize,
+	}
+	if netx.PreferIPv4() {
+		// Match the SDK's default network inference before choosing a family.
+		redisOptions.Network = "tcp4"
+		if strings.HasPrefix(redisOptions.Addr, "/") {
+			redisOptions.Network = "unix"
+		}
 	}
 
 	if ins.UseTLS {

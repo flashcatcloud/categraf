@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for Monitoring gRPC and credential HTTP; experimental S2A/DirectPath combinations return an explicit error.
+# Restart to apply; status and exceptions: docs/issue-1513-plugin-ipv4-implementation.md
 #interval=60
 #[[instances]]
 #project_id="your-project-id"

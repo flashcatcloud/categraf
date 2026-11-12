@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for both CMS clients, using private Tea HTTP pools.
+# Restart to apply; status and exceptions: docs/issue-1513-plugin-ipv4-implementation.md
 # # collect interval
 # interval = 60
 [[instances]]

@@ -1,0 +1,46 @@
+--- a/runtime/transport_default_http_client.go
++++ b/runtime/transport_default_http_client.go
+@@ -4,6 +4,7 @@
+ package runtime
+ 
+ import (
++	"context"
+ 	"crypto/tls"
+ 	"net"
+ 	"net/http"
+@@ -14,7 +15,12 @@
+ 
+ var defaultHTTPClient *http.Client
+ 
+-func init() {
++func init() { defaultHTTPClient = NewHTTPClientWithNetworkPolicy(nil) }
++
++// NewHTTPClientWithNetworkPolicy creates a private client with the SDK's native
++// HTTP, TLS, HTTP/2 and timeout defaults. The policy selects the network before
++// the native dialer resolves a host. Nil retains native network selection.
++func NewHTTPClientWithNetworkPolicy(networkPolicy func(string) string) *http.Client {
+ 	defaultTransport := &http.Transport{
+ 		Proxy: http.ProxyFromEnvironment,
+ 		DialContext: defaultTransportDialContext(&net.Dialer{
+@@ -32,6 +38,12 @@
+ 			Renegotiation: tls.RenegotiateFreelyAsClient,
+ 		},
+ 	}
++	if networkPolicy != nil {
++		dial := defaultTransport.DialContext
++		defaultTransport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
++			return dial(ctx, networkPolicy(network), address)
++		}
++	}
+ 	// TODO: evaluate removing this once https://github.com/golang/go/issues/59690 has been fixed
+ 	if http2Transport, err := http2.ConfigureTransports(defaultTransport); err == nil {
+ 		// if the connection has been idle for 10 seconds, send a ping frame for a health check
+@@ -39,7 +51,7 @@
+ 		// if there's no response to the ping within the timeout, the connection will be closed
+ 		http2Transport.PingTimeout = 5 * time.Second
+ 	}
+-	defaultHTTPClient = &http.Client{
++	return &http.Client{
+ 		Transport: defaultTransport,
+ 	}
+ }

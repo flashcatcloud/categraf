@@ -13,6 +13,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	"github.com/go-redis/redis/v8"
@@ -105,7 +106,7 @@ func (ins *Instance) Init() error {
 			&redis.Options{
 				Addr:      address,
 				Password:  password,
-				Network:   u.Scheme,
+				Network:   netx.NetworkFromEnv(u.Scheme),
 				PoolSize:  1,
 				TLSConfig: tlsConfig,
 			},

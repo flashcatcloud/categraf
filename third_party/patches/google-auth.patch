@@ -1,0 +1,189 @@
+--- a/credentials/detect.go
++++ b/credentials/detect.go
+@@ -165,11 +165,21 @@
+ 		return readCredentialsFileJSON(b, opts)
+ 	}
+ 
+-	if OnGCE() {
+-		metadataClient := metadata.NewWithOptions(&metadata.Options{
+-			Logger:           opts.logger(),
+-			UseDefaultClient: true,
+-		})
++	var metadataClient *metadata.Client
++	onGCE := false
++	if opts.HTTPClientConfigurer != nil || opts.LookupHost != nil {
++		metadataClient = metadata.NewWithOptions(&metadata.Options{UseDefaultClient: true, Logger: opts.logger(), HTTPClientConfigurer: opts.HTTPClientConfigurer, LookupHost: opts.LookupHost})
++		onGCE = allowOnGCECheck && metadataClient.OnGCEWithContext(context.Background())
++	} else {
++		onGCE = OnGCE()
++	}
++	if onGCE {
++		if metadataClient == nil {
++			metadataClient = metadata.NewWithOptions(&metadata.Options{
++				Logger:           opts.logger(),
++				UseDefaultClient: true,
++			})
++		}
+ 		gceUniverseDomainProvider := &internal.ComputeUniverseDomainProvider{
+ 			MetadataClient: metadataClient,
+ 		}
+@@ -198,6 +208,8 @@
+ 
+ // DetectOptions provides configuration for [DetectDefault].
+ type DetectOptions struct {
++	HTTPClientConfigurer func(*http.Client) *http.Client
++	LookupHost           func(context.Context, string) ([]string, error)
+ 	// Scopes that credentials tokens should have. Example:
+ 	// https://www.googleapis.com/auth/cloud-platform. Required if Audience is
+ 	// not provided.
+@@ -391,10 +403,14 @@
+ }
+ 
+ func (o *DetectOptions) client() *http.Client {
+-	if o.Client != nil {
+-		return o.Client
+-	}
+-	return internal.DefaultClient()
++	client := o.Client
++	if client == nil {
++		client = internal.DefaultClient()
++	}
++	if o.HTTPClientConfigurer != nil {
++		client = o.HTTPClientConfigurer(client)
++	}
++	return client
+ }
+ 
+ func (o *DetectOptions) logger() *slog.Logger {
+--- a/credentials/filetypes.go
++++ b/credentials/filetypes.go
+@@ -188,6 +188,7 @@
+ 
+ func handleExternalAccount(f *credsfile.ExternalAccountFile, opts *DetectOptions) (auth.TokenProvider, error) {
+ 	externalOpts := &externalaccount.Options{
++		HTTPClientConfigurer:           opts.HTTPClientConfigurer,
+ 		Audience:                       f.Audience,
+ 		SubjectTokenType:               f.SubjectTokenType,
+ 		TokenURL:                       f.TokenURL,
+@@ -322,8 +323,9 @@
+ }
+ func handleGDCHServiceAccount(f *credsfile.GDCHServiceAccountFile, opts *DetectOptions) (auth.TokenProvider, error) {
+ 	return gdch.NewTokenProvider(f, &gdch.Options{
+-		STSAudience: opts.STSAudience,
+-		Client:      opts.client(),
+-		Logger:      opts.logger(),
++		HTTPClientConfigurer: opts.HTTPClientConfigurer,
++		STSAudience:          opts.STSAudience,
++		Client:               opts.client(),
++		Logger:               opts.logger(),
+ 	})
+ }
+--- a/credentials/internal/externalaccount/externalaccount.go
++++ b/credentials/internal/externalaccount/externalaccount.go
+@@ -51,6 +51,7 @@
+ 
+ // Options stores the configuration for fetching tokens with external credentials.
+ type Options struct {
++	HTTPClientConfigurer func(*http.Client) *http.Client
+ 	// Audience is the Secure Token Service (STS) audience which contains the resource name for the workload
+ 	// identity pool or the workforce pool and the provider identifier in that pool.
+ 	Audience string
+@@ -209,7 +210,11 @@
+ 	if cert.UseDefaultCertificateConfig && cert.CertificateConfigLocation != "" {
+ 		return nil, errors.New("credentials: \"certificate\" object cannot specify both a certificate_config_location and use_default_certificate_config=true")
+ 	}
+-	return createX509Client(cert.CertificateConfigLocation)
++	client, err := createX509Client(cert.CertificateConfigLocation)
++	if err == nil && o.HTTPClientConfigurer != nil {
++		client = o.HTTPClientConfigurer(client)
++	}
++	return client, err
+ }
+ 
+ // resolveTokenURL sets the default STS token endpoint with the configured
+--- a/credentials/internal/gdch/gdch.go
++++ b/credentials/internal/gdch/gdch.go
+@@ -50,9 +50,10 @@
+ 
+ // Options for [NewTokenProvider].
+ type Options struct {
+-	STSAudience string
+-	Client      *http.Client
+-	Logger      *slog.Logger
++	HTTPClientConfigurer func(*http.Client) *http.Client
++	STSAudience          string
++	Client               *http.Client
++	Logger               *slog.Logger
+ }
+ 
+ // NewTokenProvider returns a [cloud.google.com/go/auth.TokenProvider] from a
+@@ -73,15 +74,20 @@
+ 		return nil, err
+ 	}
+ 
++	if o.HTTPClientConfigurer != nil {
++		addCertToTransport(o.Client, certPool)
++		o.Client = o.HTTPClientConfigurer(o.Client)
++	}
+ 	tp := gdchProvider{
+-		serviceIdentity: fmt.Sprintf("system:serviceaccount:%s:%s", f.Project, f.Name),
+-		tokenURL:        f.TokenURL,
+-		aud:             o.STSAudience,
+-		signer:          signer,
+-		pkID:            f.PrivateKeyID,
+-		certPool:        certPool,
+-		client:          o.Client,
+-		logger:          internallog.New(o.Logger),
++		certificatesConfigured: o.HTTPClientConfigurer != nil,
++		serviceIdentity:        fmt.Sprintf("system:serviceaccount:%s:%s", f.Project, f.Name),
++		tokenURL:               f.TokenURL,
++		aud:                    o.STSAudience,
++		signer:                 signer,
++		pkID:                   f.PrivateKeyID,
++		certPool:               certPool,
++		client:                 o.Client,
++		logger:                 internallog.New(o.Logger),
+ 	}
+ 	return tp, nil
+ }
+@@ -97,19 +103,22 @@
+ }
+ 
+ type gdchProvider struct {
+-	serviceIdentity string
+-	tokenURL        string
+-	aud             string
+-	signer          crypto.Signer
+-	pkID            string
+-	certPool        *x509.CertPool
++	certificatesConfigured bool
++	serviceIdentity        string
++	tokenURL               string
++	aud                    string
++	signer                 crypto.Signer
++	pkID                   string
++	certPool               *x509.CertPool
+ 
+ 	client *http.Client
+ 	logger *slog.Logger
+ }
+ 
+ func (g gdchProvider) Token(ctx context.Context) (*auth.Token, error) {
+-	addCertToTransport(g.client, g.certPool)
++	if !g.certificatesConfigured {
++		addCertToTransport(g.client, g.certPool)
++	}
+ 	iat := time.Now()
+ 	exp := iat.Add(time.Hour)
+ 	claims := jwt.Claims{
+--- a/internal/transport/transport.go
++++ b/internal/transport/transport.go
+@@ -66,6 +66,8 @@
+ 		return &credentials.DetectOptions{}
+ 	}
+ 	newDo := &credentials.DetectOptions{
++		HTTPClientConfigurer: oldDo.HTTPClientConfigurer,
++		LookupHost:           oldDo.LookupHost,
+ 		// Simple types
+ 		TokenBindingType:  oldDo.TokenBindingType,
+ 		Audience:          oldDo.Audience,
