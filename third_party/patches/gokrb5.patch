@@ -86,3 +86,15 @@
 +func NetworkPolicy(policy func(string) string) func(*Settings) {
 +	return func(s *Settings) { s.networkPolicy = policy }
 +}
+--- a/crypto/rfc4757/msgtype.go
++++ b/crypto/rfc4757/msgtype.go
+@@ -14,7 +14,7 @@
+ 		usage = 13
+ 	}
+ 	// Now convert to bytes
+-	tb := make([]byte, 4) // We force an int32 input so we can't go over 4 bytes
+-	binary.PutUvarint(tb, uint64(usage))
++	tb := make([]byte, 4)
++	binary.LittleEndian.PutUint32(tb, usage)
+ 	return tb
+ }

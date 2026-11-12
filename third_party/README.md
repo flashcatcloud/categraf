@@ -14,7 +14,7 @@ These local module replacements supply hooks that the pinned SDK versions do not
 | go-mssqldb | Connector lookup hook before native address racing, and network selection for TCP and SQL Browser UDP |
 | Tea / Darabonba OpenAPI | Per-client HTTP pools and final transport policy, including SOCKS first-hop network selection; ignore private policy fields during serialization |
 | Kazoo | Pass HostProvider and Dialer options to its ZooKeeper client |
-| Sarama / gokrb5 | Per-client KDC network selection before UDP/TCP resolution; retain discovery, timeouts and auth settings |
+| Sarama / gokrb5 | Per-client KDC network selection before UDP/TCP resolution; retain discovery, timeouts and auth settings; correct RFC 4757 key-usage encoding to fixed-width little endian |
 | Google API / auth / metadata / oauth2 | Credential HTTP policy after native TLS configuration, private metadata probing for both legacy and new ADC, subscription timeout preservation and external identity/mTLS client hooks |
 | go-ora | Connector network selection carried into session connections and redirects without replacing native timeout/TLS logic |
 | Prometheus | Carry instance policy through notifier, service discovery and remote storage; apply it before round-robin DNS and to independent signing/identity clients |

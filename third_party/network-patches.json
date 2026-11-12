@@ -169,7 +169,8 @@
     "patch": "./third_party/patches/gokrb5.patch",
     "modified_files": [
       "client/network.go",
-      "client/settings.go"
+      "client/settings.go",
+      "crypto/rfc4757/msgtype.go"
     ]
   },
   {

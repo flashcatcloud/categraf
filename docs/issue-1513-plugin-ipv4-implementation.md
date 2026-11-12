@@ -70,7 +70,7 @@ Elasticsearch 同时修复了与 Transport 重排直接相关的原有构造错�
 
 扩大到非本次改动范围时，Elasticsearch collector 的既有 `TestClusterHealth`/`TestHealthReport` 指标期望失败；Darwin 上对整个 `./...` lint 还会命中未改动 `node_exporter/collector/other_os` 的独立 BSD 包类型错误。本次未混入这些无关修正，上述验证结果明确限定到受影响包。
 
-撤销环境变量或设置 `false` 后重启，恢复默认地址族选择。独立依赖 hook 在未配置时沿用上游路径；上述明确记录的 region 错误时机和 Elasticsearch 构造错误修正仍保留。不能将本次交付描述为整个进程 AAAA 查询归零。
+撤销环境变量或设置 `false` 后重启，恢复默认地址族选择。独立依赖 hook 在未配置时沿用上游路径；上述明确记录的 region 错误时机和 Elasticsearch 构造错误修正，以及下述 RFC 4757 编码修复仍保留。不能将本次交付描述为整个进程 AAAA 查询归零。
 
 ## 评审修正：tidy 闭包、Azure 认证、Docker TCP 发现
 
@@ -93,3 +93,13 @@ Azure 的专项回归位于本地 Prometheus 模块，CI 使用 `-mod=readonly` 
 - **路径审查**：逐个检查 Prometheus 发现客户端以及 Google/AWS/Azure 的身份刷新入口；OpenStack 在 Authenticate 前注入客户端，OVH 构造本身不联网，STACKIT 服务账号认证继承已配置 Transport，Scaleway 使用传入 HTTP client。当前注册的 Kubernetes GCP auth-provider 是移除功能的错误 stub，exec 凭据仍属于外部进程边界。MongoDB 默认构建的 MONGODB-AWS/OIDC 接收配置的 HTTP client；额外启用 `gssapi` build tag 时，系统 Kerberos 库自行发起的网络属于原生库边界，不纳入 Go Transport 的保证。
 
 本轮 Go 1.25.10 的 61 个测试包 `-mod=readonly -race -count=1`、受影响包 vet 和新增/修改行 lint（0 issues）通过；Linux amd64/arm64、Windows amd64 和 Linux amd64 no_logs 完整主程序构建通过。远端 GitHub Actions 及 Windows 实机运行尚未执行。额外尝试在 macOS 上以 Linux/`CGO_ENABLED=0` 跑全目录 lint/vet 时，NVIDIA 的独立包因缺少 cgo 类型而失败；这不是 Linux CI 原生 cgo 环境的执行结果，也未改动这些无关包。
+
+## PR #1519 Copilot 复核：RFC 4757 key usage 编码
+
+[Copilot 评论](https://github.com/flashcatcloud/categraf/pull/1519#discussion_r4545178700) 指出 gokrb5 的 `UsageToMSMsgType` 使用了变长 `PutUvarint`。已确认该文件与固定上游 v8.4.4 完全一致，是随源码快照保留的依赖既有缺陷。[RFC 4757 第 3–5 节](https://www.rfc-editor.org/rfc/rfc4757.html#section-3) 要求四字节小端整数；usage=1024 原先得到 `80 08 00 00`，应为 `00 04 00 00`，而最大 uint32 会在四字节缓冲区内触发越界 panic。
+
+现改用 `binary.LittleEndian.PutUint32`，保留 3→8、9→8、23→13 的协议映射，并同步 `gokrb5.patch` 和 `network-patches.json`。该正确性修复不受 IPv4 开关影响。
+
+回归放在 CI 已执行的根模块 `pkg/kafkax/rfc4757_test.go`，覆盖映射、127/128/255/256、1024、四/五字节变长编码边界和最大 uint32；另以独立生成的 RFC 固定 checksum/密文验证解密，并用标准库 HMAC/RC4 独立校验随机加密输出。修复前已实际复现编码、checksum、解密、加密互操作错误及越界 panic，避免仅用双方共享错误编码的加解密 round trip 作为依据。
+
+本次修正验证：Go 1.25.10 下 Kafka 相关包在 module/vendor 两种模式的 race 回归通过，no_logs 下共享工厂和指标 exporter 的 race 回归通过，相关包及 RFC 4757 包 vet 通过；19 个依赖快照核验、tidy 前后无差异和 vendor 重建通过，根 go.mod/go.sum 保持不变。Linux amd64/arm64、Windows amd64 与 Linux amd64 no_logs 的完整主程序构建通过。
