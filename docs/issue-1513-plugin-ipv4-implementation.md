@@ -103,3 +103,11 @@ Azure 的专项回归位于本地 Prometheus 模块，CI 使用 `-mod=readonly` 
 回归放在 CI 已执行的根模块 `pkg/kafkax/rfc4757_test.go`，覆盖映射、127/128/255/256、1024、四/五字节变长编码边界和最大 uint32；另以独立生成的 RFC 固定 checksum/密文验证解密，并用标准库 HMAC/RC4 独立校验随机加密输出。修复前已实际复现编码、checksum、解密、加密互操作错误及越界 panic，避免仅用双方共享错误编码的加解密 round trip 作为依据。
 
 本次修正验证：Go 1.25.10 下 Kafka 相关包在 module/vendor 两种模式的 race 回归通过，no_logs 下共享工厂和指标 exporter 的 race 回归通过，相关包及 RFC 4757 包 vet 通过；19 个依赖快照核验、tidy 前后无差异和 vendor 重建通过，根 go.mod/go.sum 保持不变。Linux amd64/arm64、Windows amd64 与 Linux amd64 no_logs 的完整主程序构建通过。
+
+## PR #1519 CI 复核：大型 PR 的 lint 差异获取
+
+[远端运行 #605](https://github.com/flashcatcloud/categraf/actions/runs/43137441778) 的 Code Analysis 日志确认：GitHub diff API 因 PR 超过 300 个文件返回 HTTP 406（`too_large`），lint action 的 `only-new-issues` 因此无法获得 patch，回退为全量检查。附件中的 168 条报告位置均不在该 PR 新增行上。该次运行的 Commit Lint、Go Build Check、Plugin IPv4 DNS Regression 及 Windows named-pipe 两种开关均已通过。
+
+GoLint 现拉取完整历史，并在运行前验证 PR base commit 存在；通过 `--new-from-rev=<PR base SHA>` 由本地 Git 提供差异，关闭 action 的 API patch 获取。PR 仍检查新增问题，手动 workflow_dispatch 保留原有全量检查；baseline 缺失会明确失败，不会回退为全量检查或跳过 lint。
+
+本地 Go 1.25 检查中，受影响包对真实 PR base 的 lint 为 0 issues，actionlint 工作流检查通过。独立临时仓库回归验证：base 中已有的 lint 错误被过滤，而新增行的相同错误仍导致 lint 失败。

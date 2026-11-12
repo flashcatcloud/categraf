@@ -37,18 +37,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          # Keep the PR base available for local diff filtering, including
+          # PRs too large for GitHub's diff API.
+          fetch-depth: 0
       - uses: actions/setup-go@v6
         with:
           go-version: "1.25"
       - name: Tidy Go modules
         run: go mod tidy
+      - name: Verify PR lint baseline
+        if: github.event_name == 'pull_request'
+        env:
+          LINT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: git cat-file -e "${LINT_BASE_SHA}^{commit}"
       - name: Run golang-ci-lint
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12
-          args: --timeout=10m --tests=false
-          only-new-issues: true
+          # only-new-issues downloads the diff through GitHub's API, which
+          # rejects PRs with more than 300 files and falls back to full lint.
+          # Use the checked-out base instead; manual runs retain full lint.
+          args: >-
+            --timeout=10m --tests=false
+            ${{ github.event_name == 'pull_request' && format('--new-from-rev={0}', github.event.pull_request.base.sha) || '' }}
+          only-new-issues: false
           skip-cache: true
       - name: Run go version check
         run: make go-version-check
