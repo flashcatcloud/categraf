@@ -2,6 +2,7 @@ package zookeeper
 
 import (
 	crypto_tls "crypto/tls"
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"io"
 	"log"
@@ -45,19 +46,26 @@ func (ins *Instance) ZkHosts() []string {
 
 func (ins *Instance) ZkConnect(host string) (net.Conn, error) {
 	dialer := net.Dialer{Timeout: time.Duration(ins.Timeout) * time.Second}
-	tcpaddr, err := net.ResolveTCPAddr("tcp", host)
+	tcpaddr, err := net.ResolveTCPAddr(netx.NetworkFromEnv("tcp"), host)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve zookeeper(cluster: %s) address: %s: %v", ins.ClusterName, host, err)
 	}
 
 	if !ins.UseTLS {
-		return dialer.Dial("tcp", tcpaddr.String())
+		return dialer.Dial(netx.NetworkFromEnv("tcp"), tcpaddr.String())
 	}
 	tlsConfig, err := ins.TLSConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to init tls config: %v", err)
 	}
-	return crypto_tls.DialWithDialer(&dialer, "tcp", tcpaddr.String(), tlsConfig)
+	if tlsConfig.ServerName == "" {
+		serverName, _, err := net.SplitHostPort(host)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.ServerName = serverName
+	}
+	return crypto_tls.DialWithDialer(&dialer, netx.NetworkFromEnv("tcp"), tcpaddr.String(), tlsConfig)
 }
 
 type Zookeeper struct {

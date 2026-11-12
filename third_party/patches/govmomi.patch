@@ -1,0 +1,76 @@
+--- a/vim25/soap/client.go
++++ b/vim25/soap/client.go
+@@ -72,10 +72,12 @@
+ type Client struct {
+ 	http.Client
+ 
+-	u *url.URL
+-	k bool // Named after curl's -k flag
+-	d *debugContainer
+-	t *http.Transport
++	u                   *url.URL
++	k                   bool // Named after curl's -k flag
++	d                   *debugContainer
++	t                   *http.Transport
++	transportConfigurer func(*http.Transport)
++	transportGroup      *transportGroup
+ 
+ 	hostsMu sync.Mutex
+ 	hosts   map[string]string
+@@ -232,6 +234,10 @@
+ 		return vimTypes(namespace + ":" + name)
+ 	}
+ 
++	if c.transportConfigurer != nil {
++		client.transportGroup = c.transportGroup
++		client.SetTransportConfigurer(c.transportConfigurer)
++	}
+ 	return client
+ }
+ 
+@@ -671,6 +677,10 @@
+ }
+ 
+ func (c *Client) CloseIdleConnections() {
++	if c.transportGroup != nil {
++		c.transportGroup.closeIdle()
++		return
++	}
+ 	c.t.CloseIdleConnections()
+ }
+ 
+@@ -883,3 +893,34 @@
+ 
+ 	return c.WriteFile(ctx, file, rc, contentLength, param.Progress, param.Writer)
+ }
++
++// SetTransportConfigurer applies a policy to a fresh client's owned transport.
++// Service clients and SDK tunnels inherit the policy and pool-cleanup group.
++// Configure before use; reconfiguration during requests is unsupported.
++func (c *Client) SetTransportConfigurer(configure func(*http.Transport)) {
++	c.transportConfigurer = configure
++	if configure == nil {
++		return
++	}
++	configure(c.t)
++	if c.transportGroup == nil {
++		c.transportGroup = &transportGroup{}
++	}
++	c.transportGroup.mu.Lock()
++	c.transportGroup.transports = append(c.transportGroup.transports, c.t)
++	c.transportGroup.mu.Unlock()
++}
++
++type transportGroup struct {
++	mu         sync.Mutex
++	transports []*http.Transport
++}
++
++func (g *transportGroup) closeIdle() {
++	g.mu.Lock()
++	transports := append([]*http.Transport(nil), g.transports...)
++	g.mu.Unlock()
++	for _, t := range transports {
++		t.CloseIdleConnections()
++	}
++}

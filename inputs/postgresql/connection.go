@@ -2,10 +2,13 @@ package postgresql
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+
+	"flashcat.cloud/categraf/pkg/netx"
 )
 
 // parseConnectionConfig preserves the v4 connection-string options that users
@@ -68,5 +71,9 @@ func parseConnectionConfig(address string) (*pgx.ConnConfig, error) {
 
 	// Accept the socket filename form supported by the existing plugin.
 	connConfig.Host = socketRegexp.ReplaceAllLiteralString(connConfig.Host, "")
+	if netx.PreferIPv4() {
+		connConfig.LookupFunc = netx.LookupHostFromEnv(net.DefaultResolver)
+		connConfig.DialFunc = netx.DialFuncFromEnv(connConfig.DialFunc)
+	}
 	return connConfig, nil
 }

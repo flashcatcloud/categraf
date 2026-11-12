@@ -4,6 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http"
+	"os"
+
+	"flashcat.cloud/categraf/pkg/dockerx"
 
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/swarm"
@@ -28,7 +31,11 @@ type Client interface {
 }
 
 func NewEnvClient() (Client, error) {
-	client, err := dockerClient.New(dockerClient.FromEnv)
+	opts, err := dockerx.IPv4Options(os.Getenv(dockerClient.EnvOverrideHost))
+	if err != nil {
+		return nil, err
+	}
+	client, err := dockerClient.New(append([]dockerClient.Opt{dockerClient.FromEnv}, opts...)...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,11 +53,17 @@ func NewClient(host string, tlsConfig *tls.Config) (Client, error) {
 
 	httpClient := &http.Client{Transport: transport}
 
-	client, err := dockerClient.New(
+	opts := []dockerClient.Opt{
 		dockerClient.WithScheme(scheme),
 		dockerClient.WithHTTPHeaders(defaultHeaders),
 		dockerClient.WithHTTPClient(httpClient),
-		dockerClient.WithHost(host))
+		dockerClient.WithHost(host),
+	}
+	ipv4, err := dockerx.IPv4Options(host)
+	if err != nil {
+		return nil, err
+	}
+	client, err := dockerClient.New(append(opts, ipv4...)...)
 	if err != nil {
 		return nil, err
 	}

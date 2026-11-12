@@ -1,0 +1,2712 @@
+--- a/discovery/aws/aws.go
++++ b/discovery/aws/aws.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"time"
+ 
+ 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+@@ -70,6 +71,7 @@
+ 
+ // SDConfig is the configuration for AWS service discovery.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	Role             Role                    `yaml:"role"`
+ 	Region           string                  `yaml:"region,omitempty"`
+ 	Endpoint         string                  `yaml:"endpoint,omitempty"`
+@@ -108,12 +110,6 @@
+ 	}
+ 	*c = SDConfig(aux)
+ 
+-	var err error
+-	c.Region, err = loadRegion(context.Background(), c.Region)
+-	if err != nil {
+-		return fmt.Errorf("could not determine AWS region: %w", err)
+-	}
+-
+ 	switch c.Role {
+ 	case RoleEC2:
+ 		if c.EC2SDConfig == nil {
+@@ -332,6 +328,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the AWS Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	awsMetrics, ok := opts.Metrics.(*awsMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type for AWS SD")
+@@ -392,12 +392,16 @@
+ }
+ 
+ // loadRegion finds the region in order: AWS config/env vars ->IMDS.
+-func loadRegion(ctx context.Context, specifiedRegion string) (string, error) {
++func loadRegion(ctx context.Context, specifiedRegion string, policies ...*httppolicy.Policy) (string, error) {
+ 	if specifiedRegion != "" {
+ 		return specifiedRegion, nil
+ 	}
+ 
+-	cfg, err := awsConfig.LoadDefaultConfig(ctx)
++	var opts []func(*awsConfig.LoadOptions) error
++	if len(policies) > 0 && policies[0] != nil {
++		opts = policies[0].AWSOptions
++	}
++	cfg, err := awsConfig.LoadDefaultConfig(ctx, opts...)
+ 	if err != nil {
+ 		return "", fmt.Errorf("failed to load AWS config: %w", err)
+ 	}
+--- a/discovery/aws/ec2.go
++++ b/discovery/aws/ec2.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"net"
+ 	"strconv"
+@@ -88,6 +89,7 @@
+ 
+ // EC2SDConfig is the configuration for EC2 based service discovery.
+ type EC2SDConfig struct {
++	networkPolicy   *httppolicy.Policy
+ 	Endpoint        string         `yaml:"endpoint"`
+ 	Region          string         `yaml:"region"`
+ 	AccessKey       string         `yaml:"access_key,omitempty"`
+@@ -114,6 +116,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the EC2 Config.
+ func (c *EC2SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewEC2Discovery(c, opts)
+ }
+ 
+@@ -132,10 +138,6 @@
+ 	}
+ 
+ 	// Check if the region is set, if not attempt to load it from the AWS SDK.
+-	c.Region, err = loadRegion(context.Background(), c.Region)
+-	if err != nil {
+-		return fmt.Errorf("could not determine AWS region: %w", err)
+-	}
+ 
+ 	for _, f := range c.Filters {
+ 		if len(f.Values) == 0 {
+@@ -166,6 +168,15 @@
+ 
+ // NewEC2Discovery returns a new EC2Discovery which periodically refreshes its targets.
+ func NewEC2Discovery(conf *EC2SDConfig, opts discovery.DiscovererOptions) (*EC2Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++	var err error
++	conf.Region, err = loadRegion(context.Background(), conf.Region, conf.networkPolicy)
++	if err != nil {
++		return nil, fmt.Errorf("could not determine AWS region: %w", err)
++	}
++
+ 	m, ok := opts.Metrics.(*ec2Metrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -197,7 +208,7 @@
+ 	}
+ 
+ 	// Build the HTTP client from the provided HTTPClientConfig.
+-	httpClient, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "ec2_sd")
++	httpClient, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "ec2_sd", d.cfg.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -220,6 +231,7 @@
+ 		configOptions = append(configOptions, awsConfig.WithSharedConfigProfile(d.cfg.Profile))
+ 	}
+ 
++	configOptions = append(d.cfg.networkPolicy.AWSConfigOptions(), configOptions...)
+ 	cfg, err := awsConfig.LoadDefaultConfig(ctx, configOptions...)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("could not create aws config: %w", err)
+--- a/discovery/aws/ecs.go
++++ b/discovery/aws/ecs.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"net"
+ 	"slices"
+@@ -93,6 +94,7 @@
+ 
+ // ECSSDConfig is the configuration for ECS based service discovery.
+ type ECSSDConfig struct {
++	networkPolicy   *httppolicy.Policy
+ 	Region          string         `yaml:"region"`
+ 	Endpoint        string         `yaml:"endpoint"`
+ 	AccessKey       string         `yaml:"access_key,omitempty"`
+@@ -127,6 +129,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the EC2 Config.
+ func (c *ECSSDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewECSDiscovery(c, opts)
+ }
+ 
+@@ -142,11 +148,6 @@
+ 	err := unmarshal((*plain)(c))
+ 	if err != nil {
+ 		return err
+-	}
+-
+-	c.Region, err = loadRegion(context.Background(), c.Region)
+-	if err != nil {
+-		return fmt.Errorf("could not determine AWS region: %w", err)
+ 	}
+ 
+ 	return c.HTTPClientConfig.Validate()
+@@ -179,6 +180,15 @@
+ 
+ // NewECSDiscovery returns a new ECSDiscovery which periodically refreshes its targets.
+ func NewECSDiscovery(conf *ECSSDConfig, opts discovery.DiscovererOptions) (*ECSDiscovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++	var err error
++	conf.Region, err = loadRegion(context.Background(), conf.Region, conf.networkPolicy)
++	if err != nil {
++		return nil, fmt.Errorf("could not determine AWS region: %w", err)
++	}
++
+ 	m, ok := opts.Metrics.(*ecsMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -213,7 +223,7 @@
+ 	}
+ 
+ 	// Build the HTTP client from the provided HTTPClientConfig.
+-	client, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "ecs_sd")
++	client, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "ecs_sd", d.cfg.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -234,6 +244,7 @@
+ 		configOptions = append(configOptions, awsConfig.WithSharedConfigProfile(d.cfg.Profile))
+ 	}
+ 
++	configOptions = append(d.cfg.networkPolicy.AWSConfigOptions(), configOptions...)
+ 	cfg, err := awsConfig.LoadDefaultConfig(ctx, configOptions...)
+ 	if err != nil {
+ 		d.logger.Error("Failed to create AWS config", "error", err)
+--- a/discovery/aws/elasticache.go
++++ b/discovery/aws/elasticache.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"maps"
+ 	"net"
+@@ -186,6 +187,7 @@
+ 
+ // ElasticacheSDConfig is the configuration for Elasticache based service discovery.
+ type ElasticacheSDConfig struct {
++	networkPolicy   *httppolicy.Policy
+ 	Region          string         `yaml:"region"`
+ 	Endpoint        string         `yaml:"endpoint"`
+ 	AccessKey       string         `yaml:"access_key,omitempty"`
+@@ -215,6 +217,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Elasticache Config.
+ func (c *ElasticacheSDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewElasticacheDiscovery(c, opts)
+ }
+ 
+@@ -232,11 +238,6 @@
+ 		return err
+ 	}
+ 
+-	c.Region, err = loadRegion(context.Background(), c.Region)
+-	if err != nil {
+-		return fmt.Errorf("could not determine AWS region: %w", err)
+-	}
+-
+ 	return c.HTTPClientConfig.Validate()
+ }
+ 
+@@ -257,6 +258,15 @@
+ 
+ // NewElasticacheDiscovery returns a new ElasticacheDiscovery which periodically refreshes its targets.
+ func NewElasticacheDiscovery(conf *ElasticacheSDConfig, opts discovery.DiscovererOptions) (*ElasticacheDiscovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++	var err error
++	conf.Region, err = loadRegion(context.Background(), conf.Region, conf.networkPolicy)
++	if err != nil {
++		return nil, fmt.Errorf("could not determine AWS region: %w", err)
++	}
++
+ 	m, ok := opts.Metrics.(*elasticacheMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -291,7 +301,7 @@
+ 	}
+ 
+ 	// Build the HTTP client from the provided HTTPClientConfig.
+-	client, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "elasticache_sd")
++	client, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "elasticache_sd", d.cfg.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -312,6 +322,7 @@
+ 		configOptions = append(configOptions, awsConfig.WithSharedConfigProfile(d.cfg.Profile))
+ 	}
+ 
++	configOptions = append(d.cfg.networkPolicy.AWSConfigOptions(), configOptions...)
+ 	cfg, err := awsConfig.LoadDefaultConfig(ctx, configOptions...)
+ 	if err != nil {
+ 		d.logger.Error("Failed to create AWS config", "error", err)
+--- a/discovery/aws/lightsail.go
++++ b/discovery/aws/lightsail.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net"
+ 	"strconv"
+ 	"strings"
+@@ -69,6 +70,7 @@
+ 
+ // LightsailSDConfig is the configuration for Lightsail based service discovery.
+ type LightsailSDConfig struct {
++	networkPolicy   *httppolicy.Policy
+ 	Endpoint        string         `yaml:"endpoint"`
+ 	Region          string         `yaml:"region"`
+ 	AccessKey       string         `yaml:"access_key,omitempty"`
+@@ -94,6 +96,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Lightsail Config.
+ func (c *LightsailSDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewLightsailDiscovery(c, opts)
+ }
+ 
+@@ -109,11 +115,6 @@
+ 	err := unmarshal((*plain)(c))
+ 	if err != nil {
+ 		return err
+-	}
+-
+-	c.Region, err = loadRegion(context.Background(), c.Region)
+-	if err != nil {
+-		return fmt.Errorf("could not determine AWS region: %w", err)
+ 	}
+ 
+ 	return c.HTTPClientConfig.Validate()
+@@ -129,6 +130,15 @@
+ 
+ // NewLightsailDiscovery returns a new LightsailDiscovery which periodically refreshes its targets.
+ func NewLightsailDiscovery(conf *LightsailSDConfig, opts discovery.DiscovererOptions) (*LightsailDiscovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++	var err error
++	conf.Region, err = loadRegion(context.Background(), conf.Region, conf.networkPolicy)
++	if err != nil {
++		return nil, fmt.Errorf("could not determine AWS region: %w", err)
++	}
++
+ 	m, ok := opts.Metrics.(*lightsailMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -160,7 +170,7 @@
+ 	}
+ 
+ 	// Build the HTTP client from the provided HTTPClientConfig.
+-	httpClient, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "lightsail_sd")
++	httpClient, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "lightsail_sd", d.cfg.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -183,6 +193,7 @@
+ 		configOptions = append(configOptions, awsConfig.WithSharedConfigProfile(d.cfg.Profile))
+ 	}
+ 
++	configOptions = append(d.cfg.networkPolicy.AWSConfigOptions(), configOptions...)
+ 	cfg, err := awsConfig.LoadDefaultConfig(ctx, configOptions...)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("could not create aws config: %w", err)
+--- a/discovery/aws/msk.go
++++ b/discovery/aws/msk.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"net"
+ 	"strconv"
+@@ -100,6 +101,7 @@
+ 
+ // MSKSDConfig is the configuration for MSK based service discovery.
+ type MSKSDConfig struct {
++	networkPolicy   *httppolicy.Policy
+ 	Region          string         `yaml:"region"`
+ 	Endpoint        string         `yaml:"endpoint"`
+ 	AccessKey       string         `yaml:"access_key,omitempty"`
+@@ -127,6 +129,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the MSK Config.
+ func (c *MSKSDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewMSKDiscovery(c, opts)
+ }
+ 
+@@ -142,11 +148,6 @@
+ 	err := unmarshal((*plain)(c))
+ 	if err != nil {
+ 		return err
+-	}
+-
+-	c.Region, err = loadRegion(context.Background(), c.Region)
+-	if err != nil {
+-		return fmt.Errorf("could not determine AWS region: %w", err)
+ 	}
+ 
+ 	return c.HTTPClientConfig.Validate()
+@@ -169,6 +170,15 @@
+ 
+ // NewMSKDiscovery returns a new MSKDiscovery which periodically refreshes its targets.
+ func NewMSKDiscovery(conf *MSKSDConfig, opts discovery.DiscovererOptions) (*MSKDiscovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++	var err error
++	conf.Region, err = loadRegion(context.Background(), conf.Region, conf.networkPolicy)
++	if err != nil {
++		return nil, fmt.Errorf("could not determine AWS region: %w", err)
++	}
++
+ 	m, ok := opts.Metrics.(*mskMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -203,7 +213,7 @@
+ 	}
+ 
+ 	// Build the HTTP client from the provided HTTPClientConfig.
+-	client, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "msk_sd")
++	client, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "msk_sd", d.cfg.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -224,6 +234,7 @@
+ 		configOptions = append(configOptions, awsConfig.WithSharedConfigProfile(d.cfg.Profile))
+ 	}
+ 
++	configOptions = append(d.cfg.networkPolicy.AWSConfigOptions(), configOptions...)
+ 	cfg, err := awsConfig.LoadDefaultConfig(ctx, configOptions...)
+ 	if err != nil {
+ 		d.logger.Error("Failed to create AWS config", "error", err)
+--- a/discovery/aws/rds.go
++++ b/discovery/aws/rds.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"net"
+ 	"strconv"
+@@ -219,6 +220,7 @@
+ 
+ // RDSSDConfig is the configuration for RDS based service discovery.
+ type RDSSDConfig struct {
++	networkPolicy   *httppolicy.Policy
+ 	Region          string         `yaml:"region"`
+ 	Endpoint        string         `yaml:"endpoint"`
+ 	AccessKey       string         `yaml:"access_key,omitempty"`
+@@ -246,6 +248,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the RDS Config.
+ func (c *RDSSDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewRDSDiscovery(c, opts)
+ }
+ 
+@@ -263,11 +269,6 @@
+ 		return err
+ 	}
+ 
+-	c.Region, err = loadRegion(context.Background(), c.Region)
+-	if err != nil {
+-		return fmt.Errorf("could not determine AWS region: %w", err)
+-	}
+-
+ 	return c.HTTPClientConfig.Validate()
+ }
+ 
+@@ -287,6 +288,15 @@
+ 
+ // NewRDSDiscovery returns a new RDSDiscovery which periodically refreshes its targets.
+ func NewRDSDiscovery(conf *RDSSDConfig, opts discovery.DiscovererOptions) (*RDSDiscovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++	var err error
++	conf.Region, err = loadRegion(context.Background(), conf.Region, conf.networkPolicy)
++	if err != nil {
++		return nil, fmt.Errorf("could not determine AWS region: %w", err)
++	}
++
+ 	m, ok := opts.Metrics.(*rdsMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -321,7 +331,7 @@
+ 	}
+ 
+ 	// Build the HTTP client from the provided HTTPClientConfig.
+-	client, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "rds_sd")
++	client, err := config.NewClientFromConfig(d.cfg.HTTPClientConfig, "rds_sd", d.cfg.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -342,6 +352,7 @@
+ 		configOptions = append(configOptions, awsConfig.WithSharedConfigProfile(d.cfg.Profile))
+ 	}
+ 
++	configOptions = append(d.cfg.networkPolicy.AWSConfigOptions(), configOptions...)
+ 	cfg, err := awsConfig.LoadDefaultConfig(ctx, configOptions...)
+ 	if err != nil {
+ 		d.logger.Error("Failed to create AWS config", "error", err)
+--- a/discovery/azure/azure.go
++++ b/discovery/azure/azure.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"math/rand"
+ 	"net"
+@@ -30,6 +31,7 @@
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
++	azruntime "github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+ 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+@@ -105,6 +107,7 @@
+ 
+ // SDConfig is the configuration for Azure based service discovery.
+ type SDConfig struct {
++	networkPolicy        *httppolicy.Policy
+ 	Environment          string             `yaml:"environment,omitempty"`
+ 	Port                 int                `yaml:"port"`
+ 	SubscriptionID       string             `yaml:"subscription_id"`
+@@ -128,6 +131,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -170,6 +177,7 @@
+ }
+ 
+ type Discovery struct {
++	credentialHTTPClient *http.Client
+ 	*refresh.Discovery
+ 	logger  *slog.Logger
+ 	cfg     *SDConfig
+@@ -180,6 +188,10 @@
+ 
+ // NewDiscovery returns a new AzureDiscovery which periodically refreshes its targets.
+ func NewDiscovery(cfg *SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	copy := *cfg
++	cfg = &copy
++	cfg.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*azureMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -197,6 +209,9 @@
+ 		metrics: m,
+ 	}
+ 
++	if cfg.networkPolicy != nil {
++		d.credentialHTTPClient = azruntime.NewHTTPClientWithNetworkPolicy(cfg.networkPolicy.Network)
++	}
+ 	d.Discovery = refresh.NewDiscovery(
+ 		refresh.Options{
+ 			Logger:              opts.Logger,
+@@ -244,15 +259,16 @@
+ 		ApplicationID: version.PrometheusUserAgent(),
+ 	}
+ 
+-	credential, err := newCredential(*d.cfg, policy.ClientOptions{
+-		Cloud:     cloudConfiguration,
+-		Telemetry: telemetry,
+-	})
++	credentialOptions := policy.ClientOptions{Cloud: cloudConfiguration, Telemetry: telemetry}
++	if d.credentialHTTPClient != nil {
++		credentialOptions.Transport = d.credentialHTTPClient
++	}
++	credential, err := newCredential(*d.cfg, credentialOptions)
+ 	if err != nil {
+ 		return &azureClient{}, err
+ 	}
+ 
+-	client, err := config_util.NewClientFromConfig(d.cfg.HTTPClientConfig, "azure_sd")
++	client, err := config_util.NewClientFromConfig(d.cfg.HTTPClientConfig, "azure_sd", d.cfg.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return &azureClient{}, err
+ 	}
+@@ -743,3 +759,12 @@
+ 	net, found := d.cache.Get(nicID)
+ 	return net, found
+ }
++
++// Run keeps credential pools across refreshes and releases only the private
++// pool owned by this discoverer when discovery stops.
++func (d *Discovery) Run(ctx context.Context, ch chan<- []*targetgroup.Group) {
++	if d.credentialHTTPClient != nil {
++		defer d.credentialHTTPClient.CloseIdleConnections()
++	}
++	d.Discovery.Run(ctx, ch)
++}
+--- a/discovery/azure/network_policy_test.go
++++ b/discovery/azure/network_policy_test.go
+@@ -0,0 +1,282 @@
++package azure
++
++import (
++	"context"
++	"crypto/ecdsa"
++	"crypto/elliptic"
++	"crypto/rand"
++	"crypto/tls"
++	"crypto/x509"
++	"crypto/x509/pkix"
++	"encoding/pem"
++	"fmt"
++	"math/big"
++	"net"
++	"net/http"
++	"net/http/httptest"
++	"os"
++	"path/filepath"
++	"strings"
++	"sync"
++	"sync/atomic"
++	"testing"
++	"time"
++
++	"github.com/miekg/dns"
++	"github.com/prometheus/client_golang/prometheus"
++	commonconfig "github.com/prometheus/common/config"
++	"github.com/prometheus/prometheus/discovery"
++	"github.com/prometheus/prometheus/discovery/targetgroup"
++	"github.com/prometheus/prometheus/util/httppolicy"
++)
++
++// Exercise the actual ARM credential path. Only the port is redirected to the
++// local fixture; the original SDK dialer, family selection, Host and TLS SNI
++// remain in use. No shared SDK transport or cloud registry is replaced.
++func TestCredentialNetworkPolicyRefresh(t *testing.T) {
++	for _, method := range []string{authMethodOAuth, authMethodManagedIdentity, authMethodWorkloadIdentity, authMethodSDK} {
++		t.Run(method, func(t *testing.T) {
++			for _, key := range []string{"HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "AZURE_AUTHORITY_HOST", "IDENTITY_ENDPOINT", "IDENTITY_HEADER", "MSI_ENDPOINT", "MSI_SECRET", "IMDS_ENDPOINT", "IDENTITY_SERVER_THUMBPRINT", "AZURE_TOKEN_CREDENTIALS"} {
++				t.Setenv(key, "")
++			}
++			// Keep DefaultAzureCredential on deployed credentials; never invoke a developer CLI.
++			t.Setenv("AZURE_TOKEN_CREDENTIALS", "prod")
++			t.Setenv("AZURE_TENANT_ID", "fixture-tenant")
++			t.Setenv("AZURE_CLIENT_ID", "fixture-client")
++			t.Setenv("AZURE_CLIENT_SECRET", "fixture-secret")
++			tokenFile := filepath.Join(t.TempDir(), "federated-token")
++			if err := os.WriteFile(tokenFile, []byte("fixture-assertion"), 0600); err != nil {
++				t.Fatal(err)
++			}
++			t.Setenv("AZURE_FEDERATED_TOKEN_FILE", tokenFile)
++			queries := observeCredentialDNS(t)
++			var tokens, apiRequests atomic.Int32
++			authClosed := make(chan struct{}, 8)
++			var mu sync.Mutex
++			authConnections := make(map[string]bool)
++			const endpoint = "https://login.microsoftonline.com"
++			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++				if strings.Contains(r.Host, "management.azure.com") {
++					apiRequests.Add(1)
++					if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer fixture-token") {
++						t.Error("lost ARM authentication")
++					}
++					w.Header().Set("Content-Type", "application/json")
++					fmt.Fprint(w, `{"value":[]}`)
++					return
++				}
++				mu.Lock()
++				authConnections[r.RemoteAddr] = true
++				mu.Unlock()
++				w.Header().Set("Content-Type", "application/json")
++				switch {
++				case strings.Contains(r.URL.Path, "openid-configuration"):
++					fmt.Fprintf(w, `{"authorization_endpoint":%q,"token_endpoint":%q,"issuer":%q,"jwks_uri":%q}`, endpoint+"/fixture-tenant/oauth2/v2.0/authorize", endpoint+"/fixture-tenant/oauth2/v2.0/token", endpoint+"/fixture-tenant/v2.0", endpoint+"/keys")
++				case strings.Contains(r.URL.Path, "discovery/instance"):
++					fmt.Fprintf(w, `{"tenant_discovery_endpoint":%q,"metadata":[{"preferred_network":"login.microsoftonline.com","preferred_cache":"login.microsoftonline.com","aliases":["login.microsoftonline.com"]}]}`, endpoint+"/fixture-tenant/v2.0/.well-known/openid-configuration")
++				case strings.HasSuffix(r.URL.Path, "/token") || r.URL.Path == "/identity":
++					tokens.Add(1)
++					if method == authMethodManagedIdentity {
++						if r.Header.Get("X-IDENTITY-HEADER") != "fixture-header" {
++							t.Error("managed identity header lost")
++						}
++						fmt.Fprintf(w, `{"access_token":"fixture-token","token_type":"Bearer","expires_on":"%d","resource":"https://management.azure.com/"}`, time.Now().Add(time.Second).Unix())
++					} else {
++						_ = r.ParseForm()
++						if r.Form.Get("client_id") != "fixture-client" {
++							t.Error("OAuth client ID lost")
++						}
++						if method == authMethodWorkloadIdentity && r.Form.Get("client_assertion") != "fixture-assertion" {
++							t.Error("workload assertion lost")
++						}
++						fmt.Fprint(w, `{"access_token":"fixture-token","token_type":"Bearer","expires_in":1,"ext_expires_in":1}`)
++					}
++				default:
++					t.Errorf("unexpected credential path: %s", r.URL.Path)
++					http.NotFound(w, r)
++				}
++			})
++			tlsConfig, caFile := credentialTLS(t)
++			server := httptest.NewUnstartedServer(handler)
++			server.TLS = tlsConfig
++			server.Config.ConnState = func(conn net.Conn, state http.ConnState) {
++				if state == http.StateClosed {
++					mu.Lock()
++					auth := authConnections[conn.RemoteAddr().String()]
++					mu.Unlock()
++					if auth {
++						authClosed <- struct{}{}
++					}
++				}
++			}
++			server.StartTLS()
++			defer server.Close()
++			_, port, _ := net.SplitHostPort(strings.TrimPrefix(server.URL, "https://"))
++			var managed *httptest.Server
++			if method == authMethodManagedIdentity {
++				managed = httptest.NewServer(handler)
++				defer managed.Close()
++				t.Setenv("IDENTITY_ENDPOINT", strings.Replace(managed.URL, "127.0.0.1", "identity.fixture.invalid.", 1)+"/identity")
++				t.Setenv("IDENTITY_HEADER", "fixture-header")
++			}
++			network := func(network string) string {
++				if network == "tcp" {
++					return "tcp4"
++				}
++				return network
++			}
++			redirectPort := func(dial func(context.Context, string, string) (net.Conn, error)) func(context.Context, string, string) (net.Conn, error) {
++				return func(ctx context.Context, network, address string) (net.Conn, error) {
++					host, originalPort, err := net.SplitHostPort(address)
++					if err != nil {
++						return nil, err
++					}
++					if originalPort == "443" {
++						address = net.JoinHostPort(host, port)
++					}
++					return dial(ctx, network, address)
++				}
++			}
++			dial := redirectPort(func(ctx context.Context, networkName, address string) (net.Conn, error) {
++				return (&net.Dialer{Timeout: time.Second}).DialContext(ctx, network(networkName), address)
++			})
++			policy := &httppolicy.Policy{Network: network, HTTPClientOptions: []commonconfig.HTTPClientOption{commonconfig.WithDialContextFunc(dial)}}
++			cfg := DefaultSDConfig
++			cfg.AuthenticationMethod = method
++			cfg.SubscriptionID = "00000000-0000-0000-0000-000000000001"
++			cfg.TenantID = "fixture-tenant"
++			cfg.ClientID = "fixture-client"
++			cfg.ClientSecret = "fixture-secret"
++			cfg.ResourceGroup = "fixture"
++			cfg.HTTPClientConfig.TLSConfig.CAFile = caFile
++			registry := prometheus.NewRegistry()
++			metrics := cfg.NewDiscovererMetrics(registry, discovery.NewRefreshMetrics(registry))
++			d, err := NewDiscovery(&cfg, discovery.DiscovererOptions{Metrics: metrics, NetworkPolicy: policy})
++			if err != nil {
++				t.Fatal(err)
++			}
++			if d.credentialHTTPClient == nil {
++				t.Fatal("discoverer has no private credential client")
++			}
++			t.Cleanup(d.credentialHTTPClient.CloseIdleConnections)
++			transport := d.credentialHTTPClient.Transport.(*http.Transport)
++			if transport.IdleConnTimeout != 90*time.Second || transport.TLSHandshakeTimeout != 10*time.Second || transport.MaxIdleConnsPerHost != 10 || transport.TLSClientConfig.MinVersion != tls.VersionTLS12 || transport.TLSClientConfig.Renegotiation != tls.RenegotiateFreelyAsClient || transport.TLSNextProto["h2"] == nil {
++				t.Fatal("native Azure transport defaults lost")
++			}
++			pemData, err := os.ReadFile(caFile)
++			if err != nil {
++				t.Fatal(err)
++			}
++			roots := x509.NewCertPool()
++			roots.AppendCertsFromPEM(pemData)
++			transport.TLSClientConfig.RootCAs = roots
++			transport.DialContext = redirectPort(transport.DialContext)
++			client, err := d.createAzureClient()
++			if err != nil {
++				t.Fatal(err)
++			}
++			for i := 0; i < 2; i++ {
++				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
++				_, err = client.getVMs(ctx, cfg.ResourceGroup)
++				cancel()
++				if err != nil {
++					t.Fatal(err)
++				}
++				if i == 0 {
++					time.Sleep(1100 * time.Millisecond)
++				}
++			}
++			if tokens.Load() < 2 || apiRequests.Load() != 2 {
++				t.Fatalf("tokens=%d API requests=%d", tokens.Load(), apiRequests.Load())
++			}
++			host := "login.microsoftonline.com."
++			if method == authMethodManagedIdentity {
++				host = "identity.fixture.invalid."
++			}
++			a, aaaa := queries(host)
++			if a == 0 || aaaa != 0 {
++				t.Fatalf("credential host %s A=%d AAAA=%d", host, a, aaaa)
++			}
++			// Run's shutdown closes the discoverer's credential pool. The canceled
++			// refresh cannot create additional network activity.
++			ctx, cancel := context.WithCancel(context.Background())
++			cancel()
++			d.Run(ctx, make(chan []*targetgroup.Group))
++			if method != authMethodManagedIdentity {
++				select {
++				case <-authClosed:
++				case <-time.After(time.Second):
++					t.Fatal("credential pool remained open after discovery stopped")
++				}
++			}
++		})
++	}
++}
++
++func credentialTLS(t *testing.T) (*tls.Config, string) {
++	t.Helper()
++	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
++	if err != nil {
++		t.Fatal(err)
++	}
++	template := &x509.Certificate{SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "credential fixture"}, DNSNames: []string{"login.microsoftonline.com", "management.azure.com"}, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour), KeyUsage: x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}, BasicConstraintsValid: true, IsCA: true}
++	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
++	if err != nil {
++		t.Fatal(err)
++	}
++	ca := filepath.Join(t.TempDir(), "ca.pem")
++	if err := os.WriteFile(ca, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0600); err != nil {
++		t.Fatal(err)
++	}
++	return &tls.Config{Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}}}, ca
++}
++
++func observeCredentialDNS(t *testing.T) func(string) (int, int) {
++	t.Helper()
++	socket, err := net.ListenPacket("udp4", "127.0.0.1:0")
++	if err != nil {
++		t.Fatal(err)
++	}
++	var mu sync.Mutex
++	counts := make(map[string]map[uint16]int)
++	ready := make(chan struct{})
++	done := make(chan error, 1)
++	server := &dns.Server{PacketConn: socket, NotifyStartedFunc: func() { close(ready) }, Handler: dns.HandlerFunc(func(w dns.ResponseWriter, request *dns.Msg) {
++		reply := new(dns.Msg)
++		reply.SetReply(request)
++		for _, question := range request.Question {
++			mu.Lock()
++			if counts[question.Name] == nil {
++				counts[question.Name] = make(map[uint16]int)
++			}
++			counts[question.Name][question.Qtype]++
++			mu.Unlock()
++			header := dns.RR_Header{Name: question.Name, Rrtype: question.Qtype, Class: dns.ClassINET, Ttl: 1}
++			switch question.Qtype {
++			case dns.TypeA:
++				reply.Answer = append(reply.Answer, &dns.A{Hdr: header, A: net.IPv4(127, 0, 0, 1)})
++			case dns.TypeAAAA:
++				reply.Answer = append(reply.Answer, &dns.AAAA{Hdr: header, AAAA: net.IPv6loopback})
++			}
++		}
++		_ = w.WriteMsg(reply)
++	})}
++	go func() { done <- server.ActivateAndServe() }()
++	<-ready
++	original := net.DefaultResolver
++	net.DefaultResolver = &net.Resolver{PreferGo: true, Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
++		return (&net.Dialer{}).DialContext(ctx, "udp4", socket.LocalAddr().String())
++	}}
++	t.Cleanup(func() {
++		net.DefaultResolver = original
++		_ = server.Shutdown()
++		if err := <-done; err != nil {
++			t.Error(err)
++		}
++	})
++	return func(host string) (int, int) {
++		mu.Lock()
++		defer mu.Unlock()
++		return counts[host][dns.TypeA], counts[host][dns.TypeAAAA]
++	}
++}
+--- a/discovery/consul/consul.go
++++ b/discovery/consul/consul.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"net"
+ 	"slices"
+@@ -88,16 +89,17 @@
+ 
+ // SDConfig is the configuration for Consul service discovery.
+ type SDConfig struct {
+-	Server       string        `yaml:"server,omitempty"`
+-	PathPrefix   string        `yaml:"path_prefix,omitempty"`
+-	Token        config.Secret `yaml:"token,omitempty"`
+-	Datacenter   string        `yaml:"datacenter,omitempty"`
+-	Namespace    string        `yaml:"namespace,omitempty"`
+-	Partition    string        `yaml:"partition,omitempty"`
+-	TagSeparator string        `yaml:"tag_separator,omitempty"`
+-	Scheme       string        `yaml:"scheme,omitempty"`
+-	Username     string        `yaml:"username,omitempty"`
+-	Password     config.Secret `yaml:"password,omitempty"`
++	networkPolicy *httppolicy.Policy
++	Server        string        `yaml:"server,omitempty"`
++	PathPrefix    string        `yaml:"path_prefix,omitempty"`
++	Token         config.Secret `yaml:"token,omitempty"`
++	Datacenter    string        `yaml:"datacenter,omitempty"`
++	Namespace     string        `yaml:"namespace,omitempty"`
++	Partition     string        `yaml:"partition,omitempty"`
++	TagSeparator  string        `yaml:"tag_separator,omitempty"`
++	Scheme        string        `yaml:"scheme,omitempty"`
++	Username      string        `yaml:"username,omitempty"`
++	Password      config.Secret `yaml:"password,omitempty"`
+ 
+ 	// See https://www.consul.io/docs/internals/consensus.html#consistency-modes,
+ 	// stale reads are a lot cheaper and are a necessity if you have >5k targets.
+@@ -136,6 +138,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts.Logger, opts.Metrics)
+ }
+ 
+@@ -201,7 +207,7 @@
+ 		logger = promslog.NewNopLogger()
+ 	}
+ 
+-	wrapper, err := config.NewClientFromConfig(conf.HTTPClientConfig, "consul_sd", config.WithIdleConnTimeout(2*watchTimeout))
++	wrapper, err := config.NewClientFromConfig(conf.HTTPClientConfig, "consul_sd", append(conf.networkPolicy.HTTPOptions(), config.WithIdleConnTimeout(2*watchTimeout))...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/digitalocean/digitalocean.go
++++ b/discovery/digitalocean/digitalocean.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net"
+ 	"net/http"
+ 	"strconv"
+@@ -101,6 +102,7 @@
+ 
+ // SDConfig is the configuration for DigitalOcean based service discovery.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 
+ 	RefreshInterval model.Duration `yaml:"refresh_interval"`
+@@ -116,6 +118,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -142,6 +148,10 @@
+ 
+ // NewDiscovery returns a new Discovery which periodically refreshes its targets.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*digitaloceanMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -171,7 +181,7 @@
+ func newRefresher(conf *SDConfig) (refresher, error) {
+ 	httpClient := conf.HTTPClient
+ 	if httpClient == nil {
+-		rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "digitalocean_sd")
++		rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "digitalocean_sd", conf.networkPolicy.HTTPOptions()...)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+--- a/discovery/discovery.go
++++ b/discovery/discovery.go
+@@ -15,6 +15,7 @@
+ 
+ import (
+ 	"context"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"reflect"
+ 
+@@ -47,7 +48,8 @@
+ 
+ // DiscovererOptions provides options for a Discoverer.
+ type DiscovererOptions struct {
+-	Logger *slog.Logger
++	NetworkPolicy *httppolicy.Policy
++	Logger        *slog.Logger
+ 
+ 	Metrics DiscovererMetrics
+ 
+--- a/discovery/eureka/eureka.go
++++ b/discovery/eureka/eureka.go
+@@ -16,6 +16,7 @@
+ import (
+ 	"context"
+ 	"errors"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net"
+ 	"net/http"
+ 	"net/url"
+@@ -70,6 +71,7 @@
+ 
+ // SDConfig is the configuration for applications running on Eureka.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	Server           string                  `yaml:"server,omitempty"`
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 	RefreshInterval  model.Duration          `yaml:"refresh_interval,omitempty"`
+@@ -87,6 +89,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -125,12 +131,16 @@
+ 
+ // NewDiscovery creates a new Eureka discovery for the given role.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*eurekaMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+ 	}
+ 
+-	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "eureka_sd")
++	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "eureka_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/gce/gce.go
++++ b/discovery/gce/gce.go
+@@ -17,6 +17,8 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
++	apihttp "google.golang.org/api/transport/http"
+ 	"net/http"
+ 	"strconv"
+ 	"strings"
+@@ -64,6 +66,7 @@
+ 
+ // SDConfig is the configuration for GCE based service discovery.
+ type SDConfig struct {
++	networkPolicy *httppolicy.Policy
+ 	// Project: The Google Cloud Project ID
+ 	Project string `yaml:"project"`
+ 
+@@ -93,6 +96,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(*c, opts)
+ }
+ 
+@@ -129,6 +136,8 @@
+ 
+ // NewDiscovery returns a new Discovery which periodically refreshes its targets.
+ func NewDiscovery(conf SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*gceMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -142,7 +151,15 @@
+ 		tagSeparator: conf.TagSeparator,
+ 	}
+ 	var err error
+-	d.client, err = google.DefaultClient(context.Background(), compute.ComputeReadonlyScope)
++	if conf.networkPolicy == nil {
++		d.client, err = google.DefaultClient(context.Background(), compute.ComputeReadonlyScope)
++	} else {
++		options := append([]option.ClientOption{option.WithScopes(compute.ComputeReadonlyScope)}, conf.networkPolicy.GoogleOptions...)
++		base := conf.networkPolicy.Client(&http.Client{})
++		var rt http.RoundTripper
++		rt, err = apihttp.NewTransport(context.Background(), base.Transport, options...)
++		d.client = &http.Client{Transport: rt}
++	}
+ 	if err != nil {
+ 		return nil, fmt.Errorf("error setting up communication with GCE service: %w", err)
+ 	}
+--- a/discovery/hetzner/hcloud.go
++++ b/discovery/hetzner/hcloud.go
+@@ -67,7 +67,7 @@
+ 		labelSelector: conf.LabelSelector,
+ 	}
+ 
+-	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "hetzner_sd")
++	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "hetzner_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/hetzner/hetzner.go
++++ b/discovery/hetzner/hetzner.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"time"
+ 
+@@ -54,6 +55,7 @@
+ 
+ // SDConfig is the configuration for Hetzner based service discovery.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 
+ 	RefreshInterval model.Duration `yaml:"refresh_interval"`
+@@ -78,6 +80,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -139,6 +145,10 @@
+ 
+ // NewDiscovery returns a new Discovery which periodically refreshes its targets.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*refresh.Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*hetznerMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+--- a/discovery/hetzner/robot.go
++++ b/discovery/hetzner/robot.go
+@@ -58,7 +58,7 @@
+ 		endpoint: conf.robotEndpoint,
+ 	}
+ 
+-	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "hetzner_sd")
++	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "hetzner_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/http/http.go
++++ b/discovery/http/http.go
+@@ -18,6 +18,7 @@
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"io"
+ 	"net/http"
+ 	"net/url"
+@@ -53,6 +54,7 @@
+ 
+ // SDConfig is the configuration for HTTP based discovery.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 	RefreshInterval  model.Duration          `yaml:"refresh_interval,omitempty"`
+ 	URL              string                  `yaml:"url"`
+@@ -68,6 +70,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -115,6 +121,10 @@
+ 
+ // NewDiscovery returns a new HTTP discovery for the given config.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*httpMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+--- a/discovery/ionos/ionos.go
++++ b/discovery/ionos/ionos.go
+@@ -15,6 +15,7 @@
+ 
+ import (
+ 	"errors"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"time"
+ 
+ 	"github.com/prometheus/client_golang/prometheus"
+@@ -42,6 +43,10 @@
+ 
+ // NewDiscovery returns a new refresh.Discovery for IONOS Cloud.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*refresh.Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*ionosMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -77,6 +82,7 @@
+ 
+ // SDConfig configuration to use for IONOS Cloud Discovery.
+ type SDConfig struct {
++	networkPolicy *httppolicy.Policy
+ 	// DatacenterID: IONOS Cloud data center ID used to discover targets.
+ 	DatacenterID string `yaml:"datacenter_id"`
+ 
+@@ -102,6 +108,9 @@
+ 
+ // NewDiscoverer returns a new discovery.Discoverer for IONOS Cloud.
+ func (c SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(&c, opts)
+ }
+ 
+--- a/discovery/ionos/server.go
++++ b/discovery/ionos/server.go
+@@ -65,7 +65,7 @@
+ 		datacenterID: conf.DatacenterID,
+ 	}
+ 
+-	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "ionos_sd")
++	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "ionos_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/kubernetes/kubernetes.go
++++ b/discovery/kubernetes/kubernetes.go
+@@ -17,7 +17,9 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
++	"net"
+ 	"os"
+ 	"reflect"
+ 	"slices"
+@@ -106,6 +108,7 @@
+ 
+ // SDConfig is the configuration for Kubernetes service discovery.
+ type SDConfig struct {
++	networkPolicy      *httppolicy.Policy
+ 	APIServer          config.URL              `yaml:"api_server,omitempty"`
+ 	Role               Role                    `yaml:"role"`
+ 	KubeConfig         string                  `yaml:"kubeconfig_file"`
+@@ -125,6 +128,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return New(opts.Logger, opts.Metrics, c)
+ }
+ 
+@@ -322,7 +329,7 @@
+ 
+ 		l.Info("Using pod service account via in-cluster config")
+ 	default:
+-		rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "kubernetes_sd")
++		rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "kubernetes_sd", conf.networkPolicy.HTTPOptions()...)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -332,6 +339,15 @@
+ 		}
+ 	}
+ 
++	if conf.networkPolicy != nil && kcfg.Transport == nil {
++		dial := kcfg.Dial
++		if dial == nil {
++			dial = (&net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}).DialContext
++		}
++		kcfg.Dial = func(ctx context.Context, network, address string) (net.Conn, error) {
++			return dial(ctx, conf.networkPolicy.Network(network), address)
++		}
++	}
+ 	kcfg.UserAgent = version.PrometheusUserAgent()
+ 	kcfg.ContentType = "application/vnd.kubernetes.protobuf"
+ 
+--- a/discovery/linode/linode.go
++++ b/discovery/linode/linode.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net"
+ 	"net/http"
+ 	"strconv"
+@@ -84,6 +85,7 @@
+ 
+ // SDConfig is the configuration for Linode based service discovery.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 
+ 	RefreshInterval model.Duration `yaml:"refresh_interval"`
+@@ -102,6 +104,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -138,6 +144,10 @@
+ 
+ // NewDiscovery returns a new Discovery which periodically refreshes its targets.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*linodeMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -153,7 +163,7 @@
+ 		metrics:              m,
+ 	}
+ 
+-	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "linode_sd")
++	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "linode_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/manager.go
++++ b/discovery/manager.go
+@@ -16,6 +16,7 @@
+ import (
+ 	"context"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"maps"
+ 	"reflect"
+@@ -168,11 +169,12 @@
+ // Manager maintains a set of discovery providers and sends each update to a map channel.
+ // Targets are grouped by the target set name.
+ type Manager struct {
+-	logger   *slog.Logger
+-	name     string
+-	httpOpts []config.HTTPClientOption
+-	mtx      sync.RWMutex
+-	ctx      context.Context
++	networkPolicy *httppolicy.Policy
++	logger        *slog.Logger
++	name          string
++	httpOpts      []config.HTTPClientOption
++	mtx           sync.RWMutex
++	ctx           context.Context
+ 
+ 	// Some Discoverers(e.g. k8s) send only the updates for a given target group,
+ 	// so we use map[tg.Source]*targetgroup.Group to know which group to update.
+@@ -538,6 +540,7 @@
+ 		d, err := cfg.NewDiscoverer(DiscovererOptions{
+ 			Logger:            m.logger.With("discovery", typ, "config", setName),
+ 			HTTPClientOptions: m.httpOpts,
++			NetworkPolicy:     m.networkPolicy,
+ 			Metrics:           m.sdMetrics.MechanismMetrics[typ],
+ 			SetName:           setName,
+ 		})
+@@ -570,3 +573,8 @@
+ 	}
+ 	return failed
+ }
++
++// NetworkPolicy sets immutable hooks inherited by newly built discoverers.
++func NetworkPolicy(policy *httppolicy.Policy) func(*Manager) {
++	return func(m *Manager) { m.networkPolicy = policy }
++}
+--- a/discovery/marathon/marathon.go
++++ b/discovery/marathon/marathon.go
+@@ -18,6 +18,7 @@
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"io"
+ 	"math/rand"
+ 	"net"
+@@ -71,6 +72,7 @@
+ 
+ // SDConfig is the configuration for services running on Marathon.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	Servers          []string                `yaml:"servers,omitempty"`
+ 	RefreshInterval  model.Duration          `yaml:"refresh_interval,omitempty"`
+ 	AuthToken        config.Secret           `yaml:"auth_token,omitempty"`
+@@ -90,6 +92,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(*c, opts)
+ }
+ 
+@@ -140,12 +146,14 @@
+ 
+ // NewDiscovery returns a new Marathon Discovery.
+ func NewDiscovery(conf SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*marathonMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+ 	}
+ 
+-	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "marathon_sd")
++	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "marathon_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/moby/docker.go
++++ b/discovery/moby/docker.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net"
+ 	"net/http"
+ 	"net/url"
+@@ -69,6 +70,7 @@
+ 
+ // DockerSDConfig is the configuration for Docker (non-swarm) based service discovery.
+ type DockerSDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 
+ 	Host               string   `yaml:"host"`
+@@ -92,6 +94,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *DockerSDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDockerDiscovery(c, opts)
+ }
+ 
+@@ -128,6 +134,10 @@
+ 
+ // NewDockerDiscovery returns a new DockerDiscovery which periodically refreshes its targets.
+ func NewDockerDiscovery(conf *DockerSDConfig, opts discovery.DiscovererOptions) (*DockerDiscovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*dockerMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -159,7 +169,7 @@
+ 	// unix, which are not supported by the HTTP client. Passing HTTP client
+ 	// options to the Docker client makes those non-HTTP requests fail.
+ 	if hostURL.Scheme == "http" || hostURL.Scheme == "https" {
+-		rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "docker_sd")
++		rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "docker_sd", conf.networkPolicy.HTTPOptions()...)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -175,6 +185,14 @@
+ 		)
+ 	}
+ 
++	// Host and HTTP/TLS options must be final before decorating TCP dialing.
++	if hostURL.Scheme == "tcp" && conf.networkPolicy != nil && conf.networkPolicy.Network != nil {
++		option, err := tcpNetworkPolicyOption(hostURL, conf.networkPolicy.Network)
++		if err != nil {
++			return nil, err
++		}
++		clientOpts = append(clientOpts, option)
++	}
+ 	d.client, err = client.New(clientOpts...)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("error setting up docker client: %w", err)
+--- a/discovery/moby/dockerswarm.go
++++ b/discovery/moby/dockerswarm.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net/http"
+ 	"net/url"
+ 	"time"
+@@ -50,6 +51,7 @@
+ 
+ // DockerSwarmSDConfig is the configuration for Docker Swarm based service discovery.
+ type DockerSwarmSDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 
+ 	Host    string   `yaml:"host"`
+@@ -79,6 +81,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *DockerSwarmSDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -123,6 +129,10 @@
+ 
+ // NewDiscovery returns a new Discovery which periodically refreshes its targets.
+ func NewDiscovery(conf *DockerSwarmSDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*dockerswarmMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -153,7 +163,7 @@
+ 	// unix, which are not supported by the HTTP client. Passing HTTP client
+ 	// options to the Docker client makes those non-HTTP requests fail.
+ 	if hostURL.Scheme == "http" || hostURL.Scheme == "https" {
+-		rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "dockerswarm_sd")
++		rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "dockerswarm_sd", conf.networkPolicy.HTTPOptions()...)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -169,6 +179,14 @@
+ 		)
+ 	}
+ 
++	// Host and HTTP/TLS options must be final before decorating TCP dialing.
++	if hostURL.Scheme == "tcp" && conf.networkPolicy != nil && conf.networkPolicy.Network != nil {
++		option, err := tcpNetworkPolicyOption(hostURL, conf.networkPolicy.Network)
++		if err != nil {
++			return nil, err
++		}
++		clientOpts = append(clientOpts, option)
++	}
+ 	d.client, err = client.New(clientOpts...)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("error setting up docker swarm client: %w", err)
+--- a/discovery/moby/network_policy.go
++++ b/discovery/moby/network_policy.go
+@@ -0,0 +1,24 @@
++package moby
++
++import (
++	"context"
++	"github.com/docker/go-connections/sockets"
++	"github.com/moby/moby/client"
++	"net"
++	"net/http"
++	"net/url"
++)
++
++// Reuse Docker's native TCP dialer defaults and modify only its network. This
++// option is deliberately not applied to Unix sockets, named pipes or decorated
++// HTTP transports, which keep their existing SDK and HTTP configuration.
++func tcpNetworkPolicyOption(host *url.URL, networkPolicy func(string) string) (client.Opt, error) {
++	transport := &http.Transport{}
++	if err := sockets.ConfigureTransport(transport, host.Scheme, host.Host); err != nil {
++		return nil, err
++	}
++	dial := transport.DialContext
++	return client.WithDialContext(func(ctx context.Context, network, address string) (net.Conn, error) {
++		return dial(ctx, networkPolicy(network), address)
++	}), nil
++}
+--- a/discovery/nomad/nomad.go
++++ b/discovery/nomad/nomad.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net"
+ 	"strconv"
+ 	"strings"
+@@ -64,6 +65,7 @@
+ 
+ // SDConfig is the configuration for nomad based service discovery.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	AllowStale       bool                    `yaml:"allow_stale"`
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 	Namespace        string                  `yaml:"namespace"`
+@@ -83,6 +85,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -121,6 +127,10 @@
+ 
+ // NewDiscovery returns a new Discovery which periodically refreshes its targets.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*nomadMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -136,7 +146,7 @@
+ 		metrics:         m,
+ 	}
+ 
+-	HTTPClient, err := config.NewClientFromConfig(conf.HTTPClientConfig, "nomad_sd")
++	HTTPClient, err := config.NewClientFromConfig(conf.HTTPClientConfig, "nomad_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/openstack/openstack.go
++++ b/discovery/openstack/openstack.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"net/http"
+ 	"time"
+@@ -46,6 +47,7 @@
+ 
+ // SDConfig is the configuration for OpenStack based service discovery.
+ type SDConfig struct {
++	networkPolicy               *httppolicy.Policy
+ 	IdentityEndpoint            string           `yaml:"identity_endpoint"`
+ 	Username                    string           `yaml:"username"`
+ 	UserID                      string           `yaml:"userid"`
+@@ -78,6 +80,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -146,6 +152,10 @@
+ 
+ // NewDiscovery returns a new OpenStack Discoverer which periodically refreshes its targets.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*refresh.Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*openstackMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -209,6 +219,7 @@
+ 		},
+ 		Timeout: time.Duration(conf.RefreshInterval),
+ 	}
++	client.HTTPClient = *conf.networkPolicy.Client(&client.HTTPClient)
+ 	availability := gophercloud.Availability(conf.Availability)
+ 	switch conf.Role {
+ 	case OpenStackRoleHypervisor:
+--- a/discovery/outscale/outscale.go
++++ b/discovery/outscale/outscale.go
+@@ -16,6 +16,7 @@
+ import (
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net/http"
+ 	"os"
+ 	"strings"
+@@ -46,6 +47,7 @@
+ // SDConfig is the configuration for Outscale VM-based service discovery
+ // using the OUTSCALE API (OAPI).
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	Endpoint         string                  `yaml:"endpoint,omitempty"`
+ 	Region           string                  `yaml:"region"`
+ 	AccessKey        string                  `yaml:"access_key"`
+@@ -112,6 +114,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -124,6 +130,10 @@
+ 
+ // NewDiscovery returns a new Discovery which periodically refreshes its targets.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*refresh.Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*outscaleMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -148,7 +158,7 @@
+ 
+ // loadClient builds an Outscale API client from SDConfig using the official osc-sdk-go (OAPI).
+ func loadClient(conf *SDConfig) (*osc.APIClient, error) {
+-	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "outscale_sd")
++	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "outscale_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("outscale SD client config: %w", err)
+ 	}
+--- a/discovery/ovhcloud/ovhcloud.go
++++ b/discovery/ovhcloud/ovhcloud.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"net/netip"
+ 	"time"
+@@ -45,6 +46,7 @@
+ 
+ // SDConfig defines the Service Discovery struct used for configuration.
+ type SDConfig struct {
++	networkPolicy     *httppolicy.Policy
+ 	Endpoint          string         `yaml:"endpoint"`
+ 	ApplicationKey    string         `yaml:"application_key"`
+ 	ApplicationSecret config.Secret  `yaml:"application_secret"`
+@@ -96,11 +98,19 @@
+ 
+ // CreateClient creates a new ovh client configured with given credentials.
+ func createClient(config *SDConfig) (*ovh.Client, error) {
+-	return ovh.NewClient(config.Endpoint, config.ApplicationKey, string(config.ApplicationSecret), string(config.ConsumerKey))
++	client, err := ovh.NewClient(config.Endpoint, config.ApplicationKey, string(config.ApplicationSecret), string(config.ConsumerKey))
++	if err == nil {
++		client.Client = config.networkPolicy.Client(client.Client)
++	}
++	return client, err
+ }
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -149,6 +159,10 @@
+ 
+ // NewDiscovery returns a new OVHcloud Discoverer which periodically refreshes its targets.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*refresh.Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*ovhcloudMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+--- a/discovery/puppetdb/puppetdb.go
++++ b/discovery/puppetdb/puppetdb.go
+@@ -19,6 +19,7 @@
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"io"
+ 	"net"
+ 	"net/http"
+@@ -72,6 +73,7 @@
+ 
+ // SDConfig is the configuration for PuppetDB based discovery.
+ type SDConfig struct {
++	networkPolicy     *httppolicy.Policy
+ 	HTTPClientConfig  config.HTTPClientConfig `yaml:",inline"`
+ 	RefreshInterval   model.Duration          `yaml:"refresh_interval,omitempty"`
+ 	URL               string                  `yaml:"url"`
+@@ -92,6 +94,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -140,6 +146,10 @@
+ 
+ // NewDiscovery returns a new PuppetDB discovery for the given config.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*puppetdbMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -149,7 +159,7 @@
+ 		opts.Logger = promslog.NewNopLogger()
+ 	}
+ 
+-	client, err := config.NewClientFromConfig(conf.HTTPClientConfig, "http")
++	client, err := config.NewClientFromConfig(conf.HTTPClientConfig, "http", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/scaleway/scaleway.go
++++ b/discovery/scaleway/scaleway.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net/http"
+ 	"os"
+ 	"strings"
+@@ -76,6 +77,7 @@
+ }
+ 
+ type SDConfig struct {
++	networkPolicy *httppolicy.Policy
+ 	// Project: The Scaleway Project ID used to filter discovery on.
+ 	Project string `yaml:"project_id"`
+ 
+@@ -167,6 +169,9 @@
+ }
+ 
+ func (c SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(&c, opts)
+ }
+ 
+@@ -185,6 +190,10 @@
+ type Discovery struct{}
+ 
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*refresh.Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*scalewayMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -224,7 +233,7 @@
+ // newScalewayHTTPClient creates an HTTP client from the SD config, optionally
+ // wrapping the transport with token-file authentication.
+ func newScalewayHTTPClient(conf *SDConfig) (*http.Client, error) {
+-	client, err := config.NewClientFromConfig(conf.HTTPClientConfig, "scaleway_sd")
++	client, err := config.NewClientFromConfig(conf.HTTPClientConfig, "scaleway_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/stackit/server.go
++++ b/discovery/stackit/server.go
+@@ -64,7 +64,7 @@
+ 		logger:      logger,
+ 	}
+ 
+-	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "stackit_sd")
++	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "stackit_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/stackit/stackit.go
++++ b/discovery/stackit/stackit.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"net/url"
+ 	"time"
+@@ -58,6 +59,7 @@
+ 
+ // SDConfig is the configuration for STACKIT based service discovery.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 
+ 	Project               string         `yaml:"project"`
+@@ -87,6 +89,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -127,6 +133,10 @@
+ 
+ // NewDiscovery returns a new Discovery which periodically refreshes its targets.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*refresh.Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*stackitMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+--- a/discovery/triton/triton.go
++++ b/discovery/triton/triton.go
+@@ -18,6 +18,7 @@
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"io"
+ 	"net/http"
+ 	"net/url"
+@@ -58,6 +59,7 @@
+ 
+ // SDConfig is the configuration for Triton based service discovery.
+ type SDConfig struct {
++	networkPolicy   *httppolicy.Policy
+ 	Account         string           `yaml:"account"`
+ 	Role            string           `yaml:"role"`
+ 	DNSSuffix       string           `yaml:"dns_suffix"`
+@@ -81,6 +83,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return New(c, opts)
+ }
+ 
+@@ -146,6 +152,10 @@
+ 
+ // New returns a new Discovery which periodically refreshes its targets.
+ func New(conf *SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*tritonMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -163,7 +173,7 @@
+ 			conntrack.DialWithName("triton_sd"),
+ 		),
+ 	}
+-	client := &http.Client{Transport: transport}
++	client := conf.networkPolicy.Client(&http.Client{Transport: transport})
+ 
+ 	d := &Discovery{
+ 		client:   client,
+--- a/discovery/uyuni/uyuni.go
++++ b/discovery/uyuni/uyuni.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"net/http"
+ 	"net/url"
+@@ -66,6 +67,7 @@
+ 
+ // SDConfig is the configuration for Uyuni based service discovery.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	Server           string                  `yaml:"server"`
+ 	Username         string                  `yaml:"username"`
+ 	Password         config.Secret           `yaml:"password"`
+@@ -124,6 +126,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -214,6 +220,10 @@
+ 
+ // NewDiscovery returns a uyuni discovery for the given configuration.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*uyuniMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -225,7 +235,7 @@
+ 	}
+ 	apiURL.Path = path.Join(apiURL.Path, uyuniXMLRPCAPIPath)
+ 
+-	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "uyuni_sd")
++	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "uyuni_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/vultr/vultr.go
++++ b/discovery/vultr/vultr.go
+@@ -17,6 +17,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net"
+ 	"net/http"
+ 	"strconv"
+@@ -68,6 +69,7 @@
+ }
+ 
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 
+ 	RefreshInterval model.Duration `yaml:"refresh_interval"`
+@@ -86,6 +88,10 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *SDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
+ 	return NewDiscovery(c, opts)
+ }
+ 
+@@ -115,6 +121,10 @@
+ 
+ // NewDiscovery returns a new Discovery which periodically refreshes its targets.
+ func NewDiscovery(conf *SDConfig, opts discovery.DiscovererOptions) (*Discovery, error) {
++	copy := *conf
++	conf = &copy
++	conf.networkPolicy = opts.NetworkPolicy
++
+ 	m, ok := opts.Metrics.(*vultrMetrics)
+ 	if !ok {
+ 		return nil, errors.New("invalid discovery metrics type")
+@@ -124,7 +134,7 @@
+ 		port: conf.Port,
+ 	}
+ 
+-	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "vultr_sd")
++	rt, err := config.NewRoundTripperFromConfig(conf.HTTPClientConfig, "vultr_sd", conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/xds/client.go
++++ b/discovery/xds/client.go
+@@ -88,7 +88,7 @@
+ 	ClientID string
+ }
+ 
+-func NewHTTPResourceClient(conf *HTTPResourceClientConfig, protocolVersion ProtocolVersion) (*HTTPResourceClient, error) {
++func NewHTTPResourceClient(conf *HTTPResourceClientConfig, protocolVersion ProtocolVersion, options ...config.HTTPClientOption) (*HTTPResourceClient, error) {
+ 	if protocolVersion != ProtocolV3 {
+ 		return nil, errors.New("only the v3 protocol is supported")
+ 	}
+@@ -111,7 +111,7 @@
+ 		endpointURL.RawQuery = conf.ExtraQueryParams.Encode()
+ 	}
+ 
+-	client, err := config.NewClientFromConfig(conf.HTTPClientConfig, conf.Name, config.WithIdleConnTimeout(conf.Timeout))
++	client, err := config.NewClientFromConfig(conf.HTTPClientConfig, conf.Name, append(options, config.WithIdleConnTimeout(conf.Timeout))...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/discovery/xds/kuma.go
++++ b/discovery/xds/kuma.go
+@@ -98,6 +98,9 @@
+ }
+ 
+ func (c *KumaSDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
+ 	logger := opts.Logger
+ 	if logger == nil {
+ 		logger = promslog.NewNopLogger()
+@@ -189,7 +192,7 @@
+ 		ClientID:        clientID,
+ 	}
+ 
+-	client, err := NewHTTPResourceClient(clientConfig, ProtocolV3)
++	client, err := NewHTTPResourceClient(clientConfig, ProtocolV3, conf.networkPolicy.HTTPOptions()...)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("kuma_sd: %w", err)
+ 	}
+--- a/discovery/xds/xds.go
++++ b/discovery/xds/xds.go
+@@ -15,6 +15,7 @@
+ 
+ import (
+ 	"context"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"time"
+ 
+@@ -49,6 +50,7 @@
+ 
+ // SDConfig is a base config for xDS-based SD mechanisms.
+ type SDConfig struct {
++	networkPolicy    *httppolicy.Policy
+ 	HTTPClientConfig config.HTTPClientConfig `yaml:",inline"`
+ 	RefreshInterval  model.Duration          `yaml:"refresh_interval,omitempty"`
+ 	FetchTimeout     model.Duration          `yaml:"fetch_timeout,omitempty"`
+--- a/discovery/zookeeper/zookeeper.go
++++ b/discovery/zookeeper/zookeeper.go
+@@ -18,6 +18,7 @@
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"net"
+ 	"strconv"
+@@ -53,9 +54,10 @@
+ 
+ // ServersetSDConfig is the configuration for Twitter serversets in Zookeeper based discovery.
+ type ServersetSDConfig struct {
+-	Servers []string       `yaml:"servers"`
+-	Paths   []string       `yaml:"paths"`
+-	Timeout model.Duration `yaml:"timeout,omitempty"`
++	networkPolicy *httppolicy.Policy
++	Servers       []string       `yaml:"servers"`
++	Paths         []string       `yaml:"paths"`
++	Timeout       model.Duration `yaml:"timeout,omitempty"`
+ }
+ 
+ // NewDiscovererMetrics implements discovery.Config.
+@@ -68,7 +70,11 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *ServersetSDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
+-	return NewServersetDiscovery(c, opts.Logger)
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
++	return NewDiscovery(c.Servers, time.Duration(c.Timeout), c.Paths, opts.Logger, parseServersetMember, c.networkPolicy)
+ }
+ 
+ // UnmarshalYAML implements the yaml.Unmarshaler interface.
+@@ -95,9 +101,10 @@
+ 
+ // NerveSDConfig is the configuration for AirBnB's Nerve in Zookeeper based discovery.
+ type NerveSDConfig struct {
+-	Servers []string       `yaml:"servers"`
+-	Paths   []string       `yaml:"paths"`
+-	Timeout model.Duration `yaml:"timeout,omitempty"`
++	networkPolicy *httppolicy.Policy
++	Servers       []string       `yaml:"servers"`
++	Paths         []string       `yaml:"paths"`
++	Timeout       model.Duration `yaml:"timeout,omitempty"`
+ }
+ 
+ // NewDiscovererMetrics implements discovery.Config.
+@@ -110,7 +117,11 @@
+ 
+ // NewDiscoverer returns a Discoverer for the Config.
+ func (c *NerveSDConfig) NewDiscoverer(opts discovery.DiscovererOptions) (discovery.Discoverer, error) {
+-	return NewNerveDiscovery(c, opts.Logger)
++	copy := *c
++	c = &copy
++	c.networkPolicy = opts.NetworkPolicy
++
++	return NewDiscovery(c.Servers, time.Duration(c.Timeout), c.Paths, opts.Logger, parseNerveMember, c.networkPolicy)
+ }
+ 
+ // UnmarshalYAML implements the yaml.Unmarshaler interface.
+@@ -168,16 +179,21 @@
+ 	paths []string,
+ 	logger *slog.Logger,
+ 	pf func(data []byte, path string) (model.LabelSet, error),
++	policies ...*httppolicy.Policy,
+ ) (*Discovery, error) {
+ 	if logger == nil {
+ 		logger = promslog.NewNopLogger()
+ 	}
+ 
+-	conn, _, err := zk.Connect(
+-		srvs, timeout,
+-		func(c *zk.Conn) {
+-			c.SetLogger(treecache.NewZookeeperLogger(logger))
+-		})
++	var conn *zk.Conn
++	var err error
++	configure := func(c *zk.Conn) { c.SetLogger(treecache.NewZookeeperLogger(logger)) }
++	if len(policies) > 0 && policies[0] != nil {
++		p := policies[0]
++		conn, _, err = zk.Connect(srvs, timeout, configure, zk.WithHostProvider(p.ZKHostProvider(timeout)), zk.WithDialer(p.ZKDialer))
++	} else {
++		conn, _, err = zk.Connect(srvs, timeout, configure)
++	}
+ 	if err != nil {
+ 		return nil, err
+ 	}
+--- a/notifier/alertmanagerset.go
++++ b/notifier/alertmanagerset.go
+@@ -48,14 +48,18 @@
+ }
+ 
+ func newAlertmanagerSet(cfg *config.AlertmanagerConfig, opts *Options, logger *slog.Logger, metrics *alertMetrics) (*alertmanagerSet, error) {
+-	client, err := config_util.NewClientFromConfig(cfg.HTTPClientConfig, "alertmanager")
++	client, err := config_util.NewClientFromConfig(cfg.HTTPClientConfig, "alertmanager", opts.HTTPClientOptions...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+ 	t := client.Transport
+ 
+ 	if cfg.SigV4Config != nil {
+-		t, err = sigv4.NewSigV4RoundTripper(cfg.SigV4Config, client.Transport)
++		if opts.NetworkPolicy == nil {
++			t, err = sigv4.NewSigV4RoundTripper(cfg.SigV4Config, client.Transport)
++		} else {
++			t, err = sigv4.NewSigV4RoundTripper(cfg.SigV4Config, client.Transport, opts.NetworkPolicy.AWSOptions...)
++		}
+ 		if err != nil {
+ 			return nil, err
+ 		}
+--- a/notifier/manager.go
++++ b/notifier/manager.go
+@@ -16,6 +16,7 @@
+ import (
+ 	"context"
+ 	"fmt"
++	config_util "github.com/prometheus/common/config"
+ 	"log/slog"
+ 	"net/http"
+ 	"net/url"
+@@ -30,6 +31,7 @@
+ 	"github.com/prometheus/prometheus/discovery/targetgroup"
+ 	"github.com/prometheus/prometheus/model/labels"
+ 	"github.com/prometheus/prometheus/model/relabel"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ )
+ 
+ const (
+@@ -66,10 +68,12 @@
+ 
+ // Options are the configurable parameters of a Handler.
+ type Options struct {
+-	QueueCapacity   int
+-	DrainOnShutdown bool
+-	ExternalLabels  labels.Labels
+-	RelabelConfigs  []*relabel.Config
++	NetworkPolicy     *httppolicy.Policy
++	HTTPClientOptions []config_util.HTTPClientOption
++	QueueCapacity     int
++	DrainOnShutdown   bool
++	ExternalLabels    labels.Labels
++	RelabelConfigs    []*relabel.Config
+ 	// Used for sending HTTP requests to the Alertmanager.
+ 	Do func(ctx context.Context, client *http.Client, req *http.Request) (*http.Response, error)
+ 
+--- a/storage/remote/azuread/azuread.go
++++ b/storage/remote/azuread/azuread.go
+@@ -16,6 +16,7 @@
+ import (
+ 	"context"
+ 	"errors"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net/http"
+ 	"strings"
+ 	"sync"
+@@ -24,6 +25,7 @@
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
++	azruntime "github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
+ 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+ 	"github.com/google/uuid"
+ 	"github.com/grafana/regexp"
+@@ -235,12 +237,12 @@
+ }
+ 
+ // NewAzureADRoundTripper creates round tripper adding Azure AD authorization to calls.
+-func NewAzureADRoundTripper(cfg *AzureADConfig, next http.RoundTripper) (http.RoundTripper, error) {
++func NewAzureADRoundTripper(cfg *AzureADConfig, next http.RoundTripper, policies ...*httppolicy.Policy) (http.RoundTripper, error) {
+ 	if next == nil {
+ 		next = http.DefaultTransport
+ 	}
+ 
+-	cred, err := newTokenCredential(cfg)
++	cred, err := newTokenCredential(cfg, policies...)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -270,7 +272,7 @@
+ }
+ 
+ // newTokenCredential returns a TokenCredential of different kinds like Azure Managed Identity, Workload Identity and Azure AD application.
+-func newTokenCredential(cfg *AzureADConfig) (azcore.TokenCredential, error) {
++func newTokenCredential(cfg *AzureADConfig, policies ...*httppolicy.Policy) (azcore.TokenCredential, error) {
+ 	var cred azcore.TokenCredential
+ 	var err error
+ 	cloudConfiguration, err := getCloudConfiguration(cfg.Cloud)
+@@ -281,6 +283,19 @@
+ 		Cloud: cloudConfiguration,
+ 	}
+ 
++	if len(policies) > 0 && policies[0] != nil {
++		if policies[0].Network == nil {
++			clientOpts.Transport = policies[0].Client(&http.Client{})
++		} else {
++			// Preserve the SDK's TLS, HTTP/2 and timeout defaults, including the
++			// independent pool used during credential refreshes.
++			client := azruntime.NewHTTPClientWithNetworkPolicy(policies[0].Network)
++			clientOpts.Transport = client
++			if policies[0].OwnHTTPClient != nil {
++				policies[0].OwnHTTPClient(client)
++			}
++		}
++	}
+ 	if cfg.ManagedIdentity != nil {
+ 		managedIdentityConfig := &ManagedIdentityConfig{
+ 			ClientID: cfg.ManagedIdentity.ClientID,
+--- a/storage/remote/client.go
++++ b/storage/remote/client.go
+@@ -18,6 +18,7 @@
+ 	"context"
+ 	"errors"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"io"
+ 	"math"
+ 	"net/http"
+@@ -126,6 +127,7 @@
+ 
+ // ClientConfig configures a client.
+ type ClientConfig struct {
++	NetworkPolicy         *httppolicy.Policy
+ 	URL                   *config_util.URL
+ 	Timeout               model.Duration
+ 	HTTPClientConfig      config_util.HTTPClientConfig
+@@ -149,6 +151,7 @@
+ 
+ // NewReadClient creates a new client for remote read.
+ func NewReadClient(name string, conf *ClientConfig, optFuncs ...config_util.HTTPClientOption) (ReadClient, error) {
++	optFuncs = append(conf.NetworkPolicy.HTTPOptions(), optFuncs...)
+ 	httpClient, err := config_util.NewClientFromConfig(conf.HTTPClientConfig, "remote_storage_read_client", optFuncs...)
+ 	if err != nil {
+ 		return nil, err
+@@ -181,9 +184,13 @@
+ 
+ // NewWriteClient creates a new client for remote write.
+ func NewWriteClient(name string, conf *ClientConfig) (WriteClient, error) {
+-	var httpOpts []config_util.HTTPClientOption
++	httpOpts := conf.NetworkPolicy.HTTPOptions()
+ 	if conf.RoundRobinDNS {
+-		httpOpts = []config_util.HTTPClientOption{config_util.WithDialContextFunc(newDialContextWithRoundRobinDNS().dialContextFn())}
++		dc := newDialContextWithRoundRobinDNS()
++		if conf.NetworkPolicy != nil {
++			dc.policy = conf.NetworkPolicy
++		}
++		httpOpts = append(httpOpts, config_util.WithDialContextFunc(dc.dialContextFn()))
+ 	}
+ 	httpClient, err := config_util.NewClientFromConfig(conf.HTTPClientConfig, "remote_storage_write_client", httpOpts...)
+ 	if err != nil {
+@@ -196,21 +203,21 @@
+ 	}
+ 
+ 	if conf.SigV4Config != nil {
+-		t, err = sigv4.NewSigV4RoundTripper(conf.SigV4Config, t)
++		t, err = newSigV4RoundTripper(conf, t)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+ 	}
+ 
+ 	if conf.AzureADConfig != nil {
+-		t, err = azuread.NewAzureADRoundTripper(conf.AzureADConfig, t)
++		t, err = azuread.NewAzureADRoundTripper(conf.AzureADConfig, t, conf.NetworkPolicy)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+ 	}
+ 
+ 	if conf.GoogleIAMConfig != nil {
+-		t, err = googleiam.NewRoundTripper(conf.GoogleIAMConfig, t)
++		t, err = googleiam.NewRoundTripper(conf.GoogleIAMConfig, t, conf.NetworkPolicy)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+@@ -536,3 +543,10 @@
+ 
+ 	return NewChunkedSeriesSet(s, httpResp.Body, minStartTs, maxEndTs, onClose)
+ }
++
++func newSigV4RoundTripper(conf *ClientConfig, t http.RoundTripper) (http.RoundTripper, error) {
++	if conf.NetworkPolicy == nil {
++		return sigv4.NewSigV4RoundTripper(conf.SigV4Config, t)
++	}
++	return sigv4.NewSigV4RoundTripper(conf.SigV4Config, t, conf.NetworkPolicy.AWSOptions...)
++}
+--- a/storage/remote/dial_context.go
++++ b/storage/remote/dial_context.go
+@@ -15,9 +15,11 @@
+ 
+ import (
+ 	"context"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"math/rand"
+ 	"net"
+ 	"net/http"
++	"sync"
+ 	"time"
+ 
+ 	"github.com/prometheus/common/config"
+@@ -28,6 +30,8 @@
+ }
+ 
+ type dialContextWithRoundRobinDNS struct {
++	policy      *httppolicy.Policy
++	mu          sync.Mutex
+ 	dialContext config.DialContextFunc
+ 	resolver    hostResolver
+ 	rand        *rand.Rand
+@@ -46,17 +50,27 @@
+ 
+ func (dc *dialContextWithRoundRobinDNS) dialContextFn() config.DialContextFunc {
+ 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
++		if dc.policy != nil && dc.policy.Network != nil {
++			network = dc.policy.Network(network)
++		}
+ 		host, port, err := net.SplitHostPort(addr)
+ 		if err != nil {
+ 			return dc.dialContext(ctx, network, addr)
+ 		}
+ 
+-		addrs, err := dc.resolver.LookupHost(ctx, host)
++		lookup := dc.resolver.LookupHost
++		if dc.policy != nil && dc.policy.LookupHost != nil {
++			lookup = dc.policy.LookupHost
++		}
++		addrs, err := lookup(ctx, host)
+ 		if err != nil || len(addrs) == 0 {
+ 			return dc.dialContext(ctx, network, addr)
+ 		}
+ 
+-		randomAddr := net.JoinHostPort(addrs[dc.rand.Intn(len(addrs))], port)
++		dc.mu.Lock()
++		index := dc.rand.Intn(len(addrs))
++		dc.mu.Unlock()
++		randomAddr := net.JoinHostPort(addrs[index], port)
+ 		return dc.dialContext(ctx, network, randomAddr)
+ 	}
+ }
+--- a/storage/remote/googleiam/googleiam.go
++++ b/storage/remote/googleiam/googleiam.go
+@@ -18,6 +18,7 @@
+ import (
+ 	"context"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"net/http"
+ 
+ 	"golang.org/x/oauth2/google"
+@@ -31,7 +32,7 @@
+ 
+ // NewRoundTripper creates a round tripper that adds Google Cloud Monitoring authorization to calls
+ // using either a credentials file or the default credentials.
+-func NewRoundTripper(cfg *Config, next http.RoundTripper) (http.RoundTripper, error) {
++func NewRoundTripper(cfg *Config, next http.RoundTripper, policies ...*httppolicy.Policy) (http.RoundTripper, error) {
+ 	if next == nil {
+ 		next = http.DefaultTransport
+ 	}
+@@ -39,6 +40,13 @@
+ 	ctx := context.Background()
+ 	opts := []option.ClientOption{
+ 		option.WithScopes(scopes),
++	}
++	if len(policies) > 0 && policies[0] != nil {
++		opts = append(opts, policies[0].GoogleOptions...)
++		if cfg.CredentialsFile != "" {
++			opts = append(opts, option.WithAuthCredentialsFile(option.ServiceAccount, cfg.CredentialsFile))
++		}
++		return apihttp.NewTransport(ctx, next, opts...)
+ 	}
+ 	if cfg.CredentialsFile != "" {
+ 		opts = append(opts, option.WithAuthCredentialsFile(option.ServiceAccount, cfg.CredentialsFile))
+--- a/storage/remote/storage.go
++++ b/storage/remote/storage.go
+@@ -18,6 +18,7 @@
+ 	"crypto/md5"
+ 	"encoding/hex"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"sync"
+ 	"time"
+@@ -52,9 +53,10 @@
+ // Storage represents all the remote read and write endpoints.  It implements
+ // storage.Storage.
+ type Storage struct {
+-	deduper *logging.Deduper
+-	logger  *slog.Logger
+-	mtx     sync.Mutex
++	networkPolicy *httppolicy.Policy
++	deduper       *logging.Deduper
++	logger        *slog.Logger
++	mtx           sync.Mutex
+ 
+ 	rws *WriteStorage
+ 
+@@ -66,7 +68,7 @@
+ var _ storage.Storage = &Storage{}
+ 
+ // NewStorage returns a remote.Storage.
+-func NewStorage(l *slog.Logger, reg prometheus.Registerer, stCallback startTimeCallback, walDir string, flushDeadline time.Duration, sm ReadyScrapeManager, enableTypeAndUnitLabels bool) *Storage {
++func NewStorage(l *slog.Logger, reg prometheus.Registerer, stCallback startTimeCallback, walDir string, flushDeadline time.Duration, sm ReadyScrapeManager, enableTypeAndUnitLabels bool, policies ...*httppolicy.Policy) *Storage {
+ 	if l == nil {
+ 		l = promslog.NewNopLogger()
+ 	}
+@@ -78,7 +80,13 @@
+ 		deduper:                deduper,
+ 		localStartTimeCallback: stCallback,
+ 	}
+-	s.rws = NewWriteStorage(s.logger, reg, walDir, flushDeadline, sm, enableTypeAndUnitLabels)
++	if len(policies) > 0 {
++		s.networkPolicy = policies[0]
++	}
++	s.rws = NewWriteStorage(s.logger, reg, walDir, flushDeadline, sm, enableTypeAndUnitLabels, s.networkPolicy)
++	if len(policies) > 0 {
++		s.networkPolicy = policies[0]
++	}
+ 	return s
+ }
+ 
+@@ -119,6 +127,7 @@
+ 		}
+ 
+ 		c, err := NewReadClient(name, &ClientConfig{
++			NetworkPolicy:    s.networkPolicy,
+ 			URL:              rrConf.URL,
+ 			Timeout:          rrConf.RemoteTimeout,
+ 			ChunkedReadLimit: rrConf.ChunkedReadLimit,
+--- a/storage/remote/write.go
++++ b/storage/remote/write.go
+@@ -16,6 +16,7 @@
+ import (
+ 	"context"
+ 	"fmt"
++	"github.com/prometheus/prometheus/util/httppolicy"
+ 	"log/slog"
+ 	"math"
+ 	"sync"
+@@ -58,9 +59,10 @@
+ 
+ // WriteStorage represents all the remote write storage.
+ type WriteStorage struct {
+-	logger *slog.Logger
+-	reg    prometheus.Registerer
+-	mtx    sync.Mutex
++	networkPolicy *httppolicy.Policy
++	logger        *slog.Logger
++	reg           prometheus.Registerer
++	mtx           sync.Mutex
+ 
+ 	watcherMetrics    *wlog.WatcherMetrics
+ 	liveReaderMetrics *wlog.LiveReaderMetrics
+@@ -81,7 +83,7 @@
+ }
+ 
+ // NewWriteStorage creates and runs a WriteStorage.
+-func NewWriteStorage(logger *slog.Logger, reg prometheus.Registerer, dir string, flushDeadline time.Duration, sm ReadyScrapeManager, enableTypeAndUnitLabels bool) *WriteStorage {
++func NewWriteStorage(logger *slog.Logger, reg prometheus.Registerer, dir string, flushDeadline time.Duration, sm ReadyScrapeManager, enableTypeAndUnitLabels bool, policies ...*httppolicy.Policy) *WriteStorage {
+ 	if logger == nil {
+ 		logger = promslog.NewNopLogger()
+ 	}
+@@ -112,6 +114,9 @@
+ 		reg.MustRegister(rws.highestTimestamp)
+ 	}
+ 	go rws.run()
++	if len(policies) > 0 {
++		rws.networkPolicy = policies[0]
++	}
+ 	return rws
+ }
+ 
+@@ -171,6 +176,7 @@
+ 		}
+ 
+ 		c, err := NewWriteClient(name, &ClientConfig{
++			NetworkPolicy:    rws.networkPolicy,
+ 			URL:              rwConf.URL,
+ 			WriteProtoMsg:    rwConf.ProtobufMessage,
+ 			Timeout:          rwConf.RemoteTimeout,
+--- a/util/httppolicy/policy.go
++++ b/util/httppolicy/policy.go
+@@ -0,0 +1,55 @@
++// Package httppolicy provides optional per-instance network hooks. Nil policies
++// retain upstream defaults. Callbacks must be safe for concurrent use.
++package httppolicy
++
++import (
++	"context"
++	awsconfig "github.com/aws/aws-sdk-go-v2/config"
++	"github.com/go-zookeeper/zk"
++	"github.com/prometheus/common/config"
++	"google.golang.org/api/option"
++	"net"
++	"net/http"
++	"time"
++)
++
++type Policy struct {
++	HTTPClientOptions   []config.HTTPClientOption
++	ConfigureHTTPClient func(*http.Client) *http.Client
++	// OwnHTTPClient registers an SDK-native private client for shutdown cleanup.
++	OwnHTTPClient  func(*http.Client)
++	LookupHost     func(context.Context, string) ([]string, error)
++	Network        func(string) string
++	AWSOptions     []func(*awsconfig.LoadOptions) error
++	GoogleOptions  []option.ClientOption
++	ZKHostProvider func(time.Duration) zk.HostProvider
++	ZKDialer       zk.Dialer
++}
++
++func (p *Policy) HTTPOptions() []config.HTTPClientOption {
++	if p == nil {
++		return nil
++	}
++	return p.HTTPClientOptions
++}
++func (p *Policy) Client(c *http.Client) *http.Client {
++	if p != nil && p.ConfigureHTTPClient != nil {
++		return p.ConfigureHTTPClient(c)
++	}
++	return c
++}
++func (p *Policy) Dial(ctx context.Context, network, address string) (net.Conn, error) {
++	if p != nil && p.Network != nil {
++		network = p.Network(network)
++	}
++	return (&net.Dialer{}).DialContext(ctx, network, address)
++}
++
++// AWSConfigOptions returns a private option slice so independent discoverers can
++// prepend shared credential policies without changing each other's options.
++func (p *Policy) AWSConfigOptions() []func(*awsconfig.LoadOptions) error {
++	if p == nil {
++		return nil
++	}
++	return append([]func(*awsconfig.LoadOptions) error(nil), p.AWSOptions...)
++}

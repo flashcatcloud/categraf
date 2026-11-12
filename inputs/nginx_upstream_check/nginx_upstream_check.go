@@ -137,10 +137,10 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		trans.TLSClientConfig = tlsCfg
 	}
 
-	client := &http.Client{
+	client := netx.HTTPClientFromEnv(&http.Client{
 		Transport: trans,
 		Timeout:   time.Duration(ins.Timeout),
-	}
+	})
 
 	if !ins.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

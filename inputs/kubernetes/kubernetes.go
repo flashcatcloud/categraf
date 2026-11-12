@@ -12,6 +12,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/filter"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 )
@@ -101,6 +102,14 @@ func (ins *Instance) Init() error {
 		return err
 	}
 	ins.labelFilter = labelFilter
+	if transport, ok := ins.RoundTripper.(*http.Transport); ok {
+		ins.RoundTripper = netx.HTTPTransportFromEnv(transport)
+	}
+	if ins.RoundTripper == nil {
+		if err := ins.initHTTPTransport(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -284,18 +293,9 @@ func (ins *Instance) LoadJSON(url string, v interface{}) error {
 		return err
 	}
 	var resp *http.Response
-	tlsCfg, err := ins.ClientConfig.TLSConfig()
-	if err != nil {
-		return err
-	}
 	if ins.RoundTripper == nil {
-		if ins.ResponseTimeout < config.Duration(time.Second) {
-			ins.ResponseTimeout = config.Duration(time.Second * 5)
-		}
-		ins.RoundTripper = &http.Transport{
-			TLSHandshakeTimeout:   5 * time.Second,
-			TLSClientConfig:       tlsCfg,
-			ResponseHeaderTimeout: time.Duration(ins.ResponseTimeout),
+		if err := ins.initHTTPTransport(); err != nil {
+			return err
 		}
 	}
 	req.Header.Set("Authorization", "Bearer "+ins.BearerTokenString)
@@ -314,5 +314,21 @@ func (ins *Instance) LoadJSON(url string, v interface{}) error {
 		return fmt.Errorf(`error parsing response: %s`, err)
 	}
 
+	return nil
+}
+
+func (ins *Instance) initHTTPTransport() error {
+	tlsCfg, err := ins.TLSConfig()
+	if err != nil {
+		return err
+	}
+	if ins.ResponseTimeout < config.Duration(time.Second) {
+		ins.ResponseTimeout = config.Duration(time.Second * 5)
+	}
+	ins.RoundTripper = netx.HTTPTransportFromEnv(&http.Transport{
+		TLSHandshakeTimeout:   5 * time.Second,
+		TLSClientConfig:       tlsCfg,
+		ResponseHeaderTimeout: time.Duration(ins.ResponseTimeout),
+	})
 	return nil
 }

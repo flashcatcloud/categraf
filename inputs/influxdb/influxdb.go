@@ -11,6 +11,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 )
@@ -66,13 +67,13 @@ func (ins *Instance) Init() error {
 		if err != nil {
 			return err
 		}
-		ins.client = &http.Client{
+		ins.client = netx.HTTPClientFromEnv(&http.Client{
 			Transport: &http.Transport{
 				ResponseHeaderTimeout: time.Duration(ins.Timeout),
 				TLSClientConfig:       tlsCfg,
 			},
 			Timeout: time.Duration(ins.Timeout),
-		}
+		})
 	}
 
 	return nil

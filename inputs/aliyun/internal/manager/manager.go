@@ -42,6 +42,7 @@ func New(opts ...Option) (*Manager, error) {
 	for _, opt := range opts {
 		err = opt(m)
 		if err != nil {
+			m.Close()
 			return nil, err
 		}
 	}
@@ -52,5 +53,14 @@ func WithDebugMode(d bool) Option {
 	return func(manager *Manager) error {
 		manager.debugMode = d
 		return nil
+	}
+}
+
+func (m *Manager) Close() {
+	if m.cms != nil && m.cms.Client != nil && m.cms.HTTPClientPool != nil {
+		m.cms.HTTPClientPool.CloseIdleConnections()
+	}
+	if m.cmsv2 != nil && m.cmsv2.Client != nil && m.cmsv2.HTTPClientPool != nil {
+		m.cmsv2.HTTPClientPool.CloseIdleConnections()
 	}
 }

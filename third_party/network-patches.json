@@ -1,0 +1,313 @@
+[
+  {
+    "module": "google.golang.org/grpc",
+    "upstream_version": "v1.83.2",
+    "replacement": "./third_party/grpc",
+    "source": "fixed upstream package snapshot including transitive dependency test helpers",
+    "upstream_sum": "h1:EManeRomTObA0BU7I8vXgg/78uE5MJ9M8B39EX2WscU=",
+    "upstream_go_mod_sum": "h1:YPI1hK3kDked6iHvgX3tR0y+nX/qpMFKhPgFsokw1S8=",
+    "patch": "./third_party/patches/grpc.patch",
+    "modified_files": [
+      "dialoptions.go",
+      "internal/resolver/delegatingresolver/delegatingresolver.go",
+      "internal/resolver/dns/dns_resolver.go",
+      "internal/transport/http2_client.go",
+      "internal/transport/proxy.go",
+      "internal/transport/transport.go",
+      "resolver/dns/dns_resolver.go",
+      "resolver/resolver.go",
+      "resolver_wrapper.go"
+    ],
+    "auxiliary_packages": [
+      "test/bufconn",
+      "interop/grpc_testing",
+      "interop/grpc_testing/core"
+    ]
+  },
+  {
+    "module": "github.com/vmware/govmomi",
+    "upstream_version": "v0.29.0",
+    "replacement": "./third_party/govmomi",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:SHJQ7DUc4fltFZv16znJNGHR1/XhiDK5iKxm2OqwkuU=",
+    "upstream_go_mod_sum": "h1:F7adsVewLNHsW/IIm7ziFURaXDaHEwcc+ym4r3INMdY=",
+    "patch": "./third_party/patches/govmomi.patch",
+    "modified_files": [
+      "vim25/soap/client.go"
+    ]
+  },
+  {
+    "module": "github.com/aws/aws-sdk-go-v2",
+    "upstream_version": "v1.41.7",
+    "replacement": "./third_party/aws-sdk-go-v2",
+    "source": "fixed upstream package snapshot including transitive dependency test helpers",
+    "upstream_sum": "h1:DWpAJt66FmnnaRIOT/8ASTucrvuDPZASqhhLey6tLY8=",
+    "upstream_go_mod_sum": "h1:4LAfZOPHNVNQEckOACQx60Y8pSRjIkNZQz1w92xpMJc=",
+    "patch": "./third_party/patches/aws-sdk-go-v2.patch",
+    "modified_files": [
+      "aws/transport/http/client.go"
+    ],
+    "auxiliary_packages": [
+      "internal/awstesting",
+      "internal/awstesting/unit"
+    ]
+  },
+  {
+    "module": "github.com/denisenkom/go-mssqldb",
+    "upstream_version": "v0.12.2",
+    "replacement": "./third_party/go-mssqldb",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:1OcPn5GBIobjWNd+8yjfHNIaFX14B1pWI3F9HZy5KXw=",
+    "upstream_go_mod_sum": "h1:lnIw1mZukFRZDJYQ0Pb833QS2IaC3l5HkEfra2LJ+sk=",
+    "patch": "./third_party/patches/go-mssqldb.patch",
+    "modified_files": [
+      "mssql.go",
+      "tds.go"
+    ]
+  },
+  {
+    "module": "github.com/alibabacloud-go/tea",
+    "upstream_version": "v1.1.19",
+    "replacement": "./third_party/tea",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:Xroq0M+pr0mC834Djj3Fl4ZA8+GGoA0i7aWse1vmgf4=",
+    "upstream_go_mod_sum": "h1:nXxjm6CIFkBhwW4FQkNrolwbfon8Svy6cujmKFUq98A=",
+    "patch": "./third_party/patches/tea.patch",
+    "modified_files": [
+      "tea/tea.go"
+    ]
+  },
+  {
+    "module": "github.com/alibabacloud-go/darabonba-openapi/v2",
+    "upstream_version": "v2.0.0",
+    "replacement": "./third_party/darabonba-openapi",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:mFWQsFJ8kV1xAT/3WCFvp/Hqu1HgWGJmJK6dWoBoTLk=",
+    "upstream_go_mod_sum": "h1:5JHVmnHvGzR2wNdgaW1zDLQG8kOC4Uec8ubkMogW7OQ=",
+    "patch": "./third_party/patches/darabonba-openapi.patch",
+    "modified_files": [
+      "client/client.go"
+    ]
+  },
+  {
+    "module": "github.com/krallistic/kazoo-go",
+    "upstream_version": "v0.0.0-20170526135507-a15279744f4e",
+    "replacement": "./third_party/kazoo-go",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:IWiVY66Xy9YrDZ28qJMt1UTlh6x9UGW0aDH/o58CSnA=",
+    "upstream_go_mod_sum": "h1:Rq6003vCNoJNrT6ol0hMebQ3GWLWXSHrD/QcMlXt0EE=",
+    "patch": "./third_party/patches/kazoo-go.patch",
+    "modified_files": [
+      "kazoo.go"
+    ]
+  },
+  {
+    "module": "google.golang.org/api",
+    "upstream_version": "v0.278.0",
+    "replacement": "./third_party/google-api",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:W7jiRvRi53VYFfZ/HoZjQBtJk7gOFbHD8ot1RzVZU6E=",
+    "upstream_go_mod_sum": "h1:B9TqLBwJqVjp1mtt7WeoQwWRwvu/400y5lETOql+giQ=",
+    "patch": "./third_party/patches/google-api.patch",
+    "modified_files": [
+      "internal/creds.go",
+      "internal/settings.go",
+      "option/option.go",
+      "transport/grpc/dial.go",
+      "transport/http/dial.go"
+    ]
+  },
+  {
+    "module": "cloud.google.com/go/auth",
+    "upstream_version": "v0.20.0",
+    "replacement": "./third_party/google-auth",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:kXTssoVb4azsVDoUiF8KvxAqrsQcQtB53DcSgta74CA=",
+    "upstream_go_mod_sum": "h1:942/yi/itH1SsmpyrbnTMDgGfdy2BUqIKyd0cyYLc5Q=",
+    "patch": "./third_party/patches/google-auth.patch",
+    "modified_files": [
+      "credentials/detect.go",
+      "credentials/filetypes.go",
+      "credentials/internal/externalaccount/externalaccount.go",
+      "credentials/internal/gdch/gdch.go",
+      "internal/transport/transport.go"
+    ]
+  },
+  {
+    "module": "cloud.google.com/go/compute/metadata",
+    "upstream_version": "v0.9.0",
+    "replacement": "./third_party/google-metadata",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:pDUj4QMoPejqq20dK0Pg2N4yG9zIkYGdBtwLoEkH9Zs=",
+    "upstream_go_mod_sum": "h1:E0bWwX5wTnLPedCKqk3pJmVgCBSM6qQI1yTBdEb3C10=",
+    "patch": "./third_party/patches/google-metadata.patch",
+    "modified_files": [
+      "metadata.go"
+    ]
+  },
+  {
+    "module": "github.com/sijms/go-ora/v2",
+    "upstream_version": "v2.8.6",
+    "replacement": "./third_party/go-ora",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:sq907Z5cno0YIXidOYM85tiQFFVhhgssw09IJPG0WG4=",
+    "upstream_go_mod_sum": "h1:EHxlY6x7y9HAsdfumurRfTd+v8NrEOTR3Xl4FWlH6xk=",
+    "patch": "./third_party/patches/go-ora.patch",
+    "modified_files": [
+      "connection.go",
+      "network/connect_option.go",
+      "network/session.go"
+    ]
+  },
+  {
+    "module": "github.com/jcmturner/gokrb5/v8",
+    "upstream_version": "v8.4.4",
+    "replacement": "./third_party/gokrb5",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:x1Sv4HaTpepFkXbt2IkL29DXRf8sOfZXo8eRKh687T8=",
+    "upstream_go_mod_sum": "h1:1btQEpgT6k+unzCwX1KdWMEwPPkkgBtP+F6aCACiMrs=",
+    "patch": "./third_party/patches/gokrb5.patch",
+    "modified_files": [
+      "client/network.go",
+      "client/settings.go"
+    ]
+  },
+  {
+    "module": "github.com/IBM/sarama",
+    "upstream_version": "v1.48.0",
+    "replacement": "./third_party/sarama",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:9LJS0VNeg/boXxT/GLAMDKX6uSQ1mr/5F/j4v9gSeBQ=",
+    "upstream_go_mod_sum": "h1:UhvwPF8zilmLOSd6O+ENzdycCJYwMww1U9DJOZpoCro=",
+    "patch": "./third_party/patches/sarama.patch",
+    "modified_files": [
+      "gssapi_kerberos.go",
+      "kerberos_client.go"
+    ]
+  },
+  {
+    "module": "github.com/prometheus/prometheus",
+    "upstream_version": "v0.312.0",
+    "replacement": "./third_party/prometheus",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:f9jdv2fQhQ1fks9a9YwlGZrKr4hih0rRP/rh0mu3Q18=",
+    "upstream_go_mod_sum": "h1:8oAYd2XPgHXLP4fFKam594R/ZLlPicrrBkVdaWt74Sw=",
+    "patch": "./third_party/patches/prometheus.patch",
+    "modified_files": [
+      "discovery/aws/aws.go",
+      "discovery/aws/ec2.go",
+      "discovery/aws/ecs.go",
+      "discovery/aws/elasticache.go",
+      "discovery/aws/lightsail.go",
+      "discovery/aws/msk.go",
+      "discovery/aws/rds.go",
+      "discovery/azure/azure.go",
+      "discovery/azure/network_policy_test.go",
+      "discovery/consul/consul.go",
+      "discovery/digitalocean/digitalocean.go",
+      "discovery/discovery.go",
+      "discovery/eureka/eureka.go",
+      "discovery/gce/gce.go",
+      "discovery/hetzner/hcloud.go",
+      "discovery/hetzner/hetzner.go",
+      "discovery/hetzner/robot.go",
+      "discovery/http/http.go",
+      "discovery/ionos/ionos.go",
+      "discovery/ionos/server.go",
+      "discovery/kubernetes/kubernetes.go",
+      "discovery/linode/linode.go",
+      "discovery/manager.go",
+      "discovery/marathon/marathon.go",
+      "discovery/moby/docker.go",
+      "discovery/moby/dockerswarm.go",
+      "discovery/moby/network_policy.go",
+      "discovery/nomad/nomad.go",
+      "discovery/openstack/openstack.go",
+      "discovery/outscale/outscale.go",
+      "discovery/ovhcloud/ovhcloud.go",
+      "discovery/puppetdb/puppetdb.go",
+      "discovery/scaleway/scaleway.go",
+      "discovery/stackit/server.go",
+      "discovery/stackit/stackit.go",
+      "discovery/triton/triton.go",
+      "discovery/uyuni/uyuni.go",
+      "discovery/vultr/vultr.go",
+      "discovery/xds/client.go",
+      "discovery/xds/kuma.go",
+      "discovery/xds/xds.go",
+      "discovery/zookeeper/zookeeper.go",
+      "notifier/alertmanagerset.go",
+      "notifier/manager.go",
+      "storage/remote/azuread/azuread.go",
+      "storage/remote/client.go",
+      "storage/remote/dial_context.go",
+      "storage/remote/googleiam/googleiam.go",
+      "storage/remote/storage.go",
+      "storage/remote/write.go",
+      "util/httppolicy/policy.go"
+    ]
+  },
+  {
+    "module": "github.com/prometheus/common",
+    "upstream_version": "v0.67.5",
+    "replacement": "./third_party/prometheus-common",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:pIgK94WWlQt1WLwAC5j2ynLaBRDiinoAb86HZHTUGI4=",
+    "upstream_go_mod_sum": "h1:SjE/0MzDEEAyrdr5Gqc6G+sXI67maCxzaT3A2+HqjUw=",
+    "patch": "./third_party/patches/prometheus-common.patch",
+    "modified_files": [
+      "config/http_config.go"
+    ]
+  },
+  {
+    "module": "github.com/prometheus/sigv4",
+    "upstream_version": "v0.4.1",
+    "replacement": "./third_party/prometheus-sigv4",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:EIc3j+8NBea9u1iV6O5ZAN8uvPq2xOIUPcqCTivHuXs=",
+    "upstream_go_mod_sum": "h1:eu+ZbRvsc5TPiHwqh77OWuCnWK73IdkETYY46P4dXOU=",
+    "patch": "./third_party/patches/prometheus-sigv4.patch",
+    "modified_files": [
+      "sigv4.go"
+    ]
+  },
+  {
+    "module": "golang.org/x/oauth2",
+    "upstream_version": "v0.36.0",
+    "replacement": "./third_party/oauth2",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:peZ/1z27fi9hUOFCAZaHyrpWG5lwe0RJEEEeH0ThlIs=",
+    "upstream_go_mod_sum": "h1:YDBUJMTkDnJS+A4BP4eZBjCqtokkg1hODuPjwiGPO7Q=",
+    "patch": "./third_party/patches/oauth2.patch",
+    "modified_files": [
+      "google/default.go",
+      "google/google.go"
+    ]
+  },
+  {
+    "module": "github.com/Azure/azure-sdk-for-go/sdk/azcore",
+    "upstream_version": "v1.21.1",
+    "replacement": "./third_party/azure-azcore",
+    "source": "fixed upstream non-test source snapshot including SDK auxiliary packages",
+    "upstream_sum": "h1:jHb/wfvRikGdxMXYV3QG/SzUOPYN9KEUUuC0Yd0/vC0=",
+    "upstream_go_mod_sum": "h1:pzBXCYn05zvYIrwLgtK8Ap8QcjRg+0i76tMQdWN6wOk=",
+    "patch": "./third_party/patches/azure-azcore.patch",
+    "modified_files": [
+      "runtime/transport_default_http_client.go"
+    ]
+  },
+  {
+    "module": "github.com/aws/aws-sdk-go-v2/config",
+    "upstream_version": "v1.32.18",
+    "replacement": "./third_party/aws-config",
+    "source": "committed vendor snapshot; only packages used by Categraf retained",
+    "upstream_sum": "h1:Hcia46bxhGgF3BaSnG8nSNCWmqTK6bj9xN9/FJ3WK6Q=",
+    "upstream_go_mod_sum": "h1:zEjCAYmxqDadH1WX8CdBvmLKhUEUVFgKRQG38zjDmrY=",
+    "patch": "./third_party/patches/aws-config.patch",
+    "modified_files": [
+      "load_options.go",
+      "provider.go",
+      "resolve_credentials.go"
+    ]
+  }
+]

@@ -1,9 +1,11 @@
 package snmp
 
 import (
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log"
 	"net"
+	"net/netip"
 	"net/url"
 	"strings"
 	"sync"
@@ -173,7 +175,16 @@ func (ins *Instance) up(slist *types.SampleList, i int, topTags map[string]strin
 
 	// icmp probe
 	if !ins.DisableICMPUp {
-		up, rtt, loss := Ping(host, 250)
+		family := "ip"
+		if u != nil {
+			switch u.Scheme {
+			case "udp6", "tcp6":
+				family = "ip6"
+			case "udp4", "tcp4":
+				family = "ip4"
+			}
+		}
+		up, rtt, loss := Ping(host, 250, family)
 		slist.PushSample(inputName, "icmp_up", up, etags)
 		slist.PushSample(inputName, "icmp_rtt", rtt, etags)
 		slist.PushSample(inputName, "icmp_packet_loss", loss, etags)
@@ -558,13 +569,13 @@ func (ins *Instance) getConnection(idx int) (snmpConnection, error) {
 	return &runtimeConnection{rt: rt, conn: gs}, nil
 }
 
-func Ping(ip string, timeout int) (up, rttAvg, loss float64) {
+func Ping(ip string, timeout int, networks ...string) (up, rttAvg, loss float64) {
 	var (
 		total = 4
 		lost  = 0
 	)
 	for i := 0; i < total; i++ {
-		rtt, err := fastPingRtt(ip, timeout)
+		rtt, err := fastPingRtt(ip, timeout, networks...)
 		if err != nil {
 			lost++
 			log.Printf("W! snmp ping %s error:%s", ip, err)
@@ -588,13 +599,17 @@ func Ping(ip string, timeout int) (up, rttAvg, loss float64) {
 	return
 }
 
-func fastPingRtt(ip string, timeout int) (float64, error) {
+func fastPingRtt(ip string, timeout int, networks ...string) (float64, error) {
 	var rt float64
 	rt = -1
 	p := fastping.NewPinger()
 
 	host := strings.TrimRight(strings.TrimLeft(ip, "["), "]")
-	ra, err := net.ResolveIPAddr("ip", host)
+	family := "ip"
+	if len(networks) > 0 {
+		family = networks[0]
+	}
+	ra, err := resolvePingTarget(host, family)
 	if err != nil {
 		return -1, err
 	}
@@ -620,4 +635,13 @@ func (ins *Instance) Drop() {
 			rt.close()
 		}
 	}
+}
+
+// Address literals and explicit SNMP families are also explicit ICMP probes.
+// Ordinary hostnames select the policy before their first lookup.
+func resolvePingTarget(host, network string) (*net.IPAddr, error) {
+	if _, err := netip.ParseAddr(host); err != nil {
+		network = netx.NetworkFromEnv(network)
+	}
+	return net.ResolveIPAddr(network, host)
 }

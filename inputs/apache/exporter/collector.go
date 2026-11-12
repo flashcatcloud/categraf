@@ -23,6 +23,8 @@ import (
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/version"
+
+	"flashcat.cloud/categraf/pkg/netx"
 )
 
 const (
@@ -203,11 +205,11 @@ func New(logger log.Logger, config *Config) (*Exporter, *Exporter) {
 			"Apache Proxy Balancer Request Count",
 			[]string{"balancer", "worker"}, nil,
 		),
-		client: &http.Client{
+		client: netx.HTTPClientFromEnv(&http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: config.Insecure},
 			},
-		},
+		}),
 		userAgent: fmt.Sprintf("Prometheus-Apache-Exporter/%s", version.Version),
 	}, nil
 }

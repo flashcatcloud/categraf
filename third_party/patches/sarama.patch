@@ -1,0 +1,36 @@
+--- a/gssapi_kerberos.go
++++ b/gssapi_kerberos.go
+@@ -31,6 +31,8 @@
+ )
+ 
+ type GSSAPIConfig struct {
++	// NetworkPolicy applies to KDC resolution and dialing for every authentication.
++	NetworkPolicy      func(string) string
+ 	AuthType           int
+ 	KeyTabPath         string
+ 	CCachePath         string
+--- a/kerberos_client.go
++++ b/kerberos_client.go
+@@ -39,19 +39,19 @@
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		client = krb5client.NewWithKeytab(config.Username, config.Realm, kt, cfg, krb5client.DisablePAFXFAST(config.DisablePAFXFAST))
++		client = krb5client.NewWithKeytab(config.Username, config.Realm, kt, cfg, krb5client.DisablePAFXFAST(config.DisablePAFXFAST), krb5client.NetworkPolicy(config.NetworkPolicy))
+ 	case KRB5_CCACHE_AUTH:
+ 		cc, err := credentials.LoadCCache(config.CCachePath)
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		client, err = krb5client.NewFromCCache(cc, cfg, krb5client.DisablePAFXFAST(config.DisablePAFXFAST))
++		client, err = krb5client.NewFromCCache(cc, cfg, krb5client.DisablePAFXFAST(config.DisablePAFXFAST), krb5client.NetworkPolicy(config.NetworkPolicy))
+ 		if err != nil {
+ 			return nil, err
+ 		}
+ 	default:
+ 		client = krb5client.NewWithPassword(config.Username,
+-			config.Realm, config.Password, cfg, krb5client.DisablePAFXFAST(config.DisablePAFXFAST))
++			config.Realm, config.Password, cfg, krb5client.DisablePAFXFAST(config.DisablePAFXFAST), krb5client.NetworkPolicy(config.NetworkPolicy))
+ 	}
+ 	return &KerberosGoKrb5Client{*client}, nil
+ }

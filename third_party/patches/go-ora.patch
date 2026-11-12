@@ -1,0 +1,57 @@
+--- a/connection.go
++++ b/connection.go
+@@ -102,6 +102,7 @@
+ }
+ 
+ type OracleConnector struct {
++	networkPolicy func(string) string
+ 	drv           *OracleDriver
+ 	connectString string
+ 	dialer        network.DialerContext
+@@ -128,6 +129,7 @@
+ 		conn.nStrConv = connector.drv.nStrConv.Clone()
+ 	}
+ 	conn.connOption.Dialer = connector.dialer
++	conn.connOption.NetworkPolicy = connector.networkPolicy
+ 	err = conn.OpenWithContext(ctx)
+ 	if err != nil {
+ 		return nil, err
+@@ -1317,3 +1319,6 @@
+ 	conn.tcpNego.ServerFlags |= 2
+ 	return nil
+ }
++
++// NetworkPolicy sets the family selector for future connections and redirects.
++func (c *OracleConnector) NetworkPolicy(policy func(string) string) { c.networkPolicy = policy }
+--- a/network/connect_option.go
++++ b/network/connect_option.go
+@@ -67,6 +67,7 @@
+ 	IntServiceLevel int
+ }
+ type ConnectionOption struct {
++	NetworkPolicy func(string) string
+ 	ClientInfo
+ 	DatabaseInfo
+ 	SessionInfo
+--- a/network/session.go
++++ b/network/session.go
+@@ -460,7 +460,7 @@
+ 		if len(session.Context.ConnOption.UnixAddress) > 0 {
+ 			session.conn, err = dialer.DialContext(ctx, "unix", session.Context.ConnOption.UnixAddress)
+ 		} else {
+-			session.conn, err = dialer.DialContext(ctx, "tcp", addr)
++			session.conn, err = dialer.DialContext(ctx, connectionNetwork(connOption, "tcp"), addr)
+ 		}
+ 
+ 		if err != nil {
+@@ -1878,3 +1878,10 @@
+ //	}
+ //	return
+ //}
++
++func connectionNetwork(option *ConnectionOption, network string) string {
++	if option.NetworkPolicy != nil {
++		return option.NetworkPolicy(network)
++	}
++	return network
++}

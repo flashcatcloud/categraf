@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for XML-RPC HTTP.
+# Restart to apply; scope and remaining work: docs/issue-1513-plugin-ipv4-implementation.md
 # Gathers information about processes that running under supervisor using XML-RPC API
 [[instances]]
 ## Url of supervisor's XML-RPC endpoint if basic auth enabled in supervisor http server,

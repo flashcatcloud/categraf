@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/pkg/netx"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -54,6 +55,7 @@ func (ins *Instance) InitConsulClient(ctx context.Context) error {
 	if ins.ConsulConfig.Agent != "" {
 		consulAPIConfig.Address = ins.ConsulConfig.Agent
 	}
+	consulAPIConfig.Transport = netx.HTTPTransportFromEnv(consulAPIConfig.Transport)
 	consul, err := api.NewClient(consulAPIConfig)
 	if err != nil {
 		return fmt.Errorf("cannot connect to the Consul agent: %w", err)

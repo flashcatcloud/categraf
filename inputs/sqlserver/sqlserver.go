@@ -1,8 +1,11 @@
 package sqlserver
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"flashcat.cloud/categraf/pkg/netx"
+	"net"
 	"time"
 
 	"fmt"
@@ -124,7 +127,7 @@ func (s *Instance) Init() error {
 			// empty username/password causes use of Windows
 			// integrated authentication.
 			var err error
-			pool, err = sql.Open("mssql", serv)
+			pool, err = openPoolFromEnv(serv)
 			if err != nil {
 				log.Println("E! open mssql error:", err)
 				continue
@@ -433,4 +436,21 @@ func (s *Instance) Drop() {
 	for _, pool := range s.pools {
 		_ = pool.Close()
 	}
+}
+
+func openPoolFromEnv(dsn string) (*sql.DB, error) {
+	pool, err := sql.Open("mssql", dsn)
+	if err != nil || !netx.PreferIPv4() {
+		return pool, err
+	}
+	// Reuse the registered mssql driver, including its query-text processing mode.
+	connector, err := pool.Driver().(*mssql.Driver).OpenConnector(dsn)
+	_ = pool.Close()
+	if err != nil {
+		return nil, err
+	}
+	resolver := net.DefaultResolver
+	connector.LookupIP = func(ctx context.Context, host string) ([]net.IP, error) { return resolver.LookupIP(ctx, "ip4", host) }
+	connector.NetworkPolicy = netx.NetworkPolicyFromEnv()
+	return sql.OpenDB(connector), nil
 }

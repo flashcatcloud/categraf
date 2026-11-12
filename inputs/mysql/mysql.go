@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"log"
 	"strings"
@@ -11,6 +12,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 )
@@ -58,6 +60,7 @@ type Instance struct {
 
 	validMetrics map[string]struct{}
 	dsn          string
+	connector    driver.Connector
 	tls.ClientConfig
 }
 
@@ -95,6 +98,15 @@ func (ins *Instance) Init() error {
 	}
 
 	ins.dsn = conf.FormatDSN()
+	ins.connector = nil
+	if netx.PreferIPv4() {
+		// ParseDSN has already filled the tcp defaults and TLS server name.
+		conf.Net = netx.NetworkFromEnv(conf.Net)
+		ins.connector, err = mysql.NewConnector(conf)
+		if err != nil {
+			return err
+		}
+	}
 
 	ins.InitValidMetrics()
 
@@ -201,7 +213,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 		slist.PushSample(inputName, "scrape_use_seconds", use, tags)
 	}(begun)
 
-	db, err := sql.Open("mysql", ins.dsn)
+	db, err := ins.openDB()
 	if err != nil {
 		slist.PushSample(inputName, "up", 0, tags)
 		log.Println("E! failed to open mysql:", err)
@@ -239,4 +251,11 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	ins.gatherBinaryLogs(slist, db, tags)
 	ins.gatherReplicaStatus(slist, db, tags)
 
+}
+
+func (ins *Instance) openDB() (*sql.DB, error) {
+	if ins.connector != nil {
+		return sql.OpenDB(ins.connector), nil
+	}
+	return sql.Open("mysql", ins.dsn)
 }

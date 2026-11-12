@@ -1,0 +1,94 @@
+--- a/load_options.go
++++ b/load_options.go
+@@ -23,6 +23,9 @@
+ // LoadOptions are discrete set of options that are valid for loading the
+ // configuration
+ type LoadOptions struct {
++	// EndpointCredentialLookupHost controls hostname validation before creating a
++	// container credential provider. Nil retains the SDK's original lookup.
++	EndpointCredentialLookupHost func(context.Context, string) ([]string, error)
+ 
+ 	// Region is the region to send requests to.
+ 	Region string
+@@ -1353,3 +1356,14 @@
+ 	}
+ 	return nil, false
+ }
++
++func (o LoadOptions) getEndpointCredentialLookupHost(context.Context) (func(context.Context, string) ([]string, error), bool, error) {
++	return o.EndpointCredentialLookupHost, o.EndpointCredentialLookupHost != nil, nil
++}
++
++// WithEndpointCredentialLookupHost supplies a per-load hostname lookup for HTTP
++// container credential validation. All returned addresses still undergo the
++// native loopback/ECS/EKS checks. It does not replace endpoint HTTP options.
++func WithEndpointCredentialLookupHost(lookup func(context.Context, string) ([]string, error)) LoadOptionsFunc {
++	return func(o *LoadOptions) error { o.EndpointCredentialLookupHost = lookup; return nil }
++}
+--- a/provider.go
++++ b/provider.go
+@@ -784,3 +784,19 @@
+ 	}
+ 	return v, found, err
+ }
++
++type endpointCredentialLookupHostProvider interface {
++	getEndpointCredentialLookupHost(context.Context) (func(context.Context, string) ([]string, error), bool, error)
++}
++
++func getEndpointCredentialLookupHost(ctx context.Context, configs configs) (lookup func(context.Context, string) ([]string, error), found bool, err error) {
++	for _, config := range configs {
++		if provider, ok := config.(endpointCredentialLookupHostProvider); ok {
++			lookup, found, err = provider.getEndpointCredentialLookupHost(ctx)
++			if err != nil || found {
++				break
++			}
++		}
++	}
++	return
++}
+--- a/resolve_credentials.go
++++ b/resolve_credentials.go
+@@ -283,12 +283,16 @@
+ //
+ // host can either be an IP address OR an unresolved hostname - resolution will
+ // be automatically performed in the latter case
+-func isAllowedHost(host string) (bool, error) {
++func isAllowedHost(host string, lookups ...func(string) ([]string, error)) (bool, error) {
+ 	if ip := net.ParseIP(host); ip != nil {
+ 		return isIPAllowed(ip), nil
+ 	}
+ 
+-	addrs, err := lookupHostFn(host)
++	lookup := lookupHostFn
++	if len(lookups) > 0 && lookups[0] != nil {
++		lookup = lookups[0]
++	}
++	addrs, err := lookup(host)
+ 	if err != nil {
+ 		return false, err
+ 	}
+@@ -312,6 +316,14 @@
+ func resolveLocalHTTPCredProvider(ctx context.Context, cfg *aws.Config, endpointURL, authToken string, configs configs) error {
+ 	var resolveErr error
+ 
++	lookup, _, err := getEndpointCredentialLookupHost(ctx, configs)
++	if err != nil {
++		return err
++	}
++	nativeLookup := lookupHostFn
++	if lookup != nil {
++		nativeLookup = func(host string) ([]string, error) { return lookup(ctx, host) }
++	}
+ 	parsed, err := url.Parse(endpointURL)
+ 	if err != nil {
+ 		resolveErr = fmt.Errorf("invalid URL, %w", err)
+@@ -320,7 +332,7 @@
+ 		if len(host) == 0 {
+ 			resolveErr = fmt.Errorf("unable to parse host from local HTTP cred provider URL")
+ 		} else if parsed.Scheme == "http" {
+-			if isAllowedHost, allowHostErr := isAllowedHost(host); allowHostErr != nil {
++			if isAllowedHost, allowHostErr := isAllowedHost(host, nativeLookup); allowHostErr != nil {
+ 				resolveErr = fmt.Errorf("failed to resolve host %q, %v", host, allowHostErr)
+ 			} else if !isAllowedHost {
+ 				resolveErr = fmt.Errorf("invalid endpoint host, %q, only loopback/ecs/eks hosts are allowed", host)

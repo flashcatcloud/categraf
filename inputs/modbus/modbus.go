@@ -3,6 +3,7 @@ package modbus
 import (
 	"context"
 	"errors"
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log/slog"
 	"net"
@@ -234,16 +235,34 @@ func (ins *Instance) initClient() error {
 		case "", "auto", "TCP":
 			handler := mb.NewTCPClientHandler(host + ":" + port)
 			handler.Timeout = time.Duration(ins.Timeout)
+			if netx.PreferIPv4() {
+				if handler.Dial == nil {
+					handler.Dial = (&net.Dialer{Timeout: handler.Timeout}).DialContext
+				}
+				handler.Dial = netx.DialFuncFromEnv(handler.Dial)
+			}
 			handler.Logger = tracelog
 			ins.handler = handler
 		case "RTUoverTCP":
 			handler := mb.NewRTUOverTCPClientHandler(host + ":" + port)
 			handler.Timeout = time.Duration(ins.Timeout)
+			if netx.PreferIPv4() {
+				if handler.Dial == nil {
+					handler.Dial = (&net.Dialer{Timeout: handler.Timeout}).DialContext
+				}
+				handler.Dial = netx.DialFuncFromEnv(handler.Dial)
+			}
 			handler.Logger = tracelog
 			ins.handler = handler
 		case "ASCIIoverTCP":
 			handler := mb.NewASCIIOverTCPClientHandler(host + ":" + port)
 			handler.Timeout = time.Duration(ins.Timeout)
+			if netx.PreferIPv4() {
+				if handler.Dial == nil {
+					handler.Dial = (&net.Dialer{Timeout: handler.Timeout}).DialContext
+				}
+				handler.Dial = netx.DialFuncFromEnv(handler.Dial)
+			}
 			handler.Logger = tracelog
 			ins.handler = handler
 		default:

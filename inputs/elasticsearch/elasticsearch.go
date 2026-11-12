@@ -26,6 +26,7 @@ import (
 	"flashcat.cloud/categraf/inputs/elasticsearch/pkg/clusterinfo"
 	"flashcat.cloud/categraf/inputs/elasticsearch/pkg/roundtripper"
 	"flashcat.cloud/categraf/pkg/filter"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 
@@ -379,43 +380,27 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 }
 
 func (ins *Instance) createHTTPClient() (*http.Client, error) {
-	var httpTransport http.RoundTripper
-	var err error
-	httpTransport = &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
-		MaxIdleConnsPerHost: 1,
-	}
-	if ins.ApiKey != "" {
-		httpTransport = &transportWithAPIKey{
-			underlyingTransport: httpTransport,
-			apiKey:              ins.ApiKey,
-		}
-	}
-
+	transport := &http.Transport{Proxy: http.ProxyFromEnvironment, MaxIdleConnsPerHost: 1}
 	if ins.UseTLS {
 		tlsConfig, err := ins.ClientConfig.TLSConfig()
 		if err != nil {
 			return nil, err
 		}
-		httpTransport = &http.Transport{
-			TLSClientConfig:     tlsConfig,
-			Proxy:               http.ProxyFromEnvironment,
-			MaxIdleConnsPerHost: 1,
-		}
+		transport.TLSClientConfig = tlsConfig
 	}
-
-	client := &http.Client{
-		Timeout:   time.Duration(ins.HTTPTimeout),
-		Transport: httpTransport,
+	// Configure the actual transport before adding authentication wrappers.
+	var roundTripper http.RoundTripper = netx.HTTPTransportFromEnv(transport)
+	if ins.ApiKey != "" {
+		roundTripper = &transportWithAPIKey{underlyingTransport: roundTripper, apiKey: ins.ApiKey}
 	}
 	if ins.AwsRegion != "" {
-		ins.Client.Transport, err = roundtripper.NewAWSSigningTransport(httpTransport, ins.AwsRegion, ins.AwsRoleArn)
+		signed, err := roundtripper.NewAWSSigningTransport(roundTripper, ins.AwsRegion, ins.AwsRoleArn)
 		if err != nil {
-			log.Println("E! failed to create AWS transport, err: ", err)
+			return nil, err
 		}
+		roundTripper = signed
 	}
-
-	return client, nil
+	return &http.Client{Timeout: time.Duration(ins.HTTPTimeout), Transport: roundTripper}, nil
 }
 
 func (ins *Instance) compileIndexMatchers() (map[string]filter.Filter, error) {

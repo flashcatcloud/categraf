@@ -3,6 +3,7 @@ package vsphere
 import (
 	"context"
 	"crypto/tls"
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log"
 	"net/url"
@@ -140,6 +141,17 @@ func NewClient(ctx context.Context, vSphereURL *url.URL, vs *Instance) (*Client,
 			return nil, err
 		}
 	}
+	// Keep SOAP's certificate/thumbprint callbacks and wrap the final transport
+	// before vim25.NewClient performs its first request.
+	if netx.PreferIPv4() {
+		soapClient.SetTransportConfigurer(netx.HTTPTransportConfigurerFromEnv())
+	}
+	initialized := false
+	defer func() {
+		if !initialized {
+			soapClient.CloseIdleConnections()
+		}
+	}()
 
 	ctx1, cancel1 := context.WithTimeout(ctx, time.Duration(vs.Timeout))
 	defer cancel1()
@@ -205,6 +217,7 @@ func NewClient(ctx context.Context, vSphereURL *url.URL, vs *Instance) (*Client,
 		log.Printf("W! Configured max_query_metrics is %d, but server limits it to %d. Reducing.", vs.MaxQueryMetrics, n)
 		vs.MaxQueryMetrics = n
 	}
+	initialized = true
 	return client, nil
 }
 

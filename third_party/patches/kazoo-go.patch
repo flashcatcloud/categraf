@@ -1,0 +1,34 @@
+--- a/kazoo.go
++++ b/kazoo.go
+@@ -54,7 +54,9 @@
+ 
+ 	// The amount of time the Zookeeper client can be disconnected from the Zookeeper cluster
+ 	// before the cluster will get rid of watches and ephemeral nodes. Defaults to 1 second.
+-	Timeout time.Duration
++	Timeout      time.Duration
++	HostProvider zk.HostProvider
++	Dialer       zk.Dialer
+ }
+ 
+ // NewConfig instantiates a new Config struct with sane defaults.
+@@ -68,7 +70,19 @@
+ 		conf = NewConfig()
+ 	}
+ 
+-	conn, _, err := zk.Connect(servers, conf.Timeout)
++	// zk's option type is private, so apply the combinations directly.
++	var conn *zk.Conn
++	var err error
++	switch {
++	case conf.HostProvider != nil && conf.Dialer != nil:
++		conn, _, err = zk.Connect(servers, conf.Timeout, zk.WithHostProvider(conf.HostProvider), zk.WithDialer(conf.Dialer))
++	case conf.HostProvider != nil:
++		conn, _, err = zk.Connect(servers, conf.Timeout, zk.WithHostProvider(conf.HostProvider))
++	case conf.Dialer != nil:
++		conn, _, err = zk.Connect(servers, conf.Timeout, zk.WithDialer(conf.Dialer))
++	default:
++		conn, _, err = zk.Connect(servers, conf.Timeout)
++	}
+ 	if err != nil {
+ 		return nil, err
+ 	}

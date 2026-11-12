@@ -50,3 +50,5 @@ The metric names and structures depend entirely on your `[[instances.metric]]` c
 Because the metrics collected via Jolokia are highly customizable (can be used to monitor Tomcat, JBoss, Kafka, or any custom business JMX metrics), you will need to build your own dashboards in Grafana or Nightingale based on the `name` prefixes and specific scenarios you configured.
 
 If you are using our provided example configurations (such as `tomcat.toml`, `kafka.toml`, `activemq.toml`, etc.), you can directly import the default dashboards provided for those specific components.
+
+`PREFER_IPV4_STACK=true` enables IPv4 for this plugin's HTTP connections. Restart Categraf to apply; IPv6-only targets fail without fallback. See the [implementation status and remaining paths](../../docs/issue-1513-plugin-ipv4-implementation.md).

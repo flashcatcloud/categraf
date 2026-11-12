@@ -1,0 +1,142 @@
+--- a/mssql.go
++++ b/mssql.go
+@@ -22,9 +22,9 @@
+ 
+ // ReturnStatus may be used to return the return value from a proc.
+ //
+-//   var rs mssql.ReturnStatus
+-//   _, err := db.Exec("theproc", &rs)
+-//   log.Printf("return status = %d", rs)
++//	var rs mssql.ReturnStatus
++//	_, err := db.Exec("theproc", &rs)
++//	log.Printf("return status = %d", rs)
+ type ReturnStatus int32
+ 
+ var driverInstance = &Driver{processQueryText: true}
+@@ -140,8 +140,10 @@
+ // In the future, settings that cannot be passed through a string DSN
+ // may be set directly on the connector.
+ type Connector struct {
+-	params msdsn.Config
+-	driver *Driver
++	LookupIP      func(context.Context, string) ([]net.IP, error)
++	NetworkPolicy func(string) string
++	params        msdsn.Config
++	driver        *Driver
+ 
+ 	fedAuthRequired     bool
+ 	fedAuthLibrary      int
+@@ -186,10 +188,26 @@
+ }
+ 
+ func (c *Connector) getDialer(p *msdsn.Config) Dialer {
+-	if c != nil && c.Dialer != nil {
+-		return c.Dialer
+-	}
+-	return createDialer(p)
++	if c == nil {
++		return createDialer(p)
++	}
++	d := c.Dialer
++	if d == nil {
++		d = createDialer(p)
++	}
++	if c.NetworkPolicy != nil {
++		return policyDialer{Dialer: d, network: c.NetworkPolicy}
++	}
++	return d
++}
++
++type policyDialer struct {
++	Dialer
++	network func(string) string
++}
++
++func (d policyDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
++	return d.Dialer.DialContext(ctx, d.network(network), address)
+ }
+ 
+ type Conn struct {
+@@ -861,12 +879,13 @@
+ // not a variable length type ok should return false.
+ // If length is not limited other than system limits, it should return math.MaxInt64.
+ // The following are examples of returned values for various types:
+-//   TEXT          (math.MaxInt64, true)
+-//   varchar(10)   (10, true)
+-//   nvarchar(10)  (10, true)
+-//   decimal       (0, false)
+-//   int           (0, false)
+-//   bytea(30)     (30, true)
++//
++//	TEXT          (math.MaxInt64, true)
++//	varchar(10)   (10, true)
++//	nvarchar(10)  (10, true)
++//	decimal       (0, false)
++//	int           (0, false)
++//	bytea(30)     (30, true)
+ func (r *Rows) ColumnTypeLength(index int) (int64, bool) {
+ 	return makeGoLangTypeLength(r.cols[index].ti)
+ }
+@@ -874,9 +893,10 @@
+ // It should return
+ // the precision and scale for decimal types. If not applicable, ok should be false.
+ // The following are examples of returned values for various types:
+-//   decimal(38, 4)    (38, 4, true)
+-//   int               (0, 0, false)
+-//   decimal           (math.MaxInt64, math.MaxInt64, true)
++//
++//	decimal(38, 4)    (38, 4, true)
++//	int               (0, 0, false)
++//	decimal           (math.MaxInt64, math.MaxInt64, true)
+ func (r *Rows) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
+ 	return makeGoLangTypePrecisionScale(r.cols[index].ti)
+ }
+@@ -1249,12 +1269,13 @@
+ // not a variable length type ok should return false.
+ // If length is not limited other than system limits, it should return math.MaxInt64.
+ // The following are examples of returned values for various types:
+-//   TEXT          (math.MaxInt64, true)
+-//   varchar(10)   (10, true)
+-//   nvarchar(10)  (10, true)
+-//   decimal       (0, false)
+-//   int           (0, false)
+-//   bytea(30)     (30, true)
++//
++//	TEXT          (math.MaxInt64, true)
++//	varchar(10)   (10, true)
++//	nvarchar(10)  (10, true)
++//	decimal       (0, false)
++//	int           (0, false)
++//	bytea(30)     (30, true)
+ func (r *Rowsq) ColumnTypeLength(index int) (int64, bool) {
+ 	return makeGoLangTypeLength(r.cols[index].ti)
+ }
+@@ -1262,9 +1283,10 @@
+ // It should return
+ // the precision and scale for decimal types. If not applicable, ok should be false.
+ // The following are examples of returned values for various types:
+-//   decimal(38, 4)    (38, 4, true)
+-//   int               (0, 0, false)
+-//   decimal           (math.MaxInt64, math.MaxInt64, true)
++//
++//	decimal(38, 4)    (38, 4, true)
++//	int               (0, 0, false)
++//	decimal           (math.MaxInt64, math.MaxInt64, true)
+ func (r *Rowsq) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
+ 	return makeGoLangTypePrecisionScale(r.cols[index].ti)
+ }
+--- a/tds.go
++++ b/tds.go
+@@ -854,7 +854,11 @@
+ 	var ips []net.IP
+ 	ip := net.ParseIP(p.Host)
+ 	if ip == nil {
+-		ips, err = net.LookupIP(p.Host)
++		if c != nil && c.LookupIP != nil {
++			ips, err = c.LookupIP(ctx, p.Host)
++		} else {
++			ips, err = net.LookupIP(p.Host)
++		}
+ 		if err != nil {
+ 			return
+ 		}

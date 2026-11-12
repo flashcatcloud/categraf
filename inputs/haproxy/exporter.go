@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
@@ -32,6 +31,8 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+
+	"flashcat.cloud/categraf/pkg/netx"
 )
 
 const (
@@ -323,15 +324,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 }
 
 func fetchHTTP(uri string, sslVerify, proxyFromEnv bool, timeout time.Duration) func() (io.ReadCloser, error) {
-	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: !sslVerify}}
-	if proxyFromEnv {
-		tr.Proxy = http.ProxyFromEnvironment
-	}
-	client := http.Client{
-		Timeout:   timeout,
-		Transport: tr,
-	}
-
+	client := newHTTPClient(sslVerify, proxyFromEnv, timeout)
 	return func() (io.ReadCloser, error) {
 		resp, err := client.Get(uri)
 		if err != nil {
@@ -345,9 +338,20 @@ func fetchHTTP(uri string, sslVerify, proxyFromEnv bool, timeout time.Duration) 
 	}
 }
 
+func newHTTPClient(sslVerify, proxyFromEnv bool, timeout time.Duration) *http.Client {
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: !sslVerify}}
+	if proxyFromEnv {
+		tr.Proxy = http.ProxyFromEnvironment
+	}
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: netx.HTTPTransportFromEnv(tr),
+	}
+}
+
 func fetchUnix(scheme, address, cmd string, timeout time.Duration) func() (io.ReadCloser, error) {
 	return func() (io.ReadCloser, error) {
-		f, err := net.DialTimeout(scheme, address, timeout)
+		f, err := netx.DialTimeout(scheme, address, timeout)
 		if err != nil {
 			return nil, err
 		}

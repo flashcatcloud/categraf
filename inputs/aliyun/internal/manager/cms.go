@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"encoding/json"
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log"
 	"strconv"
@@ -217,6 +218,9 @@ func NewCmsClient(key, secret, region, endpoint string) Option {
 			Endpoint:        &m.cms.endpoint,
 		}
 
+		if netx.PreferIPv4() {
+			config.HTTPClientPool = tea.NewClientPool(netx.HTTPTransportConfigurerFromEnv(), netx.NetworkPolicyFromEnv())
+		}
 		cms, err := cms20190101.NewClient(config)
 
 		if err != nil {
@@ -255,6 +259,9 @@ func NewCmsV2Client(key, secret, region, endpoint string) Option {
 		}
 
 		// 批量导出接口
+		if netx.PreferIPv4() {
+			config.HTTPClientPool = tea.NewClientPool(netx.HTTPTransportConfigurerFromEnv(), netx.NetworkPolicyFromEnv())
+		}
 		cmsv2, err := cms2021101.NewClient(config)
 		if err != nil {
 			return err

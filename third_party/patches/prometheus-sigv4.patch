@@ -1,0 +1,17 @@
+--- a/sigv4.go
++++ b/sigv4.go
+@@ -55,12 +55,12 @@
+ //
+ // Credentials for signing are retrieved using the the default AWS credential
+ // chain. If credentials cannot be found, an error will be returned.
+-func NewSigV4RoundTripper(cfg *SigV4Config, next http.RoundTripper) (http.RoundTripper, error) {
++func NewSigV4RoundTripper(cfg *SigV4Config, next http.RoundTripper, options ...func(*config.LoadOptions) error) (http.RoundTripper, error) {
+ 	if next == nil {
+ 		next = http.DefaultTransport
+ 	}
+ 
+-	awsConfig := []func(*config.LoadOptions) error{}
++	awsConfig := append([]func(*config.LoadOptions) error{}, options...)
+ 
+ 	if cfg.AccessKey != "" && cfg.SecretKey != "" {
+ 		awsConfig = append(awsConfig, config.WithCredentialsProvider(

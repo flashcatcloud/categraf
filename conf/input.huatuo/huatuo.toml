@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for HTTP.
+# Restart to apply; scope and remaining work: docs/issue-1513-plugin-ipv4-implementation.md
 # # collect metrics from huatuo instance
 # [[instances]]
 # # --- Mode 1: Local Sidecar (Process Management + Scrape) ---

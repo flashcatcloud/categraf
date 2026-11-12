@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"flashcat.cloud/categraf/pkg/grpcx"
 	"fmt"
 	"io"
 	"log"
@@ -71,6 +72,7 @@ func (h *handler) subscribeGNMI(ctx context.Context, slist *types.SampleList, tl
 		))
 	}
 
+	opts = append(opts, grpcx.DialOptionsFromEnv()...)
 	client, err := grpc.DialContext(ctx, h.address, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to dial: %w", err)

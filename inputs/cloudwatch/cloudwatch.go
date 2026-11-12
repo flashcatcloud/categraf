@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ import (
 	internalaws "flashcat.cloud/categraf/pkg/aws"
 	"flashcat.cloud/categraf/pkg/filter"
 	"flashcat.cloud/categraf/pkg/limiter"
+	"flashcat.cloud/categraf/pkg/netx"
 	internalProxy "flashcat.cloud/categraf/pkg/proxy"
 	"flashcat.cloud/categraf/pkg/stringx"
 	internalTypes "flashcat.cloud/categraf/types"
@@ -270,22 +272,7 @@ func (ins *Instance) initializeCloudWatch() error {
 			options.RateLimiter = ratelimit.NewTokenRateLimit(uint(ins.SdkRateLimitTokens))
 		})
 
-		options.HTTPClient = &http.Client{
-			// use values from DefaultTransport
-			Transport: &http.Transport{
-				Proxy: proxy,
-				DialContext: (&net.Dialer{
-					Timeout:   30 * time.Second,
-					KeepAlive: 30 * time.Second,
-					DualStack: true,
-				}).DialContext,
-				MaxIdleConns:          100,
-				IdleConnTimeout:       90 * time.Second,
-				TLSHandshakeTimeout:   10 * time.Second,
-				ExpectContinueTimeout: 1 * time.Second,
-			},
-			Timeout: time.Duration(ins.Timeout),
-		}
+		options.HTTPClient = ins.newHTTPClient(proxy)
 	})
 
 	// Initialize regex matchers for each Dimension value.
@@ -677,4 +664,23 @@ func isSelected(name string, metric types.Metric, dimensions []*Dimension) bool 
 		}
 	}
 	return true
+}
+
+func (ins *Instance) newHTTPClient(proxy func(*http.Request) (*url.URL, error)) *http.Client {
+	return netx.HTTPClientFromEnv(&http.Client{
+		// use values from DefaultTransport
+		Transport: &http.Transport{
+			Proxy: proxy,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+				DualStack: true,
+			}).DialContext,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
+		Timeout: time.Duration(ins.Timeout),
+	})
 }

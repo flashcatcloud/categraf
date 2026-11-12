@@ -1,0 +1,103 @@
+--- a/tea/tea.go
++++ b/tea/tea.go
+@@ -79,6 +79,7 @@
+ 
+ // RuntimeObject is used for converting http configuration
+ type RuntimeObject struct {
++	HTTPClientPool *ClientPool            `json:"-" xml:"-"`
+ 	IgnoreSSL      *bool                  `json:"ignoreSSL" xml:"ignoreSSL"`
+ 	ReadTimeout    *int                   `json:"readTimeout" xml:"readTimeout"`
+ 	ConnectTimeout *int                   `json:"connectTimeout" xml:"connectTimeout"`
+@@ -132,6 +133,9 @@
+ 		Cert:           TransInterfaceToString(runtime["cert"]),
+ 		CA:             TransInterfaceToString(runtime["ca"]),
+ 	}
++	if pool, ok := runtime["httpClientPool"].(*ClientPool); ok {
++		runtimeObject.HTTPClientPool = pool
++	}
+ 	if runtime["listener"] != nil {
+ 		runtimeObject.Listener = runtime["listener"].(utils.ProgressListener)
+ 	}
+@@ -329,12 +333,22 @@
+ 	}
+ 	httpRequest.Host = StringValue(request.Domain)
+ 
+-	client := getTeaClient(runtimeObject.getClientTag(StringValue(request.Domain)))
++	tag := runtimeObject.getClientTag(StringValue(request.Domain))
++	var client *teaClient
++	if runtimeObject.HTTPClientPool != nil {
++		client = runtimeObject.HTTPClientPool.get(tag)
++	} else {
++		client = getTeaClient(tag)
++	}
+ 	client.Lock()
+ 	if !client.ifInit {
+ 		trans, err := getHttpTransport(request, runtimeObject)
+ 		if err != nil {
++			client.Unlock()
+ 			return nil, err
++		}
++		if runtimeObject.HTTPClientPool != nil && runtimeObject.HTTPClientPool.configure != nil {
++			runtimeObject.HTTPClientPool.configure(trans)
+ 		}
+ 		client.httpClient.Timeout = time.Duration(IntValue(runtimeObject.ReadTimeout)) * time.Millisecond
+ 		client.httpClient.Transport = trans
+@@ -443,7 +457,11 @@
+ 					Password: password,
+ 				}
+ 			}
+-			dialer, err := proxy.SOCKS5(strings.ToLower(StringValue(runtime.Socks5NetWork)), socks5Proxy.String(), auth,
++			socksNetwork := strings.ToLower(StringValue(runtime.Socks5NetWork))
++			if runtime.HTTPClientPool != nil && runtime.HTTPClientPool.networkPolicy != nil {
++				socksNetwork = runtime.HTTPClientPool.networkPolicy(socksNetwork)
++			}
++			dialer, err := proxy.SOCKS5(socksNetwork, socks5Proxy.String(), auth,
+ 				&net.Dialer{
+ 					Timeout:   time.Duration(IntValue(runtime.ConnectTimeout)) * time.Millisecond,
+ 					DualStack: true,
+@@ -741,6 +759,9 @@
+ 		} else {
+ 			strs := strings.Split(name, ",")
+ 			name = strs[0]
++		}
++		if name == "-" {
++			continue
+ 		}
+ 		fieldValue := dataValue.FieldByName(field.Name)
+ 		if !fieldValue.IsValid() || fieldValue.IsNil() {
+@@ -1140,3 +1161,35 @@
+ func ToInt32(a *int) *int32 {
+ 	return Int32(int32(IntValue(a)))
+ }
++
++// ClientPool owns transports for a single SDK client and never changes the
++// process-wide default pool. Configure is called before each transport's use.
++type ClientPool struct {
++	clients       sync.Map
++	configure     func(*http.Transport)
++	networkPolicy func(string) string
++}
++
++func NewClientPool(configure func(*http.Transport), policies ...func(string) string) *ClientPool {
++	p := &ClientPool{configure: configure}
++	if len(policies) > 0 {
++		p.networkPolicy = policies[0]
++	}
++	return p
++}
++func (p *ClientPool) get(tag string) *teaClient {
++	if v, ok := p.clients.Load(tag); ok {
++		return v.(*teaClient)
++	}
++	v, _ := p.clients.LoadOrStore(tag, &teaClient{httpClient: &http.Client{}})
++	return v.(*teaClient)
++}
++func (p *ClientPool) CloseIdleConnections() {
++	p.clients.Range(func(_, value interface{}) bool {
++		client := value.(*teaClient)
++		client.Lock()
++		client.httpClient.CloseIdleConnections()
++		client.Unlock()
++		return true
++	})
++}

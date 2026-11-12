@@ -59,3 +59,20 @@ func DialTimeout(network, addr string, timeout time.Duration) (net.Conn, error) 
 func DialContextFromEnv(dialer *net.Dialer) func(context.Context, string, string) (net.Conn, error) {
 	return NewDialer(dialer).DialContext
 }
+
+// DialFuncFromEnv decorates an SDK's existing callback without replacing its
+// timeout, local address or connection setup. The policy is captured once.
+func DialFuncFromEnv(dial func(context.Context, string, string) (net.Conn, error)) func(context.Context, string, string) (net.Conn, error) {
+	if !PreferIPv4() {
+		return dial
+	}
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return dial(ctx, networkForIPv4(network, true), addr)
+	}
+}
+
+// NetworkPolicyFromEnv captures the family policy for a client's future dials.
+func NetworkPolicyFromEnv() func(string) string {
+	enabled := PreferIPv4()
+	return func(network string) string { return networkForIPv4(network, enabled) }
+}

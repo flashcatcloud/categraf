@@ -10,6 +10,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -66,11 +67,17 @@ func (b *Instance) Init() error {
 		return types.ErrInstancesEmpty
 	}
 
-	b.client = http.Client{
-		Timeout: time.Duration(b.Timeout),
-	}
+	b.client = *netx.HTTPClientFromEnv(&http.Client{Timeout: time.Duration(b.Timeout)})
 
 	return nil
+}
+
+func (b *Bind) Drop() {
+	for _, ins := range b.Instances {
+		if ins.client.Transport != nil && ins.client.Transport != http.DefaultTransport {
+			ins.client.CloseIdleConnections()
+		}
+	}
 }
 
 func (b *Instance) Gather(slist *types.SampleList) {

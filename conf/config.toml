@@ -59,10 +59,13 @@ chan_size = 1000000
 # upgrade downloads, logs (HTTP/TCP/SOCKS/Kafka and Docker/Kubelet discovery),
 # and clients using pkg/httpx or pkg/proxy (including http_response, NSQ,
 # JSON exporter, and the related x509_cert TCP paths).
+# Plugin HTTP, database/broker/cloud SDKs, KDC and ordinary protocol probes,
+# plus embedded Prometheus scrape/discovery/notify/remote storage, are connected.
+# See docs/issue-1513-plugin-ipv4-implementation.md for tests and explicit exceptions.
 # Only the exact string "true" enables it; restart Categraf after changing it.
 # IPv6-only targets on these paths fail without IPv6 fallback. Explicit network
-# families and IPv6/DNS monitoring retain their own settings. Independent input
-# clients and the embedded Prometheus subsystem are not all covered.
+# families and IPv6/DNS monitoring retain their own settings. Custom resolvers,
+# credential executables and proxy-side DNS retain their own contracts.
 # Proxy-side DNS and custom Kafka proxy dialers retain their own policy. Kafka
 # canonical bootstrap resolution uses A then PTR; combining canonical resolution
 # with a custom proxy and this IPv4 switch is rejected with a configuration error.

@@ -36,6 +36,7 @@ func (c *CredentialConfig) configWithRootCredentials() (awsV2.Config, error) {
 		configV2.WithRegion(c.Region),
 	}
 
+	options = append(options, HTTPClientOptionsFromEnv()...)
 	if c.Profile != "" {
 		options = append(options, configV2.WithSharedConfigProfile(c.Profile))
 	}

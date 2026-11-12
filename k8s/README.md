@@ -64,12 +64,19 @@ Only the exact string `true` enables this behavior. The supported paths are:
   log connections, Kubelet address discovery, and Kubelet HTTP requests.
 - Public `pkg/httpx` and `pkg/proxy` clients, including `http_response`, NSQ,
   JSON exporter, and the related `x509_cert` TCP paths.
+- The listed plugin HTTP/database/broker/cloud clients, their supported credential
+  connections, KDCs and ordinary protocol probes.
+- Embedded Prometheus scraping, discovery, notifications and remote storage,
+  including independent OAuth and supported cloud identity HTTP clients.
 
 IPv6-only targets on these paths fail without IPv6 fallback. Explicit address
-families and dedicated IPv6/DNS monitoring retain their own settings. Independent
-plugin clients, database/cloud SDKs, and the embedded Prometheus subsystem are
-not all covered; this switch does not guarantee that the entire Pod stops AAAA
-queries. See the [scope and implementation plan](../docs/issue-1513-ipv4-scope-and-fix-plan.md).
+families and dedicated IPv6/DNS monitoring retain their own settings. User-provided
+custom resolvers/dialers, external credential executables and explicitly
+configured DNS/IPv6 monitoring retain their contracts. Google experimental S2A
+and DirectPath combinations report an explicit unsupported-policy error. This
+switch does not guarantee that the entire Pod stops AAAA queries. See the [base scope](../docs/issue-1513-ipv4-scope-and-fix-plan.md) and
+[plugin implementation status](../docs/issue-1513-plugin-ipv4-implementation.md)
+for the per-path implementation, local tests and remaining deployment acceptance.
 
 With a proxy, the policy applies to the supported local connection to the proxy.
 DNS performed by the proxy and custom Kafka proxy dialers retain their own policy.

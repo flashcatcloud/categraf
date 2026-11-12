@@ -16,6 +16,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 	fcgiclient "github.com/tomasen/fcgi_client"
@@ -212,7 +213,7 @@ func (ins *Instance) gatherFCGI(addr, network string) (*http.Response, error) {
 	env["SERVER_SOFTWARE"] = "go / fcgiClient "
 	env["REMOTE_ADDR"] = "127.0.0.1"
 
-	fcgi, err := fcgiclient.Dial(network, networkAddr)
+	fcgi, err := fcgiclient.Dial(netx.NetworkFromEnv(network), networkAddr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect the url: %s, error: %s", addr, err)
 	}
@@ -248,10 +249,10 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		trans.TLSClientConfig = tlsCfg
 	}
 
-	client := &http.Client{
+	client := netx.HTTPClientFromEnv(&http.Client{
 		Transport: trans,
 		Timeout:   time.Duration(ins.ResponseTimeout),
-	}
+	})
 
 	if !ins.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

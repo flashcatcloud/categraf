@@ -15,6 +15,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 )
@@ -148,10 +149,10 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		trans.TLSClientConfig = tlsCfg
 	}
 
-	client := &http.Client{
+	client := netx.HTTPClientFromEnv(&http.Client{
 		Transport: trans,
 		Timeout:   time.Duration(ins.ResponseTimeout),
-	}
+	})
 
 	if !ins.FollowRedirects {
 		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

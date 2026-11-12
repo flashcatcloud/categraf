@@ -11,6 +11,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -48,6 +49,8 @@ func (pt *RocketMQ) GetInstances() []inputs.Instance {
 }
 
 type Instance struct {
+	client         *http.Client
+	ownedTransport *http.Transport
 	config.InstanceConfig
 	IgnoredTopics            []string `toml:"ignored_topics"`
 	RocketMQConsoleIPAndPort string   `toml:"rocketmq_console_ip_port"`
@@ -69,7 +72,7 @@ func (ins *Instance) Login() (string, error) {
 	// 设置Content-Type头
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := ins.client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -100,7 +103,20 @@ func (ins *Instance) Init() error {
 	if len(ins.RocketMQConsoleIPAndPort) == 0 {
 		return types.ErrInstancesEmpty
 	}
+	ins.client = netx.HTTPClientFromEnv(http.DefaultClient)
+	ins.ownedTransport = nil
+	if ins.client != http.DefaultClient {
+		// Only a standard Transport is cloned by HTTPClientFromEnv. An opaque
+		// user RoundTripper still belongs to the shared source client.
+		ins.ownedTransport, _ = ins.client.Transport.(*http.Transport)
+	}
 	return nil
+}
+
+func (ins *Instance) Drop() {
+	if ins.ownedTransport != nil {
+		ins.ownedTransport.CloseIdleConnections()
+	}
 }
 
 func (ins *Instance) Gather(slist *types.SampleList) {
@@ -118,7 +134,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	}
 
 	// 获取rocketmq集群中的topicNameList
-	topicNameArray := GetTopicNameList(ins.RocketMQConsoleIPAndPort, cookies)
+	topicNameArray := ins.GetTopicNameList(cookies)
 	if topicNameArray == nil {
 		log.Println("E! fail to get topic,please check config!")
 		return
@@ -160,7 +176,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 			continue
 		}
 
-		var data *ConsumerListByTopic = GetConsumerListByTopic(ins.RocketMQConsoleIPAndPort, topicName, cookies)
+		data := ins.GetConsumerListByTopic(topicName, cookies)
 
 		if data == nil {
 			continue
@@ -336,9 +352,9 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 
 }
 
-func GetTopicNameList(rocketmqConsoleIPAndPort string, cookies string) []string {
-	var url = consoleSchema + rocketmqConsoleIPAndPort + topicNameListPath
-	var content, err = doRequest(url, cookies)
+func (ins *Instance) GetTopicNameList(cookies string) []string {
+	var url = consoleSchema + ins.RocketMQConsoleIPAndPort + topicNameListPath
+	var content, err = ins.doRequest(url, cookies)
 	if err != nil {
 		log.Println("E! unable to get topic name list", err)
 		return nil
@@ -354,9 +370,9 @@ func GetTopicNameList(rocketmqConsoleIPAndPort string, cookies string) []string 
 	return jsonData.Data.TopicList
 }
 
-func GetConsumerListByTopic(rocketmqConsoleIPAndPort string, topicName string, cookies string) *ConsumerListByTopic {
-	var url = consoleSchema + rocketmqConsoleIPAndPort + queryConsumerByTopicPath + topicName
-	var content, err = doRequest(url, cookies)
+func (ins *Instance) GetConsumerListByTopic(topicName string, cookies string) *ConsumerListByTopic {
+	var url = consoleSchema + ins.RocketMQConsoleIPAndPort + queryConsumerByTopicPath + topicName
+	var content, err = ins.doRequest(url, cookies)
 	if err != nil {
 		log.Println("E! unable to get consumer list by topic", err)
 		return nil
@@ -372,7 +388,7 @@ func GetConsumerListByTopic(rocketmqConsoleIPAndPort string, topicName string, c
 	return jsonData
 }
 
-func doRequest(url string, cookies string) ([]byte, error) {
+func (ins *Instance) doRequest(url string, cookies string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -383,7 +399,7 @@ func doRequest(url string, cookies string) ([]byte, error) {
 		req.Header.Set("Cookie", cookies)
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := ins.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -396,4 +412,10 @@ func doRequest(url string, cookies string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+func (r *RocketMQ) Drop() {
+	for _, ins := range r.Instances {
+		ins.Drop()
+	}
 }

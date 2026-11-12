@@ -168,6 +168,9 @@ func (ins *Instance) args(url string, system string) []string {
 			args = append(args, "-i", ins.Interface)
 		}
 	}
+	if ins.ipv4Only && system != "darwin" && system != "freebsd" && system != "netbsd" && system != "openbsd" {
+		args = append(args, "-4")
+	}
 	args = append(args, url)
 	return args
 }

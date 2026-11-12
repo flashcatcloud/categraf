@@ -15,6 +15,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/filter"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
 )
@@ -115,13 +116,13 @@ func (ins *Instance) newHTTPClient() (*http.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parse jenkins config[%s]: %v", ins.URL, err)
 	}
-	return &http.Client{
+	return netx.HTTPClientFromEnv(&http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsCfg,
 			MaxIdleConns:    ins.MaxConnections,
 		},
 		Timeout: time.Duration(ins.ResponseTimeout),
-	}, nil
+	}), nil
 }
 
 // separate the client as dependency to use httptest Client for mocking

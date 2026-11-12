@@ -2,6 +2,7 @@ package googlecloud
 
 import (
 	"context"
+	"flashcat.cloud/categraf/pkg/googlex"
 	"fmt"
 	"log"
 	"time"
@@ -20,7 +21,8 @@ type (
 		config.InstanceConfig
 
 		GoogleCloudConfig
-		v3client *apiv3.MetricClient
+		v3client   *apiv3.MetricClient
+		authPolicy *googlex.Policy
 
 		// metric instance_name type
 		// resource: type instance_id project_id zone
@@ -64,7 +66,11 @@ func (f *metricCache) isValid() bool {
 	return f.metrics != nil && time.Since(f.built) < f.ttl
 }
 func (ins *Instance) Drop() {
+	if ins.v3client == nil {
+		return
+	}
 	err := ins.v3client.Close()
+	ins.authPolicy.Close()
 	if err != nil {
 		log.Println("W! close gcp client error:", err)
 	}
@@ -87,8 +93,11 @@ func (ins *Instance) Init() error {
 		opts = append(opts, option.WithCredentialsJSON([]byte(ins.CredentialsJSON)))
 	}
 	ctx := context.Background()
+	ins.authPolicy = googlex.FromEnv()
+	opts = append(opts, ins.authPolicy.Options()...)
 	client, err := apiv3.NewMetricClient(ctx, opts...)
 	if err != nil {
+		ins.authPolicy.Close()
 		return err
 	}
 	ins.v3client = client

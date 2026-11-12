@@ -1,0 +1,50 @@
+--- a/aws/transport/http/client.go
++++ b/aws/transport/http/client.go
+@@ -42,8 +42,9 @@
+ // of the BuildableClient. Only exported member values of the Transport and
+ // optional Dialer will be copied between copies of BuildableClient.
+ type BuildableClient struct {
+-	transport *http.Transport
+-	dialer    *net.Dialer
++	transportConfigurer func(*http.Transport)
++	transport           *http.Transport
++	dialer              *net.Dialer
+ 
+ 	initOnce sync.Once
+ 
+@@ -84,7 +85,7 @@
+ func (b *BuildableClient) build() {
+ 	b.client = wrapWithLimitedRedirect(&http.Client{
+ 		Timeout:   b.clientTimeout,
+-		Transport: b.GetTransport(),
++		Transport: b.configuredTransport(),
+ 	})
+ }
+ 
+@@ -93,6 +94,7 @@
+ 	cpy.transport = b.GetTransport()
+ 	cpy.dialer = b.GetDialer()
+ 	cpy.clientTimeout = b.clientTimeout
++	cpy.transportConfigurer = b.transportConfigurer
+ 
+ 	return cpy
+ }
+@@ -353,3 +355,18 @@
+ 
+ 	return resp, err
+ }
++
++// WithTransportConfigurer installs a per-client final transport policy. Copies
++// retain it, including SDK defaults-mode and metadata-service specializations.
++func (b *BuildableClient) WithTransportConfigurer(configure func(*http.Transport)) *BuildableClient {
++	cpy := b.clone()
++	cpy.transportConfigurer = configure
++	return cpy
++}
++func (b *BuildableClient) configuredTransport() *http.Transport {
++	tr := b.GetTransport()
++	if b.transportConfigurer != nil {
++		b.transportConfigurer(tr)
++	}
++	return tr
++}

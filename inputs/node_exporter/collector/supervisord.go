@@ -27,6 +27,8 @@ import (
 
 	"github.com/mattn/go-xmlrpc"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"flashcat.cloud/categraf/pkg/netx"
 )
 
 var (
@@ -64,6 +66,7 @@ func NewSupervisordCollector() (Collector, error) {
 		}
 	} else {
 		xrpc = xmlrpc.NewClient(*supervisordURL)
+		xrpc.HttpClient = netx.HTTPClientFromEnv(xrpc.HttpClient)
 	}
 
 	log.Println("W! this collector is deprecated and will be removed in the next major version release.")

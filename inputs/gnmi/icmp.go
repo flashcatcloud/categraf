@@ -2,6 +2,7 @@ package gnmi
 
 import (
 	"context"
+	"flashcat.cloud/categraf/pkg/netx"
 	"fmt"
 	"log"
 	"net"
@@ -57,7 +58,7 @@ func (p nativeICMPProbe) Probe(ctx context.Context, host string, o icmpOptions) 
 	if ip, err := netip.ParseAddr(host); err == nil {
 		address = net.IPAddr{IP: net.IP(ip.AsSlice()), Zone: ip.Zone()}
 	} else {
-		ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+		ips, err := netx.LookupIPAddr(ctx, host)
 		if err != nil {
 			return icmpResult{}, err
 		}

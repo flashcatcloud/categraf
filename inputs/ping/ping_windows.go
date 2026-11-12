@@ -90,6 +90,9 @@ func (ins *Instance) args(url string) []string {
 		args = append(args, "-w", strconv.FormatFloat(ins.Timeout*1000, 'f', 0, 64))
 	}
 
+	if ins.ipv4Only {
+		args = append(args, "-4")
+	}
 	args = append(args, url)
 
 	return args

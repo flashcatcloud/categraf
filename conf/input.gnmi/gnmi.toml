@@ -1,3 +1,5 @@
+# PREFER_IPV4_STACK=true selects IPv4 for gNMI gRPC and hostname ICMP probes; native gRPC proxy selection is retained.
+# Restart to apply; status and exceptions: docs/issue-1513-plugin-ipv4-implementation.md
 interval="1s"
 # gNMI telemetry input plugin
 [[instances]]

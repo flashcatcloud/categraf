@@ -10,6 +10,7 @@ import (
 	"path"
 	"time"
 
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/tls"
 )
 
@@ -106,10 +107,10 @@ func NewClient(address string, config *ClientConfig) (*Client, error) {
 		TLSClientConfig:       tlsConfig,
 	}
 
-	client := &http.Client{
+	client := netx.HTTPClientFromEnv(&http.Client{
 		Transport: transport,
 		Timeout:   config.ResponseTimeout,
-	}
+	})
 
 	return &Client{
 		URL:    address,

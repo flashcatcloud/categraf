@@ -26,6 +26,7 @@ import (
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
 	"flashcat.cloud/categraf/pkg/globpath"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/pkg/proxy"
 	commontls "flashcat.cloud/categraf/pkg/tls"
 	"flashcat.cloud/categraf/types"
@@ -315,11 +316,12 @@ func (ins *Instance) getCert(u *url.URL, timeout time.Duration) ([]*x509.Certifi
 	protocol := u.Scheme
 	switch u.Scheme {
 	case "udp", "udp4", "udp6":
-		raddr, err := net.ResolveUDPAddr(u.Scheme, u.Host)
+		network := netx.NetworkFromEnv(u.Scheme)
+		raddr, err := net.ResolveUDPAddr(network, u.Host)
 		if err != nil {
 			return nil, nil, err
 		}
-		ipConn, err := net.DialUDP(u.Scheme, nil, raddr)
+		ipConn, err := net.DialUDP(network, nil, raddr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -411,7 +413,7 @@ func (ins *Instance) getCert(u *url.URL, timeout time.Duration) ([]*x509.Certifi
 		}
 		return certs, nil, nil
 	case "smtp":
-		ipConn, err := net.DialTimeout("tcp", u.Host, timeout)
+		ipConn, err := netx.DialTimeout("tcp", u.Host, timeout)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -521,10 +523,10 @@ func (ins *Instance) createHTTPClient() (*http.Client, error) {
 		ResponseHeaderTimeout: time.Duration(ins.Timeout),
 	}
 
-	client := &http.Client{
+	client := netx.HTTPClientFromEnv(&http.Client{
 		Transport: tr,
 		Timeout:   time.Duration(ins.Timeout),
-	}
+	})
 	return client, nil
 }
 

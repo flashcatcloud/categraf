@@ -14,6 +14,7 @@ import (
 
 	"flashcat.cloud/categraf/config"
 	"flashcat.cloud/categraf/inputs"
+	"flashcat.cloud/categraf/pkg/netx"
 	"flashcat.cloud/categraf/types"
 )
 
@@ -80,7 +81,7 @@ func (i *Instance) Init() error {
 		jar, _ := cookiejar.New(nil)
 		i.Addresses[idx].baseURL = base
 		i.Addresses[idx].InitHTTPClientConfig()
-		i.Addresses[idx].client = &http.Client{
+		i.Addresses[idx].client = netx.HTTPClientFromEnv(&http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true,
@@ -88,7 +89,7 @@ func (i *Instance) Init() error {
 			},
 			Timeout: time.Duration(v.Timeout),
 			Jar:     jar,
-		}
+		})
 	}
 
 	return nil

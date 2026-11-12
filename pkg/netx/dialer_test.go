@@ -139,3 +139,29 @@ func TestDialContextFromEnvCancellationAndTimeout(t *testing.T) {
 		}
 	})
 }
+
+func TestDialFuncFromEnvCapturesPolicy(t *testing.T) {
+	t.Setenv("PREFER_IPV4_STACK", "true")
+	type contextKey struct{}
+	ctx := context.WithValue(context.Background(), contextKey{}, "original")
+	var gotNetwork string
+	callback := func(got context.Context, network, addr string) (net.Conn, error) {
+		if got != ctx || addr != "example.invalid:123" {
+			t.Error("callback context or address changed")
+		}
+		gotNetwork = network
+		return nil, context.Canceled
+	}
+	dial := DialFuncFromEnv(callback)
+	t.Setenv("PREFER_IPV4_STACK", "false")
+	for _, network := range []string{"tcp", "udp", "tcp6", "udp6", "unix"} {
+		_, err := dial(ctx, network, "example.invalid:123")
+		want := network
+		if network == "tcp" || network == "udp" {
+			want += "4"
+		}
+		if gotNetwork != want || err != context.Canceled {
+			t.Fatalf("network=%s err=%v", gotNetwork, err)
+		}
+	}
+}

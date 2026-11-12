@@ -35,3 +35,5 @@ These metrics are automatically tagged with `topic`, `consumerGroup`, `brokerNam
 ## Dashboards
 
 A basic companion Dashboard (`dashboard.json`) is provided in this directory to monitor critical RocketMQ consumer lags and observe overall offset states.
+
+`PREFER_IPV4_STACK=true` enables IPv4 for this plugin's HTTP connections. Restart Categraf to apply; IPv6-only targets fail without fallback. See the [implementation status and remaining paths](../../docs/issue-1513-plugin-ipv4-implementation.md).
