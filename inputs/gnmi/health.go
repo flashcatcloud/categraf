@@ -27,6 +27,11 @@ type sessionHealth struct {
 	lastUp     bool
 }
 
+type upReport struct {
+	at time.Time
+	up bool
+}
+
 func (s *sessionHealth) beginAttempt() uint64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -72,15 +77,10 @@ func (s *sessionHealth) finish(g uint64) {
 	s.state.Up = s.upSessions > 0
 }
 
-// report atomically reserves an emission; each device has its own cadence.
-func (s *sessionHealth) report(now time.Time, interval time.Duration) (bool, bool) {
+func (s *sessionHealth) isUp() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.reported && s.lastUp == s.state.Up && now.Sub(s.lastReport) < interval {
-		return false, false
-	}
-	s.reported, s.lastUp, s.lastReport = true, s.state.Up, now
-	return s.state.Up, true
+	return s.state.Up
 }
 func healthHost(address string) (string, error) {
 	host, port, err := net.SplitHostPort(address)
@@ -93,6 +93,25 @@ func healthHost(address string) (string, error) {
 	}
 	return host, nil
 }
+func (c *GNMI) Init() error {
+	if c.EnableEndpointUp {
+		if c.EndpointUpInterval < 0 {
+			return fmt.Errorf("endpoint_up_interval must not be negative")
+		}
+		if c.EndpointUpInterval == 0 {
+			c.EndpointUpInterval = config.Duration(30 * time.Second)
+		}
+	}
+	if c.ICMPMaxConcurrency < 0 {
+		return fmt.Errorf("icmp_max_concurrency must not be negative")
+	}
+	if c.ICMPMaxConcurrency == 0 {
+		c.ICMPMaxConcurrency = 10
+	}
+	c.endpointReports = make(map[string]upReport)
+	return nil
+}
+
 func (c *Instance) initHealth() error {
 	if c.GNMIUpInterval < 0 {
 		return fmt.Errorf("gnmi_up_interval must not be negative")
@@ -100,79 +119,122 @@ func (c *Instance) initHealth() error {
 	if c.GNMIUpInterval == 0 {
 		c.GNMIUpInterval = config.Duration(30 * time.Second)
 	}
-	if c.DisableGNMIUp {
-		return nil
-	}
-	// Session health observes gRPC sessions, so it must accept every target
-	// supported by the existing dialer, including resolver URIs.
+	// Keep observing even when instance reporting is disabled: the optional
+	// endpoint aggregate has an independent switch and reporting cadence.
 	c.health = make(map[string]*sessionHealth, len(c.Addresses))
-	for _, a := range c.Addresses {
-		c.health[a] = &sessionHealth{}
+	for _, address := range c.Addresses {
+		c.health[address] = &sessionHealth{}
 	}
 	return nil
 }
 
-// Keep the usual address label unless existing configuration owns that name.
-// Fallback names also avoid collisions after output label normalization.
-func (c *Instance) healthAddressTag() string {
-	used := map[string]bool{tagLabelReplacer.Replace(c.AgentHostTag): true}
-	for key := range c.GetLabels() {
+func healthIdentityTag(primary, fallback string, labels map[string]string, reserved ...string) string {
+	used := make(map[string]bool)
+	for key := range labels {
 		used[tagLabelReplacer.Replace(key)] = true
 	}
-	if !used["address"] {
-		return "address"
+	for _, key := range reserved {
+		used[tagLabelReplacer.Replace(key)] = true
 	}
-	// The pipeline appends global defaults before normalizing label names.
-	// Avoid aliases such as global "gnmi-target" alongside "gnmi_target".
 	if config.Config != nil {
 		for key := range config.Config.Global.Labels {
-			used[tagLabelReplacer.Replace(key)] = true
+			// Exact global defaults cannot replace an emitted label, but aliases
+			// would introduce duplicate names after output normalization.
+			if key != primary {
+				used[tagLabelReplacer.Replace(key)] = true
+			}
 		}
 	}
-	key := "gnmi_target"
+	if !used[primary] {
+		return primary
+	}
+	key := fallback
 	for suffix := 1; used[key]; suffix++ {
-		key = "gnmi_target_" + strconv.Itoa(suffix)
+		key = fallback + "_" + strconv.Itoa(suffix)
 	}
 	return key
 }
+
 func (c *Instance) healthLabels(address string) map[string]string {
-	labels := make(map[string]string)
 	host, err := healthHost(address)
 	if err != nil {
-		// A resolver URI need not identify a single host. Retain the target
-		// rather than rejecting it or emitting an empty host label.
 		host = address
 	}
-	labels["address"] = address
-	labels[c.AgentHostTag] = host
-	// Match the output pipeline: existing static labels take precedence.
-	for k, v := range c.GetLabels() {
-		labels[k] = v
+	labels := map[string]string{"address": address, c.AgentHostTag: host}
+	for key, value := range c.GetLabels() {
+		labels[key] = value
 	}
-	labels[c.healthAddressTag()] = address
+	tag := healthIdentityTag("address", "gnmi_target", c.GetLabels(), c.AgentHostTag)
+	labels[tag] = address
 	return labels
 }
+
 func unixSeconds(t time.Time) float64 {
 	if t.IsZero() {
 		return 0
 	}
 	return float64(t.UnixNano()) / 1e9
 }
+
+func (s *sessionHealth) report(now time.Time, interval time.Duration) (bool, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.reported && s.lastUp == s.state.Up && now.Sub(s.lastReport) < interval {
+		return false, false
+	}
+	s.reported, s.lastUp, s.lastReport = true, s.state.Up, now
+	return s.state.Up, true
+}
+
 func (c *Instance) gatherHealth(sl *types.SampleList, now time.Time) {
 	c.gatherICMP(sl, now)
 	if c.DisableGNMIUp {
 		return
 	}
-	for address, health := range c.health {
-		isUp, emit := health.report(now, time.Duration(c.GNMIUpInterval))
+	for address, session := range c.health {
+		up, emit := session.report(now, time.Duration(c.GNMIUpInterval))
 		if !emit {
 			continue
 		}
-		labels := c.healthLabels(address)
-		up := 0
-		if isUp {
-			up = 1
+		value := 0
+		if up {
+			value = 1
 		}
-		sl.PushSample(inputName, "up", up, labels)
+		sl.PushSample(inputName, "up", value, c.healthLabels(address))
+	}
+}
+
+func (c *GNMI) Gather(sl *types.SampleList) { c.gatherEndpointHealth(sl, time.Now()) }
+
+func (c *GNMI) gatherEndpointHealth(sl *types.SampleList, now time.Time) {
+	if !c.EnableEndpointUp {
+		return
+	}
+	states := make(map[string]bool)
+	for _, instance := range c.Instances {
+		if !instance.Initialized() {
+			continue
+		}
+		for address, session := range instance.health {
+			states[address] = states[address] || session.isUp()
+		}
+	}
+	for address := range c.endpointReports {
+		if _, exists := states[address]; !exists {
+			delete(c.endpointReports, address)
+		}
+	}
+	tag := healthIdentityTag("address", "gnmi_target", c.GetLabels())
+	for address, up := range states {
+		last, reported := c.endpointReports[address]
+		if reported && last.up == up && now.Sub(last.at) < time.Duration(c.EndpointUpInterval) {
+			continue
+		}
+		c.endpointReports[address] = upReport{at: now, up: up}
+		value := 0
+		if up {
+			value = 1
+		}
+		sl.PushSample(inputName, "endpoint_up", value, map[string]string{tag: address})
 	}
 }

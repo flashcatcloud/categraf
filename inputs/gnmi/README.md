@@ -35,7 +35,7 @@ problems, e.g. when getting an *empty metric-name warning*!
     redial = "10s"
 
   ## gRPC Maximum Message Size, default 4MB 
-    max_msg_size = "4194304"
+    max_msg_size = 4194304
 
   ## Enable to get the canonical path as field-name
   # canonical_field_names = false
@@ -182,9 +182,9 @@ open an issue with the response, your configuration and the metric you expect.
 
 ## Built-in session health
 
-The only built-in session metric is `gnmi_up`: 1 after a valid Update notification
+The instance session metric is `gnmi_up`: 1 after a valid Update notification
 or `sync_response=true` in the current session; 0 before confirmation, during
-reconnect, or after EOF/RPC/protocol error. Set `disable_gnmi_up = true` to disable it.
+reconnect, or after EOF/RPC/protocol error. Set `disable_gnmi_up = true` in that instance to disable it.
 
 `gnmi_up_interval = "30s"` controls reporting independently from telemetry.
 Omitted/zero uses 30 seconds; negative values are rejected. The first Gather
@@ -219,7 +219,7 @@ avoid removing the endpoint identity label when combining multiple targets.
 
 ## Optional built-in ICMP
 
-Set `enable_icmp = true` before subscription subtables. Defaults:
+Set `enable_icmp = true` inside each applicable `[[instances]]`, before subscription subtables. Defaults:
 `icmp_interval="30s"`, `icmp_timeout="3s"` (entire round including DNS),
 `icmp_count=3`, `icmp_packet_interval="200ms"`, `icmp_concurrency=10`,
 `icmp_privileged=true`. Omitted/zero options use defaults; negative values,
@@ -244,14 +244,22 @@ Results older than 2*interval+timeout are treated as stale and omit up/RTT/loss.
 Repeated Gather snapshots carry the original probe completion time separately.
 
 ICMP uses a bounded background worker pool, never blocks Gather, and never
-changes subscription state or triggers reconnects. Same-instance endpoints with
-the same normalized hostname share probes but retain separate endpoint identity labels.
+changes subscription state or triggers reconnects. Across initialized instances
+and local configuration files, the same normalized host and identical effective
+probe settings share one network round. The key includes count, timeout, packet
+interval, privilege, probe interval and instance concurrency. Different settings
+remain independent. Static labels and session reporting intervals do not affect
+deduplication. Each instance still emits its own address/host/static labels through
+its existing instance pipeline, at every Gather, including pending/failure samples.
+The shared pool has a plugin-level `icmp_max_concurrency` budget (default 10).
+Compatible targets also share their configured `icmp_concurrency` ceiling. These
+limits affect scheduling capacity; size them for the number of distinct probes.
 The first probe is spread over [0, interval); subsequent probes wait interval
-with +/-10% jitter after completion; no host has overlapping rounds. DNS is
+with +/-10% jitter after completion; no host/settings key has overlapping rounds. DNS is
 resolved each round; IPv4 is preferred, then IPv6, with stable sorting within a
-family. Only that selected address is tested; DNS aliases and separate instances
-do not share probes. IPv6 literals with zone are supported. ICMP requires a plain
-host:numeric-port target (bracketed IPv6 is supported). Other gRPC target forms
+family. Only that selected address is tested; DNS aliases do not share probes.
+IPv6 literals with zone are supported. ICMP requires a plain host:numeric-port
+target (bracketed IPv6 is supported). Other gRPC target forms
 are skipped with a startup warning; they emit probe_success=0 and a zero last-probe
 timestamp without up/RTT/loss metrics. Their telemetry and session health continue
 normally. Static label names remain unrestricted.
@@ -265,6 +273,30 @@ Implementation note: the ICMP backend uses the repository's existing
 `golang.org/x/net/icmp` directly. The locked pro-bing version cannot reliably
 bound all send retries, so it is not used by gNMI. Every write has a deadline;
 any send error invalidates the round. `icmp_count` must not exceed 65535.
+
+## Optional endpoint aggregate
+
+Existing `disable_gnmi_up`, `gnmi_up_interval` and ICMP options remain inside
+`[[instances]]`. Their defaults, metric names, address/agent-host labels, static
+labels, relabel rules and reporting cadence are preserved. Distinct instances
+using the same endpoint should keep distinct static labels.
+
+Set `enable_endpoint_up = true` at the plugin root, before the first instance,
+to additionally emit `gnmi_endpoint_up`. It reports one series per configured
+endpoint across initialized instances/files. The value is 1 while any session
+for that endpoint is confirmed and active, otherwise 0. It does not hide or
+replace an instance's `gnmi_up=0`. Instance `disable_gnmi_up` suppresses only the
+instance metric, not this explicitly enabled aggregate.
+
+`endpoint_up_interval` defaults to 30 seconds; negative values are rejected when
+the feature is enabled. The first plugin Gather and observed state changes emit
+immediately; stable state emits at the interval, bounded by plugin Gather cadence.
+The aggregate has independent report state and uses only plugin/global labels
+and relabel rules. Its identity normally uses `address`, falling back to an unused
+`gnmi_target`, `gnmi_target_1`, etc. on configured/normalized label collisions.
+A healthy aggregate does not guarantee that every subscription or business metric
+is healthy. Separate HTTP-delivered plugin objects and agent processes aggregate
+independently. With aggregation disabled (the default), no new metric is emitted.
 
 ## Complete configuration examples
 
@@ -374,3 +406,37 @@ the original key. Enable drop_source_key separately in each applicable tag
 subscription; it defaults to false. For output queues, add matching telemetry and
 tag subscriptions with input replaced by output. If using session health/ICMP,
 put those instance options before all subscription subtables.
+
+### Example 4: instance health plus an independent endpoint aggregate
+
+Adjust paths and authentication for your device. Both instances share the same
+ICMP round because their effective probe settings match. If the CPU session
+fails while the interface session remains active, their instance `gnmi_up`
+values are 0 and 1 respectively, while `gnmi_endpoint_up` remains 1.
+
+```toml
+interval = "1s"
+enable_endpoint_up = true
+endpoint_up_interval = "30s"
+icmp_max_concurrency = 10
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+labels = { subscription = "interfaces" }
+enable_icmp = true
+[[instances.subscription]]
+name = "interfaces"
+path = "/interfaces/interface/state/counters"
+subscription_mode = "sample"
+sample_interval = "15s"
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+labels = { subscription = "cpu" }
+enable_icmp = true
+[[instances.subscription]]
+name = "cpu"
+path = "/system/cpus/cpu/state"
+subscription_mode = "sample"
+sample_interval = "15s"
+```

@@ -54,7 +54,7 @@ func TestICMPMonitorBoundedAndCanceled(t *testing.T) {
 	// Snapshot/metric output must return while network probes remain blocked.
 	c := &Instance{Addresses: []string{"a:1"}, EnableICMP: true, DisableGNMIUp: true, AgentHostTag: "agent_host", icmp: m}
 	gatherDone := make(chan struct{})
-	go func() { c.gatherHealth(types.NewSampleList(), time.Now()); close(gatherDone) }()
+	go func() { c.gatherICMP(types.NewSampleList(), time.Now()); close(gatherDone) }()
 	select {
 	case <-gatherDone:
 	case <-time.After(time.Second):
@@ -75,7 +75,7 @@ func TestICMPMonitorDeduplicatesPorts(t *testing.T) {
 	if err := c.initICMP(); err != nil {
 		t.Fatal(err)
 	}
-	if len(c.icmp.hosts) != 1 {
+	if len(c.icmp.keys) != 1 {
 		t.Fatal("same host not deduplicated")
 	}
 	c.icmp.store("host", icmpResult{Sent: 3, Received: 3, AvgRTT: time.Millisecond}, nil, time.Unix(1, 0))
@@ -93,7 +93,7 @@ func TestICMPMonitorDeduplicatesPorts(t *testing.T) {
 	}
 }
 func TestICMPMonitorConcurrentSnapshots(t *testing.T) {
-	m := newICMPMonitor(nil, icmpOptions{Count: 3}, time.Second, 1, nil)
+	m := newICMPMonitor([]string{"a"}, icmpOptions{Count: 3}, time.Second, 1, nil)
 	var wg sync.WaitGroup
 	for i := 0; i < 8; i++ {
 		wg.Add(1)

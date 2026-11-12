@@ -111,8 +111,8 @@ func TestHealthLegacyTargetsAndICMPSkips(t *testing.T) {
 	if err := c.initICMP(); err != nil {
 		t.Fatal(err)
 	}
-	if len(c.icmp.hosts) != 1 || c.icmp.hosts[0] != "127.0.0.1" {
-		t.Fatalf("unsupported resolver target must not be probed: %v", c.icmp.hosts)
+	if len(c.icmp.keys) != 1 || c.icmp.keys[0] != "127.0.0.1" {
+		t.Fatalf("unsupported resolver target must not be probed: %v", c.icmp.keys)
 	}
 	now := time.Now()
 	c.icmp.store("127.0.0.1", icmpResult{Sent: 3, Received: 3, AvgRTT: time.Millisecond}, nil, now)

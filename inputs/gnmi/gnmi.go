@@ -40,7 +40,16 @@ var supportedExtensions = []string{"juniper_header"}
 type (
 	GNMI struct {
 		config.PluginConfig
-		Instances []*Instance
+		Instances          []*Instance
+		EnableEndpointUp   bool            `toml:"enable_endpoint_up"`
+		EndpointUpInterval config.Duration `toml:"endpoint_up_interval"`
+		ICMPMaxConcurrency int             `toml:"icmp_max_concurrency"`
+		icmp               *icmpMonitor
+		icmpMu             sync.Mutex
+		icmpCancel         context.CancelFunc
+		icmpDone           chan struct{}
+		icmpStopped        bool
+		endpointReports    map[string]upReport
 	}
 
 	Instance struct {
@@ -90,8 +99,9 @@ type (
 		ICMPCount          int             `toml:"icmp_count"`
 		ICMPConcurrency    int             `toml:"icmp_concurrency"`
 		ICMPPrivileged     *bool           `toml:"icmp_privileged"`
-		icmp               *icmpMonitor
 		health             map[string]*sessionHealth
+		icmp               *icmpMonitor
+		icmpTargets        map[string]string
 		dropOnce           sync.Once
 	}
 )
@@ -254,10 +264,6 @@ func (c *Instance) Init() error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancel = cancel
-	if c.icmp != nil {
-		c.wg.Add(1)
-		go func() { defer c.wg.Done(); c.icmp.run(ctx) }()
-	}
 	c.wg.Add(1)
 	go func() { defer c.wg.Done(); c.run(ctx) }()
 	return nil
@@ -436,7 +442,7 @@ func (c *Instance) Drop() {
 	})
 }
 
-// Gather plugin measurements (unused)
+// Forward telemetry and instance-level health snapshots.
 func (c *Instance) Gather(slist *types.SampleList) {
 	slist.PushFrontN(c.slist.PopBackAll())
 	c.gatherHealth(slist, time.Now())
@@ -459,12 +465,15 @@ func (c *GNMI) GetInstances() []inputs.Instance {
 }
 
 func (c *GNMI) Drop() {
+	c.stopICMP()
 	for _, instance := range c.Instances {
 		instance.Drop()
 	}
 }
 
 var _ inputs.SampleGatherer = new(Instance)
+var _ inputs.SampleGatherer = new(GNMI)
+var _ inputs.ServiceInput = new(GNMI)
 var _ inputs.Input = new(GNMI)
 var _ inputs.InstancesGetter = new(GNMI)
 

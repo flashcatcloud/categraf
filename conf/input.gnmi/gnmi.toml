@@ -1,4 +1,9 @@
 interval="1s"
+# Optional extra endpoint aggregate; instance gnmi_up remains unchanged.
+# enable_endpoint_up = false
+# endpoint_up_interval = "30s"
+# Shared ICMP worker budget across initialized instances.
+# icmp_max_concurrency = 10
 # gNMI telemetry input plugin
 [[instances]]
   ## Address and port of the gNMI GRPC server

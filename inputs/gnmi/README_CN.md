@@ -132,7 +132,7 @@ gNMI `SubscribeResponse` 的 Update 消息中，每个叶子节点 (Leaf) 的值
 
 ## 内置会话健康指标
 
-会话指标仅保留 `gnmi_up`：当前会话收到有效 Update 通知或 sync_response=true 后为 1；
+实例会话指标为 `gnmi_up`：当前会话收到有效 Update 通知或 sync_response=true 后为 1；
 启动未确认、重连或 EOF/RPC/协议错误后为 0。`disable_gnmi_up = true` 可关闭。
 
 在 `[[instances]]` 内、subscription 子表之前配置：
@@ -184,10 +184,15 @@ gnmi_up 就保持为 1，新建或失败的其他订阅不会覆盖正常会话�
 每次 Gather 重复读取最新完整快照，通过 last_probe 判断探测时间。
 
 ICMP 在后台有限 worker 中运行，不阻塞 Gather，不改变 gnmi_up，不触发重连。
-同实例同一规范化主机的不同端口共享探测，仍通过完整目标身份标签分别输出。
-首轮分散在 [0, interval)，后续按完成时间加 interval 和 ±10% 抖动调度，同主机不重入。
+跨已初始化实例和本地配置文件，相同规范化主机与完全一致的有效探测配置共享一轮网络探测。
+去重键包含包数、超时、包间隔、权限、探测周期和实例并发；不同配置独立探测。
+静态标签和会话上报周期不影响去重。各实例仍按每次 Gather 输出自己的完整端点、主机及静态标签，
+经过原实例级 relabel；尚未完成、失败和过期快照的输出语义不变。
+插件顶层 `icmp_max_concurrency` 控制共享池总并发，默认 10；相同配置组也共同遵守该组的
+`icmp_concurrency` 上限。请按独立探测数量配置足够的调度容量。
+首轮分散在 [0, interval)，后续按完成时间加 interval 和 ±10% 抖动调度，同主机与配置键不重入。
 每轮重新解析 DNS，优先 IPv4、其次 IPv6，各地址族内稳定排序选择一个地址；
-不表示全部解析地址均在线，也不跨 DNS 别名或实例去重。支持带 zone 的 IPv6 字面量。
+不表示全部解析地址均在线，不跨 DNS 别名去重。支持带 zone 的 IPv6 字面量。
 ICMP 要求普通 host:数字端口（IPv6 使用方括号）；其他 gRPC target 在启动时告警并跳过探测，
 只输出 probe_success=0 和为零的 last_probe 时间，不输出 up/RTT/loss。
 对应目标的业务采集和会话健康照常运行，不限制静态标签名称。
@@ -201,6 +206,24 @@ raw ICMP 需要运行账户具有相应权限，如 Linux CAP_NET_RAW 或 Window
 实现说明：gNMI 使用仓库已有的 `golang.org/x/net/icmp`，直接控制 socket 读写截止时间
 与取消关闭；不使用锁定版本 pro-bing 的无界发送重试。任一次发送错误都会使整轮无效。
 `icmp_count` 上限为 65535，避免 Echo 序号溢出。
+
+## 可选端点聚合指标
+
+原有 `disable_gnmi_up`、`gnmi_up_interval` 和 ICMP 参数继续配置在 `[[instances]]` 内，
+默认值、指标名、端点及主机标签、静态标签、实例 relabel 和上报周期保持不变。
+不同实例使用同一端点时，应保留可区分实例的静态标签。
+
+在插件顶层、第一个实例之前设置 `enable_endpoint_up = true`，额外输出 `gnmi_endpoint_up`。
+该指标跨已初始化实例和本地文件按完整端点聚合：任意会话已确认且仍存活时为 1，否则为 0。
+实例的 `gnmi_up=0` 仍会独立输出，不会被该汇总指标覆盖。
+实例 `disable_gnmi_up` 只关闭实例指标，不关闭已显式启用的端点聚合。
+
+`endpoint_up_interval` 默认 30 秒，启用时拒绝负值；首次插件 Gather 和观察到的状态变化立即上报，
+稳定状态按周期上报，实际频率受插件 Gather 周期约束。聚合有独立的上报计时，
+只使用插件级及全局标签和 relabel。端点身份通常使用 address；发生配置或规范化名称冲突时，
+选择未占用的 gnmi_target、gnmi_target_1 等名称。
+聚合在线不表示每条订阅或每项业务指标均正常。HTTP 下发的独立插件对象及不同进程分别聚合。
+默认不开启聚合，不增加新指标。
 
 ## 完整配置案例
 
@@ -310,3 +333,35 @@ drop_source_key = true
 原 key 保留。drop_source_key 必须在每段需要替换的 tag_subscription 内单独开启，默认 false。
 output 队列需增加对应业务订阅和标签订阅，将 input 改为 output。
 与 gnmi_up / ICMP 一起使用时，它们的实例级选项必须放在任何订阅子表之前。
+
+### 案例四：保留实例健康并额外开启端点聚合
+
+请按设备调整路径和认证。两个实例的有效 ICMP 参数相同，共享同一轮探测。
+若 CPU 会话断开但接口会话仍在线，各自 gnmi_up 分别为 0 和 1，gnmi_endpoint_up 仍为 1。
+
+```toml
+interval = "1s"
+enable_endpoint_up = true
+endpoint_up_interval = "30s"
+icmp_max_concurrency = 10
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+labels = { subscription = "interfaces" }
+enable_icmp = true
+[[instances.subscription]]
+name = "interfaces"
+path = "/interfaces/interface/state/counters"
+subscription_mode = "sample"
+sample_interval = "15s"
+
+[[instances]]
+addresses = ["192.0.2.10:50051"]
+labels = { subscription = "cpu" }
+enable_icmp = true
+[[instances.subscription]]
+name = "cpu"
+path = "/system/cpus/cpu/state"
+subscription_mode = "sample"
+sample_interval = "15s"
+```

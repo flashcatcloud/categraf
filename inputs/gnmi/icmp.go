@@ -7,10 +7,12 @@ import (
 	"net"
 	"net/netip"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"flashcat.cloud/categraf/config"
+	"flashcat.cloud/categraf/types"
 	"golang.org/x/net/icmp"
 )
 
@@ -122,26 +124,98 @@ func (c *Instance) initICMP() error {
 	if time.Duration(c.ICMPInterval) <= timeout || int64(c.ICMPCount-1) > int64(timeout/packet) || time.Duration(c.ICMPCount-1)*packet >= timeout {
 		return fmt.Errorf("ICMP round requires timeout > (count-1)*packet_interval and interval > timeout")
 	}
-	hosts := make([]string, 0, len(c.Addresses))
-	seen := map[string]bool{}
-	for _, a := range c.Addresses {
-		host, err := healthHost(a)
+	c.icmpTargets = make(map[string]string)
+	var hosts []string
+	seen := make(map[string]bool)
+	for _, address := range c.Addresses {
+		host, err := healthHost(address)
 		if err != nil {
-			// ICMP cannot infer a host for every gRPC resolver target. Do not
-			// let optional probing prevent an otherwise valid subscription.
-			log.Printf("W! gNMI ICMP: skipping target %q: %v", a, err)
+			log.Printf("W! gNMI ICMP: skipping target %q: %v", address, err)
 			continue
 		}
 		host = icmpHost(host)
+		c.icmpTargets[address] = host
 		if !seen[host] {
 			hosts = append(hosts, host)
 			seen[host] = true
 		}
 	}
-	privileged := true
-	if c.ICMPPrivileged != nil {
-		privileged = *c.ICMPPrivileged
-	}
-	c.icmp = newICMPMonitor(hosts, icmpOptions{c.ICMPCount, packet, timeout, privileged}, time.Duration(c.ICMPInterval), c.ICMPConcurrency, nativeICMPProbe{})
+	settings := c.icmpSettings()
+	c.icmp = newICMPMonitor(hosts, settings.options, settings.interval, settings.concurrency, nativeICMPProbe{})
 	return nil
+}
+
+func (c *Instance) icmpSettings() icmpSettings {
+	return icmpSettings{
+		options:  icmpOptions{Count: c.ICMPCount, PacketInterval: time.Duration(c.ICMPPacketInterval), Timeout: time.Duration(c.ICMPTimeout), Privileged: c.ICMPPrivileged == nil || *c.ICMPPrivileged},
+		interval: time.Duration(c.ICMPInterval), concurrency: c.ICMPConcurrency,
+	}
+}
+
+// Start is called by the input reader after instance initialization.
+func (c *GNMI) Start(_ *types.SampleList) error {
+	c.icmpMu.Lock()
+	defer c.icmpMu.Unlock()
+	if c.icmpStopped || c.icmpDone != nil {
+		return nil
+	}
+	c.icmp = c.newICMPMonitor()
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	c.icmpCancel, c.icmpDone = cancel, done
+	monitor := c.icmp
+	go func() {
+		defer close(done)
+		monitor.run(ctx)
+	}()
+	return nil
+}
+
+func (c *GNMI) stopICMP() {
+	c.icmpMu.Lock()
+	c.icmpStopped = true
+	cancel, done := c.icmpCancel, c.icmpDone
+	c.icmpMu.Unlock()
+	if cancel != nil {
+		cancel()
+		<-done
+	}
+}
+
+// Identical hosts share a probe only when their effective settings agree.
+// Report labels and cadence belong to consumers and are not part of the key.
+type icmpProbeKey struct {
+	host     string
+	settings icmpSettings
+}
+
+func (c *GNMI) newICMPMonitor() *icmpMonitor {
+	monitor := newICMPMonitor(nil, icmpOptions{}, 0, c.ICMPMaxConcurrency, nativeICMPProbe{})
+	seen := make(map[icmpProbeKey]string)
+	for _, instance := range c.Instances {
+		if !instance.Initialized() || !instance.EnableICMP {
+			continue
+		}
+		targets := make(map[string]string)
+		settings := instance.icmpSettings()
+		for _, address := range instance.Addresses {
+			host, err := healthHost(address)
+			if err != nil {
+				continue
+			}
+			host = icmpHost(host)
+			key := icmpProbeKey{host: host, settings: settings}
+			id, exists := seen[key]
+			if !exists {
+				id = strconv.Itoa(len(monitor.keys))
+				seen[key] = id
+				monitor.keys = append(monitor.keys, id)
+				monitor.targets[id] = icmpTarget{host: host, settings: settings}
+			}
+			targets[address] = id
+		}
+		instance.icmpTargets = targets
+		instance.icmp = monitor
+	}
+	return monitor
 }
