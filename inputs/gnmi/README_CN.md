@@ -152,9 +152,10 @@ gnmi_up_interval = "30s"
 `gnmi_up_interval` 上报。未配置或为零时默认 30 秒，负值报错。实际间隔受插件 Gather
 周期约束，两次 Gather 之间恢复的短暂故障可能不会反映在指标上。
 
-指标使用端点地址及插件级、全局标签处理，不继承实例级标签或 relabel 规则。请保证最终
-标签仍能区分不同地址。HTTP 下发的独立插件对象和不同 Categraf 进程分别汇总。
-业务采集及 ICMP 仍按原来的实例配置运行。
+指标使用端点地址及插件级、全局标签处理，不继承实例级标签或 relabel 规则。
+若插件标签占用 address，端点身份依次选择未占用的 gnmi_target、gnmi_target_1 等名称，
+并避让插件级、全局标签规范化后的名称，保留已有标签。请保证最终身份标签仍能区分不同地址。
+HTTP 下发的独立插件对象和不同 Categraf 进程分别汇总。业务采集仍按实例配置运行。
 
 ## 可选内置 ICMP
 
@@ -171,12 +172,15 @@ ICMP 默认关闭。请在第一个 `[[instances]]` 之前，与 `interval` 一�
 在下一次 Gather 上报。状态稳定时，到期只上报最新的新一轮结果。结果过期时只上报一次
 执行状态异常，不重复发送旧的在线状态、RTT 或丢包率。
 
-ICMP 指标按 `icmp_host` 标识主机。每轮上报 `gnmi_icmp_probe_success` 和
+ICMP 指标默认按 `icmp_host` 标识主机。若插件标签占用该名称，或全局 `icmp-host` 等别名
+规范化后会与其重名，则依次选择未占用的 `gnmi_icmp_host`、`gnmi_icmp_host_1` 等名称，
+保留已有标签。与正常全局标签优先级一致，全局同名 `icmp_host` 默认值不会覆盖已生成的主机身份。
+每轮上报 `gnmi_icmp_probe_success` 和
 `gnmi_icmp_last_probe_timestamp_seconds`。执行成功时还上报 `gnmi_icmp_up` 和
 `gnmi_icmp_packet_loss_ratio`，收到回复时才有 `gnmi_icmp_rtt_seconds`。
 正常执行但全丢包时，probe_success 为 1、up 为 0、丢包率为 1。执行失败或结果过期
 时，probe_success 为 0，省略在线状态、RTT 和丢包率。旧看板请从按 `address` 查询
-ICMP 改为按 `icmp_host` 查询。
+ICMP 改为按 `icmp_host` 查询；存在标签冲突时，使用实际生成的备用身份标签查询。
 
 ## 完整配置案例
 

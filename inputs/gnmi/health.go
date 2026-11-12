@@ -130,22 +130,28 @@ func (c *Instance) initHealth() error {
 	return nil
 }
 
-// Keep the usual address label unless existing configuration owns that name.
-// Fallback names also avoid collisions after output label normalization.
-func healthAddressTag(used map[string]bool) string {
-	if !used["address"] {
-		return "address"
+// Preserve target identity without replacing configured labels or introducing
+// duplicate names when the output pipeline normalizes label aliases.
+func (c *GNMI) healthIdentityTag(primary, fallback string) string {
+	used := make(map[string]bool)
+	for key := range c.GetLabels() {
+		used[tagLabelReplacer.Replace(key)] = true
 	}
-	// The pipeline appends global defaults before normalizing label names.
-	// Avoid aliases such as global "gnmi-target" alongside "gnmi_target".
 	if config.Config != nil {
 		for key := range config.Config.Global.Labels {
-			used[tagLabelReplacer.Replace(key)] = true
+			// An exact global default is already shadowed by the emitted
+			// identity. A differently spelled alias would create a duplicate.
+			if key != primary {
+				used[tagLabelReplacer.Replace(key)] = true
+			}
 		}
 	}
-	key := "gnmi_target"
+	if !used[primary] {
+		return primary
+	}
+	key := fallback
 	for suffix := 1; used[key]; suffix++ {
-		key = "gnmi_target_" + strconv.Itoa(suffix)
+		key = fallback + "_" + strconv.Itoa(suffix)
 	}
 	return key
 }
@@ -166,11 +172,7 @@ func (c *GNMI) gatherHealth(sl *types.SampleList, now time.Time) {
 		return
 	}
 	states := make(map[string]bool)
-	used := make(map[string]bool)
-	for key := range c.GetLabels() {
-		used[tagLabelReplacer.Replace(key)] = true
-	}
-	addressTag := healthAddressTag(used)
+	addressTag := c.healthIdentityTag("address", "gnmi_target")
 	for _, instance := range c.Instances {
 		if !instance.Initialized() {
 			continue

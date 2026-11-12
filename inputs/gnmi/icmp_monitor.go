@@ -156,7 +156,8 @@ func (c *GNMI) gatherICMP(sl *types.SampleList, now time.Time) {
 }
 
 func (c *GNMI) emitICMP(sl *types.SampleList, host string, snapshot icmpSnapshot, status icmpStatus) {
-	labels := map[string]string{"icmp_host": host}
+	hostTag := c.healthIdentityTag("icmp_host", "gnmi_icmp_host")
+	labels := map[string]string{hostTag: host}
 	success := 0
 	if status == icmpReachable || status == icmpUnreachable {
 		success = 1

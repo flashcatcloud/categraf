@@ -201,9 +201,12 @@ are invalid. Reporting is limited by the plugin Gather cadence. Both changes in
 a short outage between Gather calls may go unobserved.
 
 Health uses the endpoint address and plugin/global label processing, without
-instance labels or instance relabel rules. Keep `address` distinct in the final
-label set. Separate HTTP-delivered plugin objects and agent processes report
-independently. Business sampling and ICMP still run at instance level.
+instance labels or instance relabel rules. If a plugin label owns `address`,
+endpoint identity uses a free `gnmi_target`, `gnmi_target_1`, etc. instead.
+Configured labels are preserved, accounting for normalized plugin/global names.
+Keep the resulting identity label distinct in the final label set. Separate
+HTTP-delivered plugin objects and agent processes report independently. Business
+sampling remains at instance level.
 
 ## Optional built-in ICMP
 
@@ -225,13 +228,18 @@ and probe failure are sent on the next Gather. Stable results send only the late
 new round once the report interval has elapsed. An expired result emits one failure
 sample group, without repeating stale measurements.
 
-ICMP metrics use `icmp_host` instead of a gNMI endpoint address. A completed
-round emits `gnmi_icmp_probe_success` and `gnmi_icmp_last_probe_timestamp_seconds`.
+ICMP metrics normally use `icmp_host` instead of a gNMI endpoint address. If a
+plugin label owns that name, or a global alias such as `icmp-host` would normalize
+to it, host identity uses a free `gnmi_icmp_host`, `gnmi_icmp_host_1`, etc.
+Existing labels remain intact. An exact global `icmp_host` default does not
+override the emitted identity, matching normal global-label precedence.
+A completed round emits `gnmi_icmp_probe_success` and `gnmi_icmp_last_probe_timestamp_seconds`.
 A successful round adds `gnmi_icmp_up` and `gnmi_icmp_packet_loss_ratio`.
 All packets lost means probe success 1, up 0 and loss ratio 1. If a reply is
 received, `gnmi_icmp_rtt_seconds` is the round's average RTT. Execution errors
 and expired results omit reachability, loss and RTT. Update dashboard selectors
-from `address` to `icmp_host` when migrating ICMP queries.
+from `address` to `icmp_host` when migrating ICMP queries, or to the fallback
+identity label if your configured labels require one.
 
 ## Complete configuration examples
 
