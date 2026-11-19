@@ -193,7 +193,7 @@ func compareInt(a, b int64, opnd int) (bool, error) {
 	case 1:
 		return a > b, nil
 	default:
-		return false, errors.Errorf("unexpected operator type %q", opnd)
+		return false, errors.Errorf("unexpected operator type %d", opnd)
 	}
 }
 
@@ -206,7 +206,7 @@ func compareFloat(a, b float64, opnd int) (bool, error) {
 	case 1:
 		return a > b, nil
 	default:
-		return false, errors.Errorf("unexpected operator type %q", opnd)
+		return false, errors.Errorf("unexpected operator type %d", opnd)
 	}
 }
 
@@ -219,7 +219,7 @@ func compareString(a, b string, opnd int) (bool, error) {
 	case 1:
 		return a > b, nil
 	default:
-		return false, errors.Errorf("unexpected operator type %q", opnd)
+		return false, errors.Errorf("unexpected operator type %d", opnd)
 	}
 }
 

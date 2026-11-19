@@ -126,7 +126,7 @@ func (ins *Instance) Gather(slist *types.SampleList) {
 	// Get the list of interfaces
 	interfaces, err := ins.command.Interfaces(ins.includeNamespaces)
 	if err != nil {
-		log.Printf("E! gather interfaces:[%q] error:[%s]", interfaces, err)
+		log.Printf("E! gather interfaces:[%+v] error:[%s]", interfaces, err)
 		return
 	}
 

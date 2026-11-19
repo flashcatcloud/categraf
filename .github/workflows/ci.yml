@@ -42,7 +42,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
       - name: Tidy Go modules
         run: go mod tidy
       - name: Verify PR lint baseline
@@ -76,7 +76,7 @@ jobs:
           fetch-depth: 1
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
       - name: make vendor
         run: make vendor-ci
       - name: go build linux
@@ -91,7 +91,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
       - name: Verify tidy dependency closure
         run: go mod tidy -diff
       - name: Verify pinned SDK patches
@@ -131,7 +131,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
       - name: Test real Windows named-pipe transport
         env:
           PREFER_IPV4_STACK: ${{ matrix.ipv4 }}
