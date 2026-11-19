@@ -35,12 +35,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Run GoReleaser
+      - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: "v2.15.2"
-          args: release --clean --timeout 60m
+          install-only: true
+      - name: Run GoReleaser
+        run: bash scripts/ci/run-goreleaser.sh release --clean --timeout 60m
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DING_TALK_TOKEN: ${{ secrets.DING_TALK_TOKEN }}

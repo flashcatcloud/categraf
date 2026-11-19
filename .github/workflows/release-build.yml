@@ -1,0 +1,39 @@
+name: Release Build Check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - '.goreleaser.yaml'
+      - '.github/workflows/release.yaml'
+      - '.github/workflows/release-build.yml'
+      - 'scripts/ci/run-goreleaser.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  release-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install libpcap
+        run: sudo apt-get update && sudo apt-get install -y libpcap-dev
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "v2.15.2"
+          install-only: true
+      # Exercise every release build, including CGO/DCGM, slim, and Windows arm64.
+      # The build command does not publish releases, containers, or announcements.
+      - name: Build all release binaries
+        run: bash scripts/ci/run-goreleaser.sh build --snapshot --clean --timeout 60m
