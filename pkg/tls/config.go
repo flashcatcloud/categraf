@@ -153,7 +153,7 @@ func (c *ServerConfig) TLSConfig() (*tls.Config, error) {
 
 	if tlsConfig.MinVersion != 0 && tlsConfig.MaxVersion != 0 && tlsConfig.MinVersion > tlsConfig.MaxVersion {
 		return nil, fmt.Errorf(
-				"tls min version %q can't be greater than tls max version %q", c.TLSMinVersion, c.TLSMaxVersion)
+			"tls min version %q can't be greater than tls max version %q", c.TLSMinVersion, c.TLSMaxVersion)
 	}
 
 	// Since clientAuth is tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
